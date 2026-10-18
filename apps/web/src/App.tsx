@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Providers } from './app/providers';
 import { useAuthStore } from './lib/auth-store';
 import { api } from './lib/api';
+import { applyRemoteResources, type RemoteI18nPayload } from './lib/i18n';
+import { useLocaleStore, type LocaleInfo } from './lib/locale-store';
 import './blocks';
 
 import { AdminLayout } from './layouts/AdminLayout';
@@ -68,6 +70,30 @@ function MainApp() {
   useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [catalogRes, i18nRes] = await Promise.all([
+          api.get<{ locales: LocaleInfo[] }>('/api/v1/public/locales'),
+          api.get<RemoteI18nPayload>('/api/v1/public/i18n'),
+        ]);
+        if (cancelled) return;
+        applyRemoteResources(i18nRes);
+        useLocaleStore.getState().set({
+          catalog: catalogRes.locales,
+          enabled: i18nRes.locales,
+          defaultLocale: i18nRes.defaultLocale,
+        });
+      } catch {
+        /* sin i18n remota se usan los fallback definidos */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <BrowserRouter>

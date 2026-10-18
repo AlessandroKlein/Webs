@@ -20,10 +20,15 @@ export function registerDefaultSections(): void {
         logoDarkUrl: { type: 'string', format: 'uri', title: 'URL del logo (oscuro)' },
         iconUrl: { type: 'string', format: 'uri', title: 'URL del icono' },
         faviconUrl: { type: 'string', format: 'uri', title: 'URL del favicon' },
-        defaultLocale: { type: 'string', enum: ['es', 'en'], title: 'Idioma por defecto' },
+        defaultLocale: { type: 'string', enum: ['es', 'en', 'pt'], title: 'Idioma por defecto' },
+        languages: {
+          type: 'array',
+          title: 'Idiomas habilitados',
+          items: { type: 'string', enum: ['es', 'en', 'pt'] },
+        },
       },
     },
-    defaults: { name: 'Webs', tagline: '', defaultLocale: 'es' },
+    defaults: { name: 'Webs', tagline: '', defaultLocale: 'es', languages: ['es'] },
   });
 
   registerSettingSection({

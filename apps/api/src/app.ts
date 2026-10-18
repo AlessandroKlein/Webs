@@ -27,6 +27,7 @@ import auditRoutes from './modules/audit';
 import blocksRoutes from './modules/blocks';
 import setupRoutes from './modules/setup';
 import emailRoutes, { startQueueProcessor } from './modules/email';
+import i18nRoutes from './modules/i18n';
 
 import { registerBlocks } from './blocks/loader';
 
@@ -85,6 +86,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(auditRoutes, { prefix: API_PREFIX });
   await app.register(blocksRoutes, { prefix: API_PREFIX });
   await app.register(emailRoutes, { prefix: API_PREFIX });
+  await app.register(i18nRoutes, { prefix: API_PREFIX });
 
   // 6. Bloques instalados (cargan sus plugins, rutas, settings, slots y permisos).
   await registerBlocks(app);

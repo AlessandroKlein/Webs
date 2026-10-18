@@ -70,6 +70,32 @@ function SchemaField({
     );
   }
 
+  if (schema.type === 'array') {
+    const items = Array.isArray(schema.items) ? schema.items[0] : schema.items;
+    const options = items?.enum ?? [];
+    const current = Array.isArray(value) ? value : [];
+    return (
+      <div className="field">
+        <label>{label}</label>
+        <div className="stack">
+          {options.map((opt) => (
+            <label key={String(opt)} className="row" style={{ gap: 'var(--ws-space-2)' }}>
+              <input
+                type="checkbox"
+                checked={current.includes(opt)}
+                onChange={(e) => {
+                  const next = e.target.checked ? [...current, opt] : current.filter((v) => v !== opt);
+                  onChange(next);
+                }}
+              />
+              <span>{String(opt)}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (schema.type === 'boolean') {
     return (
       <label className="row" style={{ gap: 'var(--ws-space-2)', marginBottom: 'var(--ws-space-4)' }}>

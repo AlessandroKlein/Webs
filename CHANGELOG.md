@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.4.0] - 2026-10-18
+
+### Añadido
+
+- **Selección de idiomas + carga bajo demanda**: el administrador elige qué
+  idiomas habilita (uno o varios) en la instalación o en Ajustes; el frontend
+  descarga únicamente los recursos de esos idiomas (`GET /api/v1/public/i18n`).
+- Catálogo de idiomas en `@webs/i18n` con `es`, `en` y `pt`.
+- Soporte de arrays (multi-selección) en el formulario auto-generado (SchemaForm).
+
 ## [0.3.0] - 2026-10-18
 
 ### Añadido

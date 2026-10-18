@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme, type ThemeMode } from '@webs/ui';
 import { useAuthStore } from '../lib/auth-store';
 import { setLocale } from '../lib/i18n';
+import { useLocaleStore } from '../lib/locale-store';
 
 export function AdminLayout() {
   const { t, i18n } = useTranslation();
@@ -10,6 +11,8 @@ export function AdminLayout() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const catalog = useLocaleStore((s) => s.catalog);
+  const enabledLocales = useLocaleStore((s) => s.enabled);
 
   const nav = [
     { to: '/', label: t('nav.dashboard'), end: true, perm: null as string | null },
@@ -63,8 +66,13 @@ export function AdminLayout() {
               onChange={(e) => void setLocale(e.target.value)}
               aria-label={t('lang.label')}
             >
-              <option value="es">{t('lang.es')}</option>
-              <option value="en">{t('lang.en')}</option>
+              {catalog
+                .filter((l) => enabledLocales.includes(l.code))
+                .map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.nativeLabel}
+                  </option>
+                ))}
             </select>
           </div>
 

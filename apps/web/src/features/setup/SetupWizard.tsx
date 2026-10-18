@@ -25,7 +25,8 @@ interface SetupForm {
     logoDarkUrl: string;
     iconUrl: string;
     faviconUrl: string;
-    defaultLocale: 'es' | 'en';
+    defaultLocale: 'es' | 'en' | 'pt';
+    languages: string[];
   };
   smtp: {
     enabled: boolean;
@@ -63,6 +64,7 @@ const initialForm: SetupForm = {
     iconUrl: '',
     faviconUrl: '',
     defaultLocale: 'es',
+    languages: ['es'],
   },
   smtp: {
     enabled: false,
@@ -82,6 +84,12 @@ const initialForm: SetupForm = {
 };
 
 const STEPS = ['Bienvenida', 'Base de datos', 'Sitio', 'Correo (SMTP)', 'Cuenta de administrador', 'Instalar'];
+
+const AVAILABLE_LANGUAGES = [
+  { code: 'es', label: 'Español' },
+  { code: 'en', label: 'English' },
+  { code: 'pt', label: 'Português' },
+];
 
 export function SetupWizard() {
   const [step, setStep] = useState(0);
@@ -175,10 +183,32 @@ function WelcomeStep({ form, set }: { form: SetupForm; set: SetupWizardSet }) {
       </p>
       <div className="field" style={{ maxWidth: 240 }}>
         <label>Idioma por defecto</label>
-        <select className="input" value={form.site.defaultLocale} onChange={(e) => set('site', { defaultLocale: e.target.value as 'es' | 'en' })}>
+        <select className="input" value={form.site.defaultLocale} onChange={(e) => set('site', { defaultLocale: e.target.value as 'es' | 'en' | 'pt' })}>
           <option value="es">Español</option>
           <option value="en">English</option>
+          <option value="pt">Português</option>
         </select>
+      </div>
+      <div className="field">
+        <label>Idiomas habilitados (uno o varios)</label>
+        <p className="muted">Solo se cargan los recursos de los idiomas que elijas.</p>
+        <div className="row" style={{ gap: 'var(--ws-space-4)' }}>
+          {AVAILABLE_LANGUAGES.map((l) => (
+            <label key={l.code} className="row" style={{ gap: 'var(--ws-space-2)' }}>
+              <input
+                type="checkbox"
+                checked={form.site.languages.includes(l.code)}
+                onChange={(e) => {
+                  const next = e.target.checked
+                    ? [...form.site.languages, l.code]
+                    : form.site.languages.filter((c) => c !== l.code);
+                  set('site', { languages: next.length > 0 ? next : [form.site.defaultLocale] });
+                }}
+              />
+              <span>{l.label}</span>
+            </label>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -338,6 +368,7 @@ function buildPayload(form: SetupForm) {
       iconUrl: form.site.iconUrl || undefined,
       faviconUrl: form.site.faviconUrl || undefined,
       defaultLocale: form.site.defaultLocale,
+      languages: form.site.languages,
     },
     smtp: {
       enabled: form.smtp.enabled,
