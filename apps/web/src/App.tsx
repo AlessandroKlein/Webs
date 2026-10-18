@@ -23,6 +23,7 @@ import { EmailPage } from './features/email/EmailPage';
 import { TranslationsPage } from './features/translations/TranslationsPage';
 import { AuditPage } from './features/audit/AuditPage';
 import { ApiTokensPage } from './features/api-tokens/ApiTokensPage';
+import { AccountPage } from './features/account/AccountPage';
 import { PublicHome } from './features/public/PublicHome';
 import { SetupWizard } from './features/setup/SetupWizard';
 
@@ -123,6 +124,7 @@ function MainApp() {
           <Route path="translations" element={<TranslationsPage />} />
           <Route path="audit" element={<AuditPage />} />
           <Route path="api-tokens" element={<ApiTokensPage />} />
+          <Route path="account" element={<AccountPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

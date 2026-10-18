@@ -123,7 +123,7 @@ export function registerDefaultSections(): void {
         host: { type: 'string', title: 'Servidor SMTP' },
         port: { type: 'integer', title: 'Puerto', default: 587 },
         user: { type: 'string', title: 'Usuario' },
-        password: { type: 'string', title: 'Contraseña', 'x-ui': { widget: 'password' } },
+        password: { type: 'string', title: 'Contraseña', 'x-ui': { widget: 'password', secret: true } },
         from: { type: 'string', title: 'Remitente (from)' },
         secure: { type: 'boolean', title: 'Usar SSL/TLS (secure)' },
       },

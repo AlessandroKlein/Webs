@@ -1,5 +1,7 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import type { FastifyInstance } from 'fastify';
+import { decryptSecretFields } from '../../lib/crypto';
+import { getSettingSection } from '../settings/registry';
 
 /**
  * Envío de correo vía SMTP. La configuración se lee de la sección de ajustes
@@ -18,7 +20,9 @@ export interface SmtpSettings {
 
 export async function getSmtpSettings(fastify: FastifyInstance): Promise<SmtpSettings> {
   const setting = await fastify.prisma.setting.findUnique({ where: { key: 'smtp' } });
-  return (setting?.value as SmtpSettings | undefined) ?? {};
+  const raw = (setting?.value as Record<string, unknown> | undefined) ?? {};
+  const section = getSettingSection('smtp');
+  return decryptSecretFields(section?.schema, raw) as SmtpSettings;
 }
 
 export function createTransport(settings: SmtpSettings): Transporter | null {

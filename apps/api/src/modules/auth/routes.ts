@@ -120,7 +120,15 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       if (!profile) {
         return { user: null };
       }
-      return { user: toPublicUser(profile), permissions: profile.permissions };
+      const user = await fastify.prisma.user.findUnique({
+        where: { id: request.user.sub },
+        select: { twoFactorEnabled: true },
+      });
+      return {
+        user: toPublicUser(profile),
+        permissions: profile.permissions,
+        twoFactorEnabled: user?.twoFactorEnabled ?? false,
+      };
     },
   );
 

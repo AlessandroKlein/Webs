@@ -3,6 +3,17 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.11.0] - 2026-10-18
+
+### Añadido
+
+- **Bloqueo de cuenta** por intentos fallidos de login (5 intentos → 15 min), a
+  nivel de cuenta (además del rate limit por IP).
+- **Códigos de respaldo para 2FA** (de un solo uso) y página **Mi cuenta** para
+  activar/desactivar 2FA con QR/clave + códigos.
+- **Cifrado por campo aplicado**: la contraseña SMTP (y campos `x-ui.secret`) se
+  cifran automáticamente al guardar y se descifran al leer.
+
 ## [0.10.0] - 2026-10-18
 
 ### Añadido

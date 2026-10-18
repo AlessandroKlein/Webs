@@ -10,7 +10,7 @@ import {
 } from '../mail/service';
 import type { AccessTokenPayload } from '../../types/auth';
 import { emitEvent } from '../email/events';
-import { verifyCode } from './two-factor';
+import { verifyTwoFactorCode } from './two-factor';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15; // 15 minutos
 export const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
@@ -55,6 +55,9 @@ export async function createSession(
 
 export type LoginResult = UserProfile | { twoFactorRequired: true };
 
+const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+
 export async function login(
   fastify: FastifyInstance,
   email: string,
@@ -65,16 +68,41 @@ export async function login(
   if (!user || !user.active) {
     throw new UnauthorizedError('Correo o contraseña inválidos');
   }
+
+  // Bloqueo por intentos fallidos (fuerza bruta a nivel cuenta).
+  if (user.lockedUntil && user.lockedUntil > new Date()) {
+    throw new UnauthorizedError('Cuenta bloqueada temporalmente por intentos fallidos');
+  }
+
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
+    const attempts = user.failedLoginAttempts + 1;
+    if (attempts >= MAX_FAILED_LOGIN_ATTEMPTS) {
+      await fastify.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: 0, lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) },
+      });
+    } else {
+      await fastify.prisma.user.update({
+        where: { id: user.id },
+        data: { failedLoginAttempts: attempts },
+      });
+    }
     throw new UnauthorizedError('Correo o contraseña inválidos');
+  }
+
+  // Credenciales correctas: reinicia el contador de fallos.
+  if (user.failedLoginAttempts > 0 || user.lockedUntil) {
+    await fastify.prisma.user.update({
+      where: { id: user.id },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
+    });
   }
 
   if (user.twoFactorEnabled) {
     if (!totp) return { twoFactorRequired: true };
-    if (!user.twoFactorSecret || !verifyCode(user.twoFactorSecret, totp)) {
-      throw new UnauthorizedError('Código de verificación inválido');
-    }
+    const ok = await verifyTwoFactorCode(fastify, user.id, totp);
+    if (!ok) throw new UnauthorizedError('Código de verificación inválido');
   }
 
   const profile = await findUserWithPermissions(fastify, user.id);

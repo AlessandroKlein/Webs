@@ -36,6 +36,7 @@ export const en: Record<string, string> = {
   'nav.seo': 'SEO',
   'nav.audit': 'Audit log',
   'nav.api': 'API Tokens',
+  'nav.account': 'My account',
 
   'auth.login': 'Sign in',
   'auth.logout': 'Sign out',

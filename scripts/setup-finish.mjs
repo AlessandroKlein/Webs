@@ -13,10 +13,22 @@
  */
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { createCipheriv, createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const prisma = new PrismaClient();
+
+/** Cifra un valor con AES-256-GCM usando ENCRYPTION_KEY (si está definida). */
+function encryptSecret(value) {
+  const secret = process.env.ENCRYPTION_KEY;
+  if (!secret || !value) return value;
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', createHash('sha256').update(secret).digest(), iv);
+  const encrypted = Buffer.concat([cipher.update(value, 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return [iv.toString('base64'), tag.toString('base64'), encrypted.toString('base64')].join('.');
+}
 
 // Mantener en sincronía con apps/api/prisma/seed.ts.
 const PERMISSIONS = [
@@ -147,11 +159,13 @@ async function main() {
     create: { key: 'site', value: payload.site, schemaKey: 'site' },
   });
 
-  // 5. Configuración SMTP.
+  // 5. Configuración SMTP (cifra la contraseña si ENCRYPTION_KEY está definida).
+  const smtpValue = { ...payload.smtp };
+  if (smtpValue.password) smtpValue.password = encryptSecret(smtpValue.password);
   await prisma.setting.upsert({
     where: { key: 'smtp' },
-    update: { value: payload.smtp, schemaKey: 'smtp' },
-    create: { key: 'smtp', value: payload.smtp, schemaKey: 'smtp' },
+    update: { value: smtpValue, schemaKey: 'smtp' },
+    create: { key: 'smtp', value: smtpValue, schemaKey: 'smtp' },
   });
 
   console.log('✔ Instalación completada');

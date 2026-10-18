@@ -1,6 +1,7 @@
 import Ajv from 'ajv';
 import type { FastifyInstance } from 'fastify';
 import { NotFoundError, ValidationError } from '@webs/core';
+import { decryptSecretFields, encryptSecretFields } from '../../lib/crypto';
 import { getSettingSection, getSettingSections } from './registry';
 import { registerDefaultSections } from './sections';
 
@@ -21,12 +22,13 @@ export async function getSectionValue(fastify: FastifyInstance, key: string) {
 
   const setting = await fastify.prisma.setting.findUnique({ where: { key } });
   const stored = (setting?.value as Record<string, unknown>) ?? {};
+  const merged = { ...section.defaults, ...stored };
   return {
     key: section.key,
     group: section.group,
     schema: section.schema,
     defaults: section.defaults,
-    value: { ...section.defaults, ...stored },
+    value: decryptSecretFields(section.schema, merged),
   };
 }
 
@@ -35,13 +37,16 @@ export async function listSections(fastify: FastifyInstance) {
   const stored = await fastify.prisma.setting.findMany({ where: { key: { in: keys } } });
   const byKey = new Map(stored.map((s) => [s.key, s.value as Record<string, unknown>]));
 
-  return getSettingSections().map((section) => ({
-    key: section.key,
-    group: section.group,
-    schema: section.schema,
-    defaults: section.defaults,
-    value: { ...section.defaults, ...(byKey.get(section.key) ?? {}) },
-  }));
+  return getSettingSections().map((section) => {
+    const merged = { ...section.defaults, ...(byKey.get(section.key) ?? {}) };
+    return {
+      key: section.key,
+      group: section.group,
+      schema: section.schema,
+      defaults: section.defaults,
+      value: decryptSecretFields(section.schema, merged),
+    };
+  });
 }
 
 export async function setSectionValue(
@@ -64,10 +69,12 @@ export async function setSectionValue(
     throw new ValidationError('Valor de ajustes inválido', details);
   }
 
+  const toStore = encryptSecretFields(section.schema, value as Record<string, unknown>);
+
   await fastify.prisma.setting.upsert({
     where: { key },
-    update: { value: value as object, schemaKey: key, updatedById: actorId ?? null },
-    create: { key, value: value as object, schemaKey: key, updatedById: actorId ?? null },
+    update: { value: toStore as object, schemaKey: key, updatedById: actorId ?? null },
+    create: { key, value: toStore as object, schemaKey: key, updatedById: actorId ?? null },
   });
 
   return { key, value };

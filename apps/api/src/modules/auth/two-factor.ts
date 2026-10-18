@@ -1,5 +1,7 @@
 import { authenticator } from 'otplib';
+import { createHash, randomBytes } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import { UnauthorizedError } from '@webs/core';
 
 /**
@@ -39,16 +41,22 @@ export async function setupTwoFactor(
   return { secret, otpauthUrl: otpauthUrl(user.email, secret) };
 }
 
-/** Confirma el código TOTP y activa 2FA. */
+/** Confirma el código TOTP, activa 2FA y genera códigos de respaldo. */
 export async function confirmTwoFactor(
   fastify: FastifyInstance,
   userId: string,
   code: string,
-): Promise<void> {
+): Promise<{ backupCodes: string[] }> {
   const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
   if (!user?.twoFactorSecret) throw new UnauthorizedError('No hay 2FA pendiente de activación');
   if (!verifyCode(user.twoFactorSecret, code)) throw new UnauthorizedError('Código inválido');
-  await fastify.prisma.user.update({ where: { id: userId }, data: { twoFactorEnabled: true } });
+
+  const { codes, hashes } = generateBackupCodes();
+  await fastify.prisma.user.update({
+    where: { id: userId },
+    data: { twoFactorEnabled: true, twoFactorBackupCodes: hashes },
+  });
+  return { backupCodes: codes };
 }
 
 /** Desactiva 2FA (exige un código TOTP válido). */
@@ -62,6 +70,39 @@ export async function disableTwoFactor(
   if (!verifyCode(user.twoFactorSecret, code)) throw new UnauthorizedError('Código inválido');
   await fastify.prisma.user.update({
     where: { id: userId },
-    data: { twoFactorEnabled: false, twoFactorSecret: null },
+    data: { twoFactorEnabled: false, twoFactorSecret: null, twoFactorBackupCodes: Prisma.JsonNull },
   });
+}
+
+function hashCode(code: string): string {
+  return createHash('sha256').update(code).digest('hex');
+}
+
+function generateBackupCodes(count = 8): { codes: string[]; hashes: string[] } {
+  const codes = Array.from({ length: count }, () => randomBytes(4).toString('hex').toUpperCase());
+  return { codes, hashes: codes.map(hashCode) };
+}
+
+/**
+ * Verifica el código 2FA: acepta TOTP o un código de respaldo (que se consume).
+ */
+export async function verifyTwoFactorCode(
+  fastify: FastifyInstance,
+  userId: string,
+  code: string,
+): Promise<boolean> {
+  const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
+  if (!user?.twoFactorEnabled) return true;
+  if (user.twoFactorSecret && verifyCode(user.twoFactorSecret, code)) return true;
+
+  const hashes = (user.twoFactorBackupCodes as string[] | null) ?? [];
+  const hash = hashCode(code);
+  if (hashes.includes(hash)) {
+    await fastify.prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorBackupCodes: hashes.filter((h) => h !== hash) },
+    });
+    return true;
+  }
+  return false;
 }

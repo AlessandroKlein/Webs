@@ -33,7 +33,7 @@ export function LoginPage() {
         setTwoFactorRequired(true);
         setError('Ingresá el código de tu aplicación de autenticación');
       } else {
-        setError(err instanceof ApiClientError ? t('auth.invalidCredentials') : t('common.error'));
+        setError(err instanceof ApiClientError ? err.message : t('common.error'));
       }
     } finally {
       setLoading(false);

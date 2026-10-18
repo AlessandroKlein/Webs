@@ -26,6 +26,7 @@ export function AdminLayout() {
     { to: '/translations', label: t('nav.translations'), perm: 'translation.read' },
     { to: '/audit', label: t('nav.audit'), perm: 'audit.read' },
     { to: '/api-tokens', label: t('nav.api'), perm: 'apiToken.read' },
+    { to: '/account', label: t('nav.account'), perm: null },
   ].filter((item) => item.perm === null || hasPermission(item.perm));
 
   return (

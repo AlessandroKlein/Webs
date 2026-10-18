@@ -13,6 +13,10 @@ aplicadas (organizadas por categoría) y cómo activar las opcionales.
   sensibles (documentos, teléfonos, direcciones) antes de guardarlas. Requiere
   la variable `ENCRYPTION_KEY` (`openssl rand -hex 32`).
 
+  Aplicado automáticamente a campos marcados como secretos en el esquema de
+  ajustes (ej. la **contraseña SMTP**, vía `x-ui.secret`): se cifran al guardar y
+  se descifran al leer.
+
   ```ts
   import { encrypt, decrypt } from '../lib/crypto';
   await prisma.cliente.create({ data: { telefono: encrypt(body.telefono) } });
@@ -34,6 +38,8 @@ aplicadas (organizadas por categoría) y cómo activar las opcionales.
 - **Rate limiting global** (`@fastify/rate-limit`).
 - **Rate limiting específico** en endpoints sensibles: login (10/15 min),
   registro, recuperación y restablecimiento de contraseña (5/15 min).
+- **Bloqueo de cuenta**: tras 5 intentos fallidos de login, la cuenta se bloquea
+  temporalmente (15 min), además del rate limit por IP.
 - **WAF**: en producción, activá Cloudflare (Managed Rules, anti-bot) delante del
   servidor.
 
@@ -47,7 +53,8 @@ aplicadas (organizadas por categoría) y cómo activar las opcionales.
 
 - **Cookies**: `HttpOnly` + `SameSite=Lax` + `Secure` (configurable).
 - **Tokens**: JWT de acceso (15 min) + refresh token opaco hasheado con rotación.
-- **2FA / TOTP**: autenticación de dos factores con Google Authenticator/Authy.
+- **2FA / TOTP**: autenticación de dos factores con Google Authenticator/Authy,
+  con **códigos de respaldo** (de un solo uso). Activá en **Mi cuenta**.
   Activá en el panel (`POST /auth/2fa/setup`, `/confirm`, `/disable`); el login
   exige el código cuando está habilitado.
 - **API tokens (JWT)** con scopes acotados y revocables.
