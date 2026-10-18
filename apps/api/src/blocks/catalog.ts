@@ -46,6 +46,10 @@ export interface RegistryBlockEntry {
   subdir?: string;
   /** SHA-256 del `block.json` (verificación de integridad, opcional). */
   sha256?: string;
+  /** Clave pública Ed25519 (PEM) del creador para verificar la firma. */
+  publicKey?: string;
+  /** Firma Ed25519 (base64) del `block.json` hecha por el creador. */
+  signature?: string;
 }
 
 export interface CatalogItem {

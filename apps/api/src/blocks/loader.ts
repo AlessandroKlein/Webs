@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, createPublicKey, verify as verifySignature } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
@@ -280,6 +280,18 @@ export async function installRemoteBlock(app: FastifyInstance, entry: RegistryBl
     if (digest !== entry.sha256) {
       fs.rmSync(tmp, { recursive: true, force: true });
       throw new BadRequestError('Verificación de integridad fallida (sha256)');
+    }
+  }
+
+  // Firma Ed25519 del creador (opcional): garantiza autoría e integridad.
+  if (entry.publicKey && entry.signature) {
+    try {
+      const key = createPublicKey(entry.publicKey);
+      const ok = verifySignature(null, Buffer.from(manifestRaw), key, Buffer.from(entry.signature, 'base64'));
+      if (!ok) throw new Error('firma inválida');
+    } catch {
+      fs.rmSync(tmp, { recursive: true, force: true });
+      throw new BadRequestError('Verificación de firma Ed25519 fallida');
     }
   }
 

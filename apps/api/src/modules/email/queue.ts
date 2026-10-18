@@ -1,6 +1,6 @@
-import { Queue, Worker } from 'bullmq';
 import type { FastifyInstance } from 'fastify';
 import { createTransport, getSmtpSettings } from '../mail/service';
+import { enqueueJob, startWorker } from '../../lib/queue';
 import { baseUrl, injectTracking } from './tracking';
 
 /**
@@ -53,9 +53,7 @@ export async function enqueueEmail(
 
   // Con Redis: encolamos el trabajo en BullMQ.
   if (fastify.redis) {
-    const queue = new Queue(QUEUE_NAME, { connection: fastify.redis as never });
-    await queue.add('send', { messageId: message.id }, { attempts: 3, backoff: { type: 'exponential', delay: 1000 } });
-    await queue.close();
+    await enqueueJob(fastify, QUEUE_NAME, 'send', { messageId: message.id });
   }
 
   return { id: message.id };
@@ -77,16 +75,10 @@ export async function processQueue(fastify: FastifyInstance, batch = 20): Promis
 /** Arranca el procesador (BullMQ si hay Redis; polling si no). */
 export function startQueueProcessor(fastify: FastifyInstance, intervalMs = 15000): void {
   if (fastify.redis) {
-    const worker = new Worker(
-      QUEUE_NAME,
-      async (job) => {
-        const { messageId } = job.data as { messageId: string };
-        await sendMessageById(fastify, messageId);
-      },
-      { connection: fastify.redis as never, concurrency: 5 },
-    );
-    worker.on('failed', (job, err) => fastify.log.warn({ err, jobId: job?.id }, 'job de correo fallido'));
-    fastify.addHook('onClose', async () => worker.close());
+    startWorker(fastify, QUEUE_NAME, async (data) => {
+      const { messageId } = data as { messageId: string };
+      await sendMessageById(fastify, messageId);
+    });
     return;
   }
 

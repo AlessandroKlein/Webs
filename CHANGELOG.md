@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.27.0] - 2026-10-18
+
+### Añadido
+
+- **Firma Ed25519 de bloques**: campos `publicKey`/`signature` en el índice del
+  marketplace; el loader verifica la firma del `block.json` antes de instalar.
+- **Cola BullMQ genérica** (`lib/queue.ts`): `enqueueJob`/`startWorker` reutilizables
+  para email, reportes e imágenes (refactor de la cola de correo).
+
 ## [0.26.0] - 2026-10-18
 
 ### Añadido
