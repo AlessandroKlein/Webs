@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.29.0] - 2026-10-18
+
+### Añadido
+
+- **Marketplace enriquecido**: el índice JSON acepta `icon`, `downloadUrl`
+  (tarball directo), `author`, `homepage`, `license`, `publicKey`/`signature`; la
+  UI muestra el icono y la instalación soporta descarga directa.
+- **Plantilla en la instalación**: el asistente tiene un paso final para elegir
+  una plantilla predefinida (aplicable y editable después, estilo WordPress).
+
 ## [0.28.0] - 2026-10-18
 
 ### Añadido

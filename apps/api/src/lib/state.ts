@@ -15,6 +15,8 @@ export interface WebsState {
   /** URL de conexión (incluye credenciales). */
   databaseUrl?: string;
   installedAt?: string;
+  /** Plantilla pendiente de aplicar al primer arranque tras la instalación. */
+  pendingTemplate?: string;
 }
 
 const STATE_FILE = () => path.join(dataDir(), 'webs.config.json');
@@ -28,6 +30,7 @@ export function readState(): WebsState {
       databaseProvider: parsed.databaseProvider,
       databaseUrl: parsed.databaseUrl,
       installedAt: parsed.installedAt,
+      pendingTemplate: parsed.pendingTemplate,
     };
   } catch {
     return { installed: false };

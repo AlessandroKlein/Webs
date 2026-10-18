@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { readState } from '../../lib/state';
+import { listTemplates } from '../templates';
 import { SUPPORTED_PROVIDERS, install, testDatabase, type DatabaseConfig, type InstallPayload } from './service';
 
 export default async function setupRoutes(fastify: FastifyInstance): Promise<void> {
@@ -26,6 +27,13 @@ export default async function setupRoutes(fastify: FastifyInstance): Promise<voi
       if (!db?.provider) return { ok: false, error: 'Falta la configuración de base de datos' };
       return testDatabase(db);
     },
+  );
+
+  // Plantillas disponibles para elegir al final de la instalación.
+  fastify.get(
+    '/setup/templates',
+    { schema: { tags: ['setup'] } },
+    async () => listTemplates(),
   );
 
   fastify.post(

@@ -55,6 +55,8 @@ export interface InstallPayload {
   site: SiteConfig;
   smtp: SmtpConfig;
   admin: AdminConfig;
+  /** Plantilla opcional a aplicar tras la instalación (gym, market, …). */
+  template?: string;
 }
 
 /** Construye la URL de conexión según el motor elegido. */
@@ -131,12 +133,13 @@ export async function install(payload: InstallPayload): Promise<{ installed: tru
     windowsHide: true,
   });
 
-  // 5. Marca la instalación como completada.
+  // 5. Marca la instalación como completada (y plantilla pendiente si se eligió).
   writeState({
     installed: true,
     databaseProvider: payload.database.provider,
     databaseUrl: url,
     installedAt: new Date().toISOString(),
+    pendingTemplate: payload.template ?? undefined,
   });
 
   return { installed: true };

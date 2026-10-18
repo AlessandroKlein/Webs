@@ -250,7 +250,18 @@ export async function installRemoteBlock(app: FastifyInstance, entry: RegistryBl
   let src: string;
 
   try {
-    if (entry.source === 'npm') {
+    if (entry.downloadUrl) {
+      // Descarga directa de un tarball (.tgz/.tar.gz) provisto por el creador.
+      fs.mkdirSync(tmp, { recursive: true });
+      const tgzPath = path.join(tmp, 'block.tgz');
+      const res = await fetch(entry.downloadUrl);
+      if (!res.ok) throw new Error(`descarga HTTP ${res.status}`);
+      fs.writeFileSync(tgzPath, Buffer.from(await res.arrayBuffer()));
+      const extract = path.join(tmp, 'pkg');
+      fs.mkdirSync(extract, { recursive: true });
+      await run('tar', ['-xzf', tgzPath, '-C', extract]);
+      src = path.join(extract, 'package');
+    } else if (entry.source === 'npm') {
       fs.mkdirSync(tmp, { recursive: true });
       const spec = entry.version && entry.version !== 'latest' ? `${entry.url}@${entry.version}` : entry.url;
       await run('npm', ['pack', spec, '--pack-destination', tmp]);

@@ -52,6 +52,16 @@ function readTemplates(): Template[] {
     .filter((t): t is Template => Boolean(t && t.id && t.name));
 }
 
+/** Lista las plantillas disponibles (para el selector del asistente). */
+export function listTemplates(): Array<{ id: string; name: string; description?: string; blocks: string[] }> {
+  return readTemplates().map((t) => ({
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    blocks: (t.blocks ?? []).map((b) => b.id),
+  }));
+}
+
 export async function applyTemplate(fastify: FastifyInstance, id: string) {
   const template = readTemplates().find((t) => t.id === id);
   if (!template) throw new NotFoundError('Plantilla');

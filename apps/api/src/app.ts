@@ -3,6 +3,7 @@ import { API_PREFIX } from '@webs/core';
 import { loadEnv, corsOrigins, type Env } from './config/env';
 import { createLogger } from './lib/logger';
 import { readState } from './lib/state';
+import { writeState } from './lib/state';
 import { loadTls } from './lib/tls';
 
 import configPlugin from './plugins/config';
@@ -25,6 +26,7 @@ import notificationsPlugin from './plugins/notifications';
 import healthRoutes from './modules/health';
 import metricsRoutes from './modules/metrics';
 import templatesRoutes from './modules/templates';
+import { applyTemplate } from './modules/templates';
 import paymentsRoutes from './modules/payments/routes';
 import mediaRoutes from './modules/media/routes';
 import notificationsRoutes from './modules/notifications/routes';
@@ -120,6 +122,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // 6. Bloques instalados (cargan sus plugins, rutas, settings, slots y permisos).
   await registerBlocks(app);
+
+  // 6b. Aplica la plantilla elegida en la instalación (si corresponde).
+  if (state.pendingTemplate) {
+    try {
+      await applyTemplate(app, state.pendingTemplate);
+      app.log.info({ template: state.pendingTemplate }, 'plantilla aplicada tras la instalación');
+    } catch (err) {
+      app.log.warn({ err, template: state.pendingTemplate }, 'no se pudo aplicar la plantilla');
+    }
+    writeState({ ...state, pendingTemplate: undefined });
+  }
 
   // 7. Cola de envío y programador de campañas en segundo plano.
   startQueueProcessor(app);

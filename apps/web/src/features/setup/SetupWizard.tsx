@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { api, ApiClientError } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -43,6 +43,7 @@ interface SetupForm {
     confirm: string;
     displayName: string;
   };
+  template: string;
 }
 
 const initialForm: SetupForm = {
@@ -81,9 +82,10 @@ const initialForm: SetupForm = {
     confirm: '',
     displayName: '',
   },
+  template: '',
 };
 
-const STEPS = ['Bienvenida', 'Base de datos', 'Sitio', 'Correo (SMTP)', 'Cuenta de administrador', 'Instalar'];
+const STEPS = ['Bienvenida', 'Base de datos', 'Sitio', 'Correo (SMTP)', 'Cuenta de administrador', 'Plantilla', 'Instalar'];
 
 const AVAILABLE_LANGUAGES = [
   { code: 'es', label: 'Español' },
@@ -116,7 +118,7 @@ export function SetupWizard() {
   const [error, setError] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<string | null>(null);
 
-  const set = <K extends keyof SetupForm>(section: K, patch: Partial<SetupForm[K]>) =>
+  const set = <K extends Exclude<keyof SetupForm, 'template'>>(section: K, patch: Partial<SetupForm[K]>) =>
     setForm((f) => ({ ...f, [section]: { ...f[section], ...patch } }));
 
   const testDb = useMutation({
@@ -159,7 +161,8 @@ export function SetupWizard() {
           {step === 2 && <SiteStep form={form} set={set} />}
           {step === 3 && <SmtpStep form={form} set={set} />}
           {step === 4 && <AdminStep form={form} set={set} />}
-          {step === 5 && <ReviewStep form={form} />}
+          {step === 5 && <TemplateStep value={form.template} onChange={(id) => setForm((f) => ({ ...f, template: id }))} />}
+          {step === 6 && <ReviewStep form={form} />}
 
           {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
 
@@ -357,6 +360,36 @@ function AdminStep({ form, set }: { form: SetupForm; set: SetupWizardSet }) {
   );
 }
 
+function TemplateStep({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const { data } = useQuery({
+    queryKey: ['setup-templates'],
+    queryFn: () => api.get<Array<{ id: string; name: string; description?: string; blocks: string[] }>>('/api/v1/setup/templates'),
+  });
+
+  return (
+    <div className="stack">
+      <h2>Plantilla inicial</h2>
+      <p className="muted">Elegí una plantilla para arrancar con bloques y páginas predefinidas. Podés editarla y cambiar los bloques después.</p>
+
+      <label className="row" style={{ gap: 'var(--ws-space-2)' }}>
+        <input type="radio" name="template" checked={!value} onChange={() => onChange('')} />
+        <span>Sin plantilla (empezar vacío)</span>
+      </label>
+
+      {(data ?? []).map((t) => (
+        <label key={t.id} className="row" style={{ gap: 'var(--ws-space-2)' }}>
+          <input type="radio" name="template" checked={value === t.id} onChange={() => onChange(t.id)} />
+          <span>
+            <strong>{t.name}</strong>
+            {t.description && <span className="muted"> — {t.description}</span>}
+            <span className="muted"> · bloques: {t.blocks.join(', ') || 'ninguno'}</span>
+          </span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function ReviewStep({ form }: { form: SetupForm }) {
   return (
     <div className="stack">
@@ -367,13 +400,14 @@ function ReviewStep({ form }: { form: SetupForm }) {
         <li><strong>Sitio:</strong> {form.site.name}</li>
         <li><strong>Correo:</strong> {form.smtp.enabled ? `${form.smtp.host}:${form.smtp.port}` : 'No configurado (se puede configurar luego)'}</li>
         <li><strong>Administrador:</strong> {form.admin.email}</li>
+        <li><strong>Plantilla:</strong> {form.template || 'Ninguna'}</li>
       </ul>
       <p>Al instalar se creará el esquema de base de datos, los roles y permisos, y tu cuenta de administrador.</p>
     </div>
   );
 }
 
-type SetupWizardSet = <K extends keyof SetupForm>(section: K, patch: Partial<SetupForm[K]>) => void;
+type SetupWizardSet = <K extends Exclude<keyof SetupForm, 'template'>>(section: K, patch: Partial<SetupForm[K]>) => void;
 
 function buildDatabasePayload(form: SetupForm) {
   const d = form.database;
@@ -412,5 +446,6 @@ function buildPayload(form: SetupForm) {
       password: form.admin.password,
       displayName: form.admin.displayName || undefined,
     },
+    template: form.template || undefined,
   };
 }

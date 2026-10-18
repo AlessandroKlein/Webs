@@ -38,6 +38,10 @@ export interface RegistryBlockEntry {
   author?: string;
   license?: string;
   homepage?: string;
+  /** URL de una imagen/icono del bloque (se muestra en el catálogo). */
+  icon?: string;
+  /** URL directa de descarga (tarball .tgz/.tar.gz) si no se usa git/npm. */
+  downloadUrl?: string;
   /** Cómo obtener el bloque. */
   source: BlockSource;
   /** URL del repo git o nombre del paquete npm. */
@@ -61,6 +65,8 @@ export interface CatalogItem {
   author?: string;
   license?: string;
   homepage?: string;
+  icon?: string;
+  downloadUrl?: string;
   source: BlockSource;
   installed: boolean;
 }
@@ -137,6 +143,8 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
       author: b.author,
       license: b.license,
       homepage: b.homepage,
+      icon: b.icon,
+      downloadUrl: b.downloadUrl,
       source: b.source,
       installed: false,
     }));
