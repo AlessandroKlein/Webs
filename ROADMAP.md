@@ -42,6 +42,9 @@ las **plantillas** que los combinan y activan automáticamente.
 | Firma Ed25519 de bloques + cola BullMQ genérica | ✅ | 0.27.0 |
 | 2FA por SMS (OTP) | ✅ | 0.28.0 |
 | Marketplace enriquecido (icono/downloadUrl) + plantilla en instalación | ✅ | 0.29.0 |
+| Editor WYSIWYG (Quill) + badges de confianza | ✅ | 0.30.0 |
+| Dashboard de costos (ganancias/gastos/beneficio) | ✅ | 0.31.0 |
+| Bootstrap Icons + CSS responsive | ✅ | 0.32.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
@@ -53,7 +56,6 @@ las **plantillas** que los combinan y activan automáticamente.
 - [ ] Rate limit y desafíos WebAuthn **en Redis** (clúster).
 
 ### 2.2 Email / marketing
-- [ ] Editor WYSIWYG profesional (TipTap/Quill) en plantillas de correo.
 - [ ] QR visual para el alta de 2FA.
 
 ### 2.3 Marketplace / bloques
