@@ -20,10 +20,12 @@ import { loginSchema, registerSchema, type LoginBody, type RegisterBody } from '
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   const setRefreshCookie = (reply: import('fastify').FastifyReply, token: string) => {
+    const secureCookies =
+      fastify.securitySettings?.secureCookies ?? fastify.config.NODE_ENV === 'production';
     reply.setCookie(REFRESH_TOKEN_COOKIE, token, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: fastify.config.NODE_ENV === 'production',
+      secure: secureCookies,
       path: '/',
       maxAge: Math.floor(REFRESH_TOKEN_TTL_MS / 1000),
     });

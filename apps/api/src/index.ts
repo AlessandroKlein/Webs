@@ -10,6 +10,10 @@ async function main(): Promise<void> {
   const env = loadEnv();
   const app = await buildApp({ env });
 
+  if (env.NODE_ENV === 'production' && env.JWT_SECRET.startsWith('dev-')) {
+    app.log.warn('JWT_SECRET usa un valor por defecto — cámbialo en producción');
+  }
+
   let shuttingDown = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (shuttingDown) return;
@@ -31,6 +35,7 @@ async function main(): Promise<void> {
   });
 
   try {
+    if (env.SSL_ENABLED) app.log.info('HTTPS/TLS habilitado');
     await app.listen({ host: env.HOST, port: env.PORT });
   } catch (err) {
     app.log.error(err, 'no se pudo iniciar el servidor');

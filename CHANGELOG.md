@@ -3,6 +3,18 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.5.0] - 2026-10-18
+
+### Añadido
+
+- **SSL/TLS opcional para la API** (`SSL_ENABLED` + certificado/clave por archivo
+  o PEM): el usuario decide si lo activa.
+- **Sección de seguridad en la UI** (HSTS, cookies seguras, CSP) con cabeceras
+  aplicadas por plugin.
+- Cookies de sesión `Secure` configurables; aviso en producción si `JWT_SECRET`
+  usa el valor por defecto.
+- Ejemplo de nginx con TLS + redirección HTTP→HTTPS y guía de seguridad.
+
 ## [0.4.0] - 2026-10-18
 
 ### Añadido

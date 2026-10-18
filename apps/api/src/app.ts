@@ -3,6 +3,7 @@ import { API_PREFIX } from '@webs/core';
 import { loadEnv, corsOrigins, type Env } from './config/env';
 import { createLogger } from './lib/logger';
 import { readState } from './lib/state';
+import { loadTls } from './lib/tls';
 
 import configPlugin from './plugins/config';
 import dbPlugin from './plugins/db';
@@ -15,6 +16,7 @@ import swaggerPlugin from './plugins/swagger';
 import authPlugin from './plugins/auth';
 import errorHandlerPlugin from './plugins/error-handler';
 import websocketPlugin from './plugins/websocket';
+import securityPlugin from './plugins/security';
 
 import healthRoutes from './modules/health';
 import authRoutes from './modules/auth';
@@ -44,11 +46,13 @@ export interface BuildAppOptions {
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const env = options.env ?? loadEnv();
   const state = readState();
+  const tls = loadTls(env);
 
   const app = Fastify({
     logger: options.logger === false ? false : createLogger(env.LOG_LEVEL),
     disableRequestLogging: false,
     trustProxy: true,
+    ...(tls ? { https: tls } : {}),
   });
 
   // 1. Manejador de errores (primero, para capturar errores de todos).
@@ -69,9 +73,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return app;
   }
 
-  // 4. Modo instalado: base de datos, autenticación y tiempo real.
+  // 4. Modo instalado: base de datos, seguridad, autenticación y tiempo real.
   await app.register(dbPlugin, { databaseUrl: state.databaseUrl });
   await app.register(redisPlugin, { redisUrl: env.REDIS_URL });
+  await app.register(securityPlugin);
   await app.register(authPlugin, { jwtSecret: env.JWT_SECRET });
   await app.register(websocketPlugin);
 

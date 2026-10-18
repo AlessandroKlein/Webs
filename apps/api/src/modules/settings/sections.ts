@@ -130,4 +130,24 @@ export function registerDefaultSections(): void {
     },
     defaults: { enabled: false, port: 587 },
   });
+
+  registerSettingSection({
+    key: 'security',
+    group: 'general',
+    schema: {
+      type: 'object',
+      title: 'Seguridad',
+      properties: {
+        hsts: { type: 'boolean', title: 'HSTS (HTTP Strict Transport Security)' },
+        hstsMaxAge: { type: 'integer', title: 'HSTS max-age (segundos)', default: 15552000 },
+        secureCookies: { type: 'boolean', title: 'Cookies solo por HTTPS' },
+        contentSecurityPolicy: {
+          type: 'string',
+          title: 'Content-Security-Policy (vacío = desactivado)',
+          'x-ui': { widget: 'textarea', rows: 4 },
+        },
+      },
+    },
+    defaults: { hsts: true, hstsMaxAge: 15552000, secureCookies: true, contentSecurityPolicy: '' },
+  });
 }

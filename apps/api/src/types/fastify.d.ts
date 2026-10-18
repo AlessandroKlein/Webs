@@ -25,5 +25,12 @@ declare module 'fastify' {
     authorize: (
       permission: string,
     ) => (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    /** Configuración de seguridad (sección `security`) cacheada al arranque. */
+    securitySettings: {
+      hsts?: boolean;
+      hstsMaxAge?: number;
+      secureCookies?: boolean;
+      contentSecurityPolicy?: string;
+    };
   }
 }
