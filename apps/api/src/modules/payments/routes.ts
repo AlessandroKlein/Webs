@@ -132,11 +132,40 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
 
   fastify.get(
     '/payments',
-    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate] },
+    {
+      schema: {
+        tags: ['payments'],
+        querystring: {
+          type: 'object',
+          properties: { status: { type: 'string' }, provider: { type: 'string' } },
+        },
+      },
+      preHandler: [fastify.authenticate],
+    },
     async (request) => {
       const isAdmin = request.user?.permissions?.includes('user.read') ?? false;
-      const where = isAdmin ? {} : { userId: request.user?.sub };
-      return fastify.prisma.payment.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100 });
+      const { status, provider } = request.query as { status?: string; provider?: string };
+      const where: Record<string, unknown> = isAdmin ? {} : { userId: request.user?.sub };
+      if (status) where.status = status;
+      if (provider) where.provider = provider;
+      return fastify.prisma.payment.findMany({ where, orderBy: { createdAt: 'desc' }, take: 200 });
+    },
+  );
+
+  // Resumen para el panel de pagos (conciliación).
+  fastify.get(
+    '/payments/summary',
+    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.authorize('user.read')] },
+    async () => {
+      const [total, approved, pending, rejected, refunded, collected] = await Promise.all([
+        fastify.prisma.payment.count(),
+        fastify.prisma.payment.count({ where: { status: 'approved' } }),
+        fastify.prisma.payment.count({ where: { status: 'pending' } }),
+        fastify.prisma.payment.count({ where: { status: 'rejected' } }),
+        fastify.prisma.payment.count({ where: { status: 'refunded' } }),
+        fastify.prisma.payment.aggregate({ where: { status: 'approved' }, _sum: { amount: true } }),
+      ]);
+      return { total, approved, pending, rejected, refunded, collectedAmount: collected._sum.amount ?? 0 };
     },
   );
 
@@ -176,6 +205,33 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
         });
       }
       return { ok: true, id: payment.id, status: 'approved' };
+    },
+  );
+
+  // Reembolso: marca una transacción aprobada como reembolsada y emite evento.
+  // (El reembolso real en la pasarela se haría vía el adaptador del proveedor.)
+  fastify.post(
+    '/payments/:id/refund',
+    {
+      schema: { tags: ['payments'], params: { type: 'object', properties: { id: { type: 'string' } } } },
+      preHandler: [fastify.authenticate, fastify.authorize('user.read')],
+    },
+    async (request) => {
+      const id = (request.params as { id: string }).id;
+      const payment = await fastify.prisma.payment.findUnique({ where: { id } });
+      if (!payment) throw new NotFoundError('Pago');
+      if (payment.status === 'refunded') return { ok: true, alreadyRefunded: true };
+
+      await fastify.prisma.payment.update({
+        where: { id },
+        data: { status: 'refunded', refundedAt: new Date() },
+      });
+      if (fastify.events) {
+        await fastify.events.emit('payment.refunded', {
+          payment: { id: payment.id, transactionId: payment.transactionId, amount: payment.amount, currency: payment.currency },
+        });
+      }
+      return { ok: true, id: payment.id, status: 'refunded' };
     },
   );
 }

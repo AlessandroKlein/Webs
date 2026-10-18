@@ -11,7 +11,21 @@ que se registra como proveedor. El usuario activa solo las pasarelas que usa.
 | `POST /payments/checkout` | Recibe el carrito, **valida montos con Zod** (enteros positivos, anti-manipulación de precios), llama al proveedor y guarda la transacción. |
 | `POST /payments/webhook/:provider` | Recibe la notificación, el proveedor **valida la firma criptográfica**, y el núcleo aplica **idempotencia** (no reprocesa) y actualiza el estado. |
 | `POST /payments/:id/mark-paid` | Aprueba manualmente un pago contra entrega. |
-| `GET /payments` / `GET /payments/:id` | Lista/consulta de transacciones. |
+| `GET /payments` / `GET /payments/:id` | Lista/consulta de transacciones (filtros `status`, `provider`). |
+| `GET /payments/summary` | Resumen de conciliación (totales por estado + recaudado). |
+| `POST /payments/:id/refund` | Reembolso (marca `refunded` y emite `payment.refunded`). |
+
+## Panel de pagos (admin)
+
+En **Pagos** se ve el resumen (total, aprobados, recaudado, pendientes, rechazados,
+reembolsados) y el listado con filtros; desde cada fila se puede **reembolsar** un
+pago aprobado o **marcar pagado** uno pendiente (contra entrega).
+
+## Tienda demo
+
+La ruta pública **`/store`** incluye un carrito y un checkout que integra los
+bloques de pasarela: elegís el proveedor y se crea la transacción con
+`POST /payments/checkout`.
 
 ## Proveedores (bloques)
 

@@ -19,6 +19,8 @@ import { AppearancePage } from './features/appearance/AppearancePage';
 import { BlocksPage } from './features/blocks/BlocksPage';
 import { BlockConfigPage } from './features/blocks/BlockConfigPage';
 import { TemplatesPage } from './features/templates/TemplatesPage';
+import { PaymentsPage } from './features/payments/PaymentsPage';
+import { StorePage } from './features/store/StorePage';
 import { UsersPage } from './features/users/UsersPage';
 import { RolesPage } from './features/roles/RolesPage';
 import { ContentPage } from './features/content/ContentPage';
@@ -108,6 +110,7 @@ function MainApp() {
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/site" element={<PublicHome />} />
+        <Route path="/store" element={<StorePage />} />
 
         <Route
           path="/"
@@ -123,6 +126,7 @@ function MainApp() {
           <Route path="blocks" element={<BlocksPage />} />
           <Route path="blocks/:blockId" element={<BlockConfigPage />} />
           <Route path="templates" element={<TemplatesPage />} />
+          <Route path="payments" element={<PaymentsPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="roles" element={<RolesPage />} />
           <Route path="settings" element={<SettingsPage />} />

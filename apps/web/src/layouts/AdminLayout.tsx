@@ -20,6 +20,7 @@ export function AdminLayout() {
     { to: '/email', label: t('nav.email'), perm: 'email.read' },
     { to: '/blocks', label: t('nav.blocks'), perm: 'block.read' },
     { to: '/templates', label: t('nav.templates'), perm: 'setting.write' },
+    { to: '/payments', label: t('nav.payments'), perm: 'user.read' },
     { to: '/users', label: t('nav.users'), perm: 'user.read' },
     { to: '/roles', label: t('nav.roles'), perm: 'role.read' },
     { to: '/settings', label: t('nav.settings'), perm: 'setting.read' },

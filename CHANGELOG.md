@@ -3,6 +3,17 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.22.0] - 2026-10-18
+
+### Añadido
+
+- **Panel de pagos (admin)**: resumen de transacciones, filtros por estado/proveedor,
+  conciliación, **reembolsos** y "marcar pagado" (contra entrega).
+- **Tienda demo** (`/store`): carrito y checkout que integra los bloques de
+  pasarela (selección de proveedor → `POST /payments/checkout`).
+- Backend: `GET /payments/summary`, `POST /payments/:id/refund`, filtros en
+  `GET /payments`, campo `refundedAt`.
+
 ## [0.21.0] - 2026-10-18
 
 ### Añadido
