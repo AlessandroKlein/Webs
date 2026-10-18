@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
-import { API_PREFIX, ConflictError, NotFoundError } from '@webs/core';
+import { API_PREFIX, BadRequestError, ConflictError, NotFoundError } from '@webs/core';
 import {
   BLOCK_MANIFEST_FILENAME,
   parseBlockManifest,
@@ -16,6 +18,9 @@ import { blockRegistry } from './registry';
 import { CORE_SLOTS } from './slots';
 import { blocksDir } from '../lib/paths';
 import { registerBlockEvent } from '../modules/email/events';
+import type { RegistryBlockEntry } from './catalog';
+
+const execFileAsync = promisify(execFile);
 
 const asJson = (v: unknown): Prisma.InputJsonValue => v as unknown as Prisma.InputJsonValue;
 
@@ -222,4 +227,46 @@ export async function uninstallBlock(app: FastifyInstance, blockId: string) {
   }
 
   await app.prisma.blockInstallation.delete({ where: { blockId } });
+}
+
+/**
+ * Instala un bloque desde el catálogo remoto (marketplace). Descarga el código
+ * fuente (`git clone`), lo ubica en `blocks/<id>` y ejecuta la instalación local.
+ * El id final se toma del `block.json` (fuente de verdad).
+ */
+export async function installRemoteBlock(app: FastifyInstance, entry: RegistryBlockEntry) {
+  if (entry.source === 'npm') {
+    throw new BadRequestError('Instalación desde npm aún no disponible; usá source "git"');
+  }
+  if (!/^(https?:\/\/|git@)/.test(entry.url)) {
+    throw new BadRequestError('URL de bloque inválida');
+  }
+
+  const tmp = path.join(blocksDir(), `.tmp-${entry.id}-${Date.now()}`);
+  try {
+    await execFileAsync('git', ['clone', '--depth', '1', entry.url, tmp], { windowsHide: true });
+  } catch (err) {
+    const e = err as { stderr?: string; message?: string };
+    fs.rmSync(tmp, { recursive: true, force: true });
+    throw new BadRequestError(`No se pudo descargar el bloque: ${e.stderr ?? e.message}`);
+  }
+
+  const src = entry.subdir ? path.join(tmp, entry.subdir) : tmp;
+  if (!fs.existsSync(path.join(src, BLOCK_MANIFEST_FILENAME))) {
+    fs.rmSync(tmp, { recursive: true, force: true });
+    throw new BadRequestError('El repositorio no contiene un block.json');
+  }
+
+  const manifest = parseBlockManifest(
+    JSON.parse(fs.readFileSync(path.join(src, BLOCK_MANIFEST_FILENAME), 'utf8')),
+  );
+
+  const dir = path.join(blocksDir(), manifest.id);
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(dir), { recursive: true });
+  fs.cpSync(src, dir, { recursive: true });
+  fs.rmSync(tmp, { recursive: true, force: true });
+
+  blockRegistry.registerAvailable(manifest);
+  return installBlock(app, manifest.id);
 }

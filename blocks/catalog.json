@@ -1,0 +1,22 @@
+{
+  "name": "Webs Block Registry",
+  "_comment": "Índice del marketplace. Cada entrada referencia un bloque remoto. Usá BLOCK_REGISTRY_URL para servir este índice desde una URL (GitHub raw, un sitio, etc.) en lugar del archivo local. La instalación soporta source=git (clone); source=npm llegará próximamente.",
+  "blocks": [
+    {
+      "id": "store",
+      "name": "@webs/block-store",
+      "version": "1.0.0",
+      "displayName": { "es": "Tienda", "en": "Store" },
+      "description": {
+        "es": "Bloque de ejemplo del marketplace. Reemplazá la URL por el repositorio real de tu bloque.",
+        "en": "Example marketplace block. Replace the URL with your block's real repository."
+      },
+      "author": "AlessandroKlein",
+      "license": "MIT",
+      "homepage": "https://github.com/AlessandroKlein/Webs",
+      "source": "git",
+      "url": "https://github.com/AlessandroKlein/block-store.git",
+      "subdir": "block"
+    }
+  ]
+}

@@ -23,8 +23,26 @@ interface BlocksResponse {
   catalog: (BlockManifest & { installed: boolean })[];
 }
 
-function displayName(manifest: BlockManifest): string {
-  return manifest.displayName?.['es'] ?? manifest.displayName?.['en'] ?? manifest.name;
+interface CatalogItem {
+  id: string;
+  name: string;
+  version: string;
+  displayName: { es?: string; en?: string };
+  description: { es?: string; en?: string };
+  author?: string;
+  license?: string;
+  homepage?: string;
+  source: 'local' | 'git' | 'npm';
+  installed: boolean;
+}
+
+interface CatalogResponse {
+  local: CatalogItem[];
+  remote: CatalogItem[];
+}
+
+function catName(item: CatalogItem): string {
+  return item.displayName?.['es'] ?? item.displayName?.['en'] ?? item.name;
 }
 
 export function BlocksPage() {
@@ -35,24 +53,36 @@ export function BlocksPage() {
     queryKey: ['blocks'],
     queryFn: () => api.get<BlocksResponse>('/api/v1/blocks'),
   });
+  const { data: catalogData } = useQuery({
+    queryKey: ['blocks-catalog'],
+    queryFn: () => api.get<CatalogResponse>('/api/v1/blocks/catalog'),
+  });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['blocks'] });
+    qc.invalidateQueries({ queryKey: ['blocks-catalog'] });
+  };
 
   const install = useMutation({
     mutationFn: (id: string) => api.post('/api/v1/blocks/install', { id }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['blocks'] }),
+    onSuccess: invalidate,
   });
   const uninstall = useMutation({
     mutationFn: (id: string) => api.del(`/api/v1/blocks/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['blocks'] }),
+    onSuccess: invalidate,
   });
   const toggle = useMutation({
     mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) =>
       api.post(`/api/v1/blocks/${id}/${enabled ? 'activate' : 'deactivate'}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['blocks'] }),
+    onSuccess: invalidate,
   });
 
   if (isLoading) return <Spinner />;
 
-  const catalog = (data?.catalog ?? []).filter((b) => !b.installed);
+  const catalog = [
+    ...(catalogData?.local ?? []),
+    ...(catalogData?.remote ?? []),
+  ].filter((b) => !b.installed);
 
   return (
     <div className="stack">
@@ -75,8 +105,10 @@ export function BlocksPage() {
           {catalog.map((b) => (
             <div key={b.id} className="row" style={{ justifyContent: 'space-between' }}>
               <div>
-                <strong>{displayName(b)}</strong>
-                <span className="muted"> · {b.author}</span>
+                <strong>{catName(b)}</strong>
+                <span className="muted"> v{b.version}</span>
+                {b.author && <span className="muted"> · {b.author}</span>}
+                <span className="badge" style={{ marginLeft: 8 }}>{b.source}</span>
                 <p className="muted" style={{ margin: 0 }}>
                   {b.description?.['es'] ?? b.description?.['en']}
                 </p>

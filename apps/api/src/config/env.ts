@@ -27,6 +27,7 @@ const envSchema = z.object({
     .default('info'),
 
   BLOCK_DIR: z.string().optional(),
+  BLOCK_REGISTRY_URL: z.string().url().optional(),
 
   // TLS / HTTPS (opcional, decidido por el usuario)
   SSL_ENABLED: boolFromEnv.default(false),

@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.15.0] - 2026-10-18
+
+### Añadido
+
+- **Marketplace de bloques**: catálogo (local + índice remoto) con instalación
+  desde la UI. Índice configurable vía `BLOCK_REGISTRY_URL` o `blocks/catalog.json`;
+  instalación remota por `git clone`.
+
 ## [0.14.0] - 2026-10-18
 
 ### Añadido

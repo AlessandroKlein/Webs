@@ -3,7 +3,8 @@ import type { FastifyInstance } from 'fastify';
 import { NotFoundError, ValidationError } from '@webs/core';
 import { parseBlockManifest } from '@webs/plugin-sdk';
 import { blockRegistry } from '../../blocks/registry';
-import { installBlock, uninstallBlock } from '../../blocks/loader';
+import { installBlock, installRemoteBlock, uninstallBlock } from '../../blocks/loader';
+import { findRemoteBlock, getCatalog } from '../../blocks/catalog';
 import { audit } from '../../lib/audit';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
@@ -73,18 +74,52 @@ export default async function blocksRoutes(fastify: FastifyInstance): Promise<vo
     },
   );
 
+  fastify.get(
+    '/blocks/catalog',
+    { schema: { tags: ['blocks'] }, preHandler: [fastify.authenticate, fastify.authorize('block.read')] },
+    async () => getCatalog(fastify),
+  );
+
   fastify.post(
     '/blocks/install',
     {
       schema: {
         tags: ['blocks'],
-        body: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+        body: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'string' },
+            source: { type: 'string', enum: ['git', 'npm'] },
+            url: { type: 'string' },
+            subdir: { type: 'string' },
+          },
+        },
       },
       preHandler: [fastify.authenticate, fastify.authorize('block.manage')],
     },
     async (request, reply) => {
-      const { id } = request.body as { id: string };
-      const result = await installBlock(fastify, id);
+      const body = request.body as { id: string; source?: 'git' | 'npm'; url?: string; subdir?: string };
+      const id = body.id;
+
+      let result;
+      if (blockRegistry.getAvailableManifest(id)) {
+        result = await installBlock(fastify, id);
+      } else if (body.url) {
+        result = await installRemoteBlock(fastify, {
+          id,
+          name: id,
+          version: 'latest',
+          source: body.source ?? 'git',
+          url: body.url,
+          subdir: body.subdir,
+        });
+      } else {
+        const entry = await findRemoteBlock(id);
+        if (!entry) throw new NotFoundError(`Bloque '${id}' no encontrado en el catálogo`);
+        result = await installRemoteBlock(fastify, entry);
+      }
+
       audit(fastify, request, { actorId: request.user?.sub, action: 'block.install', resource: 'block', resourceId: id });
       return reply.status(201).send(result);
     },
