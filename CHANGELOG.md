@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.24.0] - 2026-10-18
+
+### Añadido
+
+- **BullMQ** para la cola de correos (cola, reintentos con backoff exponencial y
+  concurrencia) con Redis; fallback al barrido por la tabla sin Redis.
+
 ## [0.23.0] - 2026-10-18
 
 ### Añadido

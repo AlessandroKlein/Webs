@@ -1,13 +1,41 @@
+import { Queue, Worker } from 'bullmq';
 import type { FastifyInstance } from 'fastify';
 import { createTransport, getSmtpSettings } from '../mail/service';
 import { baseUrl, injectTracking } from './tracking';
 
 /**
- * Cola de envío de correos. Desacopla la generación del envío: campañas y
- * automatizaciones encolan `EmailMessage`s y un procesador en segundo plano los
- * envía por lotes (permite reintentos, límite de ritmo y escalado a una cola
- * externa tipo BullMQ/Redis en producción).
+ * Cola de envío de correos. Con Redis usa **BullMQ** (cola, reintentos con
+ * backoff exponencial y concurrencia); sin Redis cae a un barrido por la tabla
+ * `EmailMessage` (polling). El contrato (`enqueueEmail` / `startQueueProcessor`)
+ * no cambia para el resto de la app.
  */
+
+const QUEUE_NAME = 'email';
+
+/** Envía un mensaje ya persistido por id (lógica común de envío). */
+async function sendMessageById(fastify: FastifyInstance, messageId: string): Promise<void> {
+  const message = await fastify.prisma.emailMessage.findUnique({ where: { id: messageId } });
+  if (!message || message.status !== 'queued') return;
+
+  try {
+    const settings = await getSmtpSettings(fastify);
+    const transport = createTransport(settings);
+    if (!transport) {
+      await fastify.prisma.emailMessage.update({ where: { id: messageId }, data: { status: 'failed', error: 'SMTP no configurado' } });
+      return;
+    }
+    const from = settings.from ?? 'Webs <no-reply@localhost>';
+    const html = injectTracking(message.body, messageId, baseUrl(fastify));
+    await transport.sendMail({ from, to: message.to, subject: message.subject, html });
+
+    await fastify.prisma.emailMessage.update({ where: { id: messageId }, data: { status: 'sent', sentAt: new Date() } });
+    if (message.campaignId) {
+      await fastify.prisma.emailCampaign.update({ where: { id: message.campaignId }, data: { sentCount: { increment: 1 } } });
+    }
+  } catch (err) {
+    await fastify.prisma.emailMessage.update({ where: { id: messageId }, data: { status: 'failed', error: (err as Error).message } });
+  }
+}
 
 export async function enqueueEmail(
   fastify: FastifyInstance,
@@ -22,56 +50,46 @@ export async function enqueueEmail(
       campaignId: input.campaignId ?? null,
     },
   });
+
+  // Con Redis: encolamos el trabajo en BullMQ.
+  if (fastify.redis) {
+    const queue = new Queue(QUEUE_NAME, { connection: fastify.redis as never });
+    await queue.add('send', { messageId: message.id }, { attempts: 3, backoff: { type: 'exponential', delay: 1000 } });
+    await queue.close();
+  }
+
   return { id: message.id };
 }
 
-/** Procesa un lote de mensajes encolados y actualiza su estado. */
+/** Barrido por la tabla (fallback sin Redis): procesa un lote de mensajes. */
 export async function processQueue(fastify: FastifyInstance, batch = 20): Promise<number> {
   const messages = await fastify.prisma.emailMessage.findMany({
     where: { status: 'queued' },
     take: batch,
     orderBy: { createdAt: 'asc' },
   });
-
   for (const message of messages) {
-    try {
-      const settings = await getSmtpSettings(fastify);
-      const transport = createTransport(settings);
-      if (!transport) {
-        await fastify.prisma.emailMessage.update({
-          where: { id: message.id },
-          data: { status: 'failed', error: 'SMTP no configurado' },
-        });
-        continue;
-      }
-      const from = settings.from ?? 'Webs <no-reply@localhost>';
-      const html = injectTracking(message.body, message.id, baseUrl(fastify));
-      await transport.sendMail({ from, to: message.to, subject: message.subject, html });
-
-      await fastify.prisma.emailMessage.update({
-        where: { id: message.id },
-        data: { status: 'sent', sentAt: new Date() },
-      });
-
-      if (message.campaignId) {
-        await fastify.prisma.emailCampaign.update({
-          where: { id: message.campaignId },
-          data: { sentCount: { increment: 1 } },
-        });
-      }
-    } catch (err) {
-      await fastify.prisma.emailMessage.update({
-        where: { id: message.id },
-        data: { status: 'failed', error: (err as Error).message },
-      });
-    }
+    await sendMessageById(fastify, message.id);
   }
-
   return messages.length;
 }
 
-/** Arranca el procesador periódico de la cola (una vez por instancia). */
+/** Arranca el procesador (BullMQ si hay Redis; polling si no). */
 export function startQueueProcessor(fastify: FastifyInstance, intervalMs = 15000): void {
+  if (fastify.redis) {
+    const worker = new Worker(
+      QUEUE_NAME,
+      async (job) => {
+        const { messageId } = job.data as { messageId: string };
+        await sendMessageById(fastify, messageId);
+      },
+      { connection: fastify.redis as never, concurrency: 5 },
+    );
+    worker.on('failed', (job, err) => fastify.log.warn({ err, jobId: job?.id }, 'job de correo fallido'));
+    fastify.addHook('onClose', async () => worker.close());
+    return;
+  }
+
   let running = false;
   const timer = setInterval(() => {
     if (running) return;
