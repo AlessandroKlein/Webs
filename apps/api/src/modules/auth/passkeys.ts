@@ -215,4 +215,24 @@ export default async function passkeyRoutes(fastify: FastifyInstance): Promise<v
       return reply.status(204).send();
     },
   );
+
+  // Renombrar una passkey (gestión de dispositivos).
+  fastify.patch(
+    '/auth/passkeys/:id',
+    {
+      schema: {
+        tags: ['auth'],
+        params: { type: 'object', properties: { id: { type: 'string' } } },
+        body: { type: 'object', required: ['deviceName'], properties: { deviceName: { type: 'string', minLength: 1 } } },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    async (request) => {
+      const id = (request.params as { id: string }).id;
+      const { deviceName } = request.body as { deviceName: string };
+      const passkey = await fastify.prisma.passkey.findFirst({ where: { id, userId: request.user.sub } });
+      if (!passkey) throw new UnauthorizedError('Passkey no encontrada');
+      return fastify.prisma.passkey.update({ where: { id }, data: { deviceName } });
+    },
+  );
 }

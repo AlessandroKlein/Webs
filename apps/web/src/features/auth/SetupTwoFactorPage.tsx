@@ -6,6 +6,7 @@ import { getSetupToken, setSetupToken } from '../../lib/token';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
+import { QrCode } from '../../components/ui/QrCode';
 
 /**
  * Flujo forzado de activación de 2FA/passkey (cuando la política "requerir 2FA
@@ -106,6 +107,7 @@ export function SetupTwoFactorPage() {
         {step === 'confirm' && (
           <div className="stack">
             <p className="muted">Escaneá este código en tu app o ingresá la clave manualmente:</p>
+            <QrCode value={otpauthUrl} />
             <p><strong>Clave secreta:</strong> <code>{secret}</code></p>
             <p className="muted" style={{ wordBreak: 'break-all' }}>{otpauthUrl}</p>
             <TextField label="Código de 6 dígitos" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />

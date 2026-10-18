@@ -23,6 +23,7 @@
     "bootstrap-icons": "^1.11.0",
     "i18next": "^24.0.0",
     "quill": "^2.0.0",
+    "qrcode": "^1.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-i18next": "^15.0.0",
@@ -32,6 +33,7 @@
   "devDependencies": {
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/qrcode": "^1.5.0",
     "@vitejs/plugin-react": "^4.3.3",
     "@webs/config": "workspace:*",
     "eslint": "^9.13.0",

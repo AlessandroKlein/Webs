@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.33.0] - 2026-10-18
+
+### Añadido
+
+- **QR visual en 2FA**: código QR renderizado (librería `qrcode`) en "Mi cuenta" y
+  en el flujo de activación forzada.
+- **Gestión de dispositivos FIDO2**: renombrar passkeys (`PATCH /auth/passkeys/:id`).
+
 ## [0.32.0] - 2026-10-18
 
 ### Añadido

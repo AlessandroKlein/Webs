@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
+import { QrCode } from '../../components/ui/QrCode';
 import { Spinner } from '../../components/ui/Spinner';
 
 interface MeResponse {
@@ -99,6 +100,7 @@ function TwoFactorCard({ enabled, onChanged }: { enabled: boolean; onChanged: ()
       {step === 'confirm' && (
         <div className="stack">
           <p className="muted">Escaneá el código en tu app o ingresá la clave manualmente:</p>
+          <QrCode value={otpauthUrl} />
           <p>
             <strong>Clave secreta:</strong> <code>{secret}</code>
           </p>
@@ -251,6 +253,10 @@ function PasskeysCard() {
     mutationFn: (id: string) => api.del(`/api/v1/auth/passkeys/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['passkeys'] }),
   });
+  const rename = useMutation({
+    mutationFn: ({ id, deviceName }: { id: string; deviceName: string }) => api.patch(`/api/v1/auth/passkeys/${id}`, { deviceName }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['passkeys'] }),
+  });
 
   return (
     <Card>
@@ -264,9 +270,20 @@ function PasskeysCard() {
             <span>
               {p.deviceName ?? 'Passkey'} <span className="muted">· creada {new Date(p.createdAt).toLocaleDateString()}</span>
             </span>
-            <Button variant="ghost" onClick={() => remove.mutate(p.id)}>
-              Eliminar
-            </Button>
+            <div className="row">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  const name = window.prompt('Nombre del dispositivo', p.deviceName ?? '');
+                  if (name) rename.mutate({ id: p.id, deviceName: name });
+                }}
+              >
+                Renombrar
+              </Button>
+              <Button variant="ghost" onClick={() => remove.mutate(p.id)}>
+                Eliminar
+              </Button>
+            </div>
           </div>
         ))}
         {(data ?? []).length === 0 && <p className="muted">No hay passkeys registradas.</p>}
