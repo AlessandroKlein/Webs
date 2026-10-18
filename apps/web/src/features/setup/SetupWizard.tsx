@@ -48,11 +48,11 @@ interface SetupForm {
 const initialForm: SetupForm = {
   database: {
     provider: 'postgresql',
-    host: 'localhost',
+    host: 'postgres',
     port: '5432',
     name: 'webs',
     user: 'webs',
-    password: '',
+    password: 'webs',
     ssl: false,
     file: './data/webs.db',
   },
@@ -89,6 +89,25 @@ const AVAILABLE_LANGUAGES = [
   { code: 'es', label: 'Español' },
   { code: 'en', label: 'English' },
   { code: 'pt', label: 'Português' },
+];
+
+const DB_PRESETS: Array<{ label: string; value: Partial<SetupForm['database']> }> = [
+  {
+    label: 'PostgreSQL (Docker)',
+    value: { provider: 'postgresql', host: 'postgres', port: '5432', name: 'webs', user: 'webs', password: 'webs' },
+  },
+  {
+    label: 'MySQL (Docker)',
+    value: { provider: 'mysql', host: 'mysql', port: '3306', name: 'webs', user: 'webs', password: 'webs' },
+  },
+  {
+    label: 'SQLite (archivo local)',
+    value: { provider: 'sqlite', file: './data/webs.db' },
+  },
+  {
+    label: 'PostgreSQL (local, sin Docker)',
+    value: { provider: 'postgresql', host: 'localhost', port: '5432', name: 'webs', user: 'webs', password: '' },
+  },
 ];
 
 export function SetupWizard() {
@@ -231,6 +250,15 @@ function DatabaseStep({
   return (
     <div className="stack">
       <h2>Base de datos</h2>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+        {DB_PRESETS.map((p) => (
+          <Button key={p.label} variant="secondary" type="button" onClick={() => set('database', p.value)}>
+            {p.label}
+          </Button>
+        ))}
+      </div>
+      <p className="muted">Elegí un preset o configurá manualmente. En Docker usá host=postgres (o mysql); sin Docker, localhost.</p>
+
       <div className="field" style={{ maxWidth: 320 }}>
         <label>Motor de base de datos</label>
         <select className="input" value={provider} onChange={(e) => set('database', { provider: e.target.value as Provider })}>

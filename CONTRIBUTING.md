@@ -12,7 +12,7 @@ monorepo y las convenciones para mantener el proyecto consistente.
 
 ```bash
 pnpm install
-docker compose -f docker/docker-compose.yml up -d postgres redis
+docker compose up -d --build
 cp apps/api/.env.example apps/api/.env
 pnpm --filter @webs/api exec prisma migrate dev
 pnpm build

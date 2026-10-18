@@ -74,7 +74,7 @@ documenta que, en cluster, debe conectarse un store Redis para que el límite se
 
 | Archivo | Propósito |
 |---------|-----------|
-| `docker/docker-compose.yml` | Orquesta `postgres:16-alpine`, `redis:7-alpine`, `api` y `web` (nginx). |
+| `docker-compose.yml` | Orquesta `postgres:16-alpine`, `mysql:8.4`, `redis:7-alpine`, `api` y `web` (nginx). |
 | `docker/Dockerfile.api` | Multi-etapa: `pnpm install --frozen-lockfile`, `prisma generate`, `pnpm -r build`, `CMD node apps/api/dist/index.js`. |
 | `docker/Dockerfile.web` | Build estático (`vite build`) y servido por `nginx:alpine`. |
 | `docker/nginx.conf` | SPA fallback, proxy `/api/`, `/ws` (upgrade WebSocket) y `/docs/` al servicio `api`. |

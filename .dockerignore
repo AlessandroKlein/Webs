@@ -1,0 +1,25 @@
+# Evita copiar al contexto de build lo que se reinstala/compila dentro del contenedor.
+node_modules
+**/node_modules
+dist
+**/dist
+.turbo
+*.tsbuildinfo
+
+# Git y entorno
+.git
+.env
+**/.env
+.env.*
+
+# Datos y estado local (no debe viajar al build)
+data
+**/data
+*.db
+
+# Otros
+*.log
+coverage
+.idea
+.vscode
+tmp

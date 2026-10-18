@@ -91,26 +91,16 @@ password `webs`, base `webs`).
 
 ## 3. Crear la base de datos
 
-El archivo `docker/docker-compose.yml` define `postgres` (y `redis`). Como el
-compose está en `docker/`, ejecutá desde la raíz:
+El `docker-compose.yml` (en la raíz) define `postgres`, `mysql` y `redis`. Para
+levantar solo las bases de datos (y Redis), ejecutá desde la raíz:
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d postgres
+docker compose up -d postgres mysql redis
 ```
 
-O bien, entrando al directorio:
-
-```bash
-cd docker
-docker compose up -d postgres
-cd ..
-```
-
-Para levantar también Redis (opcional, recomendado):
-
-```bash
-docker compose -f docker/docker-compose.yml up -d postgres redis
-```
+Para levantar **todo el stack** (bases + API + web) con el asistente de
+instalación, usá directamente `docker compose up -d --build` (ver la guía de
+instalación).
 
 Verifica que PostgreSQL esté listo (el compose incluye un healthcheck con
 `pg_isready`).

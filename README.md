@@ -54,26 +54,27 @@ infra/            # Notas de infraestructura y escalado
 
 ## Inicio rápido
 
-Requisitos: **Node.js ≥ 22**, **pnpm ≥ 9**. (PostgreSQL/MySQL o SQLite y Redis opcional.)
+### Opción A — Docker (recomendado, todo en uno)
 
 ```bash
-# 1. Instalar dependencias
-pnpm install
-
-# 2. (Opcional) Levantar PostgreSQL y Redis con Docker
-docker compose -f docker/docker-compose.yml up -d postgres redis
-
-# 3. Compilar paquetes y bloques
-pnpm build
-
-# 4. Ejecutar en desarrollo
-pnpm dev
+git clone https://github.com/AlessandroKlein/Webs.git
+cd Webs
+docker compose up -d --build     # o: make up
 ```
 
-Al abrir **http://localhost:5173** por primera vez se muestra el **asistente de
-instalación**: elegí el motor de base de datos (PostgreSQL/SQLite/MySQL), la
-configuración del sitio, el SMTP y creá la cuenta de administrador — todo desde
-la interfaz, sin tocar código.
+Abrí **http://localhost:5173**: se muestra el **asistente de instalación** con los
+valores de conexión ya pre-cargados (PostgreSQL/MySQL de Docker o SQLite). Elegí
+el motor, configurá sitio/SMTP/admin y listo. Todo sin tocar código.
+
+### Opción B — Desarrollo local (Node + pnpm)
+
+Requisitos: Node.js ≥ 22, pnpm ≥ 9, y PostgreSQL/MySQL (o SQLite, sin servicio).
+
+```bash
+pnpm install
+pnpm build
+pnpm dev
+```
 
 - **API**: http://localhost:4000 · Swagger en http://localhost:4000/docs
 - **Web**: http://localhost:5173 · Panel en `/` (login) · Sitio público de ejemplo en `/site`

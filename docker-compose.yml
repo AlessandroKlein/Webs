@@ -1,4 +1,9 @@
-# ---- Base de datos ----
+# Webs — arranque completo con un solo comando: `docker compose up -d --build`
+# Luego abrí http://localhost:5173 y seguí el asistente de instalación (los
+# valores de conexión ya vienen pre-cargados para estos servicios).
+#
+# Motores incluidos: PostgreSQL (recomendado) y MySQL (alternativa). Elegí uno
+# en el asistente. SQLite no necesita servicio (usa un archivo local).
 services:
   postgres:
     image: postgres:16-alpine
@@ -14,7 +19,24 @@ services:
       test: ['CMD-SHELL', 'pg_isready -U webs']
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 12
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: webs
+      MYSQL_USER: webs
+      MYSQL_PASSWORD: webs
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h localhost -u webs -pwebs --silent']
+      interval: 5s
+      timeout: 5s
+      retries: 24
 
   redis:
     image: redis:7-alpine
@@ -24,19 +46,16 @@ services:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 12
 
-  # ---- API ----
   api:
     build:
-      context: ..
+      context: .
       dockerfile: docker/Dockerfile.api
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 4000
-      # DATABASE_URL no se fija aquí: se configura desde el asistente de
-      # instalación (web). Elige PostgreSQL con host=postgres, user/pass/db=webs.
       REDIS_URL: redis://redis:6379
       JWT_SECRET: change-me-in-production-please-0123456789
       CORS_ORIGIN: http://localhost:5173
@@ -47,13 +66,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      mysql:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
-  # ---- Frontend (build estático servido por nginx) ----
   web:
     build:
-      context: ..
+      context: .
       dockerfile: docker/Dockerfile.web
     ports:
       - '5173:80'
@@ -62,4 +82,5 @@ services:
 
 volumes:
   pgdata: {}
+  mysqldata: {}
   appdata: {}

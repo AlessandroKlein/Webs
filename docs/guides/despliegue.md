@@ -44,11 +44,11 @@ pnpm --filter @webs/api exec prisma db seed
 
 ## 2. Docker Compose
 
-El archivo [`docker/docker-compose.yml`](../../docker/docker-compose.yml)
-define los servicios `postgres`, `redis`, `api` y `web`.
+El archivo [`docker-compose.yml`](../../docker-compose.yml) (en la raíz) define
+los servicios `postgres`, `mysql`, `redis`, `api` y `web`.
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d --build
+docker compose up -d --build
 ```
 
 Servicios:

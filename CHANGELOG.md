@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.9.0] - 2026-10-18
+
+### Añadido
+
+- **Arranque "todo en uno" con Docker**: `docker compose up -d --build` levanta
+  PostgreSQL, **MySQL**, Redis, API y web. Se agregó MySQL como alternativa.
+- **Valores de conexión pre-cargados en el asistente** (presets PostgreSQL/MySQL
+  de Docker, SQLite local y PostgreSQL local).
+- `.dockerignore`, `Makefile` (`make up/down/logs/reset`) y compose canónico en la raíz.
+
 ## [0.8.0] - 2026-10-18
 
 ### Añadido
