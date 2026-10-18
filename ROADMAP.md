@@ -45,6 +45,8 @@ las **plantillas** que los combinan y activan automáticamente.
 | Editor WYSIWYG (Quill) + badges de confianza | ✅ | 0.30.0 |
 | Dashboard de costos (ganancias/gastos/beneficio) | ✅ | 0.31.0 |
 | Bootstrap Icons + CSS responsive | ✅ | 0.32.0 |
+| QR visual de 2FA + renombrar dispositivos FIDO2 | ✅ | 0.33.0 |
+| Releases automáticas + plantillas blog/corporativo + bloque mapa | ✅ | 0.34.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
@@ -52,17 +54,16 @@ las **plantillas** que los combinan y activan automáticamente.
 ## 2. Backlog pendiente (priorizado)
 
 ### 2.1 Seguridad e identidad
-- [ ] 2FA FIDO2 con **gestión de dispositivos** avanzada (revocar por dispositivo, nombres).
-- [ ] Rate limit y desafíos WebAuthn **en Redis** (clúster).
+- [ ] Desafíos WebAuthn **en Redis** (clúster).
 
 ### 2.2 Email / marketing
-- [ ] QR visual para el alta de 2FA.
+- [ ] (sin pendientes)
 
 ### 2.3 Marketplace / bloques
-- [ ] Veredicto/verificación de bloques (badges de autor de confianza).
+- [ ] (sin pendientes)
 
 ### 2.4 Documentación / CI
-- [ ] Releases automáticas con notas generadas (CI/CD).
+- [ ] (sin pendientes)
 
 ### 2.5 Operación (al tener la VPS)
 - [ ] Validar **build de Docker** (compose + Dockerfiles).
@@ -77,8 +78,8 @@ las **plantillas** que los combinan y activan automáticamente.
 - ✅ Bloque **Mercado Pago** de referencia (secretos cifrados, webhook firmado, idempotencia).
 
 ### Siguientes plantillas/bloques sugeridos
-- [ ] Plantillas: **blog**, **corporativo/landing**, **cursos**.
-- [ ] Bloques: **carrito + stock**, **facturación**, **notificaciones push**, **mapa/contacto**.
+- [ ] Plantillas: **cursos**, **e-learning**.
+- [ ] Bloques: **carrito + stock**, **facturación**, **notificaciones push**.
 
 
 ---
