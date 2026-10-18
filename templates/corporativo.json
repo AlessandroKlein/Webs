@@ -1,0 +1,19 @@
+{
+  "id": "corporativo",
+  "name": "Corporativo / Landing",
+  "description": "Sitio corporativo: servicios, equipo y contacto.",
+  "blocks": [
+    { "id": "example", "config": { "greeting": "Bienvenido a nuestra empresa" } },
+    { "id": "mapa", "config": { "address": "Tu dirección", "phone": "", "email": "" } }
+  ],
+  "settings": {
+    "site": { "name": "Mi Empresa", "tagline": "Soluciones profesionales" },
+    "appearance": { "primaryColor": "#2563eb", "defaultTheme": "light" }
+  },
+  "menu": [
+    { "label": "Inicio", "path": "/", "order": 0 },
+    { "label": "Servicios", "path": "/servicios", "order": 1 },
+    { "label": "Nosotros", "path": "/nosotros", "order": 2 },
+    { "label": "Contacto", "path": "/contacto", "order": 3 }
+  ]
+}

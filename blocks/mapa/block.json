@@ -1,0 +1,26 @@
+{
+  "name": "@webs/block-mapa",
+  "id": "mapa",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Map / Contact", "es": "Mapa / Contacto" },
+  "description": { "en": "Contact card with map link.", "es": "Tarjeta de contacto con enlace al mapa." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "translations": { "es": { "contact": "Contacto", "map": "Ver en el mapa" }, "en": { "contact": "Contact", "map": "View on map" } },
+  "settings": {
+    "type": "object",
+    "title": "Configuración de contacto",
+    "properties": {
+      "address": { "type": "string", "title": "Dirección" },
+      "phone": { "type": "string", "title": "Teléfono" },
+      "email": { "type": "string", "title": "Correo" },
+      "lat": { "type": "string", "title": "Latitud" },
+      "lng": { "type": "string", "title": "Longitud" }
+    }
+  }
+}

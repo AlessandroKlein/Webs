@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.34.0] - 2026-10-18
+
+### Añadido
+
+- **Releases automáticas**: GitHub Action que crea la release con notas generadas
+  al pushear un tag `v*` (idempotente).
+- **Plantillas**: `blog` y `corporativo`.
+- **Bloque `mapa`** (contacto) con Bootstrap Icons.
+
 ## [0.33.0] - 2026-10-18
 
 ### Añadido

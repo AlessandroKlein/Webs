@@ -1,0 +1,18 @@
+{
+  "id": "blog",
+  "name": "Blog",
+  "description": "Sitio de blog: artículos, categorías y contacto.",
+  "blocks": [
+    { "id": "example", "config": { "greeting": "Bienvenido al blog" } },
+    { "id": "mapa", "config": { "address": "Tu dirección", "phone": "", "email": "" } }
+  ],
+  "settings": {
+    "site": { "name": "Mi Blog", "tagline": "Ideas y artículos" },
+    "appearance": { "primaryColor": "#0f766e", "defaultTheme": "light" }
+  },
+  "menu": [
+    { "label": "Inicio", "path": "/", "order": 0 },
+    { "label": "Blog", "path": "/blog", "order": 1 },
+    { "label": "Contacto", "path": "/contacto", "order": 2 }
+  ]
+}
