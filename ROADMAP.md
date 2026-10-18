@@ -97,3 +97,7 @@ las **plantillas** que los combinan y activan automáticamente.
 
 > Convención: al completar un elemento, movelo a la tabla "implementado" con su
 > versión y actualizá este documento.
+
+> Versionado: seguimos **SemVer** (ver [VERSIONING.md](VERSIONING.md)). Hoy estamos
+> en `v0.x.x` (desarrollo inicial); pasamos a `v1.0.0` al validar Docker + ejecución
+> en producción.
