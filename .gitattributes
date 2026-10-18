@@ -1,0 +1,2 @@
+# Forzar saltos de línea LF en todo el repositorio (consistencia cross-platform).
+* text=auto eol=lf
