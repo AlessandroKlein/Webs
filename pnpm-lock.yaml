@@ -95,6 +95,9 @@ importers:
       pino:
         specifier: ^9.4.0
         version: 9.14.0
+      rate-limiter-flexible:
+        specifier: ^5.0.3
+        version: 5.0.5
       sanitize-html:
         specifier: ^2.13.1
         version: 2.18.1
@@ -2889,6 +2892,9 @@ packages:
 
   quick-format-unescaped@4.0.4:
     resolution: {integrity: sha512-tYC1Q1hgyRuHgloV/YXs2w15unPVh8qfu/qCTfhTYamaw7fyhumKa2yGpdSo87vY32rIclj+4fWYQXUMs9EHvg==}
+
+  rate-limiter-flexible@5.0.5:
+    resolution: {integrity: sha512-+/dSQfo+3FYwYygUs/V2BBdwGa9nFtakDwKt4l0bnvNB53TNT++QSFewwHX9qXrZJuMe9j+TUaU21lm5ARgqdQ==}
 
   rc9@2.1.2:
     resolution: {integrity: sha512-btXCnMmRIBINM2LDZoEmOogIZU7Qe7zn4BpomSKZ/ykbLObuBdvG+mFq11DL6fjH1DRwHhrlgtYWG96bJiC7Cg==}
@@ -5938,6 +5944,8 @@ snapshots:
   pvutils@1.2.0: {}
 
   quick-format-unescaped@4.0.4: {}
+
+  rate-limiter-flexible@5.0.5: {}
 
   rc9@2.1.2:
     dependencies:

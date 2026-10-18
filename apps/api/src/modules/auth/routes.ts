@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { REFRESH_TOKEN_COOKIE } from '@webs/core';
 import { findUserWithPermissions, toPublicUser } from '../../lib/user';
 import { audit } from '../../lib/audit';
+import { ipLimiter } from '../../lib/rate-limiter';
 import { emitEvent } from '../email/events';
 import {
   createSession,
@@ -42,6 +43,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
     {
       schema: { tags: ['auth'], body: loginSchema },
       config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
+      preHandler: [ipLimiter(fastify.redis, 10, 15 * 60)],
     },
     async (request, reply) => {
       const { email, password, totp, rememberMe } = request.body as LoginBody;
@@ -81,6 +83,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
     {
       schema: { tags: ['auth'], body: registerSchema },
       config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+      preHandler: [ipLimiter(fastify.redis, 5, 15 * 60)],
     },
     async (request, reply) => {
       const { email, password, displayName } = request.body as RegisterBody;
@@ -162,7 +165,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post(
     '/auth/forgot-password',
-    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } },
+    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } }, preHandler: [ipLimiter(fastify.redis, 5, 15 * 60)] },
     async (request) => {
       const { email } = request.body as { email: string };
       if (email) await forgotPassword(fastify, email);
@@ -173,7 +176,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post(
     '/auth/reset-password',
-    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } },
+    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } }, preHandler: [ipLimiter(fastify.redis, 5, 15 * 60)] },
     async (request) => {
       const { token, password } = request.body as { token: string; password: string };
       if (!token || !password) return fastify.httpErrors.badRequest('Faltan token o contraseña');

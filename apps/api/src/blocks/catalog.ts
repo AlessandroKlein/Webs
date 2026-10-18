@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 import type { LocalizedString } from '@webs/plugin-sdk';
 import { blockRegistry } from './registry';
 import { blocksDir } from '../lib/paths';
+import { cacheGet, cacheSet } from '../lib/cache';
 
 /**
  * Catálogo/marketplace de bloques. Combina:
@@ -101,6 +102,10 @@ export async function findRemoteBlock(id: string): Promise<RegistryBlockEntry | 
 }
 
 export async function getCatalog(fastify: FastifyInstance): Promise<{ local: CatalogItem[]; remote: CatalogItem[] }> {
+  const cacheKey = 'blocks:catalog';
+  const cached = await cacheGet<{ local: CatalogItem[]; remote: CatalogItem[] }>(fastify.redis, cacheKey);
+  if (cached) return cached;
+
   const installations = await fastify.prisma.blockInstallation.findMany({ select: { blockId: true } });
   const installedIds = new Set(installations.map((i) => i.blockId));
 
@@ -132,5 +137,7 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
       installed: false,
     }));
 
-  return { local, remote };
+  const result = { local, remote };
+  await cacheSet(fastify.redis, cacheKey, result, 60);
+  return result;
 }

@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.23.0] - 2026-10-18
+
+### Añadido
+
+- **Rate limit distribuido con Redis** (`rate-limiter-flexible`) en login/registro/
+  recuperación (fallback a memoria si no hay Redis).
+- **Caché Redis** (`lib/cache.ts`) aplicada a settings y catálogo de bloques, con
+  invalidación al guardar.
+
 ## [0.22.0] - 2026-10-18
 
 ### Añadido
