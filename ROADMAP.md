@@ -39,6 +39,9 @@ las **plantillas** que los combinan y activan automáticamente.
 | Cola de tareas BullMQ | ✅ | 0.24.0 |
 | Media (multipart + sharp) + storage S3/R2/MinIO | ✅ | 0.25.0 |
 | Notificaciones + bloque Twilio | ✅ | 0.26.0 |
+| Firma Ed25519 de bloques + cola BullMQ genérica | ✅ | 0.27.0 |
+| 2FA por SMS (OTP) | ✅ | 0.28.0 |
+| Marketplace enriquecido (icono/downloadUrl) + plantilla en instalación | ✅ | 0.29.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---

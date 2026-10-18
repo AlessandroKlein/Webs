@@ -24,9 +24,13 @@ Un archivo JSON con una lista de bloques:
       "author": "Acme",
       "license": "MIT",
       "homepage": "https://github.com/acme/block-store",
+      "icon": "https://acme.example/store.png",
       "source": "git",
       "url": "https://github.com/acme/block-store.git",
-      "subdir": "block"
+      "subdir": "block",
+      "sha256": "…",
+      "publicKey": "-----BEGIN PUBLIC KEY-----…",
+      "signature": "…"
     }
   ]
 }
@@ -38,10 +42,14 @@ Un archivo JSON con una lista de bloques:
 | `name` | Nombre del paquete. |
 | `version` | Versión del catálogo. |
 | `displayName` / `description` | Textos localizados (`es`, `en`, …). |
-| `source` | `git` (clonado) o `npm` (paquete publicado). |
+| `icon` | Imagen/logo del bloque (se muestra en el catálogo). |
+| `author` / `license` / `homepage` | Metadatos del creador. |
+| `source` | `git` (clonado), `npm` (paquete) o directo. |
 | `url` | URL del repositorio git (o paquete npm). |
+| `downloadUrl` | URL directa de un tarball `.tgz`/`.tar.gz` (alternativa a git/npm). |
 | `subdir` | Subdirectorio del repo que contiene el bloque (monorepos). |
-| `sha256` | (Opcional) SHA-256 del `block.json` para verificar integridad al instalar. |
+| `sha256` | (Opcional) SHA-256 del `block.json`. |
+| `publicKey` / `signature` | (Opcional) Clave pública Ed25519 (PEM) y firma base64 del `block.json` (autoría + integridad). |
 
 ## Dónde se sirve el índice
 

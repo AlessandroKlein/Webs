@@ -36,3 +36,9 @@ fastify.notifications?.register({
 
 > Para **OTP/2FA por SMS**, se puede emitir `notification.sent` y verificar el
 > código en el flujo de 2FA (queda como integración futura).
+
+## 2FA por SMS (OTP)
+
+El bloque Twilio habilita **2FA por SMS**: en **Mi cuenta → 2FA por SMS** se
+configura el teléfono (se envía un OTP y se verifica). Al iniciar sesión, si el
+SMS 2FA está activo, se envía el código y se valida con `smsCode`.
