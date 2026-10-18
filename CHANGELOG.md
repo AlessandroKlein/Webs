@@ -3,6 +3,17 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.8.0] - 2026-10-18
+
+### Añadido
+
+- **Programación de campañas** (fecha/hora) con `schedule`/`cancel` y scheduler
+  en segundo plano.
+- **Tracking de apertura y clics**: pixel de apertura + reescritura de enlaces,
+  con contadores por campaña.
+- **Eventos desde bloques**: los bloques declaran eventos en `block.json` y los
+  emiten vía `fastify.events.emit(...)`; el bloque de ejemplo emite `order.created`.
+
 ## [0.7.0] - 2026-10-18
 
 ### Añadido

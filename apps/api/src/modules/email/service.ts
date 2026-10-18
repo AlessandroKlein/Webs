@@ -71,3 +71,32 @@ export async function sendCampaign(fastify: FastifyInstance, campaignId: string)
 
   return { queued: recipients.length };
 }
+
+/** Programa una campaña para una fecha/hora futura. */
+export async function scheduleCampaign(
+  fastify: FastifyInstance,
+  campaignId: string,
+  scheduledAt: Date,
+): Promise<{ scheduled: true }> {
+  const campaign = await fastify.prisma.emailCampaign.findUnique({ where: { id: campaignId } });
+  if (!campaign) throw new NotFoundError('Campaña');
+  await fastify.prisma.emailCampaign.update({
+    where: { id: campaignId },
+    data: { status: 'scheduled', scheduledAt },
+  });
+  return { scheduled: true };
+}
+
+/** Cancela una campaña programada (vuelve a borrador). */
+export async function cancelCampaign(
+  fastify: FastifyInstance,
+  campaignId: string,
+): Promise<{ cancelled: true }> {
+  const campaign = await fastify.prisma.emailCampaign.findUnique({ where: { id: campaignId } });
+  if (!campaign) throw new NotFoundError('Campaña');
+  await fastify.prisma.emailCampaign.update({
+    where: { id: campaignId },
+    data: { status: 'draft', scheduledAt: null },
+  });
+  return { cancelled: true };
+}

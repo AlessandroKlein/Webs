@@ -50,6 +50,8 @@ export interface BlockManifest {
   permissions?: string[];
   /** Slots en los que el bloque puede ubicarse. */
   slots?: string[];
+  /** Eventos de negocio que el bloque emite (ej. `order.created`). */
+  events?: string[];
   /** Dependencias npm (peers). */
   dependencies?: Record<string, string>;
   /** Versión del contrato de bloques contra la que se escribió. */
@@ -108,6 +110,7 @@ export const blockManifestSchema = z.object({
   settings: jsonSchemaLoose.optional(),
   permissions: z.array(z.string()).optional(),
   slots: z.array(z.string()).optional(),
+  events: z.array(z.string()).optional(),
   dependencies: z.record(z.string(), z.string()).optional(),
   apiVersion: z.string(),
 });

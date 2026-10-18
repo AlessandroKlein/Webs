@@ -5,7 +5,7 @@ import { paginationQuerySchema, pageParams, pageResponse } from '../../lib/pagin
 import { audit } from '../../lib/audit';
 import { listEvents } from './events';
 import { processQueue } from './queue';
-import { sendCampaign } from './service';
+import { cancelCampaign, scheduleCampaign, sendCampaign } from './service';
 import { buildBaseData, renderTemplate } from './render';
 import { sanitize } from '../../lib/sanitize';
 
@@ -156,6 +156,39 @@ export default async function emailRoutes(fastify: FastifyInstance): Promise<voi
       const id = (request.params as { id: string }).id;
       const result = await sendCampaign(fastify, id);
       audit(fastify, request, { actorId: request.user?.sub, action: 'email.campaign.send', resource: 'email_campaign', resourceId: id });
+      return result;
+    },
+  );
+
+  fastify.post(
+    '/email/campaigns/:id/schedule',
+    {
+      schema: {
+        tags: ['email'],
+        params: { type: 'object', properties: { id: { type: 'string' } } },
+        body: { type: 'object', required: ['scheduledAt'], properties: { scheduledAt: { type: 'string', format: 'date-time' } } },
+      },
+      preHandler: canSend,
+    },
+    async (request) => {
+      const id = (request.params as { id: string }).id;
+      const { scheduledAt } = request.body as { scheduledAt: string };
+      const result = await scheduleCampaign(fastify, id, new Date(scheduledAt));
+      audit(fastify, request, { actorId: request.user?.sub, action: 'email.campaign.schedule', resource: 'email_campaign', resourceId: id });
+      return result;
+    },
+  );
+
+  fastify.post(
+    '/email/campaigns/:id/cancel',
+    {
+      schema: { tags: ['email'], params: { type: 'object', properties: { id: { type: 'string' } } } },
+      preHandler: canSend,
+    },
+    async (request) => {
+      const id = (request.params as { id: string }).id;
+      const result = await cancelCampaign(fastify, id);
+      audit(fastify, request, { actorId: request.user?.sub, action: 'email.campaign.cancel', resource: 'email_campaign', resourceId: id });
       return result;
     },
   );

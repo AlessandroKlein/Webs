@@ -26,6 +26,9 @@ interface EmailCampaign {
   status: string;
   sentCount: number;
   totalCount: number;
+  openCount: number;
+  clickCount: number;
+  scheduledAt: string | null;
   template: { id: string; name: string } | null;
 }
 interface EmailAutomation {
@@ -243,6 +246,17 @@ function CampaignsPanel() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['email-campaigns'] }),
   });
 
+  const schedule = useMutation({
+    mutationFn: ({ id, scheduledAt }: { id: string; scheduledAt: string }) =>
+      api.post(`/api/v1/email/campaigns/${id}/schedule`, { scheduledAt }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['email-campaigns'] }),
+  });
+
+  const cancel = useMutation({
+    mutationFn: (id: string) => api.post(`/api/v1/email/campaigns/${id}/cancel`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['email-campaigns'] }),
+  });
+
   if (isLoading) return <Spinner />;
 
   return (
@@ -293,28 +307,88 @@ function CampaignsPanel() {
         <h3>Campañas</h3>
         <div className="stack">
           {(data ?? []).map((c) => (
-            <div key={c.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
-              <div>
-                <strong>{c.name}</strong>
-                <span className="muted"> · {c.template?.name ?? 'sin plantilla'}</span>
-                <div>
-                  <span className="badge">{c.status}</span>
-                  <span className="muted"> {c.sentCount}/{c.totalCount} enviados</span>
-                </div>
-              </div>
-              <div className="row">
-                <Button variant="secondary" onClick={() => send.mutate(c.id)} disabled={send.isPending || !c.templateId}>
-                  Enviar
-                </Button>
-                <Button variant="ghost" onClick={() => remove.mutate(c.id)}>
-                  Eliminar
-                </Button>
-              </div>
-            </div>
+            <CampaignRow
+              key={c.id}
+              campaign={c}
+              onSend={send.mutate}
+              onSchedule={schedule.mutate}
+              onCancel={cancel.mutate}
+              onRemove={remove.mutate}
+            />
           ))}
           {(data ?? []).length === 0 && <p className="muted">No hay campañas.</p>}
         </div>
       </Card>
+    </div>
+  );
+}
+
+function CampaignRow({
+  campaign,
+  onSend,
+  onSchedule,
+  onCancel,
+  onRemove,
+}: {
+  campaign: EmailCampaign;
+  onSend: (id: string) => void;
+  onSchedule: (arg: { id: string; scheduledAt: string }) => void;
+  onCancel: (id: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [when, setWhen] = useState('');
+  const scheduled = campaign.status === 'scheduled';
+
+  return (
+    <div className="stack" style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
+      <div className="row" style={{ justifyContent: 'space-between' }}>
+        <div>
+          <strong>{campaign.name}</strong>
+          <span className="muted"> · {campaign.template?.name ?? 'sin plantilla'}</span>
+          <div>
+            <span className="badge">{campaign.status}</span>
+            <span className="muted">
+              {' '}{campaign.sentCount}/{campaign.totalCount} enviados · {campaign.openCount} aperturas · {campaign.clickCount} clics
+            </span>
+          </div>
+          {campaign.scheduledAt && (
+            <span className="muted">Programada: {new Date(campaign.scheduledAt).toLocaleString()}</span>
+          )}
+        </div>
+        <div className="row">
+          {scheduled ? (
+            <Button variant="secondary" onClick={() => onCancel(campaign.id)}>
+              Cancelar
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => onSend(campaign.id)} disabled={!campaign.templateId}>
+              Enviar ahora
+            </Button>
+          )}
+          <Button variant="ghost" onClick={() => onRemove(campaign.id)}>
+            Eliminar
+          </Button>
+        </div>
+      </div>
+
+      {!scheduled && (
+        <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
+          <input
+            className="input"
+            type="datetime-local"
+            value={when}
+            onChange={(e) => setWhen(e.target.value)}
+            style={{ width: 'auto' }}
+          />
+          <Button
+            variant="ghost"
+            onClick={() => when && onSchedule({ id: campaign.id, scheduledAt: new Date(when).toISOString() })}
+            disabled={!when}
+          >
+            Programar
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

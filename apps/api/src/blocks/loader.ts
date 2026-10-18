@@ -15,6 +15,7 @@ import {
 import { blockRegistry } from './registry';
 import { CORE_SLOTS } from './slots';
 import { blocksDir } from '../lib/paths';
+import { registerBlockEvent } from '../modules/email/events';
 
 const asJson = (v: unknown): Prisma.InputJsonValue => v as unknown as Prisma.InputJsonValue;
 
@@ -85,7 +86,7 @@ function makeContext(
   return {
     fastify: fastify as unknown as BlockFastify,
     logger: fastify.log.child({ block: serverBlock.manifest.id }),
-    services: { db: fastify.prisma, cache: fastify.redis, events: fastify.redis },
+    services: { db: fastify.prisma, cache: fastify.redis, events: fastify.events },
     config,
     installationId,
   };
@@ -125,6 +126,10 @@ export async function loadAndActivate(
 
   const serverBlock = await loadBlockEntry(pkgDir, manifest);
   await registerBlockPermissions(app, manifest);
+
+  for (const eventKey of manifest.events ?? []) {
+    registerBlockEvent({ key: eventKey, label: eventKey });
+  }
 
   if (serverBlock.register) {
     await app.register(async (instance) => {

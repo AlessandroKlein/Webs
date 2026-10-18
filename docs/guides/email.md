@@ -52,8 +52,42 @@ a `sent` o `failed`. Esto permite reintentos y evita saturar el SMTP.
 > Para producción con alto volumen, la cola en memoria se puede sustituir por
 > una cola externa (BullMQ/Redis), manteniendo la misma tabla y endpoints.
 
+## Programación de campañas
+
+Una campaña puede **programarse** para una fecha/hora futura (botón "Programar").
+Un programador en segundo plano envía las campañas cuya fecha ya se cumplió.
+Se puede **cancelar** antes de que se ejecute.
+
+## Tracking de apertura y clics
+
+- **Apertura**: cada correo incluye un pixel de 1×1 (`/api/v1/public/email/open/:id`)
+  que registra la primera apertura.
+- **Clics**: los enlaces se reescriben para pasar por
+  `/api/v1/public/email/click/:id?url=...`, que cuenta el clic y redirige.
+- Las campañas muestran **aperturas y clics** junto a enviados/total.
+
+## Eventos desde bloques
+
+Los bloques pueden emitir eventos de negocio (ej. `order.created`) que disparan
+automatizaciones. El bloque declara sus eventos en `block.json` (`"events"`), y
+se listan automáticamente en el selector de eventos de las automatizaciones.
+
+```ts
+// dentro del register de un bloque
+fastify.post('/order', async () => {
+  await fastify.events.emit('order.created', {
+    user: { email: 'cliente@ejemplo.com' },
+    order: { id: '123', total: 99 },
+  });
+});
+```
+
+El bloque de ejemplo (`@webs/block-example`) incluye un endpoint `POST
+/api/v1/blocks/example/order` que emite `order.created`.
+
 ## Permisos
 
 - `email.read` — ver plantillas/campañas/automatizaciones.
 - `email.write` — crear/editar.
-- `email.send` — enviar campañas.
+- `email.send` — enviar/programar campañas.
+

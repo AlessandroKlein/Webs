@@ -32,5 +32,9 @@ declare module 'fastify' {
       secureCookies?: boolean;
       contentSecurityPolicy?: string;
     };
+    /** Emisor de eventos de negocio (dispara automatizaciones de correo). */
+    events: {
+      emit: (event: string, payload: Record<string, unknown>) => Promise<void>;
+    };
   }
 }

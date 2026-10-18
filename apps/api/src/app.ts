@@ -17,6 +17,7 @@ import authPlugin from './plugins/auth';
 import errorHandlerPlugin from './plugins/error-handler';
 import websocketPlugin from './plugins/websocket';
 import securityPlugin from './plugins/security';
+import eventsPlugin from './plugins/events';
 
 import healthRoutes from './modules/health';
 import authRoutes from './modules/auth';
@@ -31,6 +32,8 @@ import setupRoutes from './modules/setup';
 import emailRoutes, { startQueueProcessor } from './modules/email';
 import i18nRoutes from './modules/i18n';
 import apiTokensRoutes from './modules/api-tokens';
+import trackingRoutes from './modules/email/tracking';
+import { startScheduler } from './modules/email/scheduler';
 
 import { registerBlocks } from './blocks/loader';
 
@@ -78,6 +81,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(dbPlugin, { databaseUrl: state.databaseUrl });
   await app.register(redisPlugin, { redisUrl: env.REDIS_URL });
   await app.register(securityPlugin);
+  await app.register(eventsPlugin);
   await app.register(authPlugin, { jwtSecret: env.JWT_SECRET });
   await app.register(websocketPlugin);
 
@@ -94,12 +98,14 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(emailRoutes, { prefix: API_PREFIX });
   await app.register(i18nRoutes, { prefix: API_PREFIX });
   await app.register(apiTokensRoutes, { prefix: API_PREFIX });
+  await app.register(trackingRoutes, { prefix: API_PREFIX });
 
   // 6. Bloques instalados (cargan sus plugins, rutas, settings, slots y permisos).
   await registerBlocks(app);
 
-  // 7. Cola de envío de correos en segundo plano.
+  // 7. Cola de envío y programador de campañas en segundo plano.
   startQueueProcessor(app);
+  startScheduler(app);
 
   return app;
 }

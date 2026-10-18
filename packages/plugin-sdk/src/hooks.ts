@@ -31,6 +31,10 @@ export interface BlockFastify {
   decorate(name: string, value: unknown): unknown;
   addHook(name: string, fn: unknown): unknown;
   log: BlockLogger;
+  /** Emisor de eventos de negocio (dispara automatizaciones de correo). */
+  events?: {
+    emit: (event: string, payload: Record<string, unknown>) => void | Promise<void>;
+  };
 }
 
 /**
@@ -48,8 +52,10 @@ export interface BlockServices {
   db: unknown;
   /** Cliente de caché/Redis (opcional). */
   cache?: unknown;
-  /** Registro de eventos/pub-sub (opcional). */
-  events?: unknown;
+  /** Emisor de eventos de negocio (opcional). */
+  events?: {
+    emit: (event: string, payload: Record<string, unknown>) => void | Promise<void>;
+  };
 }
 
 /**

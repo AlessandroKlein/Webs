@@ -16,6 +16,19 @@ export default defineBlock(manifest, {
       message: 'hola desde el bloque de ejemplo',
       ts: new Date().toISOString(),
     }));
+
+    // Ejemplo de evento de negocio: al "crear un pedido" se emite
+    // `order.created`, que dispara automatizaciones de correo.
+    fastify.post('/order', async (request: unknown) => {
+      const { body } = request as { body?: { email?: string; name?: string; total?: number } };
+      if (fastify.events) {
+        await fastify.events.emit('order.created', {
+          user: { email: body?.email, name: body?.name },
+          order: { id: Date.now().toString(), total: body?.total ?? 0 },
+        });
+      }
+      return { ok: true, event: 'order.created', email: body?.email ?? null };
+    });
   },
   hooks: {
     onInstall: async (ctx) => ctx.logger.info('bloque de ejemplo instalado'),

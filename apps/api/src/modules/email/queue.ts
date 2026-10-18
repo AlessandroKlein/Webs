@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { createTransport, getSmtpSettings } from '../mail/service';
+import { baseUrl, injectTracking } from './tracking';
 
 /**
  * Cola de envío de correos. Desacopla la generación del envío: campañas y
@@ -44,7 +45,8 @@ export async function processQueue(fastify: FastifyInstance, batch = 20): Promis
         continue;
       }
       const from = settings.from ?? 'Webs <no-reply@localhost>';
-      await transport.sendMail({ from, to: message.to, subject: message.subject, html: message.body });
+      const html = injectTracking(message.body, message.id, baseUrl(fastify));
+      await transport.sendMail({ from, to: message.to, subject: message.subject, html });
 
       await fastify.prisma.emailMessage.update({
         where: { id: message.id },

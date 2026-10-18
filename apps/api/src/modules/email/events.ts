@@ -21,8 +21,15 @@ export const BUILT_IN_EVENTS: EmailEvent[] = [
   { key: 'user.password_changed', label: 'Contraseña cambiada' },
 ];
 
+/** Eventos registrados por los bloques instalados (vía `manifest.events`). */
+const blockEvents = new Map<string, EmailEvent>();
+
+export function registerBlockEvent(event: EmailEvent): void {
+  blockEvents.set(event.key, event);
+}
+
 export function listEvents(): EmailEvent[] {
-  return [...BUILT_IN_EVENTS];
+  return [...BUILT_IN_EVENTS, ...blockEvents.values()];
 }
 
 export interface EventPayload {
