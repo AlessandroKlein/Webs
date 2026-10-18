@@ -66,6 +66,14 @@ Se puede **cancelar** antes de que se ejecute.
   `/api/v1/public/email/click/:id?url=...`, que cuenta el clic y redirige.
 - Las campañas muestran **aperturas y clics** junto a enviados/total.
 
+## Reportes y exportación
+
+- **Reporte**: `GET /email/campaigns/:id/report` devuelve tasas de apertura/clic,
+  clics únicos/totales y el detalle por destinatario. En la UI, el botón
+  "Reporte" muestra un gráfico de barras.
+- **Exportar**: `GET /email/campaigns/:id/export` descarga un **CSV** con la lista
+  de destinatarios (email, estado, apertura, clics).
+
 ## Eventos desde bloques
 
 Los bloques pueden emitir eventos de negocio (ej. `order.created`) que disparan

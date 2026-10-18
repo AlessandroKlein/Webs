@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { api, downloadFile } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -337,6 +337,7 @@ function CampaignRow({
   onRemove: (id: string) => void;
 }) {
   const [when, setWhen] = useState('');
+  const [showReport, setShowReport] = useState(false);
   const scheduled = campaign.status === 'scheduled';
 
   return (
@@ -365,6 +366,12 @@ function CampaignRow({
               Enviar ahora
             </Button>
           )}
+          <Button variant="ghost" onClick={() => setShowReport((v) => !v)}>
+            Reporte
+          </Button>
+          <Button variant="ghost" onClick={() => void downloadFile(`/api/v1/email/campaigns/${campaign.id}/export`, `campaign-${campaign.id}.csv`)}>
+            Exportar
+          </Button>
           <Button variant="ghost" onClick={() => onRemove(campaign.id)}>
             Eliminar
           </Button>
@@ -389,6 +396,56 @@ function CampaignRow({
           </Button>
         </div>
       )}
+
+      {showReport && <CampaignReport id={campaign.id} />}
+    </div>
+  );
+}
+
+interface CampaignReportData {
+  campaign: { id: string; name: string; status: string; totalCount: number };
+  summary: { sentCount: number; openCount: number; uniqueClicks: number; totalClicks: number; openRate: number; clickRate: number };
+  recipients: Array<{ email: string; status: string; openedAt: string | null; clickCount: number }>;
+}
+
+function CampaignReport({ id }: { id: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['email-campaign-report', id],
+    queryFn: () => api.get<CampaignReportData>(`/api/v1/email/campaigns/${id}/report`),
+  });
+
+  if (isLoading) return <Spinner />;
+  if (!data) return null;
+
+  const s = data.summary;
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+
+  return (
+    <Card style={{ marginTop: 'var(--ws-space-3)' }}>
+      <h4>Reporte — {data.campaign.name}</h4>
+      <div className="stack">
+        <div>
+          <span className="muted">Aperturas: {s.openCount}/{s.sentCount} ({pct(s.openRate)})</span>
+          <Bar value={s.openRate} />
+        </div>
+        <div>
+          <span className="muted">Clics únicos: {s.uniqueClicks}/{s.sentCount} ({pct(s.clickRate)})</span>
+          <Bar value={s.clickRate} />
+        </div>
+        <p className="muted">
+          {s.sentCount} enviados · {s.openCount} aperturas · {s.uniqueClicks} clics únicos · {s.totalClicks} clics totales
+        </p>
+        <p className="muted">Destinatarios: {data.recipients.length} (abiertos {s.openCount}, con clics {s.uniqueClicks})</p>
+      </div>
+    </Card>
+  );
+}
+
+function Bar({ value }: { value: number }) {
+  const width = Math.max(0, Math.min(100, Math.round(value * 100)));
+  return (
+    <div style={{ height: 8, background: 'var(--ws-surface-2)', borderRadius: 'var(--ws-radius-full)', overflow: 'hidden' }}>
+      <div style={{ width: `${width}%`, height: '100%', background: 'var(--ws-primary)' }} />
     </div>
   );
 }

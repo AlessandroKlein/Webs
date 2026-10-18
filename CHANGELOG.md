@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.14.0] - 2026-10-18
+
+### Añadido
+
+- **Reporte de campañas**: tasas de apertura/clic, clics únicos/totales y gráfico
+  de barras por campaña (`GET /email/campaigns/:id/report`).
+- **Exportación de destinatarios** en CSV (`GET /email/campaigns/:id/export`).
+
 ## [0.13.0] - 2026-10-18
 
 ### Añadido

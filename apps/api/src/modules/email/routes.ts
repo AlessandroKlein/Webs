@@ -5,7 +5,7 @@ import { paginationQuerySchema, pageParams, pageResponse } from '../../lib/pagin
 import { audit } from '../../lib/audit';
 import { listEvents } from './events';
 import { processQueue } from './queue';
-import { cancelCampaign, scheduleCampaign, sendCampaign } from './service';
+import { cancelCampaign, resolveRecipients, scheduleCampaign, sendCampaign } from './service';
 import { buildBaseData, renderTemplate } from './render';
 import { sanitize } from '../../lib/sanitize';
 
@@ -16,6 +16,16 @@ interface TemplateBody {
   body: string;
   bodyMode?: string;
   variables?: unknown;
+}
+
+function csvEscape(value: unknown): string {
+  const s = value === null || value === undefined ? '' : String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function toCsv(rows: Array<Record<string, unknown>>): string {
+  const headers = Object.keys(rows[0] ?? {});
+  return [headers.join(','), ...rows.map((r) => headers.map((h) => csvEscape(r[h])).join(','))].join('\n');
 }
 
 export default async function emailRoutes(fastify: FastifyInstance): Promise<void> {
@@ -202,6 +212,79 @@ export default async function emailRoutes(fastify: FastifyInstance): Promise<voi
     async (request, reply) => {
       await fastify.prisma.emailCampaign.delete({ where: { id: (request.params as { id: string }).id } });
       return reply.status(204).send();
+    },
+  );
+
+  // -------- Reporte y exportación --------
+  fastify.get(
+    '/email/campaigns/:id/report',
+    {
+      schema: { tags: ['email'], params: { type: 'object', properties: { id: { type: 'string' } } } },
+      preHandler: canRead,
+    },
+    async (request) => {
+      const id = (request.params as { id: string }).id;
+      const campaign = await fastify.prisma.emailCampaign.findUnique({ where: { id } });
+      if (!campaign) throw new NotFoundError('Campaña');
+
+      const messages = await fastify.prisma.emailMessage.findMany({
+        where: { campaignId: id },
+        select: { to: true, status: true, openedAt: true, clickCount: true },
+      });
+
+      const sent = messages.filter((m) => m.status === 'sent');
+      const sentCount = sent.length;
+      const openCount = sent.filter((m) => m.openedAt).length;
+      const uniqueClicks = sent.filter((m) => m.clickCount > 0).length;
+      const totalClicks = sent.reduce((sum, m) => sum + m.clickCount, 0);
+      const openRate = sentCount > 0 ? openCount / sentCount : 0;
+      const clickRate = sentCount > 0 ? uniqueClicks / sentCount : 0;
+
+      return {
+        campaign: { id: campaign.id, name: campaign.name, status: campaign.status, totalCount: campaign.totalCount },
+        summary: { sentCount, openCount, uniqueClicks, totalClicks, openRate, clickRate },
+        recipients: messages.map((m) => ({
+          email: m.to,
+          status: m.status,
+          openedAt: m.openedAt?.toISOString() ?? null,
+          clickCount: m.clickCount,
+        })),
+      };
+    },
+  );
+
+  fastify.get(
+    '/email/campaigns/:id/export',
+    {
+      schema: { tags: ['email'], params: { type: 'object', properties: { id: { type: 'string' } } } },
+      preHandler: canRead,
+    },
+    async (request, reply) => {
+      const id = (request.params as { id: string }).id;
+      const campaign = await fastify.prisma.emailCampaign.findUnique({ where: { id } });
+      if (!campaign) throw new NotFoundError('Campaña');
+
+      let rows: Array<Record<string, unknown>>;
+      const hasSent = campaign.sentCount > 0 || campaign.status === 'sent' || campaign.status === 'sending';
+      if (hasSent) {
+        const messages = await fastify.prisma.emailMessage.findMany({
+          where: { campaignId: id },
+          select: { to: true, status: true, openedAt: true, clickCount: true },
+        });
+        rows = messages.map((m) => ({
+          email: m.to,
+          status: m.status,
+          opened: m.openedAt ? m.openedAt.toISOString() : '',
+          clicks: m.clickCount,
+        }));
+      } else {
+        const recipients = await resolveRecipients(fastify, campaign);
+        rows = recipients.map((r) => ({ email: r.email, status: 'pending', opened: '', clicks: 0 }));
+      }
+
+      reply.header('Content-Type', 'text/csv; charset=utf-8');
+      reply.header('Content-Disposition', `attachment; filename="campaign-${id}.csv"`);
+      return toCsv(rows);
     },
   );
 
