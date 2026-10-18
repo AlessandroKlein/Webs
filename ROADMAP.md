@@ -53,12 +53,10 @@ las **plantillas** que los combinan y activan automáticamente.
 - [ ] Rate limit y desafíos WebAuthn **en Redis** (clúster).
 
 ### 2.2 Email / marketing
-- [ ] Cola de envío con **BullMQ/Redis** (alto volumen, reintentos).
 - [ ] Editor WYSIWYG profesional (TipTap/Quill) en plantillas de correo.
 - [ ] QR visual para el alta de 2FA.
 
 ### 2.3 Marketplace / bloques
-- [ ] Registro oficial **firmado criptográficamente** (Ed25519) además del sha256.
 - [ ] Veredicto/verificación de bloques (badges de autor de confianza).
 
 ### 2.4 Documentación / CI
@@ -83,14 +81,17 @@ las **plantillas** que los combinan y activan automáticamente.
 
 ---
 
-## 4. Orden sugerido
+## 4. Orden sugerido (backlog restante)
 
-1. **2FA obligatoria para admins** (seguridad crítica).
-2. **Auditoría avanzada** (filtros/exportación).
-3. **Plantillas + página de config por bloque** (núcleo de la nueva arquitectura).
-4. **Bloque Mercado Pago** como referencia real (valida todo el modelo de bloques).
-5. **Vista admin de tokens** + **dashboard de métricas** + **serie temporal de campañas**.
-6. **CI de docs** + **validación Docker/Node** (con la VPS).
+1. **Editor WYSIWYG** (TipTap/Quill) + **QR visual** de 2FA.
+2. **Badges de autor de confianza** en el marketplace.
+3. **2FA FIDO2 con gestión de dispositivos** + **WebAuthn en Redis** (clúster).
+4. **Releases automáticas** (CI/CD con notas generadas).
+5. **Plantillas/bloques extra**: blog, corporativo, cursos; carrito+stock, facturación, push, mapa.
+6. **Operación** (con la VPS): validar Docker y Node.
+
+> Previsualizá el estilo del frontend sin servidor abriendo
+> [`docs/estilo-frontend.html`](estilo-frontend.html) en el navegador.
 
 > Convención: al completar un elemento, movelo a la tabla "implementado" con su
 > versión y actualizá este documento.
