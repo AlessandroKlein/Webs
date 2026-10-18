@@ -26,6 +26,7 @@ import translationsRoutes from './modules/translations';
 import auditRoutes from './modules/audit';
 import blocksRoutes from './modules/blocks';
 import setupRoutes from './modules/setup';
+import emailRoutes, { startQueueProcessor } from './modules/email';
 
 import { registerBlocks } from './blocks/loader';
 
@@ -83,9 +84,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(translationsRoutes, { prefix: API_PREFIX });
   await app.register(auditRoutes, { prefix: API_PREFIX });
   await app.register(blocksRoutes, { prefix: API_PREFIX });
+  await app.register(emailRoutes, { prefix: API_PREFIX });
 
   // 6. Bloques instalados (cargan sus plugins, rutas, settings, slots y permisos).
   await registerBlocks(app);
+
+  // 7. Cola de envío de correos en segundo plano.
+  startQueueProcessor(app);
 
   return app;
 }

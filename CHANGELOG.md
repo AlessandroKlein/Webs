@@ -3,6 +3,19 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.3.0] - 2026-10-18
+
+### Añadido
+
+- **Módulo de Email marketing/automatización**:
+  - Plantillas HTML con **editor visual (WYSIWYG) o HTML crudo** (a elección) y
+    variables (`{{ user.name }}`, `{{ site.name }}`, …).
+  - **Campañas masivas** (todos los usuarios, por roles o lista manual).
+  - **Automatizaciones** por eventos (`user.registered`, `user.email_verified`,
+    `user.password_changed`) con extensión por bloques.
+  - **Cola de envío** en segundo plano con estado `queued/sent/failed`.
+- Permisos nuevos: `email.read`, `email.write`, `email.send`.
+
 ## [0.2.0] - 2026-10-18
 
 ### Añadido

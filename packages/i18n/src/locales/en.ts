@@ -25,6 +25,7 @@ export const en: Record<string, string> = {
 
   'nav.dashboard': 'Dashboard',
   'nav.content': 'Content',
+  'nav.email': 'Email',
   'nav.blocks': 'Blocks',
   'nav.media': 'Media',
   'nav.users': 'Users',

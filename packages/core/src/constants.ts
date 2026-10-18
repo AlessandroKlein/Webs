@@ -68,6 +68,11 @@ export const Permission = {
 
   // Auditoría
   AuditRead: 'audit.read',
+
+  // Email / marketing
+  EmailRead: 'email.read',
+  EmailWrite: 'email.write',
+  EmailSend: 'email.send',
 } as const;
 
 export type PermissionValue = (typeof Permission)[keyof typeof Permission];

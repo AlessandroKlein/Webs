@@ -14,6 +14,7 @@ export function AdminLayout() {
   const nav = [
     { to: '/', label: t('nav.dashboard'), end: true, perm: null as string | null },
     { to: '/content', label: t('nav.content'), perm: 'content.read' },
+    { to: '/email', label: t('nav.email'), perm: 'email.read' },
     { to: '/blocks', label: t('nav.blocks'), perm: 'block.read' },
     { to: '/users', label: t('nav.users'), perm: 'user.read' },
     { to: '/roles', label: t('nav.roles'), perm: 'role.read' },

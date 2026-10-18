@@ -9,6 +9,7 @@ import {
   verificationEmailHtml,
 } from '../mail/service';
 import type { AccessTokenPayload } from '../../types/auth';
+import { emitEvent } from '../email/events';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15; // 15 minutos
 export const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
@@ -186,6 +187,12 @@ export async function sendVerificationEmail(
 export async function verifyEmail(fastify: FastifyInstance, token: string): Promise<void> {
   const userId = verifyEmailToken(fastify, token, 'verify');
   await fastify.prisma.user.update({ where: { id: userId }, data: { emailVerifiedAt: new Date() } });
+  const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
+  if (user) {
+    void emitEvent(fastify, 'user.email_verified', {
+      user: { id: user.id, email: user.email, name: user.displayName ?? undefined },
+    });
+  }
 }
 
 /** Envía el enlace de recuperación (no revela si el correo existe). */
@@ -215,4 +222,10 @@ export async function resetPassword(
     where: { userId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+  const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
+  if (user) {
+    void emitEvent(fastify, 'user.password_changed', {
+      user: { id: user.id, email: user.email, name: user.displayName ?? undefined },
+    });
+  }
 }

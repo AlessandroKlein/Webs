@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { REFRESH_TOKEN_COOKIE } from '@webs/core';
 import { findUserWithPermissions, toPublicUser } from '../../lib/user';
 import { audit } from '../../lib/audit';
+import { emitEvent } from '../email/events';
 import {
   createSession,
   forgotPassword,
@@ -63,6 +64,9 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
       audit(fastify, request, { actorId: profile.id, action: 'auth.register' });
       void sendVerificationEmail(fastify, profile);
+      void emitEvent(fastify, 'user.registered', {
+        user: { id: profile.id, email: profile.email, name: profile.displayName ?? undefined },
+      });
       return reply.status(201).send({
         accessToken,
         refreshToken,

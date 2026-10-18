@@ -17,6 +17,7 @@ import { BlocksPage } from './features/blocks/BlocksPage';
 import { UsersPage } from './features/users/UsersPage';
 import { RolesPage } from './features/roles/RolesPage';
 import { ContentPage } from './features/content/ContentPage';
+import { EmailPage } from './features/email/EmailPage';
 import { TranslationsPage } from './features/translations/TranslationsPage';
 import { AuditPage } from './features/audit/AuditPage';
 import { PublicHome } from './features/public/PublicHome';
@@ -86,6 +87,7 @@ function MainApp() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="content" element={<ContentPage />} />
+          <Route path="email" element={<EmailPage />} />
           <Route path="blocks" element={<BlocksPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="roles" element={<RolesPage />} />

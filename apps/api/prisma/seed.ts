@@ -32,6 +32,9 @@ const PERMISSIONS: Array<{ key: string; description: string }> = [
   { key: 'media.read', description: 'Ver medios' },
   { key: 'media.write', description: 'Gestionar medios' },
   { key: 'audit.read', description: 'Ver auditoría' },
+  { key: 'email.read', description: 'Ver correos' },
+  { key: 'email.write', description: 'Editar plantillas/automatizaciones' },
+  { key: 'email.send', description: 'Enviar campañas de correo' },
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);
