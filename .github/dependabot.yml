@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Auditoría de dependencias npm (supply chain).
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    versioning-strategy: "increase"
+
+  # Auditoría de las GitHub Actions.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

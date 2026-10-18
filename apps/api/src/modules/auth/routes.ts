@@ -17,6 +17,7 @@ import {
   REFRESH_TOKEN_TTL_MS,
 } from './service';
 import { loginSchema, registerSchema, type LoginBody, type RegisterBody } from './schema';
+import { confirmTwoFactor, disableTwoFactor, setupTwoFactor } from './two-factor';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   const setRefreshCookie = (reply: import('fastify').FastifyReply, token: string) => {
@@ -33,11 +34,21 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post(
     '/auth/login',
-    { schema: { tags: ['auth'], body: loginSchema } },
+    {
+      schema: { tags: ['auth'], body: loginSchema },
+      config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
+    },
     async (request, reply) => {
-      const { email, password } = request.body as LoginBody;
-      const profile = await login(fastify, email, password);
+      const { email, password, totp } = request.body as LoginBody;
+      const result = await login(fastify, email, password, totp);
 
+      if ('twoFactorRequired' in result) {
+        return reply.status(401).send({
+          error: { code: 'TWO_FACTOR_REQUIRED', message: 'Se requiere código de verificación (2FA)' },
+        });
+      }
+
+      const profile = result;
       const accessToken = signAccessToken(fastify, profile);
       const refreshToken = await createSession(fastify, profile.id, {
         userAgent: request.headers['user-agent'],
@@ -52,7 +63,10 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post(
     '/auth/register',
-    { schema: { tags: ['auth'], body: registerSchema } },
+    {
+      schema: { tags: ['auth'], body: registerSchema },
+      config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
+    },
     async (request, reply) => {
       const { email, password, displayName } = request.body as RegisterBody;
       const profile = await registerUser(fastify, { email, password, displayName });
@@ -125,7 +139,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post(
     '/auth/forgot-password',
-    { schema: { tags: ['auth'] } },
+    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } },
     async (request) => {
       const { email } = request.body as { email: string };
       if (email) await forgotPassword(fastify, email);
@@ -136,11 +150,41 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post(
     '/auth/reset-password',
-    { schema: { tags: ['auth'] } },
+    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } } },
     async (request) => {
       const { token, password } = request.body as { token: string; password: string };
       if (!token || !password) return fastify.httpErrors.badRequest('Faltan token o contraseña');
       await resetPassword(fastify, token, password);
+      return { ok: true };
+    },
+  );
+
+  // -------- Autenticación de dos factores (TOTP) --------
+
+  fastify.post(
+    '/auth/2fa/setup',
+    { schema: { tags: ['auth'] }, preHandler: [fastify.authenticate] },
+    async (request) => setupTwoFactor(fastify, request.user.sub),
+  );
+
+  fastify.post(
+    '/auth/2fa/confirm',
+    { schema: { tags: ['auth'] }, preHandler: [fastify.authenticate] },
+    async (request) => {
+      const { code } = request.body as { code: string };
+      if (!code) return fastify.httpErrors.badRequest('Falta el código');
+      await confirmTwoFactor(fastify, request.user.sub, code);
+      return { ok: true };
+    },
+  );
+
+  fastify.post(
+    '/auth/2fa/disable',
+    { schema: { tags: ['auth'] }, preHandler: [fastify.authenticate] },
+    async (request) => {
+      const { code } = request.body as { code: string };
+      if (!code) return fastify.httpErrors.badRequest('Falta el código');
+      await disableTwoFactor(fastify, request.user.sub, code);
       return { ok: true };
     },
   );

@@ -23,6 +23,8 @@ model User {
   locale          String    @default("es")
   active          Boolean   @default(true)
   emailVerifiedAt DateTime?
+  twoFactorSecret String?
+  twoFactorEnabled Boolean  @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 

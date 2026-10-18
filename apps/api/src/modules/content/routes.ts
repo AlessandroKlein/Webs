@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { ConflictError, NotFoundError } from '@webs/core';
 import { paginationQuerySchema, pageParams, pageResponse } from '../../lib/pagination';
 import { audit } from '../../lib/audit';
+import { sanitizeLocalized } from '../../lib/sanitize';
 import { createContentSchema, updateContentSchema, type CreateContentBody, type UpdateContentBody } from './schema';
 
 function serialize(c: {
@@ -93,7 +94,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
           type,
           slug: body.slug,
           title: body.title as object,
-          body: (body.body ?? undefined) as object | undefined,
+          body: sanitizeLocalized(body.body) as object | undefined,
           status: body.status ?? 'draft',
           seo: (body.seo ?? undefined) as object | undefined,
           authorId: request.user?.sub ?? null,
@@ -141,7 +142,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
       const data: Record<string, unknown> = {};
       if (body.slug !== undefined) data.slug = body.slug;
       if (body.title !== undefined) data.title = body.title as object;
-      if (body.body !== undefined) data.body = body.body as object;
+      if (body.body !== undefined) data.body = sanitizeLocalized(body.body) as object;
       if (body.status !== undefined) {
         data.status = body.status;
         if (body.status === 'published' && current.status !== 'published') {

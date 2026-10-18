@@ -35,6 +35,10 @@ const envSchema = z.object({
   SSL_CERT: z.string().optional(),
   SSL_KEY: z.string().optional(),
 
+  // Clave maestra para cifrado de datos sensibles (AES-256-GCM). Obligatoria
+  // solo si se cifran columnas PII. Usar `openssl rand -hex 32`.
+  ENCRYPTION_KEY: z.string().optional(),
+
   SEED_ADMIN_EMAIL: z.string().email().optional(),
   SEED_ADMIN_PASSWORD: z.string().optional(),
 });

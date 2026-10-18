@@ -14,6 +14,8 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totp, setTotp] = useState('');
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -24,10 +26,15 @@ export function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await login(email, password);
+      await login(email, password, totp || undefined);
       navigate('/', { replace: true });
     } catch (err) {
-      setError(err instanceof ApiClientError ? t('auth.invalidCredentials') : t('common.error'));
+      if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_REQUIRED') {
+        setTwoFactorRequired(true);
+        setError('Ingresá el código de tu aplicación de autenticación');
+      } else {
+        setError(err instanceof ApiClientError ? t('auth.invalidCredentials') : t('common.error'));
+      }
     } finally {
       setLoading(false);
     }
@@ -56,6 +63,17 @@ export function LoginPage() {
           autoComplete="current-password"
           required
         />
+
+        {twoFactorRequired && (
+          <TextField
+            label="Código de verificación (2FA)"
+            value={totp}
+            onChange={(e) => setTotp(e.target.value)}
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            required
+          />
+        )}
 
         {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
 

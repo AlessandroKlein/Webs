@@ -1,48 +1,60 @@
-# Seguridad y SSL/TLS
+# Seguridad
 
-Webs se construye con **seguridad por defecto** y con SSL/TLS **opcional y
-decidido por el usuario** (lo activás solo si querés).
+Webs se construye con **seguridad por defecto**. Esta guía resume las medidas
+aplicadas (organizadas por categoría) y cómo activar las opcionales.
 
-## 1. HTTPS/TLS para la API
+## 1. Protección de la base de datos
 
-La API sirve HTTPS si activás TLS vía variables de entorno (en `apps/api/.env`):
+- **Inyección SQL (SQLi)**: todas las consultas usan **Prisma** (ORM con consultas
+  preparadas); nunca se concatenan cadenas.
+- **Contraseñas**: hash adaptativo con **bcrypt** (coste 10). Nunca en texto plano.
+- **Cifrado de PII en reposo**: utilidad de **AES-256-GCM** en
+  `apps/api/src/lib/crypto.ts` (`encrypt`/`decrypt`). Usala para cifrar columnas
+  sensibles (documentos, teléfonos, direcciones) antes de guardarlas. Requiere
+  la variable `ENCRYPTION_KEY` (`openssl rand -hex 32`).
 
-```env
-SSL_ENABLED=true
-SSL_CERT_PATH=/etc/ssl/certs/webs.crt
-SSL_KEY_PATH=/etc/ssl/private/webs.key
-# o, para secretos de Kubernetes, pegar el PEM:
-# SSL_CERT=-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----
-# SSL_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----
-```
+  ```ts
+  import { encrypt, decrypt } from '../lib/crypto';
+  await prisma.cliente.create({ data: { telefono: encrypt(body.telefono) } });
+  ```
 
-Si `SSL_ENABLED=false` (por defecto), la API escucha en HTTP plano.
+- **Mínimo privilegio**: la cuenta de runtime de la app **no** debe ser superusuario.
+  Incluimos [scripts/create-least-privilege-user.sql](../../scripts/create-least-privilege-user.sql)
+  (solo `SELECT/INSERT/UPDATE/DELETE`); las migraciones se corren con otra cuenta.
 
-## 2. HTTPS/TLS para el frontend
+## 2. Cabeceras HTTP (headers)
 
-En producción, el TLS se termina en **nginx** (recomendado). Incluimos un ejemplo
-completo con redirección HTTP→HTTPS y HSTS en
-[`docker/nginx.ssl.conf.example`](../../docker/nginx.ssl.conf.example). Para un
-certificado gratis y renovable, usá **Let's Encrypt** (certbot).
+- **Helmet** aplica cabeceras base (y oculta `X-Powered-By`).
+- **CSP** y **HSTS** configurables en **Ajustes → Seguridad**.
+- **TLS/HTTPS** opcional para la API (`SSL_ENABLED`) y ejemplo de nginx con
+  redirección HTTP→HTTPS en `docker/nginx.ssl.conf.example`.
 
-## 3. Cabeceras y cookies de seguridad (configurables en la UI)
+## 3. Fuerza bruta y DoS
 
-En **Ajustes → Seguridad** podés activar/desactivar:
+- **Rate limiting global** (`@fastify/rate-limit`).
+- **Rate limiting específico** en endpoints sensibles: login (10/15 min),
+  registro, recuperación y restablecimiento de contraseña (5/15 min).
+- **WAF**: en producción, activá Cloudflare (Managed Rules, anti-bot) delante del
+  servidor.
 
-| Opción | Efecto |
-| ------ | ------ |
-| **HSTS** | Envía `Strict-Transport-Security` (solo en HTTPS). |
-| **Cookies seguras** | Marca la cookie de sesión como `Secure` (solo por HTTPS). |
-| **CSP** | Content-Security-Policy personalizada (vacío = desactivado). |
+## 4. Sanitización y validación de entradas
 
-Además, la API aplica siempre: Helmet (cabeceras base), CORS con orígenes
-permitidos, rate limiting y validación de entrada por esquema JSON.
+- **Validación por esquema JSON** (body/query/params) en toda la API.
+- **Sanitización de HTML** (`sanitize-html`) en `apps/api/src/lib/sanitize.ts`,
+  aplicada a plantillas de correo y contenido enriquecido (mitiga XSS).
 
-## 4. Buenas prácticas
+## 5. Autenticación y sesiones
 
-- **Secretos**: usá `JWT_SECRET` largo y aleatorio (`openssl rand -hex 32`); la
-  API avisa en producción si se usa el valor por defecto.
-- **Contraseñas**: hasheadas con bcrypt (coste 10).
-- **Sesiones**: refresh token opaco hasheado en BD, con rotación al refrescar.
-- **HTTP → HTTPS**: redirigí siempre en el proxy (ver nginx de ejemplo).
-- **Certificados/keys**: nunca los comitees al repositorio.
+- **Cookies**: `HttpOnly` + `SameSite=Lax` + `Secure` (configurable).
+- **Tokens**: JWT de acceso (15 min) + refresh token opaco hasheado con rotación.
+- **2FA / TOTP**: autenticación de dos factores con Google Authenticator/Authy.
+  Activá en el panel (`POST /auth/2fa/setup`, `/confirm`, `/disable`); el login
+  exige el código cuando está habilitado.
+- **API tokens (JWT)** con scopes acotados y revocables.
+
+## 6. Mantenimiento y dependencias
+
+- **Dependabot** configurado para auditoría semanal de dependencias y Actions.
+- Ejecutá `pnpm audit` periódicamente.
+- **No revelación**: Helmet oculta `X-Powered-By`; en nginx, `server_tokens off;`.
+- La API avisa en producción si `JWT_SECRET` usa el valor por defecto.

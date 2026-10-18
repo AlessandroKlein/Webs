@@ -7,6 +7,7 @@ import { listEvents } from './events';
 import { processQueue } from './queue';
 import { sendCampaign } from './service';
 import { buildBaseData, renderTemplate } from './render';
+import { sanitize } from '../../lib/sanitize';
 
 interface TemplateBody {
   key: string;
@@ -42,7 +43,7 @@ export default async function emailRoutes(fastify: FastifyInstance): Promise<voi
           key: body.key,
           name: body.name,
           subject: body.subject,
-          body: body.body,
+          body: sanitize(body.body),
           bodyMode: body.bodyMode ?? 'wysiwyg',
           variables: body.variables ?? [],
         },
@@ -69,7 +70,7 @@ export default async function emailRoutes(fastify: FastifyInstance): Promise<voi
           key: body.key,
           name: body.name,
           subject: body.subject,
-          body: body.body,
+          body: body.body !== undefined ? sanitize(body.body) : undefined,
           bodyMode: body.bodyMode,
           variables: body.variables as Prisma.InputJsonValue,
         },

@@ -10,6 +10,7 @@ import {
 } from '../mail/service';
 import type { AccessTokenPayload } from '../../types/auth';
 import { emitEvent } from '../email/events';
+import { verifyCode } from './two-factor';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15; // 15 minutos
 export const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
@@ -52,11 +53,14 @@ export async function createSession(
   return token;
 }
 
+export type LoginResult = UserProfile | { twoFactorRequired: true };
+
 export async function login(
   fastify: FastifyInstance,
   email: string,
   password: string,
-): Promise<UserProfile> {
+  totp?: string,
+): Promise<LoginResult> {
   const user = await fastify.prisma.user.findUnique({ where: { email } });
   if (!user || !user.active) {
     throw new UnauthorizedError('Correo o contraseña inválidos');
@@ -65,6 +69,14 @@ export async function login(
   if (!valid) {
     throw new UnauthorizedError('Correo o contraseña inválidos');
   }
+
+  if (user.twoFactorEnabled) {
+    if (!totp) return { twoFactorRequired: true };
+    if (!user.twoFactorSecret || !verifyCode(user.twoFactorSecret, totp)) {
+      throw new UnauthorizedError('Código de verificación inválido');
+    }
+  }
+
   const profile = await findUserWithPermissions(fastify, user.id);
   if (!profile) throw new UnauthorizedError();
   return profile;

@@ -3,6 +3,17 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.7.0] - 2026-10-18
+
+### Añadido
+
+- **Seguridad integral** (checklist):
+  - Cifrado de PII en reposo con **AES-256-GCM** (`lib/crypto.ts` + `ENCRYPTION_KEY`).
+  - Sanitización de HTML (**XSS**) con `sanitize-html` en plantillas de correo y contenido.
+  - **2FA / TOTP** (Google Authenticator/Authy) con flujo de login y endpoints de setup/confirm/disable.
+  - **Rate limiting específico** en login/registro/recuperación de contraseña.
+  - Mínimo privilegio en BD (`create-least-privilege-user.sql`) y **Dependabot**.
+
 ## [0.6.0] - 2026-10-18
 
 ### Añadido

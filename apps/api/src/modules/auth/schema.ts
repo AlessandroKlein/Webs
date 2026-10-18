@@ -4,6 +4,7 @@ export const loginSchema = {
   properties: {
     email: { type: 'string', format: 'email' },
     password: { type: 'string', minLength: 8 },
+    totp: { type: 'string' },
   },
 } as const;
 
@@ -20,6 +21,7 @@ export const registerSchema = {
 export interface LoginBody {
   email: string;
   password: string;
+  totp?: string;
 }
 
 export interface RegisterBody {
