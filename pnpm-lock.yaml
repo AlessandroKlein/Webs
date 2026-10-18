@@ -180,6 +180,9 @@ importers:
       '@webs/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      bootstrap-icons:
+        specifier: ^1.11.0
+        version: 1.13.2
       i18next:
         specifier: ^24.0.0
         version: 24.2.3(typescript@5.9.3)
@@ -1986,6 +1989,9 @@ packages:
 
   bn.js@4.12.5:
     resolution: {integrity: sha512-3aRg6/JxfffFD+OlOjOFR3Vo79l39ooBTFucxx+MT3dhCtzn3EmiUPQo+6/OZuI2jbXi3YKgmiTFBgChQMwIRQ==}
+
+  bootstrap-icons@1.13.2:
+    resolution: {integrity: sha512-fAU1Ly3dH7hwRg+CB8EZ0Vl0fF80zgXHeUVJyfUOKzoURr+TbwISbCW5tKUoQLERaWYG2emTCybcPbD96hdD1A==}
 
   bowser@2.14.1:
     resolution: {integrity: sha512-tzPjzCxygAKWFOJP011oxFHs57HzIhOEracIgAePE4pqB3LikALKnSzUyU4MGs9/iCEUuHlAJTjTc5M+u7YEGg==}
@@ -5264,6 +5270,8 @@ snapshots:
   bluebird@3.4.7: {}
 
   bn.js@4.12.5: {}
+
+  bootstrap-icons@1.13.2: {}
 
   bowser@2.14.1: {}
 

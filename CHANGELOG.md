@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.32.0] - 2026-10-18
+
+### Añadido
+
+- **Bootstrap Icons** (descargado/bundled, sin CDN) + **utilidades responsive**
+  (grillas `.grid-3`, colapso de grillas/sidebar en móvil) sobre los tokens `--ws-*`.
+  Base mezclada de Bootstrap/Tailwind para una app profesional.
+
 ## [0.31.0] - 2026-10-18
 
 ### Añadido

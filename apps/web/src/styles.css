@@ -190,3 +190,29 @@ textarea.input {
 .wysiwyg .ql-snow.ql-toolbar button.ql-active { color: var(--ws-primary); }
 .wysiwyg .ql-snow.ql-toolbar button:hover .ql-stroke,
 .wysiwyg .ql-snow.ql-toolbar button.ql-active .ql-stroke { stroke: var(--ws-primary); }
+
+/* Grilla de 3 columnas */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--ws-space-4);
+}
+
+/* Utilidades de iconos (Bootstrap Icons) */
+.bi { line-height: 1; vertical-align: -0.125em; }
+
+/* ===== Responsive: adaptación a cualquier dispositivo ===== */
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3 { grid-template-columns: 1fr; }
+  .admin-layout { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--ws-border); }
+  .content { padding: var(--ws-space-4); }
+  .topbar { flex-wrap: wrap; gap: var(--ws-space-2); padding: var(--ws-space-3); }
+  .row { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .topbar { padding: var(--ws-space-2) var(--ws-space-3); }
+  .card { padding: var(--ws-space-4); }
+}

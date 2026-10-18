@@ -58,7 +58,7 @@ export function DashboardPage() {
       ) : (
         data && (
           <Card>
-            <h3>Métricas</h3>
+            <h3><i className="bi bi-graph-up-arrow"></i> Métricas</h3>
             <div className="grid-3" style={{ gap: 'var(--ws-space-2)' }}>
               <Stat label="Usuarios" value={data.users} />
               <Stat label="Contenido" value={data.content} />

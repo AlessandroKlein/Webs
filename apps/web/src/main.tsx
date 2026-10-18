@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import '@webs/ui/styles.css';
+import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles.css';
 import { App } from './App';
 
