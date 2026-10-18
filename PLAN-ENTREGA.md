@@ -42,33 +42,17 @@ de terceros (notificaciones, storage cloud).
 - **Storage cloud** (S3/R2/MinIO): bloque/adaptador de storage.
 - **argon2**: alternativa al `bcrypt` (opcional, bindings nativos).
 
-## 3. Plan de releases
+## 3. Plan de releases (completado)
 
-### v0.22.0 — Seguridad y rendimiento (núcleo)
-- Rate limit distribuido con **Redis** (`rate-limiter-flexible`) detrás de
-  `@fastify/rate-limit` (fallback a memoria si no hay Redis).
-- **Caché Redis** (`lib/cache.ts`) aplicada a settings, i18n y catálogo de bloques.
-- Documentar `argon2` como alternativa a `bcrypt`.
-
-### v0.23.0 — Tareas en segundo plano (núcleo)
-- **`bullmq`** reemplaza la cola en memoria del email (cola + reintentos + programación).
-- Sistema genérico de jobs (`enqueue`/`process`) con logging `pino`.
-- Reusar en: envío de campañas, generación de reportes, procesamiento de imágenes.
-
-### v0.24.0 — Gestión de archivos y multimedia (núcleo + bloque)
-- **Media** (núcleo): subida con `@fastify/multipart`, validación de tipo/tamaño,
-  **`sharp`** para redimensionar + convertir a WebP/AVIF, y almacenamiento local.
-- **Storage providers** (bloque): abstracción + adaptador **S3/R2/MinIO**
-  (`@aws-sdk/client-s3`), registro análogo a `fastify.payments`.
-
-### v0.25.0 — Notificaciones SMS/WhatsApp (bloque)
-- **Bloque Notificaciones** con proveedor **Twilio** (SMS/WhatsApp): envío de OTP
-  para 2FA y notificaciones transaccionales; secretos cifrados (`x-ui.secret`) y
-  registro de proveedores análogo a pagos.
+- ✅ **v0.23.0 — Seguridad y rendimiento**: rate limit Redis (`rate-limiter-flexible`)
+  + caché Redis (`lib/cache.ts`) en settings y catálogo.
+- ✅ **v0.24.0 — Tareas en segundo plano**: `bullmq` para la cola de correos
+  (reintentos + backoff), fallback a polling sin Redis.
+- ✅ **v0.25.0 — Multimedia**: módulo Media (`@fastify/multipart` + `sharp` + local)
+  y bloque **storage-s3** (S3/R2/MinIO).
+- ✅ **v0.26.0 — Notificaciones**: registro de proveedores + bloque **Twilio**
+  (SMS/WhatsApp).
 
 ## 4. Orden sugerido
-
-1. v0.22.0 (rate limit + caché Redis) → 2. v0.23.0 (bullmq) → 3. v0.24.0 (media +
-storage) → 4. v0.25.0 (notificaciones).
 
 > Convención: al completar cada release, actualizar este documento y ROADMAP.md.

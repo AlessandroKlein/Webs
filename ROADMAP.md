@@ -34,6 +34,11 @@ las **plantillas** que los combinan y activan automáticamente.
 | Página de configuración por bloque (admin) | ✅ | 0.19.0 |
 | Bloque Mercado Pago de referencia (seguridad) | ✅ | 0.20.0 |
 | Arquitectura de pagos + bloques de pasarela (MP, MODO, Payway, Stripe, PayPal, EBANX, POS) | ✅ | 0.21.0 |
+| Panel de pagos (admin), reembolsos y tienda | ✅ | 0.22.0 |
+| Rate limit + caché Redis | ✅ | 0.23.0 |
+| Cola de tareas BullMQ | ✅ | 0.24.0 |
+| Media (multipart + sharp) + storage S3/R2/MinIO | ✅ | 0.25.0 |
+| Notificaciones + bloque Twilio | ✅ | 0.26.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
