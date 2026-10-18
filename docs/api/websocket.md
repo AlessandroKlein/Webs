@@ -136,7 +136,7 @@ Cliente B ─►│ Inst B   │◄─sub───│             │
 
 > Para desplegar varias réplicas detrás de un balanceador, el reverse proxy
 > debe reenviar el *upgrade* de WebSocket. Ver
-> [`docs/guides/despliegue.md`](../guides/despliegue.md#reverse-proxy).
+> [`docs/guides/despliegue.md`](../guides/despliegue.md#5-reverse-proxy).
 
 ---
 

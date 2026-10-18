@@ -7,12 +7,12 @@ transversales y lista todos los endpoints, agrupados por módulo.
 ## Tabla de contenidos
 
 - [Base URL y prefijo](#base-url-y-prefijo)
-- [Autenticación](#autenticación)
+- [Autenticación](#autenticacion)
 - [Formato de error](#formato-de-error)
-- [Paginación](#paginación)
-- [Documentación interactiva (Swagger)](#documentación-interactiva-swagger)
-- [Health / readiness](#health--readiness)
-- [Endpoints por módulo](#endpoints-por-módulo)
+- [Paginación](#paginacion)
+- [Documentación interactiva (Swagger)](#documentacion-interactiva-swagger)
+- [Health / readiness](#health-readiness)
+- [Endpoints por módulo](#endpoints-por-modulo)
   - [auth](#auth)
   - [users](#users)
   - [roles](#roles)
