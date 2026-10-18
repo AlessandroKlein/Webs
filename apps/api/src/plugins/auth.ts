@@ -1,8 +1,9 @@
 import fp from 'fastify-plugin';
 import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
-import { ForbiddenError, UnauthorizedError } from '@webs/core';
+import { ForbiddenError, RateLimitedError, UnauthorizedError } from '@webs/core';
 import type { AccessTokenPayload } from '../types/auth';
+import { checkTokenRateLimit } from '../lib/token-rate-limit';
 
 /**
  * Autenticación y autorización:
@@ -30,8 +31,14 @@ export default fp<{ jwtSecret: string }>(async (fastify, opts) => {
       if (!token || token.revokedAt || (token.expiresAt && token.expiresAt < new Date())) {
         throw new UnauthorizedError('API token inválido o revocado');
       }
+      if (token.rateLimit && !checkTokenRateLimit(token.id, token.rateLimit)) {
+        throw new RateLimitedError('Límite de peticiones del API token excedido');
+      }
       void fastify.prisma.apiToken
-        .update({ where: { id: token.id }, data: { lastUsedAt: new Date() } })
+        .update({
+          where: { id: token.id },
+          data: { lastUsedAt: new Date(), requestCount: { increment: 1 } },
+        })
         .catch(() => {});
       request.user = {
         sub: token.userId,

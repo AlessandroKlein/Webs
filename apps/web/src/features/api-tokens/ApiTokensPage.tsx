@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -16,6 +17,8 @@ interface ApiTokenRow {
   scopes: string[];
   expiresAt: string | null;
   lastUsedAt: string | null;
+  rateLimit: number | null;
+  requestCount: number;
   createdAt: string;
 }
 interface CreatedToken extends ApiTokenRow {
@@ -36,8 +39,10 @@ export function ApiTokensPage() {
   const [name, setName] = useState('');
   const [scopes, setScopes] = useState<string[]>([]);
   const [expiresInDays, setExpiresInDays] = useState<string>('');
+  const [rateLimit, setRateLimit] = useState('');
   const [created, setCreated] = useState<CreatedToken | null>(null);
   const [copied, setCopied] = useState(false);
+  const myPermissions = useAuthStore((s) => s.permissions);
 
   const create = useMutation({
     mutationFn: () =>
@@ -45,12 +50,14 @@ export function ApiTokensPage() {
         name,
         scopes,
         expiresInDays: expiresInDays ? Number(expiresInDays) : null,
+        rateLimit: rateLimit ? Number(rateLimit) : null,
       }),
     onSuccess: (result) => {
       setCreated(result);
       setName('');
       setScopes([]);
       setExpiresInDays('');
+      setRateLimit('');
       qc.invalidateQueries({ queryKey: ['api-tokens'] });
     },
   });
@@ -106,15 +113,17 @@ export function ApiTokensPage() {
           <div className="field">
             <label>Permisos (scopes)</label>
             <div className="stack" style={{ maxHeight: 260, overflowY: 'auto' }}>
-              {(permissions ?? []).map((p) => (
-                <label key={p.key} className="row" style={{ gap: 'var(--ws-space-2)' }}>
-                  <input type="checkbox" checked={scopes.includes(p.key)} onChange={() => toggleScope(p.key)} />
-                  <span>
-                    <code>{p.key}</code>
-                    {p.description && <span className="muted"> — {p.description}</span>}
-                  </span>
-                </label>
-              ))}
+              {(permissions ?? [])
+                .filter((p) => myPermissions.includes(p.key))
+                .map((p) => (
+                  <label key={p.key} className="row" style={{ gap: 'var(--ws-space-2)' }}>
+                    <input type="checkbox" checked={scopes.includes(p.key)} onChange={() => toggleScope(p.key)} />
+                    <span>
+                      <code>{p.key}</code>
+                      {p.description && <span className="muted"> — {p.description}</span>}
+                    </span>
+                  </label>
+                ))}
             </div>
           </div>
 
@@ -127,6 +136,8 @@ export function ApiTokensPage() {
               <option value="365">1 año</option>
             </select>
           </div>
+
+          <TextField label="Límite de peticiones/minuto (opcional)" type="number" value={rateLimit} onChange={(e) => setRateLimit(e.target.value)} placeholder="Sin límite" />
 
           <Button onClick={() => create.mutate()} disabled={create.isPending || !name}>
             Crear token
@@ -142,8 +153,10 @@ export function ApiTokensPage() {
                   <strong>{t.name}</strong>
                   <div>
                     <span className="muted">{t.scopes.length} permisos</span>
+                    {t.rateLimit && <span className="muted"> · {t.rateLimit} req/min</span>}
                     {t.expiresAt && <span className="muted"> · vence {new Date(t.expiresAt).toLocaleDateString()}</span>}
                     {t.lastUsedAt && <span className="muted"> · usado {new Date(t.lastUsedAt).toLocaleString()}</span>}
+                    <span className="muted"> · {t.requestCount} peticiones</span>
                   </div>
                 </div>
                 <Button variant="ghost" onClick={() => revoke.mutate(t.id)}>

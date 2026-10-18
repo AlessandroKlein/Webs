@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.12.0] - 2026-10-18
+
+### Añadido
+
+- **Tokens de API personales**: cualquier usuario gestiona sus propios tokens (ya
+  no solo admin); los scopes se validan para no exceder sus permisos.
+- **Rate limit por token** (peticiones/minuto) y contador de peticiones.
+- **"Recordarme"** en el login: la cookie de sesión dura 90 días (vs 30).
+
 ## [0.11.0] - 2026-10-18
 
 ### Añadido

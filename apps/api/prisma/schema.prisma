@@ -103,15 +103,17 @@ model Session {
 }
 
 model ApiToken {
-  id         String    @id @default(uuid())
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  scopes     Json      @default("[]")
-  expiresAt  DateTime?
-  lastUsedAt DateTime?
-  createdAt  DateTime  @default(now())
-  revokedAt  DateTime?
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  scopes       Json      @default("[]")
+  expiresAt    DateTime?
+  lastUsedAt   DateTime?
+  rateLimit    Int?
+  requestCount Int       @default(0)
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
 
   @@index([userId])
   @@map("api_tokens")

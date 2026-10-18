@@ -15,6 +15,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [totp, setTotp] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ export function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await login(email, password, totp || undefined);
+      await login(email, password, totp || undefined, rememberMe);
       navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_REQUIRED') {
@@ -74,6 +75,11 @@ export function LoginPage() {
             required
           />
         )}
+
+        <label className="row" style={{ gap: 'var(--ws-space-2)', marginBottom: 'var(--ws-space-4)' }}>
+          <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+          <span>Recordarme (mantener la sesión abierta)</span>
+        </label>
 
         {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
 

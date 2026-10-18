@@ -14,6 +14,7 @@ import { verifyTwoFactorCode } from './two-factor';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15; // 15 minutos
 export const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
+export const REMEMBER_ME_TTL_MS = 1000 * 60 * 60 * 24 * 90; // 90 días
 
 export function generateRefreshToken(): string {
   return randomBytes(48).toString('hex');
@@ -39,6 +40,7 @@ export async function createSession(
   fastify: FastifyInstance,
   userId: string,
   meta: { userAgent?: string; ip?: string },
+  ttlMs: number = REFRESH_TOKEN_TTL_MS,
 ): Promise<string> {
   const token = generateRefreshToken();
   await fastify.prisma.session.create({
@@ -47,7 +49,7 @@ export async function createSession(
       refreshToken: hashRefreshToken(token),
       userAgent: meta.userAgent ?? null,
       ip: meta.ip ?? null,
-      expiresAt: new Date(Date.now() + REFRESH_TOKEN_TTL_MS),
+      expiresAt: new Date(Date.now() + ttlMs),
     },
   });
   return token;

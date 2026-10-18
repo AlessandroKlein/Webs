@@ -1,9 +1,11 @@
 import type { FastifyInstance } from 'fastify';
-import { NotFoundError } from '@webs/core';
+import { ForbiddenError, NotFoundError } from '@webs/core';
 
 /**
  * Tokens de API (JWT). Permiten acceso programático a la API REST con permisos
- * acotados (scopes) y revocables, sin usar credenciales de usuario.
+ * acotados (scopes) y revocables, sin usar credenciales de usuario. Son
+ * personales: cada usuario gestiona sus propios tokens y sus scopes no pueden
+ * exceder los permisos que él mismo tiene.
  */
 
 export interface CreateApiTokenInput {
@@ -11,18 +13,28 @@ export interface CreateApiTokenInput {
   scopes?: string[];
   /** Duración en días; omitido/null = sin caducidad. */
   expiresInDays?: number | null;
+  /** Límite de peticiones por minuto; omitido/null = sin límite. */
+  rateLimit?: number | null;
 }
 
 export async function createApiToken(
   fastify: FastifyInstance,
   userId: string,
   input: CreateApiTokenInput,
+  allowedScopes: string[],
 ) {
   const scopes = input.scopes ?? [];
+
+  // Los scopes no pueden exceder los permisos del creador.
+  const invalid = scopes.filter((s) => !allowedScopes.includes(s));
+  if (invalid.length > 0) {
+    throw new ForbiddenError(`Scopes no permitidos: ${invalid.join(', ')}`);
+  }
+
   const expiresAt = input.expiresInDays ? new Date(Date.now() + input.expiresInDays * 86_400_000) : null;
 
   const record = await fastify.prisma.apiToken.create({
-    data: { userId, name: input.name, scopes, expiresAt },
+    data: { userId, name: input.name, scopes, expiresAt, rateLimit: input.rateLimit ?? null },
   });
 
   const payload = {
@@ -41,6 +53,7 @@ export async function createApiToken(
     name: record.name,
     scopes,
     expiresAt: record.expiresAt,
+    rateLimit: record.rateLimit,
     createdAt: record.createdAt,
     token,
   };
@@ -56,6 +69,8 @@ export async function listApiTokens(fastify: FastifyInstance, userId: string) {
       scopes: true,
       expiresAt: true,
       lastUsedAt: true,
+      rateLimit: true,
+      requestCount: true,
       createdAt: true,
       revokedAt: true,
     },

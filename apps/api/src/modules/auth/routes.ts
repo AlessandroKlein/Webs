@@ -15,12 +15,17 @@ import {
   signAccessToken,
   verifyEmail,
   REFRESH_TOKEN_TTL_MS,
+  REMEMBER_ME_TTL_MS,
 } from './service';
 import { loginSchema, registerSchema, type LoginBody, type RegisterBody } from './schema';
 import { confirmTwoFactor, disableTwoFactor, setupTwoFactor } from './two-factor';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
-  const setRefreshCookie = (reply: import('fastify').FastifyReply, token: string) => {
+  const setRefreshCookie = (
+    reply: import('fastify').FastifyReply,
+    token: string,
+    ttlMs: number = REFRESH_TOKEN_TTL_MS,
+  ) => {
     const secureCookies =
       fastify.securitySettings?.secureCookies ?? fastify.config.NODE_ENV === 'production';
     reply.setCookie(REFRESH_TOKEN_COOKIE, token, {
@@ -28,7 +33,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       sameSite: 'lax',
       secure: secureCookies,
       path: '/',
-      maxAge: Math.floor(REFRESH_TOKEN_TTL_MS / 1000),
+      maxAge: Math.floor(ttlMs / 1000),
     });
   };
 
@@ -39,7 +44,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
     },
     async (request, reply) => {
-      const { email, password, totp } = request.body as LoginBody;
+      const { email, password, totp, rememberMe } = request.body as LoginBody;
       const result = await login(fastify, email, password, totp);
 
       if ('twoFactorRequired' in result) {
@@ -49,12 +54,15 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       }
 
       const profile = result;
+      const ttl = rememberMe ? REMEMBER_ME_TTL_MS : REFRESH_TOKEN_TTL_MS;
       const accessToken = signAccessToken(fastify, profile);
-      const refreshToken = await createSession(fastify, profile.id, {
-        userAgent: request.headers['user-agent'],
-        ip: request.ip,
-      });
-      setRefreshCookie(reply, refreshToken);
+      const refreshToken = await createSession(
+        fastify,
+        profile.id,
+        { userAgent: request.headers['user-agent'], ip: request.ip },
+        ttl,
+      );
+      setRefreshCookie(reply, refreshToken, ttl);
 
       audit(fastify, request, { actorId: profile.id, action: 'auth.login' });
       return { accessToken, refreshToken, user: toPublicUser(profile) };

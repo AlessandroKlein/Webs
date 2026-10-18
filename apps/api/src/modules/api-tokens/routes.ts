@@ -7,7 +7,7 @@ export default async function apiTokensRoutes(fastify: FastifyInstance): Promise
     '/api-tokens',
     {
       schema: { tags: ['api-tokens'] },
-      preHandler: [fastify.authenticate, fastify.authorize('apiToken.read')],
+      preHandler: [fastify.authenticate],
     },
     async (request) => listApiTokens(fastify, request.user.sub),
   );
@@ -24,14 +24,20 @@ export default async function apiTokensRoutes(fastify: FastifyInstance): Promise
             name: { type: 'string', minLength: 1 },
             scopes: { type: 'array', items: { type: 'string' } },
             expiresInDays: { type: 'integer', minimum: 1, nullable: true },
+            rateLimit: { type: 'integer', minimum: 1, nullable: true },
           },
         },
       },
-      preHandler: [fastify.authenticate, fastify.authorize('apiToken.write')],
+      preHandler: [fastify.authenticate],
     },
     async (request, reply) => {
-      const body = request.body as { name: string; scopes?: string[]; expiresInDays?: number | null };
-      const result = await createApiToken(fastify, request.user.sub, body);
+      const body = request.body as {
+        name: string;
+        scopes?: string[];
+        expiresInDays?: number | null;
+        rateLimit?: number | null;
+      };
+      const result = await createApiToken(fastify, request.user.sub, body, request.user.permissions ?? []);
       audit(fastify, request, {
         actorId: request.user.sub,
         action: 'apiToken.create',
@@ -49,7 +55,7 @@ export default async function apiTokensRoutes(fastify: FastifyInstance): Promise
         tags: ['api-tokens'],
         params: { type: 'object', properties: { id: { type: 'string' } } },
       },
-      preHandler: [fastify.authenticate, fastify.authorize('apiToken.write')],
+      preHandler: [fastify.authenticate],
     },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
