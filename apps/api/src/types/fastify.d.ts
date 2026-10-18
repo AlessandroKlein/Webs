@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Redis } from 'ioredis';
-import type { PaymentProviderAdapter } from '@webs/plugin-sdk';
+import type { PaymentProviderAdapter, StorageDriver } from '@webs/plugin-sdk';
 import type { Env } from '../config/env';
 import type { AccessTokenPayload } from './auth';
 
@@ -40,6 +40,10 @@ declare module 'fastify' {
     /** Registro de proveedores de pago (los bloques de pasarela se registran acá). */
     payments: {
       register: (adapter: PaymentProviderAdapter) => void;
+    };
+    /** Registro de drivers de almacenamiento (bloques S3/R2/MinIO). */
+    storage: {
+      register: (driver: StorageDriver) => void;
     };
   }
 }

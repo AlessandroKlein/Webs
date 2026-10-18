@@ -1,0 +1,24 @@
+{
+  "name": "@webs/block-storage-s3",
+  "id": "storage-s3",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Storage S3/R2/MinIO", "es": "Almacenamiento S3/R2/MinIO" },
+  "description": { "en": "Object storage (Amazon S3, Cloudflare R2, MinIO).", "es": "Almacenamiento de objetos (Amazon S3, Cloudflare R2, MinIO)." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "apiVersion": "1.0.0",
+  "settings": {
+    "type": "object",
+    "title": "Configuración de S3/R2/MinIO",
+    "properties": {
+      "endpoint": { "type": "string", "title": "Endpoint (R2/MinIO)" },
+      "region": { "type": "string", "title": "Región", "default": "auto" },
+      "accessKeyId": { "type": "string", "title": "Access Key ID" },
+      "secretAccessKey": { "type": "string", "title": "Secret Access Key", "x-ui": { "widget": "password", "secret": true } },
+      "bucket": { "type": "string", "title": "Bucket" },
+      "publicBaseUrl": { "type": "string", "title": "URL pública base (opcional)" }
+    }
+  }
+}

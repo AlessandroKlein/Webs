@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.25.0] - 2026-10-18
+
+### Añadido
+
+- **Módulo Media**: subida de imágenes con `@fastify/multipart`, procesamiento con
+  `sharp` (rotar + redimensionar + WebP) y almacenamiento local. Endpoints
+  `POST /media/upload`, `GET /media`, `GET /media/files/:key`, `DELETE /media/:id`.
+- **Storage como plugin**: registro de drivers (`fastify.storage`) + **bloque
+  `storage-s3`** (Amazon S3, Cloudflare R2, MinIO) con secretos cifrados.
+
 ## [0.24.0] - 2026-10-18
 
 ### Añadido

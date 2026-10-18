@@ -39,6 +39,10 @@ export interface BlockFastify {
   payments?: {
     register: (adapter: import('./payments').PaymentProviderAdapter) => void;
   };
+  /** Registro central de drivers de almacenamiento (S3/R2/MinIO). */
+  storage?: {
+    register: (driver: import('./storage').StorageDriver) => void;
+  };
 }
 
 /**

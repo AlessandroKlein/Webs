@@ -19,11 +19,13 @@ import websocketPlugin from './plugins/websocket';
 import securityPlugin from './plugins/security';
 import eventsPlugin from './plugins/events';
 import paymentsPlugin from './plugins/payments';
+import storagePlugin from './plugins/storage';
 
 import healthRoutes from './modules/health';
 import metricsRoutes from './modules/metrics';
 import templatesRoutes from './modules/templates';
 import paymentsRoutes from './modules/payments/routes';
+import mediaRoutes from './modules/media/routes';
 import authRoutes from './modules/auth';
 import passkeyRoutes from './modules/auth/passkeys';
 import usersRoutes from './modules/users';
@@ -88,6 +90,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(securityPlugin);
   await app.register(eventsPlugin);
   await app.register(paymentsPlugin);
+  await app.register(storagePlugin);
   await app.register(authPlugin, { jwtSecret: env.JWT_SECRET });
   await app.register(websocketPlugin);
 
@@ -96,6 +99,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(metricsRoutes, { prefix: API_PREFIX });
   await app.register(templatesRoutes, { prefix: API_PREFIX });
   await app.register(paymentsRoutes, { prefix: API_PREFIX });
+  await app.register(mediaRoutes, { prefix: API_PREFIX });
   await app.register(authRoutes, { prefix: API_PREFIX });
   await app.register(passkeyRoutes, { prefix: API_PREFIX });
   await app.register(usersRoutes, { prefix: API_PREFIX });
