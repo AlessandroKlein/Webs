@@ -4,11 +4,15 @@ import { findUserWithPermissions, toPublicUser } from '../../lib/user';
 import { audit } from '../../lib/audit';
 import {
   createSession,
+  forgotPassword,
   login,
   refreshSession,
   registerUser,
+  resetPassword,
   revokeSession,
+  sendVerificationEmail,
   signAccessToken,
+  verifyEmail,
   REFRESH_TOKEN_TTL_MS,
 } from './service';
 import { loginSchema, registerSchema, type LoginBody, type RegisterBody } from './schema';
@@ -58,6 +62,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       setRefreshCookie(reply, refreshToken);
 
       audit(fastify, request, { actorId: profile.id, action: 'auth.register' });
+      void sendVerificationEmail(fastify, profile);
       return reply.status(201).send({
         accessToken,
         refreshToken,
@@ -96,6 +101,41 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
         return { user: null };
       }
       return { user: toPublicUser(profile), permissions: profile.permissions };
+    },
+  );
+
+  // -------- Verificación de correo y recuperación de contraseña --------
+
+  fastify.post(
+    '/auth/verify-email',
+    { schema: { tags: ['auth'] } },
+    async (request) => {
+      const { token } = request.body as { token: string };
+      if (!token) return fastify.httpErrors.badRequest('Falta el token');
+      await verifyEmail(fastify, token);
+      return { ok: true };
+    },
+  );
+
+  fastify.post(
+    '/auth/forgot-password',
+    { schema: { tags: ['auth'] } },
+    async (request) => {
+      const { email } = request.body as { email: string };
+      if (email) await forgotPassword(fastify, email);
+      // Siempre 200 para no revelar si el correo existe.
+      return { ok: true };
+    },
+  );
+
+  fastify.post(
+    '/auth/reset-password',
+    { schema: { tags: ['auth'] } },
+    async (request) => {
+      const { token, password } = request.body as { token: string; password: string };
+      if (!token || !password) return fastify.httpErrors.badRequest('Faltan token o contraseña');
+      await resetPassword(fastify, token, password);
+      return { ok: true };
     },
   );
 }

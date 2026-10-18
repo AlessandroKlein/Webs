@@ -41,12 +41,14 @@
     "fastify": "^5.0.0",
     "fastify-plugin": "^5.0.0",
     "ioredis": "^5.4.1",
+    "nodemailer": "^6.9.15",
     "pino": "^9.4.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.7.5",
+    "@types/nodemailer": "^6.4.16",
     "@types/ws": "^8.5.12",
     "@webs/config": "workspace:*",
     "eslint": "^9.13.0",

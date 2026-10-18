@@ -1,7 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 
 /**
- * Cliente Prisma singleton. En tests se puede inyectar una instancia aislada.
- * `import { prisma } from '.../lib/prisma'` en cualquier módulo.
+ * Crea un cliente Prisma. La URL se puede sobrescribir en tiempo de ejecución
+ * (Prisma lo permite vía `datasources`), lo que permite reconectar al motor
+ * elegido durante la instalación. El `provider` viene "compilado" en el cliente
+ * generado (por eso el instalador regenera el cliente según el motor elegido).
  */
-export const prisma = new PrismaClient();
+export function createPrismaClient(databaseUrl?: string): PrismaClient {
+  if (!databaseUrl) return new PrismaClient();
+  return new PrismaClient({ datasources: { db: { url: databaseUrl } } });
+}

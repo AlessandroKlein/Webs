@@ -54,33 +54,31 @@ infra/            # Notas de infraestructura y escalado
 
 ## Inicio rápido
 
-Requisitos: **Node.js ≥ 22**, **pnpm ≥ 9**, **PostgreSQL** (y Redis opcional).
+Requisitos: **Node.js ≥ 22**, **pnpm ≥ 9**. (PostgreSQL/MySQL o SQLite y Redis opcional.)
 
 ```bash
 # 1. Instalar dependencias
 pnpm install
 
-# 2. Levantar PostgreSQL (y Redis) con Docker, o usar una instancia propia
+# 2. (Opcional) Levantar PostgreSQL y Redis con Docker
 docker compose -f docker/docker-compose.yml up -d postgres redis
 
-# 3. Configurar entorno
-cp apps/api/.env.example apps/api/.env   # ajustar DATABASE_URL
-
-# 4. Crear el esquema y el seed (roles + superadmin)
-pnpm --filter @webs/api exec prisma migrate dev
-
-# 5. Compilar paquetes y bloques
+# 3. Compilar paquetes y bloques
 pnpm build
 
-# 6. Ejecutar en desarrollo
+# 4. Ejecutar en desarrollo
 pnpm dev
 ```
 
+Al abrir **http://localhost:5173** por primera vez se muestra el **asistente de
+instalación**: elegí el motor de base de datos (PostgreSQL/SQLite/MySQL), la
+configuración del sitio, el SMTP y creá la cuenta de administrador — todo desde
+la interfaz, sin tocar código.
+
 - **API**: http://localhost:4000 · Swagger en http://localhost:4000/docs
 - **Web**: http://localhost:5173 · Panel en `/` (login) · Sitio público de ejemplo en `/site`
-- **Superadmin por defecto**: `admin@example.com` / `changeme` (¡cambiar en producción!)
 
-> Guía detallada en [docs/guides/getting-started.md](docs/guides/getting-started.md).
+> Guías: [instalación](docs/guides/instalacion.md) · [getting-started](docs/guides/getting-started.md).
 
 ## Documentación
 

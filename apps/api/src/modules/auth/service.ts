@@ -3,6 +3,12 @@ import bcrypt from 'bcryptjs';
 import type { FastifyInstance } from 'fastify';
 import { ConflictError, UnauthorizedError } from '@webs/core';
 import { findUserWithPermissions, type UserProfile } from '../../lib/user';
+import {
+  resetEmailHtml,
+  sendMail,
+  verificationEmailHtml,
+} from '../mail/service';
+import type { AccessTokenPayload } from '../../types/auth';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15; // 15 minutos
 export const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
@@ -123,6 +129,90 @@ export async function revokeSession(fastify: FastifyInstance, rawToken: string):
   if (!rawToken) return;
   await fastify.prisma.session.updateMany({
     where: { refreshToken: hashRefreshToken(rawToken) },
+    data: { revokedAt: new Date() },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Verificación de correo y recuperación de contraseña (vía SMTP)
+// ---------------------------------------------------------------------------
+
+type EmailTokenPurpose = 'verify' | 'reset';
+
+function signEmailToken(fastify: FastifyInstance, userId: string, purpose: EmailTokenPurpose): string {
+  return fastify.jwt.sign(
+    { sub: userId, purpose } as unknown as AccessTokenPayload,
+    { expiresIn: purpose === 'verify' ? '24h' : '1h' },
+  );
+}
+
+function verifyEmailToken(fastify: FastifyInstance, token: string, expected: EmailTokenPurpose): string {
+  try {
+    const payload = fastify.jwt.verify<{ sub: string; purpose: string }>(token);
+    if (payload.purpose !== expected) throw new Error('propósito inválido');
+    return payload.sub;
+  } catch {
+    throw new UnauthorizedError('Token inválido o expirado');
+  }
+}
+
+async function getSiteName(fastify: FastifyInstance): Promise<string> {
+  const site = await fastify.prisma.setting.findUnique({ where: { key: 'site' } });
+  const value = site?.value as { name?: string } | undefined;
+  return value?.name ?? 'Webs';
+}
+
+function webOrigin(fastify: FastifyInstance): string {
+  const first = fastify.config.CORS_ORIGIN.split(',')[0];
+  return (first ?? 'http://localhost:5173').trim();
+}
+
+/** Envía el correo de verificación (no bloquea). */
+export async function sendVerificationEmail(
+  fastify: FastifyInstance,
+  user: { id: string; email: string },
+): Promise<void> {
+  const token = signEmailToken(fastify, user.id, 'verify');
+  const link = `${webOrigin(fastify)}/verify-email?token=${token}`;
+  const siteName = await getSiteName(fastify);
+  void sendMail(fastify, {
+    to: user.email,
+    subject: 'Verificá tu correo electrónico',
+    html: verificationEmailHtml(siteName, link),
+  }).catch((err) => fastify.log.warn({ err }, 'no se pudo enviar correo de verificación'));
+}
+
+/** Marca el correo como verificado. */
+export async function verifyEmail(fastify: FastifyInstance, token: string): Promise<void> {
+  const userId = verifyEmailToken(fastify, token, 'verify');
+  await fastify.prisma.user.update({ where: { id: userId }, data: { emailVerifiedAt: new Date() } });
+}
+
+/** Envía el enlace de recuperación (no revela si el correo existe). */
+export async function forgotPassword(fastify: FastifyInstance, email: string): Promise<void> {
+  const user = await fastify.prisma.user.findUnique({ where: { email } });
+  if (!user) return;
+  const token = signEmailToken(fastify, user.id, 'reset');
+  const link = `${webOrigin(fastify)}/reset-password?token=${token}`;
+  const siteName = await getSiteName(fastify);
+  void sendMail(fastify, {
+    to: user.email,
+    subject: 'Restablecer contraseña',
+    html: resetEmailHtml(siteName, link),
+  }).catch((err) => fastify.log.warn({ err }, 'no se pudo enviar correo de recuperación'));
+}
+
+/** Restablece la contraseña y revoca todas las sesiones del usuario. */
+export async function resetPassword(
+  fastify: FastifyInstance,
+  token: string,
+  newPassword: string,
+): Promise<void> {
+  const userId = verifyEmailToken(fastify, token, 'reset');
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await fastify.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+  await fastify.prisma.session.updateMany({
+    where: { userId, revokedAt: null },
     data: { revokedAt: new Date() },
   });
 }

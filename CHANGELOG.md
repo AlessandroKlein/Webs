@@ -3,6 +3,22 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.2.0] - 2026-10-18
+
+### Añadido
+
+- **Asistente de instalación gráfico** (frontend multi-paso + API `/api/v1/setup/*`):
+  selección de base de datos (PostgreSQL / SQLite / MySQL), configuración del
+  sitio (nombre, logo claro/oscuro, icono, favicon), SMTP y creación de la cuenta
+  administrador. Sin tocar código.
+- **Soporte multi-motor de base de datos** vía esquemas Prisma por motor
+  (`prisma db push` + `prisma generate` en la instalación).
+- **Módulo de correo (SMTP)** con `nodemailer`: verificación de email y
+  restablecimiento de contraseña.
+- Estado de instalación persistido en `data/webs.config.json`; la API arranca en
+  "modo instalación" si aún no está configurada.
+- Páginas de verificación de correo y restablecimiento de contraseña.
+
 ## [0.1.0] - 2026-10-18
 
 ### Añadido

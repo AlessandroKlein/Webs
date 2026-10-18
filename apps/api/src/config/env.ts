@@ -10,7 +10,7 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   PORT: z.coerce.number().int().positive().default(4000),
 
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL es obligatoria'),
+  DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().url().optional(),
 
   JWT_SECRET: z.string().min(16).default('dev-secret-change-me-please-0123456789'),

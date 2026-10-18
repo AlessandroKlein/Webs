@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { API_PREFIX } from '@webs/core';
 import { loadEnv, corsOrigins, type Env } from './config/env';
 import { createLogger } from './lib/logger';
+import { readState } from './lib/state';
 
 import configPlugin from './plugins/config';
 import dbPlugin from './plugins/db';
@@ -24,6 +25,7 @@ import contentRoutes from './modules/content';
 import translationsRoutes from './modules/translations';
 import auditRoutes from './modules/audit';
 import blocksRoutes from './modules/blocks';
+import setupRoutes from './modules/setup';
 
 import { registerBlocks } from './blocks/loader';
 
@@ -33,11 +35,13 @@ export interface BuildAppOptions {
 }
 
 /**
- * Construye la instancia de Fastify con todos los plugins y módulos.
- * Se separa de `index.ts` para poder instanciar la app en tests sin abrir puerto.
+ * Construye la instancia de Fastify. Si la plataforma aún no está instalada,
+ * solo expone el asistente de instalación (`/api/v1/setup/*`); el resto de los
+ * módulos se registran una vez completada la instalación.
  */
 export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const env = options.env ?? loadEnv();
+  const state = readState();
 
   const app = Fastify({
     logger: options.logger === false ? false : createLogger(env.LOG_LEVEL),
@@ -48,21 +52,28 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // 1. Manejador de errores (primero, para capturar errores de todos).
   await app.register(errorHandlerPlugin);
 
-  // 2. Infraestructura base.
+  // 2. Infraestructura base (siempre disponible).
   await app.register(configPlugin, { env });
-  await app.register(dbPlugin);
-  await app.register(redisPlugin, { redisUrl: env.REDIS_URL });
   await app.register(sensiblePlugin);
   await app.register(corsPlugin, { origins: corsOrigins(env) });
   await app.register(helmetPlugin);
   await app.register(rateLimitPlugin);
   await app.register(swaggerPlugin);
 
-  // 3. Autenticación y tiempo real.
+  // 3. Modo instalación: solo el asistente de instalación.
+  if (!state.installed) {
+    await app.register(setupRoutes, { prefix: API_PREFIX });
+    app.log.info('webs no instalado — asistente de instalación disponible en /api/v1/setup');
+    return app;
+  }
+
+  // 4. Modo instalado: base de datos, autenticación y tiempo real.
+  await app.register(dbPlugin, { databaseUrl: state.databaseUrl });
+  await app.register(redisPlugin, { redisUrl: env.REDIS_URL });
   await app.register(authPlugin, { jwtSecret: env.JWT_SECRET });
   await app.register(websocketPlugin);
 
-  // 4. Módulos de dominio (bajo /api/v1).
+  // 5. Módulos de dominio (bajo /api/v1).
   await app.register(healthRoutes);
   await app.register(authRoutes, { prefix: API_PREFIX });
   await app.register(usersRoutes, { prefix: API_PREFIX });
@@ -73,7 +84,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(auditRoutes, { prefix: API_PREFIX });
   await app.register(blocksRoutes, { prefix: API_PREFIX });
 
-  // 5. Bloques instalados (cargan sus plugins, rutas, settings, slots y permisos).
+  // 6. Bloques instalados (cargan sus plugins, rutas, settings, slots y permisos).
   await registerBlocks(app);
 
   return app;

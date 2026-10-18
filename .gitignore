@@ -24,6 +24,10 @@ pnpm-debug.log*
 apps/api/prisma/*.db
 apps/api/prisma/migrations/dev/
 
+# Estado de instalación / datos locales
+data/
+apps/api/data/
+
 # Test
 coverage/
 .nyc_output/

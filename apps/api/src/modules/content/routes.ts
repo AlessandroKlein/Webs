@@ -57,7 +57,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
       const where: Record<string, unknown> = {};
       if (type) where.type = type;
       if (status) where.status = status;
-      if (q) where.slug = { contains: q, mode: 'insensitive' };
+      if (q) where.slug = { contains: q };
 
       const [items, total] = await fastify.prisma.$transaction([
         fastify.prisma.content.findMany({

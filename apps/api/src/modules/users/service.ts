@@ -10,7 +10,7 @@ export interface ListUsersOptions {
 }
 
 export async function listUsers(fastify: FastifyInstance, opts: ListUsersOptions) {
-  const where = opts.q ? { email: { contains: opts.q, mode: 'insensitive' as const } } : {};
+  const where = opts.q ? { email: { contains: opts.q } } : {};
   const [items, total] = await fastify.prisma.$transaction([
     fastify.prisma.user.findMany({
       where,

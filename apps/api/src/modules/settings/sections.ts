@@ -16,7 +16,9 @@ export function registerDefaultSections(): void {
       properties: {
         name: { type: 'string', title: 'Nombre del sitio' },
         tagline: { type: 'string', title: 'Lema / descripción corta' },
-        logoUrl: { type: 'string', format: 'uri', title: 'URL del logo' },
+        logoUrl: { type: 'string', format: 'uri', title: 'URL del logo (claro)' },
+        logoDarkUrl: { type: 'string', format: 'uri', title: 'URL del logo (oscuro)' },
+        iconUrl: { type: 'string', format: 'uri', title: 'URL del icono' },
         faviconUrl: { type: 'string', format: 'uri', title: 'URL del favicon' },
         defaultLocale: { type: 'string', enum: ['es', 'en'], title: 'Idioma por defecto' },
       },
@@ -103,5 +105,24 @@ export function registerDefaultSections(): void {
       },
     },
     defaults: {},
+  });
+
+  registerSettingSection({
+    key: 'smtp',
+    group: 'general',
+    schema: {
+      type: 'object',
+      title: 'Correo (SMTP)',
+      properties: {
+        enabled: { type: 'boolean', title: 'Habilitar envío de correos' },
+        host: { type: 'string', title: 'Servidor SMTP' },
+        port: { type: 'integer', title: 'Puerto', default: 587 },
+        user: { type: 'string', title: 'Usuario' },
+        password: { type: 'string', title: 'Contraseña', 'x-ui': { widget: 'password' } },
+        from: { type: 'string', title: 'Remitente (from)' },
+        secure: { type: 'boolean', title: 'Usar SSL/TLS (secure)' },
+      },
+    },
+    defaults: { enabled: false, port: 587 },
   });
 }

@@ -14,12 +14,13 @@ import {
 } from '@webs/plugin-sdk';
 import { blockRegistry } from './registry';
 import { CORE_SLOTS } from './slots';
+import { blocksDir } from '../lib/paths';
 
 const asJson = (v: unknown): Prisma.InputJsonValue => v as unknown as Prisma.InputJsonValue;
 
 /** Resuelve el directorio de bloques locales a partir de `BLOCK_DIR`. */
 export function resolveBlockDir(app: FastifyInstance): string {
-  return path.resolve(process.cwd(), app.config.BLOCK_DIR ?? '../../blocks');
+  return blocksDir(app.config.BLOCK_DIR);
 }
 
 /** Escanea el directorio de bloques y registra los manifiestos disponibles (catálogo). */
