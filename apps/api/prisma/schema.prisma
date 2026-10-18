@@ -38,6 +38,7 @@ model User {
   apiTokens  ApiToken[]
   passkeys   Passkey[]
   payments   Payment[]
+  expenses   Expense[]
   otpCodes   OtpCode[]
   auditLogs  AuditLog[]
   content    Content[]   @relation("ContentAuthor")
@@ -153,6 +154,20 @@ model OtpCode {
   @@index([userId])
   @@index([expiresAt])
   @@map("otp_codes")
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  description String
+  amount      Int
+  category    String?
+  date        DateTime @default(now())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  @@index([date])
+  @@map("expenses")
 }
 
 // ---------------------------------------------------------------------------

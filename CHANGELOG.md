@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.31.0] - 2026-10-18
+
+### Añadido
+
+- **Dashboard de costos en Pagos**: ganancias mensuales/anuales, gastos y
+  beneficio con gráfico comparativo. Nueva tabla `Expense` + CRUD de gastos
+  (`/expenses`, `/expenses/analytics`).
+
 ## [0.30.0] - 2026-10-18
 
 ### Añadido

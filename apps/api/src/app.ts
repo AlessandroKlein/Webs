@@ -30,6 +30,7 @@ import { applyTemplate } from './modules/templates';
 import paymentsRoutes from './modules/payments/routes';
 import mediaRoutes from './modules/media/routes';
 import notificationsRoutes from './modules/notifications/routes';
+import expensesRoutes from './modules/expenses';
 import authRoutes from './modules/auth';
 import passkeyRoutes from './modules/auth/passkeys';
 import usersRoutes from './modules/users';
@@ -106,6 +107,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(paymentsRoutes, { prefix: API_PREFIX });
   await app.register(mediaRoutes, { prefix: API_PREFIX });
   await app.register(notificationsRoutes, { prefix: API_PREFIX });
+  await app.register(expensesRoutes, { prefix: API_PREFIX });
   await app.register(authRoutes, { prefix: API_PREFIX });
   await app.register(passkeyRoutes, { prefix: API_PREFIX });
   await app.register(usersRoutes, { prefix: API_PREFIX });

@@ -28,6 +28,20 @@ interface Summary {
   collectedAmount: number;
 }
 
+interface AnalyticsData {
+  period: 'month' | 'year';
+  series: Array<{ label: string; earnings: number; expenses: number; profit: number }>;
+  totals: { earnings: number; expenses: number; profit: number };
+}
+
+interface ExpenseRow {
+  id: string;
+  description: string;
+  amount: number;
+  category: string | null;
+  date: string;
+}
+
 const money = (cents: number, currency: string) => `${(cents / 100).toFixed(2)} ${currency}`;
 
 const STATUS_LABEL: Record<string, string> = {
@@ -136,6 +150,101 @@ export function PaymentsPage() {
         </table>
         {(data ?? []).length === 0 && <p className="muted">No hay transacciones.</p>}
       </Card>
+
+      <CostsPanel />
     </div>
+  );
+}
+
+function CostsPanel() {
+  const qc = useQueryClient();
+  const [period, setPeriod] = useState<'month' | 'year'>('month');
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [category, setCategory] = useState('');
+
+  const { data } = useQuery({
+    queryKey: ['expenses-analytics', period],
+    queryFn: () => api.get<AnalyticsData>(`/api/v1/expenses/analytics?period=${period}`),
+  });
+  const { data: expenses } = useQuery({
+    queryKey: ['expenses'],
+    queryFn: () => api.get<ExpenseRow[]>('/api/v1/expenses'),
+  });
+
+  const add = useMutation({
+    mutationFn: () => api.post('/api/v1/expenses', { description, amount: Number(amount), category: category || undefined }),
+    onSuccess: () => {
+      setDescription('');
+      setAmount('');
+      setCategory('');
+      qc.invalidateQueries({ queryKey: ['expenses'] });
+      qc.invalidateQueries({ queryKey: ['expenses-analytics'] });
+    },
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => api.del(`/api/v1/expenses/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['expenses'] });
+      qc.invalidateQueries({ queryKey: ['expenses-analytics'] });
+    },
+  });
+
+  const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+  const max = Math.max(1, ...(data?.series ?? []).map((s) => Math.max(s.earnings, s.expenses)));
+
+  return (
+    <Card>
+      <h3>Costos y ganancias</h3>
+      <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+        <div className="row">
+          <Button variant={period === 'month' ? 'secondary' : 'ghost'} onClick={() => setPeriod('month')}>Mensual</Button>
+          <Button variant={period === 'year' ? 'secondary' : 'ghost'} onClick={() => setPeriod('year')}>Anual</Button>
+        </div>
+        {data && (
+          <div className="row" style={{ flexWrap: 'wrap' }}>
+            <span>Ganancias: <strong style={{ color: 'var(--ws-success)' }}>{money(data.totals.earnings)}</strong></span>
+            <span>Gastos: <strong style={{ color: 'var(--ws-danger)' }}>{money(data.totals.expenses)}</strong></span>
+            <span>Beneficio: <strong>{money(data.totals.profit)}</strong></span>
+          </div>
+        )}
+      </div>
+
+      <div className="stack" style={{ gap: 'var(--ws-space-1)', marginTop: 'var(--ws-space-3)' }}>
+        {(data?.series ?? []).map((s) => (
+          <div key={s.label} className="row" style={{ gap: 'var(--ws-space-2)' }}>
+            <span className="muted" style={{ width: 70, fontSize: '0.85em' }}>{s.label}</span>
+            <div style={{ flex: 1, display: 'flex', gap: 2, height: 16 }}>
+              <div title={`ganancias ${money(s.earnings)}`} style={{ width: `${(s.earnings / max) * 100}%`, background: 'var(--ws-success)', minWidth: s.earnings ? 4 : 0, borderRadius: 2 }} />
+              <div title={`gastos ${money(s.expenses)}`} style={{ width: `${(s.expenses / max) * 100}%`, background: 'var(--ws-danger)', minWidth: s.expenses ? 4 : 0, borderRadius: 2 }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="row" style={{ marginTop: 'var(--ws-space-4)', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
+        <input className="input" style={{ flex: 1 }} placeholder="Descripción del gasto" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <input className="input" type="number" placeholder="Monto ($)" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: 140 }} />
+        <input className="input" placeholder="Categoría" value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: 140 }} />
+        <Button onClick={() => add.mutate()} disabled={!description || !amount}>
+          Agregar gasto
+        </Button>
+      </div>
+
+      <div className="stack" style={{ marginTop: 'var(--ws-space-3)' }}>
+        {(expenses ?? []).map((e) => (
+          <div key={e.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
+            <span>
+              {e.description} {e.category && <span className="muted">· {e.category}</span>}
+            </span>
+            <div className="row">
+              <span>{money(e.amount)}</span>
+              <Button variant="ghost" onClick={() => remove.mutate(e.id)}>✕</Button>
+            </div>
+          </div>
+        ))}
+        {(expenses ?? []).length === 0 && <p className="muted">Sin gastos registrados.</p>}
+      </div>
+    </Card>
   );
 }
