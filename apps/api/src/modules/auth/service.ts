@@ -24,7 +24,12 @@ export function hashRefreshToken(token: string): string {
 
 export function signAccessToken(fastify: FastifyInstance, profile: UserProfile): string {
   return fastify.jwt.sign(
-    { sub: profile.id, email: profile.email, permissions: profile.permissions },
+    {
+      sub: profile.id,
+      email: profile.email,
+      permissions: profile.permissions,
+      type: 'access' as const,
+    },
     { expiresIn: ACCESS_TOKEN_TTL_SECONDS },
   );
 }

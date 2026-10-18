@@ -73,6 +73,10 @@ export const Permission = {
   EmailRead: 'email.read',
   EmailWrite: 'email.write',
   EmailSend: 'email.send',
+
+  // Tokens de API
+  ApiTokenRead: 'apiToken.read',
+  ApiTokenWrite: 'apiToken.write',
 } as const;
 
 export type PermissionValue = (typeof Permission)[keyof typeof Permission];

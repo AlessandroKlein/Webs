@@ -28,6 +28,7 @@ model User {
 
   roles      UserRole[]
   sessions   Session[]
+  apiTokens  ApiToken[]
   auditLogs  AuditLog[]
   content    Content[]   @relation("ContentAuthor")
   settings   Setting[]   @relation("SettingEditor")
@@ -94,6 +95,21 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+model ApiToken {
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  scopes     Json      @default("[]")
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+
+  @@index([userId])
+  @@map("api_tokens")
 }
 
 // ---------------------------------------------------------------------------

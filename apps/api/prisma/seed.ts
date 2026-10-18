@@ -35,6 +35,8 @@ const PERMISSIONS: Array<{ key: string; description: string }> = [
   { key: 'email.read', description: 'Ver correos' },
   { key: 'email.write', description: 'Editar plantillas/automatizaciones' },
   { key: 'email.send', description: 'Enviar campañas de correo' },
+  { key: 'apiToken.read', description: 'Ver tokens de API' },
+  { key: 'apiToken.write', description: 'Crear/revocar tokens de API' },
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);

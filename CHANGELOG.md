@@ -3,6 +3,17 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.6.0] - 2026-10-18
+
+### Añadido
+
+- **API tokens (JWT)** para acceso programático a la API REST con scopes acotados,
+  caducidad opcional y revocación inmediata (verificados contra la BD en cada
+  petición). Sección "API Tokens" en el panel.
+- Permisos nuevos: `apiToken.read`, `apiToken.write`.
+- `authenticate` ahora acepta token de acceso (JWT) y token de API (JWT con
+  `type: 'api_token'`).
+
 ## [0.5.0] - 2026-10-18
 
 ### Añadido

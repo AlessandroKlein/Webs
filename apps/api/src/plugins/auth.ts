@@ -2,10 +2,12 @@ import fp from 'fastify-plugin';
 import jwt from '@fastify/jwt';
 import cookie from '@fastify/cookie';
 import { ForbiddenError, UnauthorizedError } from '@webs/core';
+import type { AccessTokenPayload } from '../types/auth';
 
 /**
  * Autenticación y autorización:
- *  - `fastify.authenticate`: preHandler que exige token de acceso válido.
+ *  - `fastify.authenticate`: preHandler que acepta un token de acceso (JWT) o un
+ *    token de API (JWT con `type: 'api_token'`, verificado contra la BD).
  *  - `fastify.authorize(permission)`: preHandler que exige un permiso concreto.
  */
 export default fp<{ jwtSecret: string }>(async (fastify, opts) => {
@@ -16,7 +18,25 @@ export default fp<{ jwtSecret: string }>(async (fastify, opts) => {
     try {
       await request.jwtVerify();
     } catch {
-      throw new UnauthorizedError('Token de acceso inválido o expirado');
+      throw new UnauthorizedError('Token inválido o expirado');
+    }
+
+    const payload = request.user;
+
+    // Token de API: valida que siga vigente en BD y aplica sus scopes.
+    if (payload.type === 'api_token') {
+      if (!payload.tokenId) throw new UnauthorizedError('Token inválido');
+      const token = await fastify.prisma.apiToken.findUnique({ where: { id: payload.tokenId } });
+      if (!token || token.revokedAt || (token.expiresAt && token.expiresAt < new Date())) {
+        throw new UnauthorizedError('API token inválido o revocado');
+      }
+      void fastify.prisma.apiToken
+        .update({ where: { id: token.id }, data: { lastUsedAt: new Date() } })
+        .catch(() => {});
+      request.user = {
+        sub: token.userId,
+        permissions: (token.scopes as string[]) ?? [],
+      } as AccessTokenPayload;
     }
   });
 
@@ -29,3 +49,4 @@ export default fp<{ jwtSecret: string }>(async (fastify, opts) => {
     };
   });
 });
+
