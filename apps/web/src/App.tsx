@@ -10,6 +10,7 @@ import './blocks';
 
 import { AdminLayout } from './layouts/AdminLayout';
 import { LoginPage } from './features/auth/LoginPage';
+import { SetupTwoFactorPage } from './features/auth/SetupTwoFactorPage';
 import { VerifyEmailPage } from './features/auth/VerifyEmailPage';
 import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
@@ -101,6 +102,7 @@ function MainApp() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/setup-2fa" element={<SetupTwoFactorPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/site" element={<PublicHome />} />

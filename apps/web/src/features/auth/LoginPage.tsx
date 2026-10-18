@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { startAuthentication } from '@simplewebauthn/browser';
 import { useAuthStore, type AuthUser } from '../../lib/auth-store';
 import { ApiClientError, api } from '../../lib/api';
+import { setSetupToken } from '../../lib/token';
 import { TextField } from '../../components/ui/TextField';
 import { Button } from '../../components/ui/Button';
 
@@ -57,6 +58,14 @@ export function LoginPage() {
       if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_REQUIRED') {
         setTwoFactorRequired(true);
         setError('Ingresá el código de tu aplicación de autenticación');
+      } else if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_SETUP_REQUIRED') {
+        const token = err.raw?.setupToken;
+        if (typeof token === 'string') {
+          setSetupToken(token);
+          navigate('/setup-2fa', { replace: true });
+          return;
+        }
+        setError('Debés activar 2FA o una passkey para continuar');
       } else {
         setError(err instanceof ApiClientError ? err.message : t('common.error'));
       }

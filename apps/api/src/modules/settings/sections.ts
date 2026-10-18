@@ -141,6 +141,11 @@ export function registerDefaultSections(): void {
         hsts: { type: 'boolean', title: 'HSTS (HTTP Strict Transport Security)' },
         hstsMaxAge: { type: 'integer', title: 'HSTS max-age (segundos)', default: 15552000 },
         secureCookies: { type: 'boolean', title: 'Cookies solo por HTTPS' },
+        require2FAForAdmin: {
+          type: 'boolean',
+          title: 'Exigir 2FA/passkey a administradores',
+          description: 'Los roles super_admin y admin deben activar 2FA o una passkey para iniciar sesión.',
+        },
         contentSecurityPolicy: {
           type: 'string',
           title: 'Content-Security-Policy (vacío = desactivado)',
@@ -148,6 +153,6 @@ export function registerDefaultSections(): void {
         },
       },
     },
-    defaults: { hsts: true, hstsMaxAge: 15552000, secureCookies: true, contentSecurityPolicy: '' },
+    defaults: { hsts: true, hstsMaxAge: 15552000, secureCookies: true, require2FAForAdmin: false, contentSecurityPolicy: '' },
   });
 }

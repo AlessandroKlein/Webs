@@ -55,6 +55,9 @@ aplicadas (organizadas por categoría) y cómo activar las opcionales.
 - **Tokens**: JWT de acceso (15 min) + refresh token opaco hasheado con rotación.
 - **2FA / TOTP**: autenticación de dos factores con Google Authenticator/Authy,
   con **códigos de respaldo** (de un solo uso). Activá en **Mi cuenta**.
+- **2FA obligatoria para admins**: activando `require2FAForAdmin` en
+  **Ajustes → Seguridad**, los roles `super_admin`/`admin` deben tener 2FA o una
+  passkey para iniciar sesión (con flujo de activación forzada).
   Activá en el panel (`POST /auth/2fa/setup`, `/confirm`, `/disable`); el login
   exige el código cuando está habilitado.
 - **API tokens (JWT)** con scopes acotados y revocables.

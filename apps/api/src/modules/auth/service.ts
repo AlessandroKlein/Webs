@@ -55,10 +55,33 @@ export async function createSession(
   return token;
 }
 
-export type LoginResult = UserProfile | { twoFactorRequired: true };
+export type LoginResult = UserProfile | { twoFactorRequired: true } | { twoFactorSetupRequired: true; setupToken: string };
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+
+/**
+ * Determina si un usuario sin 2FA/passkey debe activarlo antes de continuar:
+ * la política "requerir 2FA a admins" está activa y el usuario tiene un rol
+ * privilegiado (super_admin/admin) y no tiene 2FA ni passkey registradas.
+ */
+async function shouldRequireTwoFactor(fastify: FastifyInstance, userId: string): Promise<boolean> {
+  const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.twoFactorEnabled) return false;
+
+  const passkeys = await fastify.prisma.passkey.count({ where: { userId } });
+  if (passkeys > 0) return false;
+
+  const security = await fastify.prisma.setting.findUnique({ where: { key: 'security' } });
+  const value = (security?.value as Record<string, unknown> | null) ?? {};
+  if (!value.require2FAForAdmin) return false;
+
+  const roles = await fastify.prisma.userRole.findMany({
+    where: { userId },
+    include: { role: true },
+  });
+  return roles.some((r) => r.role.key === 'super_admin' || r.role.key === 'admin');
+}
 
 export async function login(
   fastify: FastifyInstance,
@@ -105,6 +128,9 @@ export async function login(
     if (!totp) return { twoFactorRequired: true };
     const ok = await verifyTwoFactorCode(fastify, user.id, totp);
     if (!ok) throw new UnauthorizedError('Código de verificación inválido');
+  } else if (await shouldRequireTwoFactor(fastify, user.id)) {
+    const setupToken = fastify.jwt.sign({ sub: user.id, type: 'setup_2fa' }, { expiresIn: '15m' });
+    return { twoFactorSetupRequired: true, setupToken };
   }
 
   const profile = await findUserWithPermissions(fastify, user.id);

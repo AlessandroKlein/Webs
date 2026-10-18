@@ -24,6 +24,12 @@ export default fp<{ jwtSecret: string }>(async (fastify, opts) => {
 
     const payload = request.user;
 
+    // Token de configuración de 2FA: sin permisos, solo para activar 2FA/passkey.
+    if (payload.type === 'setup_2fa') {
+      request.user = { sub: payload.sub, permissions: [] } as AccessTokenPayload;
+      return;
+    }
+
     // Token de API: valida que siga vigente en BD y aplica sus scopes.
     if (payload.type === 'api_token') {
       if (!payload.tokenId) throw new UnauthorizedError('Token inválido');

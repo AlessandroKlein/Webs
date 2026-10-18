@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.16.0] - 2026-10-18
+
+### Añadido
+
+- **2FA obligatoria para admins**: setting `security.require2FAForAdmin`; si un
+  rol super_admin/admin no tiene 2FA/passkey, el login exige activarlo (flujo
+  con token de setup y página `/setup-2fa`).
+- **Vista admin de API tokens**: listar y revocar tokens de todos los usuarios
+  (`GET/DELETE /admin/api-tokens`), usando `apiToken.read`/`apiToken.write`.
+
 ## [0.15.0] - 2026-10-18
 
 ### Añadido

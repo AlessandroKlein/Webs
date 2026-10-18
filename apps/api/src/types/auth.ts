@@ -6,7 +6,7 @@ export interface AccessTokenPayload {
   /** Permisos efectivos del usuario (token de acceso) o scopes (token de API). */
   permissions?: string[];
   /** Tipo de token. */
-  type?: 'access' | 'api_token';
+  type?: 'access' | 'api_token' | 'setup_2fa';
   /** Identificador del token de API (solo `api_token`). */
   tokenId?: string;
   /** Permisos acotados del token de API (solo `api_token`). */

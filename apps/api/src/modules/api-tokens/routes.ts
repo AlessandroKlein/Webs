@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { audit } from '../../lib/audit';
-import { createApiToken, listApiTokens, revokeApiToken } from './service';
+import { createApiToken, listAllApiTokens, listApiTokens, revokeAnyApiToken, revokeApiToken } from './service';
 
 export default async function apiTokensRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
@@ -61,6 +61,31 @@ export default async function apiTokensRoutes(fastify: FastifyInstance): Promise
       const id = (request.params as { id: string }).id;
       await revokeApiToken(fastify, id, request.user.sub);
       audit(fastify, request, { actorId: request.user.sub, action: 'apiToken.revoke', resource: 'api_token', resourceId: id });
+      return reply.status(204).send();
+    },
+  );
+
+  // -------- Administración (todos los usuarios) --------
+
+  fastify.get(
+    '/admin/api-tokens',
+    {
+      schema: { tags: ['api-tokens'] },
+      preHandler: [fastify.authenticate, fastify.authorize('apiToken.read')],
+    },
+    async () => listAllApiTokens(fastify),
+  );
+
+  fastify.delete(
+    '/admin/api-tokens/:id',
+    {
+      schema: { tags: ['api-tokens'], params: { type: 'object', properties: { id: { type: 'string' } } } },
+      preHandler: [fastify.authenticate, fastify.authorize('apiToken.write')],
+    },
+    async (request, reply) => {
+      const id = (request.params as { id: string }).id;
+      await revokeAnyApiToken(fastify, id);
+      audit(fastify, request, { actorId: request.user.sub, action: 'apiToken.admin.revoke', resource: 'api_token', resourceId: id });
       return reply.status(204).send();
     },
   );

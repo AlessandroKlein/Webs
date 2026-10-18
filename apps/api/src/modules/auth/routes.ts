@@ -53,6 +53,13 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
         });
       }
 
+      if ('twoFactorSetupRequired' in result) {
+        return reply.status(403).send({
+          error: { code: 'TWO_FACTOR_SETUP_REQUIRED', message: 'Debés activar 2FA o una passkey para continuar' },
+          setupToken: result.setupToken,
+        });
+      }
+
       const profile = result;
       const ttl = rememberMe ? REMEMBER_ME_TTL_MS : REFRESH_TOKEN_TTL_MS;
       const accessToken = signAccessToken(fastify, profile);

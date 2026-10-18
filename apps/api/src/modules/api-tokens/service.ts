@@ -83,3 +83,29 @@ export async function revokeApiToken(fastify: FastifyInstance, id: string, userI
   if (!token) throw new NotFoundError('Token de API');
   await fastify.prisma.apiToken.update({ where: { id }, data: { revokedAt: new Date() } });
 }
+
+// -------- Administración (todos los usuarios) --------
+
+export async function listAllApiTokens(fastify: FastifyInstance) {
+  return fastify.prisma.apiToken.findMany({
+    where: { revokedAt: null },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      name: true,
+      scopes: true,
+      expiresAt: true,
+      lastUsedAt: true,
+      rateLimit: true,
+      requestCount: true,
+      createdAt: true,
+      user: { select: { id: true, email: true } },
+    },
+  });
+}
+
+export async function revokeAnyApiToken(fastify: FastifyInstance, id: string): Promise<void> {
+  const token = await fastify.prisma.apiToken.findUnique({ where: { id } });
+  if (!token) throw new NotFoundError('Token de API');
+  await fastify.prisma.apiToken.update({ where: { id }, data: { revokedAt: new Date() } });
+}

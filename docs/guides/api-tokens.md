@@ -41,3 +41,5 @@ curl -H "Authorization: Bearer <API_TOKEN>" https://tudominio.com/api/v1/content
 | GET | `/api/v1/api-tokens` | Listar tus tokens (sin el secreto). |
 | POST | `/api/v1/api-tokens` | Crear token (devuelve el JWT una vez). |
 | DELETE | `/api/v1/api-tokens/:id` | Revocar token. |
+| GET | `/api/v1/admin/api-tokens` | (admin) Listar tokens de todos los usuarios. |
+| DELETE | `/api/v1/admin/api-tokens/:id` | (admin) Revocar un token de cualquier usuario. |

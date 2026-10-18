@@ -24,6 +24,9 @@ interface ApiTokenRow {
 interface CreatedToken extends ApiTokenRow {
   token: string;
 }
+interface AdminTokenRow extends ApiTokenRow {
+  user: { id: string; email: string };
+}
 
 export function ApiTokensPage() {
   const qc = useQueryClient();
@@ -43,6 +46,13 @@ export function ApiTokensPage() {
   const [created, setCreated] = useState<CreatedToken | null>(null);
   const [copied, setCopied] = useState(false);
   const myPermissions = useAuthStore((s) => s.permissions);
+  const isAdmin = myPermissions.includes('apiToken.read');
+
+  const { data: allTokens } = useQuery({
+    queryKey: ['admin-api-tokens'],
+    queryFn: () => api.get<AdminTokenRow[]>('/api/v1/admin/api-tokens'),
+    enabled: isAdmin,
+  });
 
   const create = useMutation({
     mutationFn: () =>
@@ -65,6 +75,11 @@ export function ApiTokensPage() {
   const revoke = useMutation({
     mutationFn: (id: string) => api.del(`/api/v1/api-tokens/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['api-tokens'] }),
+  });
+
+  const revokeAny = useMutation({
+    mutationFn: (id: string) => api.del(`/api/v1/admin/api-tokens/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-api-tokens'] }),
   });
 
   const toggleScope = (key: string) =>
@@ -168,6 +183,31 @@ export function ApiTokensPage() {
           </div>
         </Card>
       </div>
+
+      {isAdmin && (
+        <Card>
+          <h3>Todos los tokens (admin)</h3>
+          <div className="stack">
+            {(allTokens ?? []).map((t) => (
+              <div key={t.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
+                <div>
+                  <strong>{t.name}</strong> <span className="muted">· {t.user.email}</span>
+                  <div>
+                    <span className="muted">{t.scopes.length} permisos</span>
+                    {t.rateLimit && <span className="muted"> · {t.rateLimit} req/min</span>}
+                    {t.expiresAt && <span className="muted"> · vence {new Date(t.expiresAt).toLocaleDateString()}</span>}
+                    {t.lastUsedAt && <span className="muted"> · usado {new Date(t.lastUsedAt).toLocaleString()}</span>}
+                  </div>
+                </div>
+                <Button variant="ghost" onClick={() => revokeAny.mutate(t.id)}>
+                  Revocar
+                </Button>
+              </div>
+            ))}
+            {(allTokens ?? []).length === 0 && <p className="muted">No hay tokens de otros usuarios.</p>}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }
