@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.20.0] - 2026-10-18
+
+### Añadido
+
+- **Bloque Mercado Pago de referencia** (`blocks/mercadopago`): secretos cifrados
+  (`x-ui.secret`), endpoint público sin secretos, token único de pago, verificación
+  de firma de webhook (HMAC-SHA256) y eventos de negocio. Slot `payment` agregado.
+
 ## [0.19.0] - 2026-10-18
 
 ### Añadido
