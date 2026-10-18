@@ -1,0 +1,22 @@
+{
+  "name": "@webs/block-twilio",
+  "id": "twilio",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Twilio (SMS/WhatsApp)", "es": "Twilio (SMS/WhatsApp)" },
+  "description": { "en": "SMS and WhatsApp notifications via Twilio.", "es": "Notificaciones SMS y WhatsApp vía Twilio." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "apiVersion": "1.0.0",
+  "settings": {
+    "type": "object",
+    "title": "Configuración de Twilio",
+    "properties": {
+      "accountSid": { "type": "string", "title": "Account SID" },
+      "authToken": { "type": "string", "title": "Auth Token", "x-ui": { "widget": "password", "secret": true } },
+      "fromNumber": { "type": "string", "title": "Número SMS (ej. +549…)" },
+      "whatsappFrom": { "type": "string", "title": "Remitente WhatsApp (ej. whatsapp:+549…)" }
+    }
+  }
+}

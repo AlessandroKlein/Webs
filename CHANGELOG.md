@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.26.0] - 2026-10-18
+
+### Añadido
+
+- **Notificaciones como plugin**: registro de proveedores
+  (`fastify.notifications.register`) + `POST /notifications/send` y
+  `GET /notifications/providers`. **Bloque Twilio** (SMS/WhatsApp) con secretos
+  cifrados y `notification.sent` como evento.
+
 ## [0.25.0] - 2026-10-18
 
 ### Añadido

@@ -43,6 +43,10 @@ export interface BlockFastify {
   storage?: {
     register: (driver: import('./storage').StorageDriver) => void;
   };
+  /** Registro central de proveedores de notificaciones (SMS/WhatsApp/Push). */
+  notifications?: {
+    register: (adapter: import('./notifications').NotificationProviderAdapter) => void;
+  };
 }
 
 /**

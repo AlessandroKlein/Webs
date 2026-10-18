@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { Redis } from 'ioredis';
-import type { PaymentProviderAdapter, StorageDriver } from '@webs/plugin-sdk';
+import type { NotificationProviderAdapter, PaymentProviderAdapter, StorageDriver } from '@webs/plugin-sdk';
 import type { Env } from '../config/env';
 import type { AccessTokenPayload } from './auth';
 
@@ -44,6 +44,10 @@ declare module 'fastify' {
     /** Registro de drivers de almacenamiento (bloques S3/R2/MinIO). */
     storage: {
       register: (driver: StorageDriver) => void;
+    };
+    /** Registro de proveedores de notificaciones (bloques Twilio, etc.). */
+    notifications: {
+      register: (adapter: NotificationProviderAdapter) => void;
     };
   }
 }
