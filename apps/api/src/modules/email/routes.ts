@@ -231,6 +231,10 @@ export default async function emailRoutes(fastify: FastifyInstance): Promise<voi
         where: { campaignId: id },
         select: { to: true, status: true, openedAt: true, clickCount: true },
       });
+      const clicks = await fastify.prisma.emailClick.findMany({
+        where: { message: { campaignId: id } },
+        select: { clickedAt: true },
+      });
 
       const sent = messages.filter((m) => m.status === 'sent');
       const sentCount = sent.length;
@@ -240,9 +244,22 @@ export default async function emailRoutes(fastify: FastifyInstance): Promise<voi
       const openRate = sentCount > 0 ? openCount / sentCount : 0;
       const clickRate = sentCount > 0 ? uniqueClicks / sentCount : 0;
 
+      // Serie temporal por día (aperturas y clics).
+      const day = (d: Date) => d.toISOString().slice(0, 10);
+      const series = new Map<string, { date: string; opens: number; clicks: number }>();
+      const bump = (date: string, field: 'opens' | 'clicks') => {
+        const entry = series.get(date) ?? { date, opens: 0, clicks: 0 };
+        entry[field] += 1;
+        series.set(date, entry);
+      };
+      for (const m of sent) if (m.openedAt) bump(day(m.openedAt), 'opens');
+      for (const c of clicks) bump(day(c.clickedAt), 'clicks');
+      const timeSeries = [...series.values()].sort((a, b) => a.date.localeCompare(b.date));
+
       return {
         campaign: { id: campaign.id, name: campaign.name, status: campaign.status, totalCount: campaign.totalCount },
         summary: { sentCount, openCount, uniqueClicks, totalClicks, openRate, clickRate },
+        timeSeries,
         recipients: messages.map((m) => ({
           email: m.to,
           status: m.status,
@@ -256,11 +273,16 @@ export default async function emailRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/email/campaigns/:id/export',
     {
-      schema: { tags: ['email'], params: { type: 'object', properties: { id: { type: 'string' } } } },
+      schema: {
+        tags: ['email'],
+        params: { type: 'object', properties: { id: { type: 'string' } } },
+        querystring: { type: 'object', properties: { format: { type: 'string', enum: ['csv', 'json', 'xlsx'], default: 'csv' } } },
+      },
       preHandler: canRead,
     },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
+      const format = (request.query as { format?: string }).format ?? 'csv';
       const campaign = await fastify.prisma.emailCampaign.findUnique({ where: { id } });
       if (!campaign) throw new NotFoundError('Campaña');
 
@@ -280,6 +302,27 @@ export default async function emailRoutes(fastify: FastifyInstance): Promise<voi
       } else {
         const recipients = await resolveRecipients(fastify, campaign);
         rows = recipients.map((r) => ({ email: r.email, status: 'pending', opened: '', clicks: 0 }));
+      }
+
+      if (format === 'json') {
+        return { campaign: campaign.name, recipients: rows };
+      }
+
+      if (format === 'xlsx') {
+        const ExcelJS = (await import('exceljs')).default;
+        const wb = new ExcelJS.Workbook();
+        const ws = wb.addWorksheet('Destinatarios');
+        ws.columns = [
+          { header: 'email', key: 'email', width: 30 },
+          { header: 'status', key: 'status', width: 12 },
+          { header: 'opened', key: 'opened', width: 24 },
+          { header: 'clicks', key: 'clicks', width: 10 },
+        ];
+        for (const r of rows) ws.addRow(r);
+        const buffer = await wb.xlsx.writeBuffer();
+        reply.header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        reply.header('Content-Disposition', `attachment; filename="campaign-${id}.xlsx"`);
+        return reply.send(Buffer.from(buffer));
       }
 
       reply.header('Content-Type', 'text/csv; charset=utf-8');

@@ -311,9 +311,22 @@ model EmailMessage {
   openedAt   DateTime?
   clickCount Int            @default(0)
   createdAt  DateTime       @default(now())
+  clicks     EmailClick[]
 
   @@index([status])
   @@map("email_messages")
+}
+
+model EmailClick {
+  id        String       @id @default(uuid())
+  messageId String
+  message   EmailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  url       String?
+  clickedAt DateTime     @default(now())
+
+  @@index([messageId])
+  @@index([clickedAt])
+  @@map("email_clicks")
 }
 
 // ---------------------------------------------------------------------------

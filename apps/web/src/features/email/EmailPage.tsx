@@ -370,7 +370,13 @@ function CampaignRow({
             Reporte
           </Button>
           <Button variant="ghost" onClick={() => void downloadFile(`/api/v1/email/campaigns/${campaign.id}/export`, `campaign-${campaign.id}.csv`)}>
-            Exportar
+            CSV
+          </Button>
+          <Button variant="ghost" onClick={() => void downloadFile(`/api/v1/email/campaigns/${campaign.id}/export?format=json`, `campaign-${campaign.id}.json`)}>
+            JSON
+          </Button>
+          <Button variant="ghost" onClick={() => void downloadFile(`/api/v1/email/campaigns/${campaign.id}/export?format=xlsx`, `campaign-${campaign.id}.xlsx`)}>
+            XLSX
           </Button>
           <Button variant="ghost" onClick={() => onRemove(campaign.id)}>
             Eliminar
@@ -405,6 +411,7 @@ function CampaignRow({
 interface CampaignReportData {
   campaign: { id: string; name: string; status: string; totalCount: number };
   summary: { sentCount: number; openCount: number; uniqueClicks: number; totalClicks: number; openRate: number; clickRate: number };
+  timeSeries: Array<{ date: string; opens: number; clicks: number }>;
   recipients: Array<{ email: string; status: string; openedAt: string | null; clickCount: number }>;
 }
 
@@ -436,8 +443,33 @@ function CampaignReport({ id }: { id: string }) {
           {s.sentCount} enviados · {s.openCount} aperturas · {s.uniqueClicks} clics únicos · {s.totalClicks} clics totales
         </p>
         <p className="muted">Destinatarios: {data.recipients.length} (abiertos {s.openCount}, con clics {s.uniqueClicks})</p>
+
+        {data.timeSeries.length > 0 && <TimeSeriesChart series={data.timeSeries} />}
       </div>
     </Card>
+  );
+}
+
+function TimeSeriesChart({ series }: { series: Array<{ date: string; opens: number; clicks: number }> }) {
+  const max = Math.max(1, ...series.map((d) => Math.max(d.opens, d.clicks)));
+  return (
+    <div>
+      <h5 className="muted">Evolución por día</h5>
+      <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
+        {series.map((d) => (
+          <div key={d.date} style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+            <span className="muted" style={{ width: 90, fontSize: '0.85em' }}>{d.date}</span>
+            <div style={{ flex: 1, display: 'flex', gap: 2, height: 16 }}>
+              <div title={`aperturas ${d.opens}`} style={{ width: `${(d.opens / max) * 100}%`, background: 'var(--ws-primary)', minWidth: d.opens ? 4 : 0, borderRadius: 2 }} />
+              <div title={`clics ${d.clicks}`} style={{ width: `${(d.clicks / max) * 100}%`, background: 'var(--ws-secondary, var(--ws-warning))', minWidth: d.clicks ? 4 : 0, borderRadius: 2 }} />
+            </div>
+            <span className="muted" style={{ fontSize: '0.8em', width: 70 }}>
+              {d.opens} a · {d.clicks} c
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

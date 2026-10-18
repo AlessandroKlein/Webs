@@ -72,7 +72,9 @@ Se puede **cancelar** antes de que se ejecute.
   clics únicos/totales y el detalle por destinatario. En la UI, el botón
   "Reporte" muestra un gráfico de barras.
 - **Exportar**: `GET /email/campaigns/:id/export` descarga un **CSV** con la lista
-  de destinatarios (email, estado, apertura, clics).
+  de destinatarios (email, estado, apertura, clics). Con `?format=json` devuelve
+  JSON y con `?format=xlsx` genera un Excel.
+- **Serie temporal**: el reporte incluye `timeSeries` (aperturas/clics por día).
 
 ## Eventos desde bloques
 

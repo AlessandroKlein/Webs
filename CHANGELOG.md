@@ -3,6 +3,17 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.17.0] - 2026-10-18
+
+### Añadido
+
+- **Auditoría avanzada**: filtros por acción/recurso/actor/rango de fechas y
+  exportación CSV (`GET /audit/export`).
+- **Serie temporal** de aperturas/clics por día en el reporte de campañas
+  (nueva tabla `EmailClick`).
+- **Exportar destinatarios en JSON/XLSX** (además de CSV).
+- **Dashboard con métricas globales** (`GET /admin/metrics`).
+
 ## [0.16.0] - 2026-10-18
 
 ### Añadido

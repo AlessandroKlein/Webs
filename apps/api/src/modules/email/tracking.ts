@@ -48,6 +48,7 @@ export async function trackClick(
   const message = await fastify.prisma.emailMessage.findUnique({ where: { id } });
   if (message) {
     await fastify.prisma.emailMessage.update({ where: { id }, data: { clickCount: { increment: 1 } } });
+    await fastify.prisma.emailClick.create({ data: { messageId: id, url } }).catch(() => {});
     if (message.campaignId) {
       await fastify.prisma.emailCampaign.update({
         where: { id: message.campaignId },
