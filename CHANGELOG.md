@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.13.0] - 2026-10-18
+
+### Añadido
+
+- **FIDO2 / Passkeys**: registro y login sin contraseña (huella/rostro/llave de
+  seguridad) vía WebAuthn, con gestión en "Mi cuenta".
+- **Cifrado por campo aplicado a contacto**: teléfono, dirección y WhatsApp se
+  cifran en reposo (`x-ui.secret`).
+- **ROADMAP.md** con elementos futuros y recomendaciones.
+
 ## [0.12.0] - 2026-10-18
 
 ### Añadido

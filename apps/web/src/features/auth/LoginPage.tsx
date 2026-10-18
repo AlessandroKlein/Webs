@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../lib/auth-store';
-import { ApiClientError } from '../../lib/api';
+import { startAuthentication } from '@simplewebauthn/browser';
+import { useAuthStore, type AuthUser } from '../../lib/auth-store';
+import { ApiClientError, api } from '../../lib/api';
 import { TextField } from '../../components/ui/TextField';
 import { Button } from '../../components/ui/Button';
 
@@ -10,6 +11,7 @@ export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
+  const finalizeAuth = useAuthStore((s) => s.finalizeAuth);
   const status = useAuthStore((s) => s.status);
 
   const [email, setEmail] = useState('');
@@ -19,8 +21,30 @@ export function LoginPage() {
   const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
 
   if (status === 'authenticated') return <Navigate to="/" replace />;
+
+  const loginWithPasskey = async () => {
+    setPasskeyLoading(true);
+    setError(null);
+    try {
+      const opts = await api.post<{ challengeId: string; options: Parameters<typeof startAuthentication>[0] }>(
+        '/api/v1/auth/passkey/login/options',
+      );
+      const credential = await startAuthentication(opts.options);
+      const result = await api.post<{ accessToken: string; user: AuthUser }>(
+        '/api/v1/auth/passkey/login/verify',
+        { challengeId: opts.challengeId, credential },
+      );
+      await finalizeAuth(result.accessToken, result.user);
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError(err instanceof ApiClientError ? err.message : 'Error al autenticar con passkey');
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -85,6 +109,10 @@ export function LoginPage() {
 
         <Button type="submit" disabled={loading} style={{ width: '100%' }}>
           {t('auth.login')}
+        </Button>
+
+        <Button type="button" variant="secondary" onClick={loginWithPasskey} disabled={passkeyLoading} style={{ width: '100%', marginTop: 'var(--ws-space-2)' }}>
+          {passkeyLoading ? 'Verificando…' : 'Iniciar con passkey'}
         </Button>
       </form>
     </div>

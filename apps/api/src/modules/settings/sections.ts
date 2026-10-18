@@ -87,9 +87,9 @@ export function registerDefaultSections(): void {
       title: 'Contacto',
       properties: {
         email: { type: 'string', format: 'email', title: 'Correo de contacto' },
-        phone: { type: 'string', title: 'Teléfono' },
-        address: { type: 'string', title: 'Dirección' },
-        whatsapp: { type: 'string', title: 'WhatsApp' },
+        phone: { type: 'string', title: 'Teléfono', 'x-ui': { secret: true } },
+        address: { type: 'string', title: 'Dirección', 'x-ui': { secret: true } },
+        whatsapp: { type: 'string', title: 'WhatsApp', 'x-ui': { secret: true } },
       },
     },
     defaults: {},

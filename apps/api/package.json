@@ -32,6 +32,8 @@
     "@fastify/swagger-ui": "^5.1.0",
     "@fastify/websocket": "^11.0.1",
     "@prisma/client": "^6.0.0",
+    "@simplewebauthn/server": "^10.0.0",
+    "@simplewebauthn/types": "^10.0.0",
     "@webs/core": "workspace:*",
     "@webs/i18n": "workspace:*",
     "@webs/plugin-sdk": "workspace:*",

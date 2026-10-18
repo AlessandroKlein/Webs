@@ -21,6 +21,7 @@ import eventsPlugin from './plugins/events';
 
 import healthRoutes from './modules/health';
 import authRoutes from './modules/auth';
+import passkeyRoutes from './modules/auth/passkeys';
 import usersRoutes from './modules/users';
 import rolesRoutes from './modules/roles';
 import settingsRoutes from './modules/settings';
@@ -88,6 +89,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // 5. Módulos de dominio (bajo /api/v1).
   await app.register(healthRoutes);
   await app.register(authRoutes, { prefix: API_PREFIX });
+  await app.register(passkeyRoutes, { prefix: API_PREFIX });
   await app.register(usersRoutes, { prefix: API_PREFIX });
   await app.register(rolesRoutes, { prefix: API_PREFIX });
   await app.register(settingsRoutes, { prefix: API_PREFIX });

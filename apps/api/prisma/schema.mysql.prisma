@@ -34,6 +34,7 @@ model User {
   roles      UserRole[]
   sessions   Session[]
   apiTokens  ApiToken[]
+  passkeys   Passkey[]
   auditLogs  AuditLog[]
   content    Content[]   @relation("ContentAuthor")
   settings   Setting[]   @relation("SettingEditor")
@@ -117,6 +118,22 @@ model ApiToken {
 
   @@index([userId])
   @@map("api_tokens")
+}
+
+model Passkey {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String   @unique
+  publicKey    String
+  counter      Int      @default(0)
+  transports   Json     @default("[]")
+  deviceName   String?
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
+  @@map("passkeys")
 }
 
 // ---------------------------------------------------------------------------

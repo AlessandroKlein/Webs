@@ -15,6 +15,7 @@ interface AuthState {
   permissions: string[];
   status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
   login: (email: string, password: string, totp?: string, rememberMe?: boolean) => Promise<void>;
+  finalizeAuth: (accessToken: string, user: AuthUser) => Promise<void>;
   logout: () => Promise<void>;
   bootstrap: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
@@ -33,9 +34,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       ...(totp ? { totp } : {}),
       ...(rememberMe ? { rememberMe: true } : {}),
     });
-    setAccessToken(data.accessToken);
-    set({ user: data.user, status: 'authenticated' });
-    // Carga permisos efectivos.
+    await get().finalizeAuth(data.accessToken, data.user);
+  },
+
+  finalizeAuth: async (accessToken, user) => {
+    setAccessToken(accessToken);
+    set({ user, status: 'authenticated' });
     const me = await api.get<{ permissions: string[] }>('/api/v1/auth/me');
     set({ permissions: me.permissions ?? [] });
   },

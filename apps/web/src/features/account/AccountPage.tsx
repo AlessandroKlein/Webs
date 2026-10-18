@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { startRegistration } from '@simplewebauthn/browser';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -30,6 +31,7 @@ export function AccountPage() {
         </p>
       </Card>
       <TwoFactorCard enabled={data?.twoFactorEnabled ?? false} onChanged={() => qc.invalidateQueries({ queryKey: ['me'] })} />
+      <PasskeysCard />
     </div>
   );
 }
@@ -135,6 +137,71 @@ function TwoFactorCard({ enabled, onChanged }: { enabled: boolean; onChanged: ()
           </Button>
         </div>
       )}
+    </Card>
+  );
+}
+
+interface PasskeyRow {
+  id: string;
+  deviceName: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+function PasskeysCard() {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ['passkeys'],
+    queryFn: () => api.get<PasskeyRow[]>('/api/v1/auth/passkeys'),
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [registering, setRegistering] = useState(false);
+
+  const register = async () => {
+    setRegistering(true);
+    setError(null);
+    try {
+      const opts = await api.post<{ challengeId: string; options: Parameters<typeof startRegistration>[0] }>(
+        '/api/v1/auth/passkey/register/options',
+      );
+      const credential = await startRegistration(opts.options);
+      await api.post('/api/v1/auth/passkey/register/verify', { challengeId: opts.challengeId, credential });
+      qc.invalidateQueries({ queryKey: ['passkeys'] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al registrar passkey');
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const remove = useMutation({
+    mutationFn: (id: string) => api.del(`/api/v1/auth/passkeys/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['passkeys'] }),
+  });
+
+  return (
+    <Card>
+      <h3>Passkeys (FIDO2)</h3>
+      <p className="muted">Iniciá sesión sin contraseña con tu huella, rostro o llave de seguridad.</p>
+      {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
+
+      <div className="stack">
+        {(data ?? []).map((p) => (
+          <div key={p.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
+            <span>
+              {p.deviceName ?? 'Passkey'} <span className="muted">· creada {new Date(p.createdAt).toLocaleDateString()}</span>
+            </span>
+            <Button variant="ghost" onClick={() => remove.mutate(p.id)}>
+              Eliminar
+            </Button>
+          </div>
+        ))}
+        {(data ?? []).length === 0 && <p className="muted">No hay passkeys registradas.</p>}
+      </div>
+
+      <Button onClick={register} disabled={registering} style={{ marginTop: 'var(--ws-space-3)' }}>
+        {registering ? 'Registrando…' : 'Registrar passkey'}
+      </Button>
     </Card>
   );
 }
