@@ -43,6 +43,8 @@ export interface RegistryBlockEntry {
   url: string;
   /** Subdirectorio del repo que contiene el bloque (monorepos). */
   subdir?: string;
+  /** SHA-256 del `block.json` (verificación de integridad, opcional). */
+  sha256?: string;
 }
 
 export interface CatalogItem {

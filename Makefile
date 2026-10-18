@@ -1,4 +1,4 @@
-.PHONY: up down logs ps reset
+.PHONY: up down logs ps reset docs
 
 ## Arranca toda la plataforma (PostgreSQL, MySQL, Redis, API y web).
 ## Luego abrí http://localhost:5173.
@@ -18,3 +18,11 @@ ps:
 reset:
 	docker compose down -v
 	docker compose up -d --build
+
+## Sincroniza la documentación al repo Docs y compila el sitio MkDocs.
+docs:
+	node scripts/build-docs.mjs
+
+## Igual que `docs`, pero falla ante cualquier advertencia (enlaces rotos).
+docs-strict:
+	node scripts/build-docs.mjs --strict

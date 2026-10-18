@@ -38,9 +38,10 @@ Un archivo JSON con una lista de bloques:
 | `name` | Nombre del paquete. |
 | `version` | Versión del catálogo. |
 | `displayName` / `description` | Textos localizados (`es`, `en`, …). |
-| `source` | `git` (clonado) o `npm` (próximamente). |
+| `source` | `git` (clonado) o `npm` (paquete publicado). |
 | `url` | URL del repositorio git (o paquete npm). |
 | `subdir` | Subdirectorio del repo que contiene el bloque (monorepos). |
+| `sha256` | (Opcional) SHA-256 del `block.json` para verificar integridad al instalar. |
 
 ## Dónde se sirve el índice
 

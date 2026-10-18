@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
@@ -21,6 +22,16 @@ import { registerBlockEvent } from '../modules/email/events';
 import type { RegistryBlockEntry } from './catalog';
 
 const execFileAsync = promisify(execFile);
+
+async function run(cmd: string, args: string[]): Promise<void> {
+  const resolved = process.platform === 'win32' && cmd === 'npm' ? 'npm.cmd' : cmd;
+  try {
+    await execFileAsync(resolved, args, { windowsHide: true });
+  } catch (err) {
+    const e = err as { stderr?: string; message?: string };
+    throw new Error(`${cmd} ${args.join(' ')}: ${e.stderr ?? e.message}`);
+  }
+}
 
 const asJson = (v: unknown): Prisma.InputJsonValue => v as unknown as Prisma.InputJsonValue;
 
@@ -235,32 +246,44 @@ export async function uninstallBlock(app: FastifyInstance, blockId: string) {
  * El id final se toma del `block.json` (fuente de verdad).
  */
 export async function installRemoteBlock(app: FastifyInstance, entry: RegistryBlockEntry) {
-  if (entry.source === 'npm') {
-    throw new BadRequestError('Instalación desde npm aún no disponible; usá source "git"');
-  }
-  if (!/^(https?:\/\/|git@)/.test(entry.url)) {
-    throw new BadRequestError('URL de bloque inválida');
-  }
-
   const tmp = path.join(blocksDir(), `.tmp-${entry.id}-${Date.now()}`);
+  let src: string;
+
   try {
-    await execFileAsync('git', ['clone', '--depth', '1', entry.url, tmp], { windowsHide: true });
+    if (entry.source === 'npm') {
+      fs.mkdirSync(tmp, { recursive: true });
+      const spec = entry.version && entry.version !== 'latest' ? `${entry.url}@${entry.version}` : entry.url;
+      await run('npm', ['pack', spec, '--pack-destination', tmp]);
+      const tgz = fs.readdirSync(tmp).find((f) => f.endsWith('.tgz'));
+      if (!tgz) throw new Error('npm pack no generó un tarball');
+      const extract = path.join(tmp, 'pkg');
+      fs.mkdirSync(extract, { recursive: true });
+      await run('tar', ['-xzf', path.join(tmp, tgz), '-C', extract]);
+      src = path.join(extract, 'package');
+    } else {
+      if (!/^(https?:\/\/|git@)/.test(entry.url)) throw new Error('URL de bloque inválida');
+      await run('git', ['clone', '--depth', '1', entry.url, tmp]);
+      src = entry.subdir ? path.join(tmp, entry.subdir) : tmp;
+    }
+
+    if (!fs.existsSync(path.join(src, BLOCK_MANIFEST_FILENAME))) {
+      throw new Error('El paquete no contiene un block.json');
+    }
   } catch (err) {
-    const e = err as { stderr?: string; message?: string };
     fs.rmSync(tmp, { recursive: true, force: true });
-    throw new BadRequestError(`No se pudo descargar el bloque: ${e.stderr ?? e.message}`);
+    throw new BadRequestError(`No se pudo descargar el bloque: ${(err as Error).message}`);
   }
 
-  const src = entry.subdir ? path.join(tmp, entry.subdir) : tmp;
-  if (!fs.existsSync(path.join(src, BLOCK_MANIFEST_FILENAME))) {
-    fs.rmSync(tmp, { recursive: true, force: true });
-    throw new BadRequestError('El repositorio no contiene un block.json');
+  const manifestRaw = fs.readFileSync(path.join(src, BLOCK_MANIFEST_FILENAME), 'utf8');
+  if (entry.sha256) {
+    const digest = createHash('sha256').update(manifestRaw).digest('hex');
+    if (digest !== entry.sha256) {
+      fs.rmSync(tmp, { recursive: true, force: true });
+      throw new BadRequestError('Verificación de integridad fallida (sha256)');
+    }
   }
 
-  const manifest = parseBlockManifest(
-    JSON.parse(fs.readFileSync(path.join(src, BLOCK_MANIFEST_FILENAME), 'utf8')),
-  );
-
+  const manifest = parseBlockManifest(JSON.parse(manifestRaw));
   const dir = path.join(blocksDir(), manifest.id);
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(dir), { recursive: true });

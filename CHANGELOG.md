@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.18.0] - 2026-10-18
+
+### Añadido
+
+- **Instalación de bloques desde npm** (`npm pack` + extracción) además de git.
+- **Firma/verificación de bloques**: campo `sha256` del `block.json` en el índice
+  para verificar integridad al instalar.
+- **`make docs` / `make docs-strict`** (script `scripts/build-docs.mjs`): sync + `mkdocs build`.
+- **GitHub Action de Docs con `mkdocs build --strict`** (falla ante enlaces rotos).
+
 ## [0.17.0] - 2026-10-18
 
 ### Añadido
