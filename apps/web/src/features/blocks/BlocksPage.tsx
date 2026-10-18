@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { BlockManifest } from '@webs/plugin-sdk';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +6,6 @@ import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
-import { SchemaForm } from '../../components/ui/SchemaForm';
 
 interface InstalledBlock {
   id: string;
@@ -134,14 +133,6 @@ function InstalledBlockRow({
   onUninstall: (id: string) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState<Record<string, unknown>>(block.config);
-  const qc = useQueryClient();
-
-  const save = useMutation({
-    mutationFn: (v: Record<string, unknown>) => api.put(`/api/v1/blocks/${block.blockId}/settings`, v),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['blocks'] }),
-  });
 
   return (
     <div style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)' }}>
@@ -155,9 +146,9 @@ function InstalledBlockRow({
         </div>
         <div className="row">
           {block.manifest.settings && (
-            <Button variant="secondary" onClick={() => setOpen((o) => !o)}>
-              {t('common.edit')}
-            </Button>
+            <Link to={`/blocks/${block.blockId}`} className="btn secondary">
+              Configurar
+            </Link>
           )}
           <Button variant="secondary" onClick={() => onToggle({ id: block.blockId, enabled: !block.enabled })}>
             {block.enabled ? t('common.disabled') : t('common.enabled')}
@@ -167,17 +158,6 @@ function InstalledBlockRow({
           </Button>
         </div>
       </div>
-
-      {open && block.manifest.settings && (
-        <div style={{ marginTop: 'var(--ws-space-4)' }}>
-          <SchemaForm schema={block.manifest.settings} value={value} onChange={setValue} />
-          <div className="row" style={{ justifyContent: 'flex-end' }}>
-            <Button onClick={() => save.mutate(value)} disabled={save.isPending}>
-              {t('common.save')}
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

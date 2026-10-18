@@ -1,0 +1,19 @@
+{
+  "id": "market",
+  "name": "Mercado / E-commerce",
+  "description": "Tienda online: catálogo, carrito y pagos (Mercado Pago).",
+  "blocks": [
+    { "id": "example", "config": { "greeting": "Bienvenido a la tienda" } },
+    { "id": "mercadopago", "config": { "environment": "sandbox" } }
+  ],
+  "settings": {
+    "site": { "name": "Mi Tienda", "tagline": "Comprá fácil y seguro" },
+    "appearance": { "primaryColor": "#2563eb", "defaultTheme": "light" }
+  },
+  "menu": [
+    { "label": "Inicio", "path": "/", "order": 0 },
+    { "label": "Catálogo", "path": "/catalogo", "order": 1 },
+    { "label": "Carrito", "path": "/carrito", "order": 2 },
+    { "label": "Pago", "path": "/pago", "order": 3 }
+  ]
+}

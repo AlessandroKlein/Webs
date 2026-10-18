@@ -17,6 +17,8 @@ import { DashboardPage } from './features/dashboard/DashboardPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { AppearancePage } from './features/appearance/AppearancePage';
 import { BlocksPage } from './features/blocks/BlocksPage';
+import { BlockConfigPage } from './features/blocks/BlockConfigPage';
+import { TemplatesPage } from './features/templates/TemplatesPage';
 import { UsersPage } from './features/users/UsersPage';
 import { RolesPage } from './features/roles/RolesPage';
 import { ContentPage } from './features/content/ContentPage';
@@ -119,6 +121,8 @@ function MainApp() {
           <Route path="content" element={<ContentPage />} />
           <Route path="email" element={<EmailPage />} />
           <Route path="blocks" element={<BlocksPage />} />
+          <Route path="blocks/:blockId" element={<BlockConfigPage />} />
+          <Route path="templates" element={<TemplatesPage />} />
           <Route path="users" element={<UsersPage />} />
           <Route path="roles" element={<RolesPage />} />
           <Route path="settings" element={<SettingsPage />} />

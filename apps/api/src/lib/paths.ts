@@ -20,3 +20,8 @@ export function dataDir(): string {
 export function blocksDir(configured?: string): string {
   return path.resolve(appDir(), configured ?? '../../blocks');
 }
+
+/** Directorio de plantillas (presets) de sitios. */
+export function templatesDir(configured?: string): string {
+  return path.resolve(appDir(), configured ?? '../../templates');
+}

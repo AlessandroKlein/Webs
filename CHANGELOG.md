@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.19.0] - 2026-10-18
+
+### Añadido
+
+- **Plantillas (templates)**: `templates/*.json` (gimnasio, mercado) que instalan y
+  activan bloques, aplican settings y crean el menú (`GET /templates`,
+  `POST /templates/:id/apply`). Página "Plantillas" en el admin.
+- **Página de configuración por bloque**: ruta propia `/blocks/:id` en el admin.
+
 ## [0.18.0] - 2026-10-18
 
 ### Añadido

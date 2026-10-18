@@ -1,0 +1,17 @@
+{
+  "id": "gym",
+  "name": "Gimnasio",
+  "description": "Sitio para gimnasios: clases, horarios, planes y membresías.",
+  "blocks": [
+    { "id": "example", "config": { "greeting": "Bienvenido a tu gimnasio" } }
+  ],
+  "settings": {
+    "site": { "name": "Mi Gimnasio", "tagline": "Entrená sin límites" },
+    "appearance": { "primaryColor": "#16a34a", "defaultTheme": "light" }
+  },
+  "menu": [
+    { "label": "Inicio", "path": "/", "order": 0 },
+    { "label": "Clases", "path": "/clases", "order": 1 },
+    { "label": "Planes", "path": "/planes", "order": 2 }
+  ]
+}
