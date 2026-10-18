@@ -54,6 +54,8 @@ export interface RegistryBlockEntry {
   publicKey?: string;
   /** Firma Ed25519 (base64) del `block.json` hecha por el creador. */
   signature?: string;
+  /** Si el bloque está verificado por un autor de confianza. */
+  verified?: boolean;
 }
 
 export interface CatalogItem {
@@ -69,6 +71,7 @@ export interface CatalogItem {
   downloadUrl?: string;
   source: BlockSource;
   installed: boolean;
+  verified?: boolean;
 }
 
 let cachedIndex: RegistryBlockEntry[] | null = null;
@@ -147,6 +150,7 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
       downloadUrl: b.downloadUrl,
       source: b.source,
       installed: false,
+      verified: b.verified,
     }));
 
   const result = { local, remote };

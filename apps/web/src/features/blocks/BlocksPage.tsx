@@ -35,6 +35,7 @@ interface CatalogItem {
   downloadUrl?: string;
   source: 'local' | 'git' | 'npm';
   installed: boolean;
+  verified?: boolean;
 }
 
 interface CatalogResponse {
@@ -110,6 +111,9 @@ export function BlocksPage() {
                 <span className="muted"> v{b.version}</span>
                 {b.author && <span className="muted"> · {b.author}</span>}
                 <span className="badge" style={{ marginLeft: 8 }}>{b.source}</span>
+                {b.verified && (
+                  <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-success)', color: '#fff' }}>✔ verificado</span>
+                )}
                 {b.icon && (
                   <img src={b.icon} alt="" style={{ width: 28, height: 28, borderRadius: 6, marginLeft: 8, verticalAlign: 'middle' }} />
                 )}

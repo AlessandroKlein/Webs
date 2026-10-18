@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
+import Quill from 'quill';
+import 'quill/dist/quill.snow.css';
 
 /**
- * Editor de texto enriquecido básico (contentEditable) que produce HTML.
- * Para producción se puede sustituir por TipTap/Quill; aquí se usa una solución
- * sin dependencias para la base.
+ * Editor WYSIWYG basado en Quill (dependencia descargada/bundled, sin CDN).
+ * Produce HTML; se usa en plantillas de correo y contenido enriquecido.
  */
 export function RichTextEditor({
   value,
@@ -12,60 +13,32 @@ export function RichTextEditor({
   value: string;
   onChange: (html: string) => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (ref.current && ref.current.innerHTML !== value) {
-      ref.current.innerHTML = value;
-    }
-  }, [value]);
+    if (!containerRef.current) return;
+    const editor = new Quill(containerRef.current, {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ header: [2, 3, false] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['link', 'blockquote'],
+          ['clean'],
+        ],
+      },
+    });
+    // Valor inicial (después el editor es la fuente de verdad vía onChange).
+    if (value) editor.root.innerHTML = value;
+    editor.on('text-change', () => onChange(editor.root.innerHTML));
 
-  const exec = (command: string, arg?: string) => {
-    document.execCommand(command, false, arg);
-    ref.current?.focus();
-    onChange(ref.current?.innerHTML ?? '');
-  };
+    return () => {
+      editor.off('text-change');
+      containerRef.current!.innerHTML = '';
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return (
-    <div>
-      <div className="row" style={{ gap: 4, marginBottom: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
-        <button type="button" className="btn ghost" onClick={() => exec('bold')} title="Negrita">
-          <strong>B</strong>
-        </button>
-        <button type="button" className="btn ghost" onClick={() => exec('italic')} title="Cursiva">
-          <em>I</em>
-        </button>
-        <button type="button" className="btn ghost" onClick={() => exec('underline')} title="Subrayado">
-          <u>U</u>
-        </button>
-        <button type="button" className="btn ghost" onClick={() => exec('insertUnorderedList')}>
-          • Lista
-        </button>
-        <button type="button" className="btn ghost" onClick={() => exec('insertOrderedList')}>
-          1. Lista
-        </button>
-        <button type="button" className="btn ghost" onClick={() => exec('formatBlock', 'H2')}>
-          Título
-        </button>
-        <button
-          type="button"
-          className="btn ghost"
-          onClick={() => {
-            const url = window.prompt('URL del enlace');
-            if (url) exec('createLink', url);
-          }}
-        >
-          Enlace
-        </button>
-      </div>
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
-        className="input"
-        style={{ minHeight: 220, overflowY: 'auto', whiteSpace: 'normal' }}
-      />
-    </div>
-  );
+  return <div ref={containerRef} className="wysiwyg" />;
 }

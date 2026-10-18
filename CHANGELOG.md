@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.30.0] - 2026-10-18
+
+### Añadido
+
+- **Editor WYSIWYG (Quill)**: editor enriquecido real (negrita, cursiva, listas,
+  títulos, enlaces) descargado/bundled, reemplaza el contentEditable básico en
+  plantillas de correo.
+- **Badges de autor de confianza** en el marketplace: campo `verified` en el índice
+  y badge "✔ verificado" en la UI.
+
 ## [0.29.0] - 2026-10-18
 
 ### Añadido

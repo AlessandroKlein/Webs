@@ -167,3 +167,26 @@ textarea.input {
   color: var(--ws-text-muted);
   font-size: var(--ws-font-size-sm);
 }
+
+/* Editor WYSIWYG (Quill, tema snow) adaptado a los tokens */
+.wysiwyg .ql-toolbar {
+  border: 1px solid var(--ws-border);
+  border-radius: var(--ws-radius-md) var(--ws-radius-md) 0 0;
+  background: var(--ws-surface-2);
+}
+.wysiwyg .ql-container {
+  border: 1px solid var(--ws-border);
+  border-top: 0;
+  border-radius: 0 0 var(--ws-radius-md) var(--ws-radius-md);
+  background: var(--ws-surface);
+  color: var(--ws-text);
+  min-height: 220px;
+  font-family: var(--ws-font-sans);
+}
+.wysiwyg .ql-editor { min-height: 200px; }
+.wysiwyg .ql-snow .ql-stroke { stroke: var(--ws-text-muted); }
+.wysiwyg .ql-snow .ql-fill { fill: var(--ws-text-muted); }
+.wysiwyg .ql-snow.ql-toolbar button:hover,
+.wysiwyg .ql-snow.ql-toolbar button.ql-active { color: var(--ws-primary); }
+.wysiwyg .ql-snow.ql-toolbar button:hover .ql-stroke,
+.wysiwyg .ql-snow.ql-toolbar button.ql-active .ql-stroke { stroke: var(--ws-primary); }
