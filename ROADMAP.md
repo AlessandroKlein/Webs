@@ -33,6 +33,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | Plantillas (template.json + selector + aplicar) | ✅ | 0.19.0 |
 | Página de configuración por bloque (admin) | ✅ | 0.19.0 |
 | Bloque Mercado Pago de referencia (seguridad) | ✅ | 0.20.0 |
+| Arquitectura de pagos + bloques de pasarela (MP, MODO, Payway, Stripe, PayPal, EBANX, POS) | ✅ | 0.21.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
