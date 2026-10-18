@@ -11,6 +11,10 @@ export function getNotificationProvider(id: string): NotificationProviderAdapter
   return providers.get(id);
 }
 
+export function getFirstNotificationProvider(): NotificationProviderAdapter | undefined {
+  return providers.values().next().value;
+}
+
 export function listNotificationProviders(): Array<{ id: string; displayName: string; channels: string[] }> {
   return [...providers.values()].map((p) => ({ id: p.id, displayName: p.displayName, channels: p.channels }));
 }

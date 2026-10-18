@@ -31,6 +31,7 @@ export function AccountPage() {
         </p>
       </Card>
       <TwoFactorCard enabled={data?.twoFactorEnabled ?? false} onChanged={() => qc.invalidateQueries({ queryKey: ['me'] })} />
+      <SmsTwoFactorCard />
       <PasskeysCard />
     </div>
   );
@@ -141,13 +142,85 @@ function TwoFactorCard({ enabled, onChanged }: { enabled: boolean; onChanged: ()
   );
 }
 
+function SmsTwoFactorCard() {
+  const [phone, setPhone] = useState('');
+  const [code, setCode] = useState('');
+  const [step, setStep] = useState<'idle' | 'code'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const setup = async () => {
+    setError(null);
+    setMsg(null);
+    try {
+      await api.post('/api/v1/auth/2fa/sms/setup', { phone });
+      setStep('code');
+      setMsg('Código enviado por SMS');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+    }
+  };
+  const verify = async () => {
+    setError(null);
+    try {
+      await api.post('/api/v1/auth/2fa/sms/verify', { phone, code });
+      setStep('idle');
+      setPhone('');
+      setCode('');
+      setMsg('2FA por SMS activado');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+    }
+  };
+  const disable = async () => {
+    setError(null);
+    try {
+      await api.post('/api/v1/auth/2fa/sms/disable');
+      setMsg('2FA por SMS desactivado');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error');
+    }
+  };
+
+  return (
+    <Card>
+      <h3>2FA por SMS</h3>
+      <p className="muted">Recibí un código por SMS (requiere el bloque Twilio configurado).</p>
+      {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
+      {msg && <p className="muted">{msg}</p>}
+
+      {step === 'idle' && (
+        <div className="stack">
+          <TextField label="Teléfono (ej. +549…)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <div className="row">
+            <Button onClick={setup} disabled={!phone}>
+              Enviar código
+            </Button>
+            <Button variant="ghost" onClick={disable}>
+              Desactivar
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 'code' && (
+        <div className="stack">
+          <TextField label="Código SMS" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
+          <Button onClick={verify} disabled={code.length < 6}>
+            Activar
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 interface PasskeyRow {
   id: string;
   deviceName: string | null;
   createdAt: string;
   lastUsedAt: string | null;
 }
-
 function PasskeysCard() {
   const qc = useQueryClient();
   const { data } = useQuery({

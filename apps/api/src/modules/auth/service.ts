@@ -11,6 +11,7 @@ import {
 import type { AccessTokenPayload } from '../../types/auth';
 import { emitEvent } from '../email/events';
 import { verifyTwoFactorCode } from './two-factor';
+import { sendSmsOtp, verifySmsOtp } from './sms-otp';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15; // 15 minutos
 export const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
@@ -55,7 +56,7 @@ export async function createSession(
   return token;
 }
 
-export type LoginResult = UserProfile | { twoFactorRequired: true } | { twoFactorSetupRequired: true; setupToken: string };
+export type LoginResult = UserProfile | { twoFactorRequired: true } | { twoFactorSetupRequired: true; setupToken: string } | { smsRequired: true };
 
 const MAX_FAILED_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
@@ -88,6 +89,7 @@ export async function login(
   email: string,
   password: string,
   totp?: string,
+  smsCode?: string,
 ): Promise<LoginResult> {
   const user = await fastify.prisma.user.findUnique({ where: { email } });
   if (!user || !user.active) {
@@ -128,6 +130,13 @@ export async function login(
     if (!totp) return { twoFactorRequired: true };
     const ok = await verifyTwoFactorCode(fastify, user.id, totp);
     if (!ok) throw new UnauthorizedError('Código de verificación inválido');
+  } else if (user.twoFactorSmsEnabled && user.twoFactorPhone) {
+    if (!smsCode) {
+      await sendSmsOtp(fastify, user.id, user.twoFactorPhone, 'sms_login');
+      return { smsRequired: true };
+    }
+    const ok = await verifySmsOtp(fastify, user.id, smsCode, 'sms_login');
+    if (!ok) throw new UnauthorizedError('Código SMS inválido');
   } else if (await shouldRequireTwoFactor(fastify, user.id)) {
     const setupToken = fastify.jwt.sign({ sub: user.id, type: 'setup_2fa' }, { expiresIn: '15m' });
     return { twoFactorSetupRequired: true, setupToken };

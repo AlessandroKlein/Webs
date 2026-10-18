@@ -14,7 +14,7 @@ interface AuthState {
   user: AuthUser | null;
   permissions: string[];
   status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
-  login: (email: string, password: string, totp?: string, rememberMe?: boolean) => Promise<void>;
+  login: (email: string, password: string, totp?: string, rememberMe?: boolean, smsCode?: string) => Promise<void>;
   finalizeAuth: (accessToken: string, user: AuthUser) => Promise<void>;
   logout: () => Promise<void>;
   bootstrap: () => Promise<void>;
@@ -26,12 +26,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   permissions: [],
   status: 'idle',
 
-  login: async (email, password, totp, rememberMe) => {
+  login: async (email, password, totp, rememberMe, smsCode) => {
     set({ status: 'loading' });
     const data = await api.post<{ accessToken: string; user: AuthUser }>('/api/v1/auth/login', {
       email,
       password,
       ...(totp ? { totp } : {}),
+      ...(smsCode ? { smsCode } : {}),
       ...(rememberMe ? { rememberMe: true } : {}),
     });
     await get().finalizeAuth(data.accessToken, data.user);

@@ -18,8 +18,10 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [totp, setTotp] = useState('');
+  const [smsCode, setSmsCode] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [twoFactorRequired, setTwoFactorRequired] = useState(false);
+  const [smsRequired, setSmsRequired] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
@@ -52,12 +54,15 @@ export function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await login(email, password, totp || undefined, rememberMe);
+      await login(email, password, totp || undefined, rememberMe, smsCode || undefined);
       navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_REQUIRED') {
         setTwoFactorRequired(true);
         setError('Ingresá el código de tu aplicación de autenticación');
+      } else if (err instanceof ApiClientError && err.code === 'SMS_REQUIRED') {
+        setSmsRequired(true);
+        setError('Ingresá el código SMS enviado a tu teléfono');
       } else if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_SETUP_REQUIRED') {
         const token = err.raw?.setupToken;
         if (typeof token === 'string') {
@@ -103,6 +108,17 @@ export function LoginPage() {
             label="Código de verificación (2FA)"
             value={totp}
             onChange={(e) => setTotp(e.target.value)}
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            required
+          />
+        )}
+
+        {smsRequired && (
+          <TextField
+            label="Código SMS"
+            value={smsCode}
+            onChange={(e) => setSmsCode(e.target.value)}
             autoComplete="one-time-code"
             inputMode="numeric"
             required

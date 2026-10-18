@@ -5,6 +5,7 @@ export const loginSchema = {
     email: { type: 'string', format: 'email' },
     password: { type: 'string', minLength: 8 },
     totp: { type: 'string' },
+    smsCode: { type: 'string' },
     rememberMe: { type: 'boolean' },
   },
 } as const;
@@ -23,6 +24,7 @@ export interface LoginBody {
   email: string;
   password: string;
   totp?: string;
+  smsCode?: string;
   rememberMe?: boolean;
 }
 

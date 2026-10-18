@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.28.0] - 2026-10-18
+
+### Añadido
+
+- **2FA por SMS (OTP)**: envío de código vía el proveedor de notificaciones
+  (Twilio), verificación y activación/desactivación. Integrado en el login
+  (`smsCode`) y en "Mi cuenta". Nueva tabla `OtpCode`.
+- Fix: el confirm de 2FA TOTP ahora devuelve los códigos de respaldo.
+
 ## [0.27.0] - 2026-10-18
 
 ### Añadido

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { REFRESH_TOKEN_COOKIE } from '@webs/core';
+import { REFRESH_TOKEN_COOKIE, UnauthorizedError } from '@webs/core';
 import { findUserWithPermissions, toPublicUser } from '../../lib/user';
 import { audit } from '../../lib/audit';
 import { ipLimiter } from '../../lib/rate-limiter';
@@ -20,6 +20,7 @@ import {
 } from './service';
 import { loginSchema, registerSchema, type LoginBody, type RegisterBody } from './schema';
 import { confirmTwoFactor, disableTwoFactor, setupTwoFactor } from './two-factor';
+import { sendSmsOtp, verifySmsOtp } from './sms-otp';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   const setRefreshCookie = (
@@ -46,12 +47,18 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       preHandler: [ipLimiter(fastify.redis, 10, 15 * 60)],
     },
     async (request, reply) => {
-      const { email, password, totp, rememberMe } = request.body as LoginBody;
-      const result = await login(fastify, email, password, totp);
+      const { email, password, totp, smsCode, rememberMe } = request.body as LoginBody;
+      const result = await login(fastify, email, password, totp, smsCode);
 
       if ('twoFactorRequired' in result) {
         return reply.status(401).send({
           error: { code: 'TWO_FACTOR_REQUIRED', message: 'Se requiere código de verificación (2FA)' },
+        });
+      }
+
+      if ('smsRequired' in result) {
+        return reply.status(401).send({
+          error: { code: 'SMS_REQUIRED', message: 'Se envió un código SMS a tu teléfono' },
         });
       }
 
@@ -199,8 +206,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
     async (request) => {
       const { code } = request.body as { code: string };
       if (!code) return fastify.httpErrors.badRequest('Falta el código');
-      await confirmTwoFactor(fastify, request.user.sub, code);
-      return { ok: true };
+      return confirmTwoFactor(fastify, request.user.sub, code);
     },
   );
 
@@ -211,6 +217,57 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       const { code } = request.body as { code: string };
       if (!code) return fastify.httpErrors.badRequest('Falta el código');
       await disableTwoFactor(fastify, request.user.sub, code);
+      return { ok: true };
+    },
+  );
+
+  // -------- 2FA por SMS (OTP) --------
+
+  fastify.post(
+    '/auth/2fa/sms/setup',
+    {
+      schema: {
+        tags: ['auth'],
+        body: { type: 'object', required: ['phone'], properties: { phone: { type: 'string' } } },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    async (request) => {
+      const { phone } = request.body as { phone: string };
+      await sendSmsOtp(fastify, request.user.sub, phone, 'sms_setup');
+      return { ok: true };
+    },
+  );
+
+  fastify.post(
+    '/auth/2fa/sms/verify',
+    {
+      schema: {
+        tags: ['auth'],
+        body: { type: 'object', required: ['phone', 'code'], properties: { phone: { type: 'string' }, code: { type: 'string' } } },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    async (request) => {
+      const { phone, code } = request.body as { phone: string; code: string };
+      const ok = await verifySmsOtp(fastify, request.user.sub, code, 'sms_setup');
+      if (!ok) throw new UnauthorizedError('Código SMS inválido');
+      await fastify.prisma.user.update({
+        where: { id: request.user.sub },
+        data: { twoFactorPhone: phone, twoFactorSmsEnabled: true },
+      });
+      return { ok: true };
+    },
+  );
+
+  fastify.post(
+    '/auth/2fa/sms/disable',
+    { schema: { tags: ['auth'] }, preHandler: [fastify.authenticate] },
+    async (request) => {
+      await fastify.prisma.user.update({
+        where: { id: request.user.sub },
+        data: { twoFactorSmsEnabled: false, twoFactorPhone: null },
+      });
       return { ok: true };
     },
   );

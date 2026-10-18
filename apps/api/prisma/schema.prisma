@@ -26,6 +26,8 @@ model User {
   twoFactorSecret String?
   twoFactorEnabled Boolean  @default(false)
   twoFactorBackupCodes Json?
+  twoFactorPhone   String?
+  twoFactorSmsEnabled Boolean @default(false)
   failedLoginAttempts Int @default(0)
   lockedUntil     DateTime?
   createdAt       DateTime  @default(now())
@@ -36,6 +38,7 @@ model User {
   apiTokens  ApiToken[]
   passkeys   Passkey[]
   payments   Payment[]
+  otpCodes   OtpCode[]
   auditLogs  AuditLog[]
   content    Content[]   @relation("ContentAuthor")
   settings   Setting[]   @relation("SettingEditor")
@@ -135,6 +138,21 @@ model Passkey {
 
   @@index([userId])
   @@map("passkeys")
+}
+
+model OtpCode {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose    String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("otp_codes")
 }
 
 // ---------------------------------------------------------------------------
