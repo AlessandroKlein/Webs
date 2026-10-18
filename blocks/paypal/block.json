@@ -1,0 +1,27 @@
+{
+  "name": "@webs/block-paypal",
+  "id": "paypal",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "PayPal", "es": "PayPal" },
+  "description": { "en": "Payments via PayPal.", "es": "Pagos con PayPal." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["payment"],
+  "translations": { "es": { "pay": "Pagar con PayPal" }, "en": { "pay": "Pay with PayPal" } },
+  "settings": {
+    "type": "object",
+    "title": "Configuración de PayPal",
+    "properties": {
+      "clientId": { "type": "string", "title": "Client ID" },
+      "clientSecret": { "type": "string", "title": "Client Secret", "x-ui": { "widget": "password", "secret": true } },
+      "webhookId": { "type": "string", "title": "Webhook ID" },
+      "webhookSecret": { "type": "string", "title": "Secreto del webhook", "x-ui": { "widget": "password", "secret": true } },
+      "environment": { "type": "string", "title": "Entorno", "enum": ["sandbox", "live"], "default": "sandbox" },
+      "primaryColor": { "type": "string", "title": "Color del botón", "x-ui": { "widget": "color" }, "default": "#ffc439" }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@webs/block-ebanx",
+  "id": "ebanx",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "EBANX", "es": "EBANX" },
+  "description": { "en": "Payments via EBANX (Latam).", "es": "Pagos con EBANX (Latam)." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["payment"],
+  "translations": { "es": { "pay": "Pagar con EBANX" }, "en": { "pay": "Pay with EBANX" } },
+  "settings": {
+    "type": "object",
+    "title": "Configuración de EBANX",
+    "properties": {
+      "integrationKey": { "type": "string", "title": "Integration Key", "x-ui": { "widget": "password", "secret": true } },
+      "webhookSecret": { "type": "string", "title": "Secreto del webhook", "x-ui": { "widget": "password", "secret": true } },
+      "environment": { "type": "string", "title": "Entorno", "enum": ["sandbox", "production"], "default": "sandbox" },
+      "primaryColor": { "type": "string", "title": "Color del botón", "x-ui": { "widget": "color" }, "default": "#004c97" }
+    }
+  }
+}

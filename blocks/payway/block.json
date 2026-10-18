@@ -1,0 +1,26 @@
+{
+  "name": "@webs/block-payway",
+  "id": "payway",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Payway / Decidir", "es": "Payway / Decidir" },
+  "description": { "en": "Payments via Payway (Decidir 2.0).", "es": "Pagos con Payway (Decidir 2.0)." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["payment"],
+  "translations": { "es": { "pay": "Pagar con Payway" }, "en": { "pay": "Pay with Payway" } },
+  "settings": {
+    "type": "object",
+    "title": "Configuración de Payway",
+    "properties": {
+      "siteId": { "type": "string", "title": "Site ID" },
+      "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password", "secret": true } },
+      "webhookSecret": { "type": "string", "title": "Secreto del webhook", "x-ui": { "widget": "password", "secret": true } },
+      "environment": { "type": "string", "title": "Entorno", "enum": ["sandbox", "production"], "default": "sandbox" },
+      "primaryColor": { "type": "string", "title": "Color del botón", "x-ui": { "widget": "color" }, "default": "#004b93" }
+    }
+  }
+}

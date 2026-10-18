@@ -35,6 +35,10 @@ export interface BlockFastify {
   events?: {
     emit: (event: string, payload: Record<string, unknown>) => void | Promise<void>;
   };
+  /** Registro central de proveedores de pago (bloques de pasarela). */
+  payments?: {
+    register: (adapter: import('./payments').PaymentProviderAdapter) => void;
+  };
 }
 
 /**

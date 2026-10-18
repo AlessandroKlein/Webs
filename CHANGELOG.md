@@ -3,6 +3,18 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.21.0] - 2026-10-18
+
+### Añadido
+
+- **Arquitectura de pagos** (núcleo en la base): tabla `Payment`, registro de
+  proveedores, `POST /payments/checkout` (validación Zod anti-manipulación de
+  precios), `POST /payments/webhook/:provider` (firma + idempotencia),
+  `POST /payments/:id/mark-paid` (contra entrega) y listado/consulta.
+- **Bloques de pasarela**: Mercado Pago (refactorizado), MODO, Payway/Decidir 2.0,
+  Stripe, PayPal, EBANX y **contra entrega / POS** (mPOS/Point/Payway). Cada uno
+  con su página de configuración y secretos cifrados (`x-ui.secret`).
+
 ## [0.20.0] - 2026-10-18
 
 ### Añadido

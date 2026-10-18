@@ -1,10 +1,16 @@
 {
   "id": "market",
   "name": "Mercado / E-commerce",
-  "description": "Tienda online: catálogo, carrito y pagos (Mercado Pago).",
+  "description": "Tienda online: catálogo, carrito y pagos (Mercado Pago, MODO, Payway, Stripe, PayPal, EBANX, contra entrega/POS).",
   "blocks": [
     { "id": "example", "config": { "greeting": "Bienvenido a la tienda" } },
-    { "id": "mercadopago", "config": { "environment": "sandbox" } }
+    { "id": "mercadopago", "config": { "environment": "sandbox", "checkoutMode": "redirect" } },
+    { "id": "modo", "config": { "environment": "sandbox" } },
+    { "id": "payway", "config": { "environment": "sandbox" } },
+    { "id": "stripe", "config": {} },
+    { "id": "paypal", "config": { "environment": "sandbox" } },
+    { "id": "ebanx", "config": { "environment": "sandbox" } },
+    { "id": "pos", "config": { "mode": "cash" } }
   ],
   "settings": {
     "site": { "name": "Mi Tienda", "tagline": "Comprá fácil y seguro" },

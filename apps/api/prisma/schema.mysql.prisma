@@ -35,6 +35,7 @@ model User {
   sessions   Session[]
   apiTokens  ApiToken[]
   passkeys   Passkey[]
+  payments   Payment[]
   auditLogs  AuditLog[]
   content    Content[]   @relation("ContentAuthor")
   settings   Setting[]   @relation("SettingEditor")
@@ -327,6 +328,33 @@ model EmailClick {
   @@index([messageId])
   @@index([clickedAt])
   @@map("email_clicks")
+}
+
+// ---------------------------------------------------------------------------
+// Pagos
+// ---------------------------------------------------------------------------
+
+model Payment {
+  id                String    @id @default(uuid())
+  provider          String
+  transactionId     String    @unique
+  amount            Int
+  currency          String    @default("ARS")
+  status            String    @default("pending")
+  userId            String?
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  externalReference String?
+  idempotencyKey    String?
+  metadata          Json?
+  errorMessage      String?
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([provider])
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
 }
 
 // ---------------------------------------------------------------------------

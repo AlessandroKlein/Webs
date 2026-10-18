@@ -1,0 +1,27 @@
+{
+  "name": "@webs/block-modo",
+  "id": "modo",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "MODO", "es": "MODO" },
+  "description": { "en": "Payments via MODO (QR).", "es": "Pagos con MODO (QR)." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["payment"],
+  "events": ["mercadopago.payment.created", "mercadopago.payment.approved"],
+  "translations": { "es": { "pay": "Pagar con MODO" }, "en": { "pay": "Pay with MODO" } },
+  "settings": {
+    "type": "object",
+    "title": "Configuración de MODO",
+    "properties": {
+      "clientId": { "type": "string", "title": "Client ID" },
+      "clientSecret": { "type": "string", "title": "Client Secret", "x-ui": { "widget": "password", "secret": true } },
+      "webhookSecret": { "type": "string", "title": "Secreto del webhook", "x-ui": { "widget": "password", "secret": true } },
+      "environment": { "type": "string", "title": "Entorno", "enum": ["sandbox", "production"], "default": "sandbox" },
+      "primaryColor": { "type": "string", "title": "Color del botón", "x-ui": { "widget": "color" }, "default": "#171717" }
+    }
+  }
+}
