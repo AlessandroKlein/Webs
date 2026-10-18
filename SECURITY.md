@@ -1,31 +1,32 @@
-# Security Policy
+# Política de seguridad
 
-## Status of this project
+## Versiones soportadas
 
-This repository is published **for portfolio and reference purposes only**.
+| Versión | Soportada          |
+| ------- | ------------------ |
+| 0.1.x   | :white_check_mark: |
 
-The source code is provided "as is", without warranty of any kind. It is not intended for production use, and no license is granted to copy, modify, distribute, or use this code in any form. See the repository root for licensing details.
+## Reportar una vulnerabilidad
 
-## Reporting a Vulnerability
+**No abras un issue o discusión pública.**
 
-If you notice a security issue in the code, you may report it privately.
+Enviá los detalles de forma privada a: **[aleklein23@gmail.com]**
 
-**Do not open a public issue or discussion.**
+Incluí:
 
-Send details to: **[aleklein23@gmail.com]**
+- Descripción del problema.
+- Pasos para reproducirlo o archivos afectados.
+- Impacto estimado y mitigación sugerida (opcional).
 
-Please include:
-- A description of the issue
-- Steps to reproduce or affected files
-- Any suggested mitigation (optional)
+## Qué esperar
 
-## What to expect
+- Acuse de recibo dentro de los **7 días**.
+- Actualización de estado razonable mientras se investiga.
+- Coordinación de un fix y de la publicación de un aviso cuando corresponda.
 
-- Acknowledgment of your report within **7 days**.
-- No obligation to fix, patch, or respond beyond acknowledgment.
-- No bug bounty, compensation, or formal disclosure process is offered.
-- Reports that relate to code not intended for real-world use may be closed without action.
+## Buenas prácticas de despliegue
 
-## Supported versions
-
-No version of this project is actively maintained or supported. Security updates are not provided.
+- Cambiá los secretos por defecto (`JWT_SECRET`, `JWT_REFRESH_SECRET`) en producción.
+- Usá contraseñas largas y aleatorias para el superadmin.
+- Habilitá HTTPS y ajustá `CORS_ORIGIN` al dominio real.
+- Revisá las cabeceras de seguridad (helmet) y el CSP según tu hosting.

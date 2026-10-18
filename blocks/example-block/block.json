@@ -1,0 +1,36 @@
+{
+  "name": "@webs/block-example",
+  "id": "example",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": {
+    "en": "Example block",
+    "es": "Bloque de ejemplo"
+  },
+  "description": {
+    "en": "Reference block demonstrating the Webs block system.",
+    "es": "Bloque de referencia que demuestra el sistema de bloques de Webs."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": {
+    "type": "object",
+    "title": "Configuración del bloque de ejemplo",
+    "properties": {
+      "greeting": {
+        "type": "string",
+        "title": "Saludo",
+        "default": "¡Hola desde el bloque de ejemplo!"
+      },
+      "showTime": {
+        "type": "boolean",
+        "title": "Mostrar hora",
+        "default": false
+      }
+    }
+  }
+}

@@ -1,0 +1,221 @@
+// Prisma schema — base de datos de la plataforma Webs.
+// Documentación de referencia: https://www.prisma.io/docs/orm/reference/prisma-schema-reference
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identidad, roles y permisos
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String
+  displayName     String?
+  avatarUrl       String?
+  locale          String    @default("es")
+  active          Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  roles      UserRole[]
+  sessions   Session[]
+  auditLogs  AuditLog[]
+  content    Content[]   @relation("ContentAuthor")
+  settings   Setting[]   @relation("SettingEditor")
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  description String?
+  system      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions RolePermission[]
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model Session {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshToken String    @unique
+  userAgent    String?
+  ip           String?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ---------------------------------------------------------------------------
+// Configuración, bloques y colocaciones
+// ---------------------------------------------------------------------------
+
+model Setting {
+  id          String    @id @default(uuid())
+  key         String    @unique
+  value       Json
+  schemaKey   String?
+  updatedById String?
+  updatedBy   User?     @relation("SettingEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("settings")
+}
+
+model BlockInstallation {
+  id          String   @id @default(uuid())
+  blockId     String   @unique
+  name        String
+  version     String
+  enabled     Boolean  @default(true)
+  config      Json     @default("{}")
+  manifest    Json
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("block_installations")
+}
+
+model BlockPlacement {
+  id        String   @id @default(uuid())
+  blockId   String
+  slotId    String
+  order     Int      @default(0)
+  enabled   Boolean  @default(true)
+  config    Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slotId])
+  @@map("block_placements")
+}
+
+// ---------------------------------------------------------------------------
+// Contenido, traducciones, menús y medios
+// ---------------------------------------------------------------------------
+
+model Content {
+  id          String    @id @default(uuid())
+  type        String    @default("page")
+  slug        String
+  title       Json
+  body        Json?
+  status      String    @default("draft")
+  seo         Json?
+  authorId    String?
+  author      User?     @relation("ContentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([type, slug])
+  @@map("content")
+}
+
+model Translation {
+  id        String   @id @default(uuid())
+  locale    String
+  namespace String   @default("translation")
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([locale, namespace, key])
+  @@map("translations")
+}
+
+model Menu {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String
+  items     Json     @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("menus")
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  mimeType  String
+  size      Int
+  url       String
+  alt       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("media")
+}
+
+// ---------------------------------------------------------------------------
+// Auditoría
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  resource   String?
+  resourceId String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

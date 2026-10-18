@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+# API de Webs (Fastify). Contexto de build = raíz del monorepo.
+
+FROM node:22-slim AS base
+RUN corepack enable && corepack prepare pnpm@11.7.0 --activate
+WORKDIR /app
+
+# Dependencias (workspace completo)
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps ./apps
+COPY packages ./packages
+COPY blocks ./blocks
+RUN pnpm install --frozen-lockfile
+
+# Generar cliente Prisma y compilar todo el monorepo (incluidos los bloques)
+RUN pnpm --filter @webs/api exec prisma generate
+RUN pnpm -r build
+
+ENV NODE_ENV=production
+EXPOSE 4000
+
+# Las migraciones y el seed se ejecutan en el arranque (ver docker-compose.yml).
+CMD ["node", "apps/api/dist/index.js"]

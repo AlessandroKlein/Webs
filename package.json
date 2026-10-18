@@ -1,0 +1,30 @@
+{
+  "name": "webs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Webs — plataforma web modular, escalable y multitenant (Node.js + Fastify + React)",
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --stream -r dev",
+    "dev:api": "pnpm --filter @webs/api dev",
+    "dev:web": "pnpm --filter @webs/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "release:prepare": "node scripts/release.mjs"
+  },
+  "devDependencies": {
+    "@webs/config": "workspace:*",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3"
+  }
+}

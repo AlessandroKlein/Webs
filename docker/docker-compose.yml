@@ -1,0 +1,67 @@
+# ---- Base de datos ----
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: webs
+      POSTGRES_PASSWORD: webs
+      POSTGRES_DB: webs
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U webs']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ---- API ----
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATABASE_URL: postgresql://webs:webs@postgres:5432/webs?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: change-me-in-production-please-0123456789
+      JWT_REFRESH_SECRET: change-me-in-production-please-0123456789
+      CORS_ORIGIN: http://localhost:5173
+      BLOCK_DIR: /app/blocks
+    ports:
+      - '4000:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >-
+      sh -c "pnpm --filter @webs/api exec prisma migrate deploy &&
+             pnpm --filter @webs/api exec prisma db seed &&
+             node apps/api/dist/index.js"
+
+  # ---- Frontend (build estático servido por nginx) ----
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    ports:
+      - '5173:80'
+    depends_on:
+      - api
+
+volumes:
+  pgdata: {}

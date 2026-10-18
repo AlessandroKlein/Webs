@@ -1,0 +1,41 @@
+{
+  "name": "@webs/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Frontend de la plataforma Webs (React + Vite): sitio público y panel de administración.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.59.0",
+    "@webs/block-example": "workspace:*",
+    "@webs/core": "workspace:*",
+    "@webs/i18n": "workspace:*",
+    "@webs/plugin-sdk": "workspace:*",
+    "@webs/ui": "workspace:*",
+    "i18next": "^24.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-i18next": "^15.0.0",
+    "react-router-dom": "^7.0.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.3",
+    "@webs/config": "workspace:*",
+    "eslint": "^9.13.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.13",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0"
+  }
+}

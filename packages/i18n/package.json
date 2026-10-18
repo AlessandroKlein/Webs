@@ -1,0 +1,33 @@
+{
+  "name": "@webs/i18n",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Internacionalización de la plataforma Webs: recursos base y fábrica i18next.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "dev": "tsup src/index.ts --format esm --dts --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "i18next": "^24.0.0"
+  },
+  "devDependencies": {
+    "@webs/config": "workspace:*",
+    "eslint": "^9.13.0",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.3.0",
+    "typescript": "^5.6.3"
+  }
+}

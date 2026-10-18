@@ -1,0 +1,75 @@
+/* Estilos base/reset de Webs. Importar una sola vez en el shell de la app. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--ws-font-sans);
+  font-size: var(--ws-font-size-md);
+  line-height: 1.5;
+  color: var(--ws-text);
+  background-color: var(--ws-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0 0 var(--ws-space-3);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+p {
+  margin: 0 0 var(--ws-space-4);
+}
+
+a {
+  color: var(--ws-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+code,
+pre {
+  font-family: var(--ws-font-mono);
+}
+
+::selection {
+  background: var(--ws-primary-soft);
+  color: var(--ws-text);
+}
