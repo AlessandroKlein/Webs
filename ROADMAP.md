@@ -22,6 +22,17 @@ las **plantillas** que los combinan y activan automáticamente.
 | Reportes de campañas (tasas + barras) | ✅ | 0.14.0 |
 | Exportación de destinatarios (CSV) | ✅ | 0.14.0 |
 | Marketplace de bloques (índice + git clone) | ✅ | 0.15.0 |
+| Instalación de bloques desde npm + firma sha256 | ✅ | 0.18.0 |
+| 2FA obligatoria para admins | ✅ | 0.16.0 |
+| Vista admin de API tokens (todos los usuarios) | ✅ | 0.16.0 |
+| Auditoría avanzada (filtros + export CSV) | ✅ | 0.17.0 |
+| Serie temporal de aperturas/clics por día | ✅ | 0.17.0 |
+| Exportar destinatarios JSON/XLSX | ✅ | 0.17.0 |
+| Dashboard con métricas globales | ✅ | 0.17.0 |
+| CI de docs: `make docs` + `mkdocs build --strict` | ✅ | 0.18.0 |
+| Plantillas (template.json + selector + aplicar) | ✅ | 0.19.0 |
+| Página de configuración por bloque (admin) | ✅ | 0.19.0 |
+| Bloque Mercado Pago de referencia (seguridad) | ✅ | 0.20.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
@@ -29,22 +40,20 @@ las **plantillas** que los combinan y activan automáticamente.
 ## 2. Backlog pendiente (priorizado)
 
 ### 2.1 Seguridad e identidad
-- [ ] **2FA obligatoria para roles privilegiados** (super_admin/admin): forzar activación de 2FA o passkey al iniciar sesión (con período de gracia).
-- [ ] **Vista admin de API tokens**: listar/revocar tokens de **todos** los usuarios (reutilizar los permisos `apiToken.read`/`apiToken.write`, hoy sin uso).
-- [ ] **Auditoría avanzada**: filtros por actor/recurso/fecha, búsqueda y exportación CSV/JSON.
+- [ ] 2FA FIDO2 con **gestión de dispositivos** avanzada (revocar por dispositivo, nombres).
+- [ ] Rate limit y desafíos WebAuthn **en Redis** (clúster).
 
 ### 2.2 Email / marketing
-- [ ] **Serie temporal de aperturas/clics por día** (gráfico de evolución).
-- [ ] **Exportar destinatarios en JSON/XLSX** (además de CSV).
-- [ ] **Dashboard con métricas globales** del sitio (visitas, contenido, campañas).
+- [ ] Cola de envío con **BullMQ/Redis** (alto volumen, reintentos).
+- [ ] Editor WYSIWYG profesional (TipTap/Quill) en plantillas de correo.
+- [ ] QR visual para el alta de 2FA.
 
 ### 2.3 Marketplace / bloques
-- [ ] **Instalación desde npm** (además de `git`), con resolución de versiones.
-- [ ] **Registro oficial + firma/verificación** de bloques (checksum, autor de confianza).
+- [ ] Registro oficial **firmado criptográficamente** (Ed25519) además del sha256.
+- [ ] Veredicto/verificación de bloques (badges de autor de confianza).
 
 ### 2.4 Documentación / CI
-- [ ] **Script de validación de docs**: `scripts/build-docs` (sync → `mkdocs build`) y/o target en el `Makefile`.
-- [ ] **GitHub Action del repo Docs** con `mkdocs build --strict` (falla con enlaces rotos).
+- [ ] Releases automáticas con notas generadas (CI/CD).
 
 ### 2.5 Operación (al tener la VPS)
 - [ ] Validar **build de Docker** (compose + Dockerfiles).
@@ -52,29 +61,16 @@ las **plantillas** que los combinan y activan automáticamente.
 
 ---
 
-## 3. Hito: plantillas + bloques configurables
+## 3. Hito completado: plantillas + bloques configurables
 
-> Visión: la base es igual para todos; los usuarios crean su página como deseen
-> eligiendo una **plantilla** (gimnasio, mercado, blog, corporativo…) que
-> **instala y activa automáticamente** un conjunto de bloques. Cada bloque tiene
-> su **propia página de configuración** en el panel.
+- ✅ Plantillas (`templates/gym.json`, `templates/market.json`) que instalan y activan bloques.
+- ✅ Página de configuración por bloque (`/blocks/:id`).
+- ✅ Bloque **Mercado Pago** de referencia (secretos cifrados, webhook firmado, idempotencia).
 
-### 3.1 Plantillas (templates)
-- [ ] Formato `template.json`: `{ id, name, description, blocks[], defaultSettings, menu, theme }`.
-- [ ] **Selector de plantillas** en el asistente de instalación.
-- [ ] Aplicar plantilla = instalar + activar bloques + cargar settings + crear menú + aplicar tema.
-- [ ] Plantillas base: **gimnasio**, **mercado/ecommerce**, **blog**, **corporativo**.
+### Siguientes plantillas/bloques sugeridos
+- [ ] Plantillas: **blog**, **corporativo/landing**, **cursos**.
+- [ ] Bloques: **carrito + stock**, **facturación**, **notificaciones push**, **mapa/contacto**.
 
-### 3.2 Página de configuración por bloque (admin)
-- [ ] Cada bloque con **ruta propia de configuración** en el panel (`/admin/blocks/:id`), además de la vista genérica (ya existe `settings` JSON Schema + `SchemaForm`).
-- [ ] El **nav del admin** se alimenta de los bloques instalados (sección "Bloques" con subpáginas por bloque).
-- [ ] Configuración de **apariencia** por bloque (slots + `clientEntry`) y vista previa.
-
-### 3.3 Caso de referencia: bloque **Mercado Pago**
-- [ ] **Config** (cifrada con `x-ui.secret`/AES-256-GCM): clave pública, clave privada, entorno sandbox/prod, secreto del webhook.
-- [ ] **Apariencia de la página de pago**: colores, textos, logo, checkout embebido vs. redirección (settings de UI).
-- [ ] **Flujo de pago**: token único de pago, idempotencia (clave de idempotencia), validación de firma del webhook (`x-signature`), estados de pago.
-- [ ] **Seguridad**: tokenización (nunca guardar datos de tarjeta → SDK de Mercado Pago), secretos cifrados, webhooks por HTTPS, PCI-DSS (checkout hospedado/SDK), auditoría de cada pago.
 
 ---
 
