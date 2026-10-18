@@ -56,7 +56,8 @@ function BlockRenderer({
 
     const i18n: BlockI18n = {
       locale: i18next.language,
-      t: (key, options) => i18next.t(key, options),
+      // Por defecto resuelve en el namespace del bloque (su blockId).
+      t: (key, options) => i18next.t(key, { ...(options ?? {}), ns: blockId }),
     };
 
     const cleanup = block.mount({

@@ -31,7 +31,21 @@ Los recursos se fusionan así (en ese orden de precedencia):
 
 ## Mismo patrón para módulos/bloques
 
-El mecanismo es extensible a **módulos y bloques**: un bloque puede aportar sus
-propias traducciones (por idioma) y el endpoint las incluirá solo si el idioma
-está habilitado y el bloque está instalado. Así, ni idiomas ni módulos no usados
-añaden peso al cliente.
+Los bloques aportan sus propias traducciones declarándolas en `block.json`
+(campo `translations`: locale → clave → texto). Al instalarse, el backend las
+registra y `/public/i18n` las incluye en un **namespace propio (el id del
+bloque)**, solo si el idioma está habilitado **y** el bloque está instalado. Así,
+ni idiomas ni módulos no usados añaden peso al cliente.
+
+```json
+{
+  "id": "example",
+  "translations": {
+    "es": { "greeting": "¡Hola!" },
+    "en": { "greeting": "Hello!" }
+  }
+}
+```
+
+En el `mount` del bloque, `i18n.t('greeting')` resuelve automáticamente en su
+propio namespace.

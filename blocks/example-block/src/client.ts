@@ -10,8 +10,9 @@ const manifest = manifestJson as unknown as BlockManifest;
  * `mount` puede ser React, Vue o DOM puro: el contrato solo pide recibir el
  * contenedor y devolver (opcionalmente) una función de limpieza.
  */
-export default defineClientBlock(manifest, ({ container, config }) => {
-  const greeting = typeof config.greeting === 'string' ? config.greeting : 'Hola';
+export default defineClientBlock(manifest, ({ container, config, i18n }) => {
+  // La configuración tiene prioridad; si no, se usa la traducción del bloque.
+  const greeting = typeof config.greeting === 'string' ? config.greeting : i18n.t('greeting');
   const showTime = Boolean(config.showTime);
 
   const el = document.createElement('div');

@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.10.0] - 2026-10-18
+
+### Añadido
+
+- **Traducciones por bloque**: los bloques declaran `translations` en `block.json`
+  y se sirven en `/public/i18n` bajo un namespace propio (su id), solo para
+  idiomas habilitados + bloques instalados (cierra "módulos bajo demanda").
+- `i18n.t()` del bloque resuelve por defecto en su namespace.
+
 ## [0.9.0] - 2026-10-18
 
 ### Añadido

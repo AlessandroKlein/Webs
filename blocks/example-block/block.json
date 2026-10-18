@@ -18,6 +18,11 @@
   "apiVersion": "1.0.0",
   "slots": ["content"],
   "events": ["order.created"],
+  "translations": {
+    "es": { "greeting": "¡Hola desde el bloque de ejemplo!" },
+    "en": { "greeting": "Hello from the example block!" },
+    "pt": { "greeting": "Olá do bloco de exemplo!" }
+  },
   "settings": {
     "type": "object",
     "title": "Configuración del bloque de ejemplo",

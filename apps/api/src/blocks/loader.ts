@@ -131,6 +131,10 @@ export async function loadAndActivate(
     registerBlockEvent({ key: eventKey, label: eventKey });
   }
 
+  if (manifest.translations) {
+    blockRegistry.registerTranslations(manifest.id, manifest.translations);
+  }
+
   if (serverBlock.register) {
     await app.register(async (instance) => {
       const ctx = makeContext(instance, serverBlock, config, installation.id);

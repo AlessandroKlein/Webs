@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { baseResources } from '@webs/i18n';
+import { blockRegistry } from '../../blocks/registry';
 
 /**
  * Recursos de traducción bajo demanda: se sirven únicamente los idiomas que el
@@ -56,6 +57,18 @@ export async function buildResources(
     namespace[t.key] = t.value;
     localeResources[ns] = namespace;
     result[t.locale] = localeResources;
+  }
+
+  // Traducciones de los bloques instalados (namespace = id del bloque), solo
+  // para los idiomas habilitados.
+  for (const { blockId, translations } of blockRegistry.getTranslations()) {
+    for (const locale of locales) {
+      const blockLocale = translations[locale];
+      if (!blockLocale) continue;
+      const localeResources = result[locale] ?? {};
+      localeResources[blockId] = { ...(localeResources[blockId] ?? {}), ...blockLocale };
+      result[locale] = localeResources;
+    }
   }
 
   return result;

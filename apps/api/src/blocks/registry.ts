@@ -14,11 +14,13 @@ export interface LoadedBlock {
  *  - `available`: bloques descubiertos (catálogo).
  *  - `loaded`: bloques instalados y activados en el proceso actual.
  *  - `slots`: regiones del sitio donde se pueden colocar bloques.
+ *  - `translations`: traducciones de los bloques instalados (namespace = id).
  */
 class BlockRegistry {
   private available = new Map<string, BlockManifest>();
   private loaded = new Map<string, LoadedBlock>();
   private slots = new Map<string, SlotDefinition>();
+  private translations = new Map<string, Record<string, Record<string, string>>>();
 
   registerAvailable(manifest: BlockManifest): void {
     this.available.set(manifest.id, manifest);
@@ -46,6 +48,14 @@ class BlockRegistry {
 
   getSlots(): SlotDefinition[] {
     return [...this.slots.values()];
+  }
+
+  registerTranslations(blockId: string, translations: Record<string, Record<string, string>>): void {
+    this.translations.set(blockId, translations);
+  }
+
+  getTranslations(): Array<{ blockId: string; translations: Record<string, Record<string, string>> }> {
+    return [...this.translations.entries()].map(([blockId, translations]) => ({ blockId, translations }));
   }
 }
 
