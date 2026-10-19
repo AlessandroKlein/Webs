@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { getCookie, setCookie } from './cookies';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
@@ -23,7 +24,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function readInitialMode(): ThemeMode {
   if (typeof window === 'undefined') return 'system';
-  const stored = window.localStorage.getItem(STORAGE_KEY);
+  const stored = getCookie(STORAGE_KEY);
   if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
   return 'system';
 }
@@ -51,9 +52,7 @@ export function ThemeProvider({
 
   const setMode = useCallback((next: ThemeMode) => {
     setModeState(next);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORAGE_KEY, next);
-    }
+    setCookie(STORAGE_KEY, next, 365);
   }, []);
 
   useEffect(() => {

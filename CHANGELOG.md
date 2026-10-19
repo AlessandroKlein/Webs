@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.35.0] - 2026-10-18
+
+### Añadido
+
+- **Cookies de preferencias**: tema (`webs-theme`) e idioma (`webs-locale`) ahora
+  persisten en cookies (SameSite=Lax + Secure) en lugar de localStorage, con
+  aplicación del tema **antes de pintar** (sin "flash").
+- **Documentación** de la arquitectura de cookies y sesión (sliding/inactividad).
+
 ## [0.34.0] - 2026-10-18
 
 ### Añadido

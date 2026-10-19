@@ -1,6 +1,7 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { DEFAULT_LOCALE } from '@webs/i18n';
+import { getCookie, setCookie } from '@webs/ui';
 
 const LOCALE_KEY = 'webs-locale';
 
@@ -8,7 +9,7 @@ const LOCALE_KEY = 'webs-locale';
 // por el administrador (vía applyRemoteResources), para no descargar peso de
 // idiomas/módulos que no se usan.
 void i18next.use(initReactI18next).init({
-  lng: localStorage.getItem(LOCALE_KEY) ?? DEFAULT_LOCALE,
+  lng: getCookie(LOCALE_KEY) ?? DEFAULT_LOCALE,
   fallbackLng: 'en',
   interpolation: { escapeValue: false },
   returnEmptyString: false,
@@ -28,13 +29,13 @@ export function applyRemoteResources(payload: RemoteI18nPayload): void {
   }
 
   // Si el usuario no eligió idioma manualmente, usa el del sitio.
-  if (!localStorage.getItem(LOCALE_KEY) && payload.defaultLocale) {
+  if (!getCookie(LOCALE_KEY) && payload.defaultLocale) {
     void i18next.changeLanguage(payload.defaultLocale);
   }
 }
 
 export function setLocale(locale: string): Promise<unknown> {
-  localStorage.setItem(LOCALE_KEY, locale);
+  setCookie(LOCALE_KEY, locale, 365);
   return i18next.changeLanguage(locale);
 }
 

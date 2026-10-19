@@ -4,6 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Webs</title>
+    <script>
+      // Aplica el tema guardado en cookie ANTES de pintar (evita "flash" de tema).
+      (function () {
+        try {
+          var m = document.cookie.match(/(?:^|; )webs-theme=([^;]*)/);
+          var mode = m ? decodeURIComponent(m[1]) : 'system';
+          var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
