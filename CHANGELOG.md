@@ -3,6 +3,12 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.14.0] - 2026-10-19
+
+### Añadido
+
+- **Estilos de checkboxes/radios** (accent-color con el token primario + tamaño).
+
 ## [1.13.0] - 2026-10-19
 
 ### Añadido

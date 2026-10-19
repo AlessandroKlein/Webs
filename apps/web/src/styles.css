@@ -180,6 +180,13 @@ textarea.input {
   color: var(--ws-text-muted);
   font-size: var(--ws-font-size-sm);
 }
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--ws-primary);
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
 
 .muted {
   color: var(--ws-text-muted);
