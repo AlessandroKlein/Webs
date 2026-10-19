@@ -28,8 +28,9 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
     token: string,
     ttlMs: number = REFRESH_TOKEN_TTL_MS,
   ) => {
-    const secureCookies =
-      fastify.securitySettings?.secureCookies ?? fastify.config.NODE_ENV === 'production';
+    // Auto-detecta HTTPS por protocolo (trustProxy respeta x-forwarded-proto).
+    // El ajuste `secureCookies` puede forzar `true`/`false` si el admin lo define.
+    const secureCookies = fastify.securitySettings?.secureCookies ?? reply.request.protocol === 'https';
     reply.setCookie(REFRESH_TOKEN_COOKIE, token, {
       httpOnly: true,
       sameSite: 'lax',

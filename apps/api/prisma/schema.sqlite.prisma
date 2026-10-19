@@ -308,6 +308,99 @@ model SocialPost {
   @@map("social_posts")
 }
 
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  plan      String   @default("free")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("organizations")
+}
+
+model Membership {
+  id             String   @id @default(uuid())
+  organizationId String
+  userId         String
+  role           String   @default("member")
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@map("memberships")
+}
+
+model Form {
+  id        String   @id @default(uuid())
+  title     String
+  fields    Json     @default("[]")
+  createdAt DateTime @default(now())
+
+  @@map("forms")
+}
+
+model FormResponse {
+  id        String   @id @default(uuid())
+  formId    String
+  data      Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([formId])
+  @@map("form_responses")
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  userId    String?
+  name      String
+  content   String   @default("")
+  signed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("documents")
+}
+
+model Workflow {
+  id        String   @id @default(uuid())
+  name      String
+  trigger   String
+  steps     Json     @default("[]")
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("workflows")
+}
+
+model Affiliate {
+  id         String   @id @default(uuid())
+  userId     String
+  code       String   @unique
+  commission Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@map("affiliates")
+}
+
+model Referral {
+  id          String   @id @default(uuid())
+  affiliateId String
+  email       String?
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+
+  @@map("referrals")
+}
+
+model SocialAccount {
+  id         String   @id @default(uuid())
+  userId     String?
+  provider   String
+  providerId String
+  createdAt  DateTime @default(now())
+
+  @@unique([provider, providerId])
+  @@map("social_accounts")
+}
+
 // ---------------------------------------------------------------------------
 // Configuración, bloques y colocaciones
 // ---------------------------------------------------------------------------

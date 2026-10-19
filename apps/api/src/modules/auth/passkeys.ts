@@ -59,7 +59,7 @@ const toB64 = (u: Uint8Array): string => Buffer.from(u).toString('base64url');
 const fromB64 = (s: string): Uint8Array => new Uint8Array(Buffer.from(s, 'base64url'));
 
 function setRefreshCookie(fastify: FastifyInstance, reply: import('fastify').FastifyReply, token: string) {
-  const secure = fastify.securitySettings?.secureCookies ?? fastify.config.NODE_ENV === 'production';
+  const secure = fastify.securitySettings?.secureCookies ?? reply.request.protocol === 'https';
   reply.setCookie(REFRESH_TOKEN_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',

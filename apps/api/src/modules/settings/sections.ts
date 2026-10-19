@@ -155,6 +155,6 @@ export function registerDefaultSections(): void {
         },
       },
     },
-    defaults: { hsts: true, hstsMaxAge: 15552000, secureCookies: true, require2FAForAdmin: false, contentSecurityPolicy: '' },
+    defaults: { hsts: true, hstsMaxAge: 15552000, require2FAForAdmin: false, contentSecurityPolicy: '' },
   });
 }
