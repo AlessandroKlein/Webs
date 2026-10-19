@@ -63,6 +63,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | Settings: zonas horarias + tamaños de logo | ✅ | 1.8.0 |
 | Mi cuenta: perfil, eliminar cuenta, 2FA SMS condicional | ✅ | 1.9.0 |
 | Bloques: toggle claro + importación desde JSON | ✅ | 1.10.0 |
+| Invitaciones de un solo uso + registro con aprobación | ✅ | 1.11.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
