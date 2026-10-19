@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { randomBytes } from 'node:crypto';
+import type { Redis } from 'ioredis';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -20,7 +21,7 @@ import { createSession, signAccessToken, REFRESH_TOKEN_TTL_MS } from './service'
  * del dispositivo, sin contraseña. Complementa (no reemplaza) la contraseña/2FA.
  */
 
-// Desafíos WebAuthn en memoria (corta vida). En cluster usar un store compartido.
+// Desafíos WebAuthn: Redis (compartido en clúster) con fallback a memoria.
 const CHALLENGES = new Map<string, { value: string; expiresAt: number }>();
 
 function rpId(): string {
@@ -31,13 +32,22 @@ function origin(fastify: FastifyInstance): string {
   return (fastify.config.CORS_ORIGIN.split(',')[0] ?? 'http://localhost:5173').trim();
 }
 
-function storeChallenge(value: string): string {
+async function storeChallenge(redis: Redis | null, value: string): Promise<string> {
   const id = randomBytes(16).toString('hex');
+  if (redis) {
+    await redis.set(`webauthn:challenge:${id}`, value, 'EX', 300);
+    return id;
+  }
   CHALLENGES.set(id, { value, expiresAt: Date.now() + 5 * 60_000 });
   return id;
 }
 
-function takeChallenge(id: string): string | null {
+async function takeChallenge(redis: Redis | null, id: string): Promise<string | null> {
+  if (redis) {
+    const value = await redis.get(`webauthn:challenge:${id}`);
+    if (value) await redis.del(`webauthn:challenge:${id}`);
+    return value;
+  }
   const c = CHALLENGES.get(id);
   if (!c) return null;
   CHALLENGES.delete(id);
@@ -82,7 +92,7 @@ export default async function passkeyRoutes(fastify: FastifyInstance): Promise<v
         authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
       });
 
-      const challengeId = storeChallenge(options.challenge);
+      const challengeId = await storeChallenge(fastify.redis, options.challenge);
       return { challengeId, options };
     },
   );
@@ -95,7 +105,7 @@ export default async function passkeyRoutes(fastify: FastifyInstance): Promise<v
         challengeId: string;
         credential: RegistrationResponseJSON;
       };
-      const expectedChallenge = takeChallenge(challengeId);
+      const expectedChallenge = await takeChallenge(fastify.redis, challengeId);
       if (!expectedChallenge) throw new UnauthorizedError('Desafío expirado o inválido');
 
       const verification = await verifyRegistrationResponse({
@@ -134,7 +144,7 @@ export default async function passkeyRoutes(fastify: FastifyInstance): Promise<v
         rpID: rpId(),
         userVerification: 'preferred',
       });
-      const challengeId = storeChallenge(options.challenge);
+      const challengeId = await storeChallenge(fastify.redis, options.challenge);
       return { challengeId, options };
     },
   );
@@ -147,7 +157,7 @@ export default async function passkeyRoutes(fastify: FastifyInstance): Promise<v
         challengeId: string;
         credential: AuthenticationResponseJSON;
       };
-      const expectedChallenge = takeChallenge(challengeId);
+      const expectedChallenge = await takeChallenge(fastify.redis, challengeId);
       if (!expectedChallenge) throw new UnauthorizedError('Desafío expirado o inválido');
 
       const passkey = await fastify.prisma.passkey.findUnique({

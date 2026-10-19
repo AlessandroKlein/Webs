@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.37.0] - 2026-10-18
+
+### Añadido
+
+- **Desafíos WebAuthn en Redis** (compartidos en clúster, fallback a memoria).
+- **Plantilla `cursos`** y bloques **`carrito`** (catálogo + carrito + checkout),
+  **`facturacion`** (facturas de referencia) y **`push`** (permiso de notificaciones).
+
 ## [0.36.0] - 2026-10-18
 
 ### Añadido

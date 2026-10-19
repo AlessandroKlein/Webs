@@ -1,0 +1,25 @@
+{
+  "name": "@webs/block-facturacion",
+  "id": "facturacion",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Invoicing", "es": "Facturación" },
+  "description": { "en": "Invoice generation for payments.", "es": "Generación de facturas para pagos." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "translations": { "es": { "invoicing": "Facturación" }, "en": { "invoicing": "Invoicing" } },
+  "settings": {
+    "type": "object",
+    "title": "Configuración de facturación",
+    "properties": {
+      "businessName": { "type": "string", "title": "Razón social" },
+      "taxId": { "type": "string", "title": "CUIT/CIF" },
+      "taxRate": { "type": "number", "title": "IVA (%)", "default": 21 },
+      "invoicePrefix": { "type": "string", "title": "Prefijo de factura", "default": "A" }
+    }
+  }
+}

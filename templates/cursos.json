@@ -1,0 +1,18 @@
+{
+  "id": "cursos",
+  "name": "Cursos / E-learning",
+  "description": "Plataforma de cursos: catálogo, inscripción y pagos.",
+  "blocks": [
+    { "id": "carrito", "config": { "title": "Cursos" } },
+    { "id": "mercadopago", "config": { "environment": "sandbox", "checkoutMode": "redirect" } }
+  ],
+  "settings": {
+    "site": { "name": "Mis Cursos", "tagline": "Aprendé a tu ritmo" },
+    "appearance": { "primaryColor": "#7c3aed", "defaultTheme": "light" }
+  },
+  "menu": [
+    { "label": "Inicio", "path": "/", "order": 0 },
+    { "label": "Cursos", "path": "/cursos", "order": 1 },
+    { "label": "Contacto", "path": "/contacto", "order": 2 }
+  ]
+}
