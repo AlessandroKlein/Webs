@@ -69,7 +69,7 @@ export function BlocksPage() {
   };
 
   const install = useMutation({
-    mutationFn: (vars: { id: string; providers?: Record<string, string[]> }) =>
+    mutationFn: (vars: { id: string; url?: string; source?: 'git' | 'npm'; providers?: Record<string, string[]> }) =>
       api.post<{ needsProviderSelection?: boolean; missingProviders?: Array<{ group: string; choices: Array<{ id: string; name: string }> }> }>('/api/v1/blocks/install', vars),
     onSuccess: (result, vars) => {
       if (result?.needsProviderSelection) {
@@ -82,6 +82,16 @@ export function BlocksPage() {
   });
   const [pending, setPending] = useState<null | { id: string; missingProviders: Array<{ group: string; choices: Array<{ id: string; name: string }> }> }>(null);
   const [chosen, setChosen] = useState<Record<string, string[]>>({});
+  const [jsonInput, setJsonInput] = useState('');
+
+  const importJson = () => {
+    try {
+      const list = JSON.parse(jsonInput) as Array<{ id: string; url?: string; source?: 'git' | 'npm' }>;
+      list.forEach((b) => install.mutate({ id: b.id, url: b.url, source: b.source }));
+    } catch {
+      window.alert('JSON inválido. Esperado: [{ "id": "...", "url": "...", "source": "git" }]');
+    }
+  };
   const uninstall = useMutation({
     mutationFn: (id: string) => api.del(`/api/v1/blocks/${id}`),
     onSuccess: invalidate,
@@ -150,6 +160,13 @@ export function BlocksPage() {
             </div>
           ))}
         </div>
+      </Card>
+
+      <Card>
+        <h3>Importar bloques desde JSON</h3>
+        <p className="muted">Pegá una lista de bloques para instalar (formato JSON):</p>
+        <textarea className="input" rows={3} value={jsonInput} onChange={(e) => setJsonInput(e.target.value)} placeholder={'[{"id":"mi-bloque","url":"https://github.com/usuario/repo.git","source":"git"}]'} />
+        <Button variant="secondary" onClick={importJson}>Importar</Button>
       </Card>
 
       {pending && (
@@ -227,7 +244,7 @@ function InstalledBlockRow({
             </Button>
           )}
           <Button variant="secondary" onClick={() => onToggle({ id: block.blockId, enabled: !block.enabled })}>
-            {block.enabled ? t('common.disabled') : t('common.enabled')}
+            {block.enabled ? 'Desactivar' : 'Activar'}
           </Button>
           <Button variant="ghost" onClick={() => onUninstall(block.blockId)}>
             {t('common.delete')}

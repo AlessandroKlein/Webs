@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.10.0] - 2026-10-19
+
+### Añadido
+
+- **Bloques**: botón Activar/Desactivar con etiqueta clara (antes mostraba el
+  estado equivocado) e **importación de bloques desde JSON** (lista de bloques
+  para instalar desde el panel).
+
 ## [1.9.0] - 2026-10-19
 
 ### Añadido
