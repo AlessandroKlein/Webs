@@ -138,41 +138,64 @@ export function SiteHeader() {
                     <div
                       key={n.id}
                       style={{
+                        position: 'relative',
                         padding: 'var(--ws-space-2)',
+                        paddingRight: 40,
                         borderBottom: '1px solid var(--ws-border)',
                         opacity: n.read ? 0.6 : 1,
                       }}
                     >
-                      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div className="stack" style={{ gap: 2 }}>
-                          <strong style={{ fontWeight: n.read ? 400 : 600 }}>{n.title}</strong>
-                          <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
-                            <i className="bi bi-flag-fill" style={{ color: priorityColor(n.priority ?? 'normal') }} />{' '}
-                            {priorityLabel(n.priority ?? 'normal')}
-                            {n.expiresAt ? ` · vence ${new Date(n.expiresAt).toLocaleDateString()}` : ''}
-                          </span>
-                        </div>
-                        {!n.read && (
-                          <button
-                            className="btn ghost"
-                            title={t('common.markRead')}
-                            onClick={() => markRead.mutate(n.id)}
-                            disabled={markRead.isPending}
-                          >
-                            <i className="bi bi-check2" />
-                          </button>
-                        )}
+                      <div className="stack" style={{ gap: 2, paddingRight: 32 }}>
+                        <strong style={{ fontWeight: n.read ? 400 : 600 }}>{n.title}</strong>
+                        <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
+                          <i className="bi bi-flag-fill" style={{ color: priorityColor(n.priority ?? 'normal') }} />{' '}
+                          {priorityLabel(n.priority ?? 'normal')}
+                          {n.expiresAt ? ` · vence ${new Date(n.expiresAt).toLocaleDateString()}` : ''}
+                        </span>
+                      </div>
+                      {!n.read && (
                         <button
                           className="btn ghost"
-                          title="Eliminar"
-                          aria-label="Eliminar notificación"
-                          onClick={() => remove.mutate(n.id)}
-                          disabled={remove.isPending}
-                          style={{ color: 'var(--ws-danger)' }}
+                          title={t('common.markRead')}
+                          aria-label={t('common.markRead')}
+                          onClick={() => markRead.mutate(n.id)}
+                          disabled={markRead.isPending}
+                          style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 40,
+                            width: 28,
+                            height: 28,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 0,
+                          }}
                         >
-                          <i className="bi bi-trash" />
+                          <i className="bi bi-check2" />
                         </button>
-                      </div>
+                      )}
+                      <button
+                        className="btn ghost"
+                        title="Eliminar"
+                        aria-label="Eliminar notificación"
+                        onClick={() => remove.mutate(n.id)}
+                        disabled={remove.isPending}
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          width: 28,
+                          height: 28,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: 0,
+                          color: 'var(--ws-danger)',
+                        }}
+                      >
+                        <i className="bi bi-trash" />
+                      </button>
                       <p className="muted" style={{ margin: 0 }}>{n.body}</p>
                     </div>
                   ))}

@@ -49,6 +49,13 @@ interface Course {
   lessons: unknown[] | null;
 }
 
+interface Subscription {
+  id: string;
+  status: string;
+  planName: string;
+  endDate: string | null;
+}
+
 const sizeClass = (size?: string) => (size === 'half' ? 'grid-2' : size === 'third' ? 'grid-3' : '');
 
 const asStringArray = (v: unknown): string[] =>
@@ -142,6 +149,12 @@ export function PublicHome() {
     queryFn: () => api.get<Course[]>('/api/v1/blocks/academia/courses'),
     retry: 0,
   });
+  const { data: mySub, isLoading: mySubLoading, isError: mySubError } = useQuery({
+    queryKey: ['public-my-subscription', user?.id ?? ''],
+    queryFn: () => api.get<Subscription | null>(`/api/v1/blocks/suscripciones/my?userId=${user?.id ?? ''}`),
+    enabled: !!user,
+    retry: 0,
+  });
 
   if (page?.redirectUrl) {
     window.location.href = page.redirectUrl;
@@ -158,6 +171,7 @@ export function PublicHome() {
   const featuredProducts = (products ?? []).slice(0, 4);
   const courseList = courses ?? [];
   const pageSections = page?.layout && page.layout.length > 0 ? page.layout : null;
+  const showPlanCta = !!user && !mySubLoading && !mySubError && mySub === null;
 
   return (
     <div className="app-shell">
@@ -201,6 +215,38 @@ export function PublicHome() {
             )}
           </div>
         </section>
+
+        {/* CTA: contratar un plan (solo si está logueado y sin suscripción activa) */}
+        {showPlanCta && (
+          <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 var(--ws-space-6) var(--ws-space-6)' }}>
+            <div
+              className="row"
+              style={{
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 'var(--ws-space-4)',
+                border: '1px solid var(--ws-border)',
+                borderRadius: 'var(--ws-radius-lg)',
+                background: 'var(--ws-surface)',
+                padding: 'var(--ws-space-5)',
+                boxShadow: 'var(--ws-shadow-md)',
+              }}
+            >
+              <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
+                <h2 style={{ margin: 0 }}>
+                  <i className="bi bi-gem" style={{ color: 'var(--ws-primary)' }} /> Contratá un plan
+                </h2>
+                <p className="muted" style={{ margin: 0 }}>
+                  Accedé a funcionalidades premium eligiendo uno de nuestros planes de suscripción.
+                </p>
+              </div>
+              <Link to="/dashboard" className="btn" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>
+                Ver planes <i className="bi bi-arrow-right" />
+              </Link>
+            </div>
+          </section>
+        )}
 
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'var(--ws-space-6)' }}>
           {/* Contenido de la página marcada como inicio (si existe) */}

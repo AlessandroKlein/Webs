@@ -29,7 +29,7 @@ interface Booking {
   createdAt: string;
 }
 
-type View = 'events' | 'bookings';
+type View = 'calendar' | 'events' | 'bookings';
 
 const STATUS_COLOR: Record<string, string> = {
   confirmed: 'var(--ws-success)',
@@ -47,16 +47,88 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+function localKey(value: string): string {
+  if (!value) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function keyToDate(key: string): Date {
+  const parts = key.split('-').map(Number);
+  return new Date(parts[0] ?? 2000, (parts[1] ?? 1) - 1, parts[2] ?? 1);
+}
+
+function formatDateTime(value: string): string {
+  if (!value) return '—';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleString('es-AR');
+}
+
 export function CalendarPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const [view, setView] = useState<View>('events');
+  const [view, setView] = useState<View>('calendar');
+  const [cursor, setCursor] = useState<Date>(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   // ── Eventos ─────────────────────────────────────────────
   const { data: events, isLoading: eventsLoading } = useQuery({
     queryKey: ['calendar-events'],
     queryFn: () => api.get<CalendarEvent[]>(`${CAL_BASE}/events`),
   });
+
+  const { data: allBookings } = useQuery({
+    queryKey: ['reservas-bookings-all'],
+    queryFn: () => api.get<Booking[]>(`${RES_BASE}/bookings`),
+  });
+
+  const eventsByDate: Record<string, CalendarEvent[]> = {};
+  for (const ev of events ?? []) {
+    const k = localKey(ev.start);
+    if (!k) continue;
+    const list = eventsByDate[k] ?? [];
+    list.push(ev);
+    eventsByDate[k] = list;
+  }
+  const bookingsByDate: Record<string, Booking[]> = {};
+  for (const b of allBookings ?? []) {
+    const k = localKey(b.date);
+    if (!k) continue;
+    const list = bookingsByDate[k] ?? [];
+    list.push(b);
+    bookingsByDate[k] = list;
+  }
+
+  const year = cursor.getFullYear();
+  const month = cursor.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+  const totalCells = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
+  const cells: Array<number | null> = [];
+  for (let i = 0; i < totalCells; i++) {
+    const day = i - firstWeekday + 1;
+    cells.push(day >= 1 && day <= daysInMonth ? day : null);
+  }
+  const nowDate = new Date();
+  const todayKey = `${nowDate.getFullYear()}-${pad2(nowDate.getMonth() + 1)}-${pad2(nowDate.getDate())}`;
+  const rawMonthLabel = cursor.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+  const monthLabel = rawMonthLabel.charAt(0).toUpperCase() + rawMonthLabel.slice(1);
+  const prevMonth = () => setCursor(new Date(year, month - 1, 1));
+  const nextMonth = () => setCursor(new Date(year, month + 1, 1));
+  const goToday = () => {
+    const n = new Date();
+    setCursor(new Date(n.getFullYear(), n.getMonth(), 1));
+  };
 
   const [title, setTitle] = useState('');
   const [start, setStart] = useState('');
@@ -138,6 +210,13 @@ export function CalendarPage() {
       <aside className="stack" style={{ minWidth: 220 }}>
         <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.calendar.title')}</h1>
         <button
+          className={`nav-link ${view === 'calendar' ? 'active' : ''}`}
+          style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+          onClick={() => setView('calendar')}
+        >
+          Calendario
+        </button>
+        <button
           className={`nav-link ${view === 'events' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('events')}
@@ -154,6 +233,179 @@ export function CalendarPage() {
       </aside>
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+        {view === 'calendar' && (
+          <div className="stack">
+            <Card>
+              <div
+                className="row"
+                style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ws-space-3)' }}
+              >
+                <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+                  <Button variant="secondary" onClick={prevMonth} aria-label="Mes anterior">
+                    <i className="bi bi-chevron-left" />
+                  </Button>
+                  <h2 style={{ margin: 0, minWidth: 180, textAlign: 'center' }}>{monthLabel}</h2>
+                  <Button variant="secondary" onClick={nextMonth} aria-label="Mes siguiente">
+                    <i className="bi bi-chevron-right" />
+                  </Button>
+                </div>
+                <Button variant="secondary" onClick={goToday}>
+                  Hoy
+                </Button>
+              </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(7, 1fr)',
+                  gap: 'var(--ws-space-1)',
+                  marginTop: 'var(--ws-space-3)',
+                }}
+              >
+                {WEEKDAYS.map((wd) => (
+                  <div
+                    key={wd}
+                    style={{ textAlign: 'center', fontWeight: 600, fontSize: 'var(--ws-font-size-sm)', padding: 'var(--ws-space-1)' }}
+                  >
+                    {wd}
+                  </div>
+                ))}
+                {cells.map((day, i) => {
+                  if (day === null) {
+                    return <div key={`blank-${i}`} style={{ minHeight: 64 }} />;
+                  }
+                  const key = `${year}-${pad2(month + 1)}-${pad2(day)}`;
+                  const evCount = eventsByDate[key]?.length ?? 0;
+                  const bkCount = bookingsByDate[key]?.length ?? 0;
+                  const isSelected = selectedKey === key;
+                  const isToday = key === todayKey;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSelectedKey(isSelected ? null : key)}
+                      style={{
+                        minHeight: 64,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'flex-start',
+                        gap: 'var(--ws-space-1)',
+                        padding: 'var(--ws-space-1)',
+                        border: isSelected ? '2px solid var(--ws-primary)' : '1px solid var(--ws-border)',
+                        borderRadius: 'var(--ws-radius-sm)',
+                        background: isSelected ? 'var(--ws-primary)' : isToday ? 'var(--ws-surface-2)' : 'var(--ws-surface)',
+                        color: isSelected ? '#fff' : undefined,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: isToday && !isSelected ? 'var(--ws-primary)' : undefined }}>
+                        {day}
+                      </span>
+                      <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
+                        {evCount > 0 && (
+                          <span
+                            title={`${evCount} evento${evCount === 1 ? '' : 's'}`}
+                            style={{ width: 8, height: 8, borderRadius: '50%', background: isSelected ? '#fff' : 'var(--ws-primary)', display: 'inline-block' }}
+                          />
+                        )}
+                        {bkCount > 0 && (
+                          <span
+                            title={`${bkCount} reserva${bkCount === 1 ? '' : 's'}`}
+                            style={{ width: 8, height: 8, borderRadius: '50%', background: isSelected ? '#fff' : 'var(--ws-success)', display: 'inline-block' }}
+                          />
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="row" style={{ gap: 'var(--ws-space-4)', marginTop: 'var(--ws-space-3)', flexWrap: 'wrap' }}>
+                <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ws-space-1)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ws-primary)', display: 'inline-block' }} /> Eventos
+                </span>
+                <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ws-space-1)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ws-success)', display: 'inline-block' }} /> Reservas
+                </span>
+              </div>
+            </Card>
+
+            {selectedKey && (
+              <Card>
+                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0 }}>
+                    {keyToDate(selectedKey).toLocaleDateString('es-AR', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </h3>
+                  <Button variant="ghost" onClick={() => setSelectedKey(null)} aria-label="Cerrar">
+                    <i className="bi bi-x-lg" />
+                  </Button>
+                </div>
+
+                <h4 style={{ marginBottom: 'var(--ws-space-2)' }}>Eventos</h4>
+                {(eventsByDate[selectedKey] ?? []).length === 0 ? (
+                  <p className="muted">Sin eventos este día.</p>
+                ) : (
+                  <div className="stack">
+                    {(eventsByDate[selectedKey] ?? []).map((ev) => (
+                      <div
+                        key={ev.id}
+                        style={{
+                          display: 'flex',
+                          gap: 'var(--ws-space-2)',
+                          alignItems: 'baseline',
+                          flexWrap: 'wrap',
+                          borderTop: '1px solid var(--ws-border)',
+                          paddingTop: 'var(--ws-space-2)',
+                        }}
+                      >
+                        <strong>{ev.title}</strong>
+                        <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
+                          {formatDateTime(ev.start)}
+                        </span>
+                        {ev.type && <span className="badge">{ev.type}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <h4 style={{ marginTop: 'var(--ws-space-4)', marginBottom: 'var(--ws-space-2)' }}>Reservas</h4>
+                {(bookingsByDate[selectedKey] ?? []).length === 0 ? (
+                  <p className="muted">Sin reservas este día.</p>
+                ) : (
+                  <div className="stack">
+                    {(bookingsByDate[selectedKey] ?? []).map((b) => (
+                      <div
+                        key={b.id}
+                        style={{
+                          display: 'flex',
+                          gap: 'var(--ws-space-2)',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                          borderTop: '1px solid var(--ws-border)',
+                          paddingTop: 'var(--ws-space-2)',
+                        }}
+                      >
+                        <strong>{b.name}</strong>
+                        <code>{b.serviceId}</code>
+                        <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
+                          {formatDateTime(b.date)}
+                        </span>
+                        <StatusBadge status={b.status} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )}
+          </div>
+        )}
+
         {view === 'events' && (
           <>
             <Card>

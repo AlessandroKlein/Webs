@@ -154,6 +154,26 @@ export function InvoicesPage() {
                             {t('admin.invoices.issue')}
                           </Button>
                         )}
+                        <a
+                          href={`${INV_BASE}/invoices/${inv.id}/html`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Abre el comprobante en una pestaña nueva para imprimirlo a PDF"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 'var(--ws-space-1)',
+                            padding: 'var(--ws-space-2) var(--ws-space-3)',
+                            borderRadius: 'var(--ws-radius-md)',
+                            border: '1px solid var(--ws-border)',
+                            color: 'var(--ws-text)',
+                            textDecoration: 'none',
+                            fontSize: 'var(--ws-font-size-sm)',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <i className="bi bi-download" /> Descargar
+                        </a>
                         <Button variant="ghost" onClick={() => setConfirmInvoice(inv)}>
                           {t('common.delete')}
                         </Button>

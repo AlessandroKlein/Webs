@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import type { AuthUser } from '../../lib/auth-store';
@@ -41,6 +41,12 @@ interface PaymentRow {
   paidAt: string | null;
 }
 
+interface InvoiceRow {
+  id: string;
+  number: string;
+  paymentId: string | null;
+}
+
 interface Membership {
   id: string;
   organizationId: string;
@@ -63,6 +69,27 @@ interface Order {
   createdAt: string;
 }
 
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  durationDays: number;
+  features: unknown;
+  active: boolean;
+  createdAt?: string;
+}
+
+interface Subscription {
+  id: string;
+  userId: string;
+  planId: string;
+  planName: string;
+  status: string;
+  startDate: string;
+  endDate: string | null;
+  createdAt: string;
+}
+
 // ── Estado local de navegación del panel ────────────────────────────────
 
 type View =
@@ -72,6 +99,7 @@ type View =
   | 'pendingPayments'
   | 'payments'
   | 'memberships'
+  | 'plans'
   | 'orders';
 
 const SECTIONS: Array<{ key: View; label: string; icon: string }> = [
@@ -81,6 +109,7 @@ const SECTIONS: Array<{ key: View; label: string; icon: string }> = [
   { key: 'pendingPayments', label: 'Pagos pendientes', icon: 'bi-hourglass-split' },
   { key: 'payments', label: 'Historial de pagos', icon: 'bi-credit-card' },
   { key: 'memberships', label: 'Suscripciones', icon: 'bi-award' },
+  { key: 'plans', label: 'Planes', icon: 'bi-gem' },
   { key: 'orders', label: 'Mis compras', icon: 'bi-bag' },
 ];
 
@@ -240,6 +269,7 @@ export function UserDashboardPage() {
           {view === 'pendingPayments' && <PendingPaymentsSection />}
           {view === 'payments' && <PaymentsHistorySection />}
           {view === 'memberships' && <MembershipsSection user={user} />}
+          {view === 'plans' && <PlansSection user={user} />}
           {view === 'orders' && <OrdersSection />}
         </div>
       </div>
@@ -483,6 +513,18 @@ function PaymentsHistorySection() {
     retry: 0,
   });
 
+  // Vincula cada pago con su factura (si existe) para ofrecer el comprobante.
+  const { data: invoices } = useQuery({
+    queryKey: ['user-dashboard-invoices'],
+    queryFn: () => api.get<InvoiceRow[]>('/api/v1/blocks/facturacion/invoices'),
+    retry: 0,
+  });
+
+  const invoiceByPayment = new Map<string, InvoiceRow>();
+  for (const inv of invoices ?? []) {
+    if (inv.paymentId) invoiceByPayment.set(inv.paymentId, inv);
+  }
+
   return (
     <SectionCard title="Historial de pagos">
       {isLoading ? (
@@ -498,21 +540,49 @@ function PaymentsHistorySection() {
               <th>Fecha</th>
               <th>Monto</th>
               <th>Estado</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {(payments ?? []).map((p) => (
-              <tr key={p.id}>
-                <td>{new Date(p.createdAt).toLocaleString('es-AR')}</td>
-                <td>{money(p.amount, p.currency)}</td>
-                <td>
-                  <StatusBadge
-                    label={PAYMENT_STATUS_ES[p.status] ?? p.status}
-                    color={PAYMENT_STATUS_COLOR[p.status]}
-                  />
-                </td>
-              </tr>
-            ))}
+            {(payments ?? []).map((p) => {
+              const invoice = invoiceByPayment.get(p.id);
+              return (
+                <tr key={p.id}>
+                  <td>{new Date(p.createdAt).toLocaleString('es-AR')}</td>
+                  <td>{money(p.amount, p.currency)}</td>
+                  <td>
+                    <StatusBadge
+                      label={PAYMENT_STATUS_ES[p.status] ?? p.status}
+                      color={PAYMENT_STATUS_COLOR[p.status]}
+                    />
+                  </td>
+                  <td>
+                    {invoice && (
+                      <a
+                        href={`/api/v1/blocks/facturacion/invoices/${invoice.id}/html`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Abre el comprobante en una pestaña nueva para imprimirlo a PDF"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 'var(--ws-space-1)',
+                          padding: 'var(--ws-space-2) var(--ws-space-3)',
+                          borderRadius: 'var(--ws-radius-md)',
+                          border: '1px solid var(--ws-border)',
+                          color: 'var(--ws-text)',
+                          textDecoration: 'none',
+                          fontSize: 'var(--ws-font-size-sm)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <i className="bi bi-download" /> Descargar
+                      </a>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
@@ -557,6 +627,156 @@ function MembershipsSection({ user }: { user: AuthUser | null }) {
             </div>
           ))}
         </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ── Planes / Suscripción ────────────────────────────────────────────────
+
+const SUBSCRIPTION_STATUS_ES: Record<string, string> = {
+  active: 'Activa',
+  cancelled: 'Cancelada',
+  expired: 'Vencida',
+};
+
+const SUBSCRIPTION_STATUS_COLOR: Record<string, string> = {
+  active: 'var(--ws-success)',
+  cancelled: 'var(--ws-danger)',
+  expired: 'var(--ws-warning)',
+};
+
+function asPlanFeatures(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+}
+
+function PlansSection({ user }: { user: AuthUser | null }) {
+  const qc = useQueryClient();
+  const userId = user?.id ?? '';
+
+  const { data: plans, isLoading: plansLoading, isError: plansError } = useQuery({
+    queryKey: ['user-suscripciones-plans'],
+    queryFn: () => api.get<Plan[]>('/api/v1/blocks/suscripciones/plans'),
+    retry: 0,
+  });
+
+  const { data: my, isLoading: myLoading } = useQuery({
+    queryKey: ['user-suscripciones-my', userId],
+    queryFn: () => api.get<Subscription | null>(`/api/v1/blocks/suscripciones/my?userId=${userId}`),
+    enabled: !!userId,
+    retry: 0,
+  });
+
+  const subscribe = useMutation({
+    mutationFn: (planId: string) =>
+      api.post('/api/v1/blocks/suscripciones/subscribe', { userId, planId }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['user-suscripciones-my'] });
+    },
+  });
+
+  const cancel = useMutation({
+    mutationFn: (id: string) =>
+      api.patch(`/api/v1/blocks/suscripciones/subscriptions/${id}`, { status: 'cancelled' }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['user-suscripciones-my'] });
+    },
+  });
+
+  return (
+    <SectionCard title="Planes / Suscripción">
+      {/* Suscripción actual */}
+      {myLoading ? (
+        <Spinner label="Cargando tu suscripción…" />
+      ) : my ? (
+        <div
+          className="row"
+          style={{
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 'var(--ws-space-3)',
+            flexWrap: 'wrap',
+            marginBottom: 'var(--ws-space-4)',
+          }}
+        >
+          <div className="stack" style={{ gap: 2 }}>
+            <strong>{my.planName}</strong>
+            <p className="muted" style={{ margin: 0 }}>
+              <StatusBadge
+                label={SUBSCRIPTION_STATUS_ES[my.status] ?? my.status}
+                color={SUBSCRIPTION_STATUS_COLOR[my.status]}
+              />{' '}
+              Desde {formatDate(my.startDate)}
+              {my.endDate ? ` · Vence ${formatDate(my.endDate)}` : ''}
+            </p>
+          </div>
+          {my.status === 'active' && (
+            <Button variant="secondary" onClick={() => cancel.mutate(my.id)} disabled={cancel.isPending}>
+              Cancelar suscripción
+            </Button>
+          )}
+        </div>
+      ) : (
+        <p className="muted" style={{ marginBottom: 'var(--ws-space-4)' }}>
+          No tenés una suscripción activa.
+        </p>
+      )}
+
+      {/* Planes disponibles */}
+      {plansLoading ? (
+        <Spinner label="Cargando planes…" />
+      ) : plansError ? (
+        <p className="muted">No disponible: el bloque de suscripciones no está instalado.</p>
+      ) : (plans ?? []).length === 0 ? (
+        <p className="muted">Sin datos: no hay planes disponibles.</p>
+      ) : (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
+            gap: 'var(--ws-space-4)',
+          }}
+        >
+          {(plans ?? []).map((p) => (
+            <div
+              key={p.id}
+              style={{
+                border: '1px solid var(--ws-border)',
+                borderRadius: 'var(--ws-radius-lg)',
+                padding: 'var(--ws-space-4)',
+                background: 'var(--ws-surface-2)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--ws-space-2)',
+              }}
+            >
+              <strong style={{ fontSize: 'var(--ws-font-size-lg)' }}>{p.name}</strong>
+              <span style={{ fontWeight: 700 }}>{money(p.price, 'ARS')}</span>
+              <span className="muted">{p.durationDays} días</span>
+              {asPlanFeatures(p.features).length > 0 && (
+                <ul style={{ margin: 0, paddingLeft: 'var(--ws-space-4)' }}>
+                  {asPlanFeatures(p.features).map((f) => (
+                    <li key={f} className="muted">
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Button
+                style={{ marginTop: 'auto' }}
+                onClick={() => subscribe.mutate(p.id)}
+                disabled={subscribe.isPending || !!my}
+              >
+                {subscribe.isPending ? 'Contratando…' : 'Contratar'}
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+      {subscribe.isError && (
+        <p className="muted" style={{ color: 'var(--ws-danger)', marginTop: 'var(--ws-space-3)' }}>
+          No se pudo contratar el plan.
+        </p>
       )}
     </SectionCard>
   );

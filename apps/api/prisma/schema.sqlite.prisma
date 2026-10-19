@@ -359,6 +359,21 @@ model Story {
   @@map("stories")
 }
 
+model Subscription {
+  id        String    @id @default(uuid())
+  userId    String
+  planId    String
+  planName  String    @default("")
+  status    String    @default("active")
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([planId])
+  @@map("subscriptions")
+}
+
 model Organization {
   id             String   @id @default(uuid())
   name           String

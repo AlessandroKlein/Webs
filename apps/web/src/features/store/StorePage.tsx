@@ -4,6 +4,7 @@ import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 
 const EC_BASE = '/api/v1/blocks/ecommerce';
+const PAY_BASE = '/api/v1/payments';
 
 interface RawProduct {
   id: string;
@@ -24,6 +25,19 @@ interface CartLine {
   price: number;
   size: string | null;
   qty: number;
+}
+
+interface PaymentProvider {
+  id: string;
+  displayName: string;
+}
+
+interface CheckoutResult {
+  id: string;
+  transactionId: string;
+  status: string;
+  paymentUrl?: string | null;
+  qr?: string | null;
 }
 
 const asStringArray = (v: unknown): string[] =>
@@ -93,8 +107,13 @@ export function StorePage() {
   const [detailQty, setDetailQty] = useState(1);
   const [activeImage, setActiveImage] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
-  const [buying, setBuying] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [providers, setProviders] = useState<PaymentProvider[] | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [checkout, setCheckout] = useState<CheckoutResult | null>(null);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
 
   const count = cart.reduce((s, l) => s + l.qty, 0);
   const total = cart.reduce((s, l) => s + l.price * l.qty, 0);
@@ -119,21 +138,67 @@ export function StorePage() {
 
   const removeLine = (key: string) => setCart((prev) => prev.filter((l) => l.key !== key));
 
-  const buy = async () => {
-    setBuying(true);
+  const changeQty = (key: string, delta: number) =>
+    setCart((prev) => prev.map((l) => (l.key === key ? { ...l, qty: Math.max(1, l.qty + delta) } : l)));
+
+  const resetCheckout = () => {
+    setProviders(null);
+    setSelectedProvider(null);
+    setCheckout(null);
+    setCartError(null);
+  };
+
+  const startCheckout = async () => {
+    setCartError(null);
+    setNotice(null);
+    setLoadingProviders(true);
+    try {
+      const list = await api.get<PaymentProvider[]>(`${PAY_BASE}/providers`);
+      if (!list || list.length === 0) {
+        setProviders(null);
+        setCartError('No hay métodos de pago configurados');
+        return;
+      }
+      setProviders(list);
+      setSelectedProvider(list[0]?.id ?? null);
+      setCheckout(null);
+    } catch {
+      setProviders(null);
+      setCartError('No hay métodos de pago configurados');
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
+
+  const pay = async () => {
+    if (!selectedProvider) return;
+    setPaying(true);
+    setCartError(null);
     setNotice(null);
     try {
-      await api.post(`${EC_BASE}/orders`, {
-        items: cart.map((l) => ({ id: l.id, qty: l.qty, size: l.size })),
+      // Los precios ya vienen en centavos (`price`/`total`), por lo que el
+      // monto entero se envía tal cual como exige `POST /payments/checkout`.
+      const result = await api.post<CheckoutResult>(`${PAY_BASE}/checkout`, {
+        provider: selectedProvider,
+        amount: total,
+        currency: 'ARS',
+        description: `Compra en la tienda · ${cart.length} producto${cart.length === 1 ? '' : 's'}`,
+        externalReference: `store-${Date.now()}`,
+        items: cart.map((l) => ({ id: l.id, title: l.title, quantity: l.qty, unitPrice: l.price })),
       });
-      setCart([]);
-      setCartOpen(false);
-      setNotice('¡Compra confirmada! Tu pedido fue creado.');
+      setCheckout(result);
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : 'Error al crear el pedido');
+      setCartError(e instanceof Error ? e.message : 'Error al iniciar el pago');
     } finally {
-      setBuying(false);
+      setPaying(false);
     }
+  };
+
+  const finalizeCheckout = () => {
+    setCart([]);
+    resetCheckout();
+    setCartOpen(false);
+    setNotice('Pago iniciado. Completá el pago en la pasarela para confirmar tu compra.');
   };
 
   const sizes = selected ? asStringArray(selected.sizes) : [];
@@ -434,42 +499,181 @@ export function StorePage() {
               <p className="muted">Tu carrito está vacío.</p>
             ) : (
               <>
-                <div className="stack" style={{ flex: 1, overflow: 'auto' }}>
+                <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--ws-space-3)' }}>
                   {cart.map((l) => (
                     <div
                       key={l.key}
                       style={{
                         display: 'flex',
-                        justifyContent: 'space-between',
-                        gap: 'var(--ws-space-2)',
-                        borderTop: '1px solid var(--ws-border)',
-                        paddingTop: 'var(--ws-space-2)',
+                        gap: 'var(--ws-space-3)',
+                        padding: 'var(--ws-space-3)',
+                        border: '1px solid var(--ws-border)',
+                        borderRadius: 'var(--ws-radius-md)',
+                        background: 'var(--ws-surface-2)',
                       }}
                     >
-                      <div style={{ minWidth: 0 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <strong style={{ display: 'block' }}>{l.title}</strong>
-                        <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
+                        <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)', display: 'block' }}>
                           {l.size ? `Talle ${l.size} · ` : ''}
-                          {money(l.price)} × {l.qty}
+                          {money(l.price)} c/u
                         </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
+                          <button onClick={() => changeQty(l.key, -1)} style={qtyBtnStyle} aria-label="Menos">
+                            −
+                          </button>
+                          <span style={{ minWidth: 24, textAlign: 'center' }}>{l.qty}</span>
+                          <button onClick={() => changeQty(l.key, 1)} style={qtyBtnStyle} aria-label="Más">
+                            +
+                          </button>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--ws-space-1)' }}>
-                        <span style={{ fontWeight: 600 }}>{money(l.price * l.qty)}</span>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'flex-end',
+                          justifyContent: 'space-between',
+                          gap: 'var(--ws-space-2)',
+                        }}
+                      >
                         <button onClick={() => removeLine(l.key)} style={closeBtnStyle} aria-label="Quitar">
                           ✕
                         </button>
+                        <strong>{money(l.price * l.qty)}</strong>
                       </div>
                     </div>
                   ))}
                 </div>
-                <div style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)', marginTop: 'var(--ws-space-3)' }}>
-                  <div className="row" style={{ justifyContent: 'space-between', marginBottom: 'var(--ws-space-3)' }}>
-                    <strong>Total</strong>
-                    <strong>{money(total)}</strong>
+
+                <div
+                  style={{
+                    borderTop: '1px solid var(--ws-border)',
+                    paddingTop: 'var(--ws-space-3)',
+                    marginTop: 'var(--ws-space-3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--ws-space-2)',
+                  }}
+                >
+                  <div className="row" style={{ justifyContent: 'space-between' }}>
+                    <span className="muted">Subtotal</span>
+                    <span>{money(total)}</span>
                   </div>
-                  <Button style={{ width: '100%' }} onClick={buy} disabled={buying || cart.length === 0}>
-                    {buying ? 'Creando pedido…' : 'Comprar'}
-                  </Button>
+                  <div className="row" style={{ justifyContent: 'space-between' }}>
+                    <span className="muted">Envío</span>
+                    <span>—</span>
+                  </div>
+                  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <strong>Total</strong>
+                    <strong style={{ fontSize: '1.15rem' }}>{money(total)}</strong>
+                  </div>
+
+                  {cartError && (
+                    <div
+                      style={{
+                        padding: 'var(--ws-space-2) var(--ws-space-3)',
+                        background: 'rgba(220, 38, 38, 0.12)',
+                        color: 'var(--ws-danger)',
+                        borderRadius: 'var(--ws-radius-md)',
+                        fontSize: 'var(--ws-font-size-sm)',
+                      }}
+                    >
+                      {cartError}
+                    </div>
+                  )}
+
+                  {checkout ? (
+                    <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
+                      <div style={{ padding: 'var(--ws-space-3)', background: 'var(--ws-primary-soft)', borderRadius: 'var(--ws-radius-md)' }}>
+                        <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+                          <i className="bi bi-hourglass-split" /> Pago pendiente
+                        </strong>
+                        <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
+                          Referencia: <code>{checkout.transactionId}</code>
+                        </p>
+                      </div>
+
+                      {checkout.paymentUrl && (
+                        <a
+                          href={checkout.paymentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 'var(--ws-space-2)',
+                            padding: 'var(--ws-space-3)',
+                            background: 'var(--ws-primary)',
+                            color: 'var(--ws-on-primary)',
+                            borderRadius: 'var(--ws-radius-md)',
+                            textDecoration: 'none',
+                            fontWeight: 600,
+                          }}
+                        >
+                          <i className="bi bi-box-arrow-up-right" /> Completar pago
+                        </a>
+                      )}
+
+                      {checkout.qr && (
+                        <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
+                          <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Código QR generado para cobrar:</span>
+                          <a href={checkout.qr} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ws-primary)' }}>
+                            <i className="bi bi-qr-code" /> Abrir código QR
+                          </a>
+                        </div>
+                      )}
+
+                      {!checkout.paymentUrl && !checkout.qr && (
+                        <p className="muted" style={{ margin: 0 }}>
+                          Se creó la intención de pago; seguí las instrucciones del proveedor para completarla.
+                        </p>
+                      )}
+
+                      <Button variant="secondary" style={{ width: '100%' }} onClick={finalizeCheckout}>
+                        Entendido
+                      </Button>
+                    </div>
+                  ) : providers ? (
+                    <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
+                      <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Elegí un método de pago:</span>
+                      {providers.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => setSelectedProvider(p.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--ws-space-2)',
+                            padding: 'var(--ws-space-3)',
+                            border: selectedProvider === p.id ? '2px solid var(--ws-primary)' : '1px solid var(--ws-border)',
+                            borderRadius: 'var(--ws-radius-md)',
+                            background: selectedProvider === p.id ? 'var(--ws-primary-soft)' : 'var(--ws-surface)',
+                            color: 'var(--ws-text)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <i className="bi bi-credit-card" />
+                          <span style={{ flex: 1 }}>{p.displayName}</span>
+                          {selectedProvider === p.id && <i className="bi bi-check-circle-fill" style={{ color: 'var(--ws-primary)' }} />}
+                        </button>
+                      ))}
+                      <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
+                        <Button variant="secondary" style={{ flex: 1 }} onClick={resetCheckout}>
+                          Volver
+                        </Button>
+                        <Button style={{ flex: 1 }} onClick={pay} disabled={paying || !selectedProvider}>
+                          {paying ? 'Iniciando pago…' : 'Pagar'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button style={{ width: '100%' }} onClick={startCheckout} disabled={loadingProviders || cart.length === 0}>
+                      {loadingProviders ? 'Buscando métodos de pago…' : 'Comprar'}
+                    </Button>
+                  )}
                 </div>
               </>
             )}

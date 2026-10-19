@@ -95,7 +95,7 @@ const ORDER_STATUS_COLOR: Record<string, string> = {
   cancelled: 'var(--ws-danger)',
 };
 
-type Tab = 'summary' | 'profile' | 'security' | 'connections' | 'password' | 'danger';
+type Tab = 'summary' | 'profile' | 'notifications' | 'security' | 'connections' | 'password' | 'danger';
 
 export function AccountPage() {
   const { t } = useTranslation();
@@ -202,8 +202,10 @@ export function AccountPage() {
       ? t('admin.account.summary')
       : tab === 'profile'
         ? t('admin.account.profile')
-        : tab === 'security'
-          ? t('admin.account.security')
+        : tab === 'notifications'
+          ? 'Notificaciones'
+          : tab === 'security'
+            ? t('admin.account.security')
           : tab === 'connections'
             ? 'Conexiones'
             : tab === 'password'
@@ -211,8 +213,8 @@ export function AccountPage() {
               : t('admin.account.dangerZone');
 
   const tabs: Tab[] = socialLoginInstalled
-    ? ['summary', 'profile', 'security', 'connections', 'password', 'danger']
-    : ['summary', 'profile', 'security', 'password', 'danger'];
+    ? ['summary', 'profile', 'notifications', 'security', 'connections', 'password', 'danger']
+    : ['summary', 'profile', 'notifications', 'security', 'password', 'danger'];
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
@@ -402,6 +404,8 @@ export function AccountPage() {
             </Card>
           </>
         )}
+
+        {tab === 'notifications' && <NotificationPrefsCard user={data?.user ?? null} />}
 
         {tab === 'security' && (
           <>
@@ -700,6 +704,126 @@ function SummaryView({
         )}
       </Card>
     </>
+  );
+}
+
+type NotificationChannel = 'email' | 'whatsapp' | 'sms' | 'push';
+type NotificationCategory = 'pagos' | 'mensajes' | 'social' | 'recordatorios';
+type NotificationPrefs = Record<NotificationChannel, Record<NotificationCategory, boolean>>;
+
+const NOTIFICATION_CHANNELS: { key: NotificationChannel; label: string; icon: string }[] = [
+  { key: 'email', label: 'Email', icon: 'bi-envelope' },
+  { key: 'whatsapp', label: 'WhatsApp', icon: 'bi-whatsapp' },
+  { key: 'sms', label: 'SMS', icon: 'bi-chat-dots' },
+  { key: 'push', label: 'Push', icon: 'bi-bell' },
+];
+
+const NOTIFICATION_CATEGORIES: { key: NotificationCategory; label: string }[] = [
+  { key: 'pagos', label: 'Pagos' },
+  { key: 'mensajes', label: 'Mensajes' },
+  { key: 'social', label: 'Social' },
+  { key: 'recordatorios', label: 'Recordatorios' },
+];
+
+function loadNotificationPrefs(profile: Record<string, unknown> | null | undefined): NotificationPrefs {
+  const raw = profile?.notificationPrefs;
+  const source = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const prefs = {} as NotificationPrefs;
+  for (const ch of NOTIFICATION_CHANNELS) {
+    const chRaw = source[ch.key];
+    const chObj = (chRaw && typeof chRaw === 'object' ? chRaw : {}) as Record<string, unknown>;
+    const row = {} as Record<NotificationCategory, boolean>;
+    for (const cat of NOTIFICATION_CATEGORIES) {
+      row[cat.key] = chObj[cat.key] === true;
+    }
+    prefs[ch.key] = row;
+  }
+  return prefs;
+}
+
+function NotificationPrefsCard({ user }: { user: MeResponse['user'] }) {
+  const qc = useQueryClient();
+  const [prefs, setPrefs] = useState<NotificationPrefs>(() => loadNotificationPrefs(user?.profile));
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setPrefs(loadNotificationPrefs(user?.profile));
+    setSaved(false);
+  }, [user?.id]);
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.patch('/api/v1/auth/me', {
+        profile: { ...(user?.profile ?? {}), notificationPrefs: prefs },
+      }),
+    onSuccess: () => {
+      setSaved(true);
+      qc.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+
+  const toggle = (channel: NotificationChannel, category: NotificationCategory) => {
+    setPrefs((prev) => ({
+      ...prev,
+      [channel]: { ...prev[channel], [category]: !prev[channel][category] },
+    }));
+    setSaved(false);
+  };
+
+  return (
+    <Card>
+      <h3>Notificaciones</h3>
+      <p className="muted">Elegí por qué canales querés recibir cada tipo de notificación.</p>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table className="table" style={{ minWidth: 520 }}>
+          <thead>
+            <tr>
+              <th>Categoría</th>
+              {NOTIFICATION_CHANNELS.map((ch) => (
+                <th key={ch.key} style={{ textAlign: 'center' }}>
+                  <i className={`bi ${ch.icon}`} /> {ch.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {NOTIFICATION_CATEGORIES.map((cat) => (
+              <tr key={cat.key}>
+                <td>{cat.label}</td>
+                {NOTIFICATION_CHANNELS.map((ch) => (
+                  <td key={ch.key} style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={prefs[ch.key][cat.key]}
+                      onChange={() => toggle(ch.key, cat.key)}
+                      aria-label={`${ch.label} — ${cat.label}`}
+                      style={{ width: 18, height: 18, cursor: 'pointer' }}
+                    />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {save.error && (
+        <p style={{ color: 'var(--ws-danger)' }}>
+          {save.error instanceof Error ? save.error.message : 'Error al guardar'}
+        </p>
+      )}
+      {saved && (
+        <p style={{ color: 'var(--ws-success, #16a34a)', margin: 0 }}>
+          <i className="bi bi-check-circle" /> Preferencias guardadas.
+        </p>
+      )}
+      <div className="row" style={{ justifyContent: 'flex-end' }}>
+        <Button onClick={() => save.mutate()} disabled={save.isPending}>
+          {save.isPending ? 'Guardando…' : 'Guardar'}
+        </Button>
+      </div>
+    </Card>
   );
 }
 

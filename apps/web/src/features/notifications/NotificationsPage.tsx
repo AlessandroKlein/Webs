@@ -165,7 +165,15 @@ function InboxView() {
                       title={t('common.delete')}
                       aria-label={t('common.delete')}
                       onClick={() => setConfirmDelete(n)}
-                      style={{ color: 'var(--ws-danger)' }}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                        color: 'var(--ws-danger)',
+                      }}
                     >
                       <i className="bi bi-trash" />
                     </Button>

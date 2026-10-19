@@ -13,6 +13,72 @@ function buildInvoiceNumber(): string {
 /** Orden del ciclo de vida de una factura: draft → issued → paid. */
 const INVOICE_STATUS_ORDER: Record<string, number> = { draft: 0, issued: 1, paid: 2 };
 
+/** Plantilla por defecto del comprobante (imprimible a PDF desde el navegador). */
+const DEFAULT_INVOICE_TEMPLATE = `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Comprobante {{number}}</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: #111827; margin: 0; background: #f6f7f9; }
+      .doc { max-width: 640px; margin: 24px auto; background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 12px 32px rgba(0,0,0,0.08); }
+      h1 { margin: 0 0 4px; font-size: 22px; }
+      .meta { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      td { padding: 8px 4px; border-bottom: 1px solid #e5e7eb; }
+      td:last-child { text-align: right; }
+      .amount { font-size: 28px; font-weight: 700; margin: 16px 0; }
+      .cae { color: #6b7280; font-size: 12px; word-break: break-all; margin-top: 20px; }
+      @media print { body { background: #fff; } .doc { box-shadow: none; margin: 0; } }
+    </style>
+  </head>
+  <body>
+    <div class="doc">
+      <h1>Comprobante {{type}}</h1>
+      <div class="meta">N.º {{number}} · {{date}}</div>
+      <table>
+        <tr><td>Cliente</td><td>{{customerName}}</td></tr>
+        <tr><td>Moneda</td><td>{{currency}}</td></tr>
+      </table>
+      <div class="amount">{{currency}} {{amount}}</div>
+      <div class="cae">CAE: {{cae}}</div>
+    </div>
+  </body>
+</html>`;
+
+/** Escapa HTML para evitar inyección al interpolar valores en la plantilla. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/** Reemplaza los placeholders `{{...}}` de la plantilla con los datos de la factura. */
+function renderInvoiceHtml(template: string, invoice: Record<string, any>): string {
+  const amount = (Number(invoice.amount ?? 0) / 100).toFixed(2);
+  const created = invoice.createdAt ? new Date(invoice.createdAt) : null;
+  const date = created
+    ? `${String(created.getDate()).padStart(2, '0')}/${String(created.getMonth() + 1).padStart(2, '0')}/${created.getFullYear()}`
+    : '';
+  const values: Record<string, string> = {
+    number: String(invoice.number ?? ''),
+    customerName: String(invoice.customerName ?? ''),
+    amount,
+    date,
+    cae: String(invoice.cae ?? '—'),
+    type: String(invoice.type ?? ''),
+    currency: String(invoice.currency ?? 'ARS'),
+  };
+  return template.replace(/\{\{(number|customerName|amount|date|cae|type|currency)\}\}/g, (_match, key: string) =>
+    escapeHtml(values[key] ?? ''),
+  );
+}
+
 export default defineBlock(manifest, {
   register: async (fastify, config) => {
     const cfg = config as Record<string, unknown>;
@@ -43,6 +109,22 @@ export default defineBlock(manifest, {
       const where = query?.status ? { status: query.status } : {};
       return db.invoice.findMany({ where, orderBy: { createdAt: 'desc' } });
     });
+
+    // Devuelve el comprobante en HTML (imprimible a PDF). Reemplaza los
+    // placeholders de `config.invoiceTemplate` (o de la plantilla por defecto).
+    fastify.get(
+      '/invoices/:id/html',
+      async (request: unknown, reply: { header: (name: string, value: string) => unknown }) => {
+        const { params } = request as { params?: { id?: string } };
+        const invoice = await db.invoice.findUnique({ where: { id: params?.id } });
+        reply.header('Content-Type', 'text/html; charset=utf-8');
+        if (!invoice) {
+          return `<!doctype html><html lang="es"><head><meta charset="utf-8" /></head><body><h1>Factura no encontrada</h1></body></html>`;
+        }
+        const template = String(cfg.invoiceTemplate ?? '').trim() || DEFAULT_INVOICE_TEMPLATE;
+        return renderInvoiceHtml(template, invoice);
+      },
+    );
 
     fastify.post('/invoices', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as {

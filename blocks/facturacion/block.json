@@ -21,6 +21,15 @@
       "businessName": { "type": "string", "title": "Razón social" },
       "taxId": { "type": "string", "title": "CUIT/CIF" },
       "taxRate": { "type": "number", "title": "IVA (%)", "default": 21 },
+      "invoiceTemplate": {
+        "type": "string",
+        "title": "Plantilla HTML del comprobante",
+        "x-ui": {
+          "widget": "textarea",
+          "rows": 16,
+          "help": { "text": "Plantilla HTML para el comprobante. Placeholders: {{number}} {{customerName}} {{amount}} {{date}} {{cae}} {{type}} {{currency}}. Si está vacía se usa una plantilla por defecto. El PDF se genera imprimiendo este HTML desde el navegador." }
+        }
+      },
       "taxProvider": { "type": "string", "title": "Proveedor fiscal", "enum": ["local", "afip", "facturante", "tsd"], "default": "local", "x-ui": { "help": { "text": "Local (CAE simulado), AFIP/ARCA (WSFE FECAESolicitar, requiere token+sign), Facturante o TSD. Sin credenciales se usa CAE simulado.", "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf" } } },
       "arcaCert": { "type": "string", "title": "Certificado ARCA", "x-ui": { "widget": "password", "secret": true } },
       "fiscalToken": { "type": "string", "title": "Token de acceso (AFIP TA)", "x-ui": { "widget": "password", "secret": true } },
