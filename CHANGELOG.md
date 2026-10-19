@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.23.0] - 2026-10-19
+
+### Añadido
+
+- **Traducciones**: endpoint `GET /translations/keys` + panel "Claves base" con
+  todas las claves de la plataforma y su valor en cada idioma (es/en/pt); el
+  catálogo de locales ahora devuelve el listado completo.
+
 ## [1.22.0] - 2026-10-19
 
 ### Añadido

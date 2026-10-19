@@ -46,6 +46,11 @@ export function TranslationsPage() {
     },
   });
 
+  const { data: keysData } = useQuery({
+    queryKey: ['translations-keys'],
+    queryFn: () => api.get<{ locales: string[]; keys: Array<{ key: string; values: Record<string, string> }> }>('/api/v1/translations/keys'),
+  });
+
   const save = useMutation({
     mutationFn: (input: TranslationForm) =>
       editingId
@@ -100,6 +105,29 @@ export function TranslationsPage() {
         Las traducciones definidas aquí sobrescriben los recursos base. Los bloques pueden aportar
         sus propias claves.
       </p>
+
+      <Card>
+        <h3>Claves base ({keysData?.keys.length ?? 0})</h3>
+        <p className="muted">Referencia de las claves disponibles y su valor en cada idioma:</p>
+        <div className="stack" style={{ maxHeight: 320, overflow: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Clave</th>
+                {(keysData?.locales ?? []).map((l) => <th key={l}>{l}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {(keysData?.keys ?? []).map((k) => (
+                <tr key={k.key}>
+                  <td><code>{k.key}</code></td>
+                  {(keysData?.locales ?? []).map((l) => <td key={l}>{k.values[l]}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       <Card>
         <div className="grid-2" style={{ gap: 'var(--ws-space-2)' }}>

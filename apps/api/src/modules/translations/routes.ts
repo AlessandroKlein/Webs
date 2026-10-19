@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
 import { ConflictError, NotFoundError } from '@webs/core';
+import { AVAILABLE_LOCALES, baseResources } from '@webs/i18n';
 import { audit } from '../../lib/audit';
 
 interface TranslationBody {
@@ -22,11 +23,34 @@ const translationBodySchema = {
 } as const;
 
 export default async function translationsRoutes(fastify: FastifyInstance): Promise<void> {
-  // Idiomas disponibles para el selector de filtros del panel.
+  // Idiomas disponibles (catálogo completo).
   fastify.get(
     '/locales',
     { schema: { tags: ['translations'] } },
-    async () => ({ locales: ['es', 'en'], defaultLocale: 'es' }),
+    async () => ({ locales: AVAILABLE_LOCALES, defaultLocale: 'es' }),
+  );
+
+  // Claves base de la plataforma con su valor en cada idioma (para editar/crear).
+  fastify.get(
+    '/translations/keys',
+    { schema: { tags: ['translations'] }, preHandler: [fastify.authenticate, fastify.authorize('translation.read')] },
+    async () => {
+      const locales = Object.keys(baseResources);
+      const keys = new Set<string>();
+      for (const locale of locales) {
+        for (const key of Object.keys(baseResources[locale]?.translation ?? {})) keys.add(key);
+      }
+      return {
+        locales,
+        keys: [...keys].sort().map((key) => ({
+          key,
+          values: locales.reduce<Record<string, string>>((acc, loc) => {
+            acc[loc] = baseResources[loc]?.translation[key] ?? '';
+            return acc;
+          }, {}),
+        })),
+      };
+    },
   );
 
   // Listar traducciones (filtros opcionales por locale y namespace).
