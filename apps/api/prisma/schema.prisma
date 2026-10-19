@@ -241,6 +241,22 @@ model Enrollment {
   @@map("enrollments")
 }
 
+model Routine {
+  id          String   @id @default(uuid())
+  trainerId   String
+  memberId    String
+  name        String
+  description String?
+  exercises   Json     @default("[]")
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([trainerId])
+  @@index([memberId])
+  @@map("routines")
+}
+
 model Comment {
   id        String   @id @default(uuid())
   author    String

@@ -78,5 +78,49 @@ export default defineBlock(manifest, {
       const { params } = request as { params?: { id?: string } };
       return db.enrollment.delete({ where: { id: params?.id } });
     });
+
+    // Rutinas entrenador/cliente (fase 2 gym).
+    fastify.get('/routines', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { query } = request as { query?: { trainerId?: string; memberId?: string } };
+      const where: Record<string, unknown> = {};
+      if (query?.trainerId) where.trainerId = query.trainerId;
+      if (query?.memberId) where.memberId = query.memberId;
+      return db.routine.findMany({ where, orderBy: { createdAt: 'desc' } });
+    });
+
+    fastify.post('/routines', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { body } = request as {
+        body?: { trainerId?: string; memberId?: string; name?: string; description?: string | null; exercises?: unknown; status?: string };
+      };
+      if (!body?.trainerId || !body?.memberId) return { ok: false, error: 'trainerId y memberId son requeridos' };
+      return db.routine.create({
+        data: {
+          trainerId: body.trainerId,
+          memberId: body.memberId,
+          name: body.name ?? 'Rutina',
+          description: body.description ?? null,
+          exercises: Array.isArray(body.exercises) ? body.exercises : [],
+          status: body.status ?? 'active',
+        },
+      });
+    });
+
+    fastify.patch('/routines/:id', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { params, body } = request as {
+        params?: { id?: string };
+        body?: { name?: string; description?: string | null; exercises?: unknown; status?: string };
+      };
+      const data: Record<string, unknown> = {};
+      if (body?.name !== undefined) data.name = body.name;
+      if (body?.description !== undefined) data.description = body.description;
+      if (body?.exercises !== undefined) data.exercises = body.exercises;
+      if (body?.status !== undefined) data.status = body.status;
+      return db.routine.update({ where: { id: params?.id }, data });
+    });
+
+    fastify.delete('/routines/:id', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { params } = request as { params?: { id?: string } };
+      return db.routine.delete({ where: { id: params?.id } });
+    });
   },
 });

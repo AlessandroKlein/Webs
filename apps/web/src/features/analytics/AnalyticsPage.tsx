@@ -90,6 +90,17 @@ interface Enrollment {
   createdAt: string;
 }
 
+interface Routine {
+  id: string;
+  trainerId: string;
+  memberId: string;
+  name: string;
+  description: string | null;
+  exercises: unknown[] | null;
+  status: string;
+  createdAt: string;
+}
+
 type View = 'resumen' | 'ingresos' | 'busqueda' | 'afiliados' | 'academia';
 
 const VIEWS: Array<{ id: View; label: string }> = [
@@ -522,9 +533,19 @@ function AcademiaView() {
   const [confirmCourse, setConfirmCourse] = useState<Course | null>(null);
   const [confirmEnrollment, setConfirmEnrollment] = useState<Enrollment | null>(null);
 
+  const { data: routines } = useQuery({
+    queryKey: ['academia-routines'],
+    queryFn: () => api.get<Routine[]>(`${ACADEMIA}/routines`),
+  });
+  const [rtTrainerId, setRtTrainerId] = useState('');
+  const [rtMemberId, setRtMemberId] = useState('');
+  const [rtName, setRtName] = useState('');
+  const [rtExercises, setRtExercises] = useState('');
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['academia-courses'] });
     qc.invalidateQueries({ queryKey: ['academia-enrollments'] });
+    qc.invalidateQueries({ queryKey: ['academia-routines'] });
   };
 
   const resetCourseForm = () => {
@@ -580,6 +601,27 @@ function AcademiaView() {
 
   const removeEnrollment = useMutation({
     mutationFn: (id: string) => api.del(`${ACADEMIA}/enrollments/${id}`),
+    onSuccess: invalidate,
+  });
+
+  const createRoutine = useMutation({
+    mutationFn: () => {
+      const body: Record<string, unknown> = { trainerId: rtTrainerId, memberId: rtMemberId, name: rtName || 'Rutina' };
+      const exercises = parseLessons(rtExercises);
+      if (exercises) body.exercises = exercises;
+      return api.post<Routine>(`${ACADEMIA}/routines`, body);
+    },
+    onSuccess: () => {
+      invalidate();
+      setRtTrainerId('');
+      setRtMemberId('');
+      setRtName('');
+      setRtExercises('');
+    },
+  });
+
+  const removeRoutine = useMutation({
+    mutationFn: (id: string) => api.del(`${ACADEMIA}/routines/${id}`),
     onSuccess: invalidate,
   });
 
@@ -712,6 +754,52 @@ function AcademiaView() {
           </tbody>
         </table>
         {(enrollments ?? []).length === 0 && <p className="muted">Sin matrículas.</p>}
+      </Card>
+
+      <Card>
+        <h3>Rutinas (entrenador → cliente)</h3>
+        <form
+          className="row"
+          onSubmit={(e) => { e.preventDefault(); createRoutine.mutate(); }}
+          style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}
+        >
+          <TextField label="ID entrenador" value={rtTrainerId} onChange={(e) => setRtTrainerId(e.target.value)} required />
+          <TextField label="ID cliente/miembro" value={rtMemberId} onChange={(e) => setRtMemberId(e.target.value)} required />
+          <TextField label="Nombre" value={rtName} onChange={(e) => setRtName(e.target.value)} placeholder="Rutina" />
+          <TextField label="Ejercicios (JSON opcional)" value={rtExercises} onChange={(e) => setRtExercises(e.target.value)} placeholder='[{"name":"Press banca","sets":3}]' />
+          <Button type="submit" disabled={createRoutine.isPending || !rtTrainerId || !rtMemberId}>
+            Crear rutina
+          </Button>
+        </form>
+        <table className="table" style={{ marginTop: 'var(--ws-space-3)' }}>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Entrenador</th>
+              <th>Cliente</th>
+              <th>Ejercicios</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(routines ?? []).map((r) => (
+              <tr key={r.id}>
+                <td>{r.name}</td>
+                <td><code>{r.trainerId}</code></td>
+                <td><code>{r.memberId}</code></td>
+                <td>{Array.isArray(r.exercises) ? r.exercises.length : '—'}</td>
+                <td><span className="badge">{r.status}</span></td>
+                <td>
+                  <Button variant="ghost" onClick={() => removeRoutine.mutate(r.id)}>
+                    Eliminar
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {(routines ?? []).length === 0 && <p className="muted">Sin rutinas asignadas.</p>}
       </Card>
 
       <ConfirmDialog
