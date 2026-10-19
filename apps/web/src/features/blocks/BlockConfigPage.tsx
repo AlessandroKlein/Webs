@@ -38,6 +38,11 @@ export function BlockConfigPage() {
     },
   });
 
+  const toggle = useMutation({
+    mutationFn: (enabled: boolean) => api.post(`/api/v1/blocks/${blockId}/${enabled ? 'activate' : 'deactivate'}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['blocks'] }),
+  });
+
   if (isLoading) return <Spinner />;
 
   const block = data?.installed.find((b) => b.blockId === blockId);
@@ -51,19 +56,45 @@ export function BlockConfigPage() {
   }
 
   const current = value ?? block.config ?? {};
+  const m = block.manifest;
 
   return (
     <div className="stack">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1>{block.name} <span className="muted">v{block.version}</span></h1>
+        <h1>{m.displayName?.['es'] ?? block.name} <span className="muted">v{block.version}</span></h1>
         <Link to="/admin/blocks" className="btn secondary">← Volver</Link>
       </div>
 
       <Card>
+        <h3>Estado</h3>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="badge">{block.enabled ? 'Habilitado' : 'Deshabilitado'}</span>
+          <Button variant="secondary" onClick={() => toggle.mutate(!block.enabled)} disabled={toggle.isPending}>
+            {block.enabled ? 'Deshabilitar' : 'Habilitar'}
+          </Button>
+        </div>
+      </Card>
+
+      <Card>
+        <h3>Información</h3>
+        <dl className="stack" style={{ margin: 0 }}>
+          <div><dt className="muted" style={{ display: 'inline' }}>Descripción: </dt><dd style={{ display: 'inline' }}>{m.description?.['es'] ?? m.description?.['en'] ?? '—'}</dd></div>
+          <div><dt className="muted" style={{ display: 'inline' }}>Autor: </dt><dd style={{ display: 'inline' }}>{m.author ?? '—'}</dd></div>
+          <div><dt className="muted" style={{ display: 'inline' }}>Licencia: </dt><dd style={{ display: 'inline' }}>{m.license ?? '—'}</dd></div>
+          <div><dt className="muted" style={{ display: 'inline' }}>ID: </dt><dd style={{ display: 'inline' }}><code>{block.blockId}</code></dd></div>
+          <div><dt className="muted" style={{ display: 'inline' }}>Slots: </dt><dd style={{ display: 'inline' }}>{(m.slots ?? []).join(', ') || '—'}</dd></div>
+          <div><dt className="muted" style={{ display: 'inline' }}>Permisos: </dt><dd style={{ display: 'inline' }}>{(m.permissions ?? []).join(', ') || '—'}</dd></div>
+          <div><dt className="muted" style={{ display: 'inline' }}>Eventos: </dt><dd style={{ display: 'inline' }}>{(m.events ?? []).join(', ') || '—'}</dd></div>
+          <div><dt className="muted" style={{ display: 'inline' }}>Entry (server): </dt><dd style={{ display: 'inline' }}><code>{m.entry ?? '—'}</code></dd></div>
+          <div><dt className="muted" style={{ display: 'inline' }}>Entry (client): </dt><dd style={{ display: 'inline' }}><code>{m.clientEntry ?? '—'}</code></dd></div>
+        </dl>
+      </Card>
+
+      <Card>
         <h3>Configuración</h3>
-        {block.manifest.settings ? (
+        {m.settings ? (
           <>
-            <SchemaForm schema={block.manifest.settings} value={current} onChange={setValue} />
+            <SchemaForm schema={m.settings} value={current} onChange={setValue} />
             <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
               {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>Guardado ✓</span>}
               <Button onClick={() => save.mutate(current)} disabled={save.isPending}>

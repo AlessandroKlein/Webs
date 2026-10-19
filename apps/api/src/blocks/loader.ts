@@ -20,6 +20,7 @@ import { CORE_SLOTS } from './slots';
 import { blocksDir } from '../lib/paths';
 import { registerBlockEvent } from '../modules/email/events';
 import { findRemoteBlock, type RegistryBlockEntry } from './catalog';
+import { cacheDel } from '../lib/cache';
 
 const execFileAsync = promisify(execFile);
 
@@ -217,6 +218,7 @@ export async function installBlock(app: FastifyInstance, blockId: string) {
   const ctx = makeContext(app, serverBlock, config, installation.id);
   if (serverBlock.hooks.onInstall) await serverBlock.hooks.onInstall(ctx);
 
+  await cacheDel(app.redis, 'blocks:catalog');
   return { id: installation.id, blockId, manifest };
 }
 
@@ -285,6 +287,7 @@ export async function uninstallBlock(app: FastifyInstance, blockId: string) {
   }
 
   await app.prisma.blockInstallation.delete({ where: { blockId } });
+  await cacheDel(app.redis, 'blocks:catalog');
 }
 
 /**
@@ -375,6 +378,7 @@ export async function updateBlock(app: FastifyInstance, blockId: string) {
       where: { blockId },
       data: { name: localManifest.name, version: localManifest.version, manifest: asJson(localManifest) },
     });
+    await cacheDel(app.redis, 'blocks:catalog');
     return { ok: true, blockId, version: localManifest.version };
   }
 
@@ -391,6 +395,7 @@ export async function updateBlock(app: FastifyInstance, blockId: string) {
       where: { blockId },
       data: { name: manifest.name, version: manifest.version, manifest: asJson(manifest) },
     });
+    await cacheDel(app.redis, 'blocks:catalog');
     return { ok: true, blockId, version: manifest.version };
   }
 }

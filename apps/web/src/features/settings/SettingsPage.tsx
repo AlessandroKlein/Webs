@@ -31,19 +31,39 @@ export function SettingsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['settings'] }),
   });
 
+  const [selected, setSelected] = useState<string | null>(null);
+
   if (isLoading) return <Spinner />;
 
+  const sections = data ?? [];
+  const active = sections.find((s) => s.key === selected) ?? sections[0];
+
   return (
-    <div className="stack">
-      <h1>{t('nav.settings')}</h1>
-      {data?.map((section) => (
-        <SettingsSectionCard
-          key={section.key}
-          section={section}
-          saving={save.isPending}
-          onSave={(value) => save.mutate({ key: section.key, value })}
-        />
-      ))}
+    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
+      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)' }}>{t('nav.settings')}</h1>
+        {sections.map((section) => (
+          <button
+            key={section.key}
+            className={`nav-link ${section.key === active?.key ? 'active' : ''}`}
+            style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={() => setSelected(section.key)}
+          >
+            {section.schema.title ?? section.key}
+          </button>
+        ))}
+      </aside>
+
+      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+        {active && (
+          <SettingsSectionCard
+            key={active.key}
+            section={active}
+            saving={save.isPending}
+            onSave={(value) => save.mutate({ key: active.key, value })}
+          />
+        )}
+      </div>
     </div>
   );
 }

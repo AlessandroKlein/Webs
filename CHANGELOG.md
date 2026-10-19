@@ -3,6 +3,22 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.16.0] - 2026-10-19
+
+### Corregido
+
+- **Sesión persistente**: el refresh/otros POST sin body ya no envían
+  `Content-Type: application/json` (Fastify lo rechazaba con 400), así que el
+  "recordarme" ahora sí mantiene la sesión al recargar.
+- **Catálogo**: se invalida la caché al instalar/desinstalar/actualizar bloques
+  (antes los instalados seguían apareciendo como disponibles).
+
+### Añadido
+
+- **Configuración de bloque**: ficha con estado (habilitar/deshabilitar),
+  información (autor, licencia, slots, permisos, eventos, entry) y ajustes.
+- **Settings**: navegación lateral por secciones (una a la vez).
+
 ## [1.15.2] - 2026-10-19
 
 ### Corregido

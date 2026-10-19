@@ -37,7 +37,6 @@ async function tryRefresh(): Promise<boolean> {
     const res = await fetch(`${BASE_URL}/api/v1/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
     });
     if (!res.ok) return false;
     const data = (await res.json()) as { accessToken?: string };
@@ -54,7 +53,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options,
       credentials: 'include',
       headers: {
-        'Content-Type': 'application/json',
+        ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(options.headers ?? {}),
       },
