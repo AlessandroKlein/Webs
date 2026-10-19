@@ -10,7 +10,7 @@
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
-  "blockDependencies": ["mercadopago"],
+  "requiresProviders": ["payment"],
   "slots": ["content"],
   "translations": { "es": { "add": "Agregar", "checkout": "Pagar", "cart": "Carrito", "total": "Total" }, "en": { "add": "Add", "checkout": "Checkout", "cart": "Cart", "total": "Total" } },
   "settings": {

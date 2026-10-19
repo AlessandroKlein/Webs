@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { BlockManifest } from '@webs/plugin-sdk';
 import { useTranslation } from 'react-i18next';
@@ -68,9 +69,19 @@ export function BlocksPage() {
   };
 
   const install = useMutation({
-    mutationFn: (id: string) => api.post('/api/v1/blocks/install', { id }),
-    onSuccess: invalidate,
+    mutationFn: (vars: { id: string; providers?: Record<string, string[]> }) =>
+      api.post<{ needsProviderSelection?: boolean; missingProviders?: Array<{ group: string; choices: Array<{ id: string; name: string }> }> }>('/api/v1/blocks/install', vars),
+    onSuccess: (result, vars) => {
+      if (result?.needsProviderSelection) {
+        setPending({ id: vars.id, missingProviders: result.missingProviders ?? [] });
+      } else {
+        setPending(null);
+        invalidate();
+      }
+    },
   });
+  const [pending, setPending] = useState<null | { id: string; missingProviders: Array<{ group: string; choices: Array<{ id: string; name: string }> }> }>(null);
+  const [chosen, setChosen] = useState<Record<string, string[]>>({});
   const uninstall = useMutation({
     mutationFn: (id: string) => api.del(`/api/v1/blocks/${id}`),
     onSuccess: invalidate,
@@ -133,13 +144,43 @@ export function BlocksPage() {
                   {b.description?.['es'] ?? b.description?.['en']}
                 </p>
               </div>
-              <Button onClick={() => install.mutate(b.id)} disabled={install.isPending}>
+              <Button onClick={() => install.mutate({ id: b.id })} disabled={install.isPending}>
                 {t('common.create')}
               </Button>
             </div>
           ))}
         </div>
       </Card>
+
+      {pending && (
+        <Card>
+          <h3>Seleccioná proveedores para {pending.id}</h3>
+          {pending.missingProviders.map((g) => (
+            <div key={g.group} style={{ marginBottom: 8 }}>
+              <strong>{g.group}</strong>
+              {g.choices.map((c) => (
+                <label key={c.id} className="row" style={{ gap: 8, margin: '4px 0' }}>
+                  <input
+                    type="checkbox"
+                    checked={(chosen[g.group] ?? []).includes(c.id)}
+                    onChange={(e) => {
+                      const cur = new Set(chosen[g.group] ?? []);
+                      if (e.target.checked) cur.add(c.id);
+                      else cur.delete(c.id);
+                      setChosen({ ...chosen, [g.group]: [...cur] });
+                    }}
+                  />
+                  {c.name}
+                </label>
+              ))}
+            </div>
+          ))}
+          <div className="row">
+            <Button onClick={() => install.mutate({ id: pending.id, providers: chosen })}>Confirmar</Button>
+            <Button variant="ghost" onClick={() => { setPending(null); setChosen({}); }}>Cancelar</Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

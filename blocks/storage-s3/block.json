@@ -9,6 +9,7 @@
   "license": "MIT",
   "entry": "./dist/server.js",
   "apiVersion": "1.0.0",
+  "provides": ["storage"],
   "settings": {
     "type": "object",
     "title": "Configuración de S3/R2/MinIO",

@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { NotFoundError, ValidationError } from '@webs/core';
 import { parseBlockManifest } from '@webs/plugin-sdk';
 import { blockRegistry } from '../../blocks/registry';
-import { installBlock, installBlockWithDependencies, installRemoteBlock, uninstallBlock, updateBlock, getMissingDependencies } from '../../blocks/loader';
+import { installBlock, installBlockWithDependencies, installRemoteBlock, uninstallBlock, updateBlock, getMissingDependencies, getProviders, getMissingProviders } from '../../blocks/loader';
 import { findRemoteBlock, getCatalog } from '../../blocks/catalog';
 import { audit } from '../../lib/audit';
 
@@ -80,6 +80,17 @@ export default async function blocksRoutes(fastify: FastifyInstance): Promise<vo
     async () => getCatalog(fastify),
   );
 
+  // Lista los bloques que proveen un grupo (ej. `payment`) para el selector.
+  fastify.get(
+    '/blocks/providers/:group',
+    { schema: { tags: ['blocks'], params: { type: 'object', properties: { group: { type: 'string' } } } }, preHandler: [fastify.authenticate, fastify.authorize('block.read')] },
+    async (request) => {
+      const group = (request.params as { group: string }).group;
+      const providers = await getProviders(fastify, group);
+      return { group, providers };
+    },
+  );
+
   fastify.post(
     '/blocks/install',
     {
@@ -94,13 +105,14 @@ export default async function blocksRoutes(fastify: FastifyInstance): Promise<vo
             url: { type: 'string' },
             subdir: { type: 'string' },
             autoDependencies: { type: 'boolean', default: true },
+            providers: { type: 'object', additionalProperties: { type: 'array', items: { type: 'string' } } },
           },
         },
       },
       preHandler: [fastify.authenticate, fastify.authorize('block.manage')],
     },
     async (request, reply) => {
-      const body = request.body as { id: string; source?: 'git' | 'npm'; url?: string; subdir?: string; autoDependencies?: boolean };
+      const body = request.body as { id: string; source?: 'git' | 'npm'; url?: string; subdir?: string; autoDependencies?: boolean; providers?: Record<string, string[]> };
       const id = body.id;
       const autoDeps = body.autoDependencies !== false;
 
@@ -108,7 +120,30 @@ export default async function blocksRoutes(fastify: FastifyInstance): Promise<vo
       if (!autoDeps) {
         const manifest = blockRegistry.getAvailableManifest(id);
         const missingDependencies = manifest ? await getMissingDependencies(fastify, manifest) : [];
-        return reply.send({ id, missingDependencies });
+        const missingProviders = manifest ? await getMissingProviders(fastify, manifest) : [];
+        return reply.send({ id, missingDependencies, missingProviders });
+      }
+
+      // Si el bloque necesita proveedores y no hay ninguno instalado ni elegido,
+      // devolvemos el selector (grupos + opciones) para que el usuario elija.
+      const localManifest = blockRegistry.getAvailableManifest(id);
+      if (localManifest && !body.providers) {
+        const missingProviders = await getMissingProviders(fastify, localManifest);
+        if (missingProviders.length) {
+          return reply.send({ id, needsProviderSelection: true, missingProviders });
+        }
+      }
+
+      // Instala los proveedores elegidos (por grupo → ids) antes que el bloque.
+      const installedProviders: string[] = [];
+      for (const ids of Object.values(body.providers ?? {})) {
+        for (const pid of ids) {
+          const inst = await fastify.prisma.blockInstallation.findUnique({ where: { blockId: pid } });
+          if (!inst) {
+            await installBlockWithDependencies(fastify, pid);
+            installedProviders.push(pid);
+          }
+        }
       }
 
       let result;
@@ -130,7 +165,7 @@ export default async function blocksRoutes(fastify: FastifyInstance): Promise<vo
       }
 
       audit(fastify, request, { actorId: request.user?.sub, action: 'block.install', resource: 'block', resourceId: id });
-      return reply.status(201).send(result);
+      return reply.status(201).send({ ...result, installedProviders });
     },
   );
 

@@ -248,6 +248,25 @@ export async function installBlockWithDependencies(app: FastifyInstance, blockId
   return { ...result, installedDependencies };
 }
 
+/** Bloques disponibles que proveen un grupo (ej. `payment`), con estado instalado. */
+export async function getProviders(app: FastifyInstance, group: string): Promise<Array<{ id: string; name: string; installed: boolean }>> {
+  const list = blockRegistry.getAvailable().filter((m) => (m.provides ?? []).includes(group));
+  const installed = new Set((await app.prisma.blockInstallation.findMany({ select: { blockId: true } })).map((i) => i.blockId));
+  return list.map((m) => ({ id: m.id, name: m.name, installed: installed.has(m.id) }));
+}
+
+/** Grupos de proveedores requeridos que no tienen ningún bloque instalado. */
+export async function getMissingProviders(app: FastifyInstance, manifest: BlockManifest): Promise<Array<{ group: string; choices: Array<{ id: string; name: string }> }>> {
+  const missing: Array<{ group: string; choices: Array<{ id: string; name: string }> }> = [];
+  for (const group of manifest.requiresProviders ?? []) {
+    const providers = await getProviders(app, group);
+    if (!providers.some((p) => p.installed)) {
+      missing.push({ group, choices: providers.map((p) => ({ id: p.id, name: p.name })) });
+    }
+  }
+  return missing;
+}
+
 /** Desinstala un bloque (ejecuta `onUninstall` y elimina el registro). */
 export async function uninstallBlock(app: FastifyInstance, blockId: string) {
   const installation = await app.prisma.blockInstallation.findUnique({ where: { blockId } });

@@ -10,6 +10,7 @@
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
+  "provides": ["payment"],
   "slots": ["payment"],
   "translations": { "es": { "pay": "Pagar contra entrega", "terminal": "Cobrar en el lector" }, "en": { "pay": "Cash on delivery", "terminal": "Charge on terminal" } },
   "settings": {

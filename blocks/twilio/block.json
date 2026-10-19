@@ -9,6 +9,7 @@
   "license": "MIT",
   "entry": "./dist/server.js",
   "apiVersion": "1.0.0",
+  "provides": ["notification"],
   "settings": {
     "type": "object",
     "title": "Configuración de Twilio",

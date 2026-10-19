@@ -16,6 +16,7 @@
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
+  "provides": ["payment"],
   "slots": ["payment"],
   "events": ["mercadopago.payment.created", "mercadopago.payment.approved"],
   "translations": {

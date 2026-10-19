@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.3.0] - 2026-10-19
+
+### Añadido
+
+- **Selector de proveedores**: los bloques declaran `provides` (grupos como
+  `payment`, `storage`, `notification`) y `requiresProviders`. Al instalar un
+  bloque que necesita un grupo (ej. `ecommerce` → `payment`), la app muestra un
+  **selector** para que el usuario elija qué método(s) instalar, en vez de fijar
+  uno solo. `GET /blocks/providers/:group` + `providers` en `POST /blocks/install`.
+
 ## [1.2.0] - 2026-10-18
 
 ### Añadido

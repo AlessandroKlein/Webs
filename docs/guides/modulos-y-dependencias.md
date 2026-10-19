@@ -39,13 +39,22 @@ otro, la app lo recomienda en el diálogo de instalación.
 
 ## Cómo se detectan las dependencias
 
-Cada `block.json` declara `blockDependencies` (ids de bloques). Al instalar:
+Dos mecanismos:
 
-- `POST /blocks/install` con `autoDependencies: true` (por defecto) **instala
-  automáticamente** las dependencias que falten (recursivo).
-- Con `autoDependencies: false`, devuelve `missingDependencies` para que el
-  frontend muestre un **diálogo de confirmación** antes de instalar.
+1. **`blockDependencies`** (ids fijos): se instalan automáticamente.
+2. **`provides` / `requiresProviders`** (grupos): el bloque declara qué grupo de
+   proveedores necesita y el sistema muestra un **selector** para que el usuario
+   elija cuál(es) instalar.
 
-Ejemplo: instalar `ecommerce` instala también `mercadopago`; instalar `reservas`
-instala `notificaciones`.
+Ejemplo: `ecommerce` y `carrito` declaran `requiresProviders: ["payment"]`. Los
+bloques `mercadopago`, `modo`, `payway`, `stripe`, `paypal`, `ebanx`, `pos`
+declaran `provides: ["payment"]`. Al instalar `ecommerce`, aparece un selector con
+esos métodos y el usuario elige uno o varios.
+
+- `GET /blocks/providers/:group` lista los proveedores de un grupo.
+- `POST /blocks/install` con `providers: { payment: ["stripe", "paypal"] }`
+  instala el bloque y los proveedores elegidos.
+- Sin `providers`, si falta un grupo requerido, devuelve `needsProviderSelection`
+  con las opciones para mostrar el diálogo.
+
 
