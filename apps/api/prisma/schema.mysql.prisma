@@ -347,6 +347,18 @@ model Follow {
   @@map("follows")
 }
 
+model Story {
+  id        String   @id @default(uuid())
+  author    String
+  mediaUrl  String
+  mediaType String   @default("image")
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([author, createdAt])
+  @@map("stories")
+}
+
 model Organization {
   id             String   @id @default(uuid())
   name           String

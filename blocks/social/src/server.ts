@@ -123,5 +123,43 @@ export default defineBlock(manifest, {
         orderBy: { createdAt: 'asc' },
       });
     });
+
+    // -------- Historias (efímeras, 24h) --------
+
+    fastify.get('/stories', async () => {
+      const now = new Date();
+      const rows = await db.story.findMany({
+        where: { expiresAt: { gt: now } },
+        orderBy: { createdAt: 'asc' },
+      });
+      // Agrupa por autor para la barra de historias (avatar + lista de medias).
+      const byAuthor = new Map<string, Array<Record<string, unknown>>>();
+      for (const s of rows as Array<Record<string, unknown>>) {
+        const author = String(s.author);
+        if (!byAuthor.has(author)) byAuthor.set(author, []);
+        byAuthor.get(author)!.push(s);
+      }
+      return [...byAuthor.entries()].map(([author, stories]) => ({ author, stories }));
+    });
+
+    fastify.post('/stories', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { body } = request as { body?: { author?: string; mediaUrl?: string; mediaType?: string } };
+      const mediaUrl = body?.mediaUrl ?? '';
+      if (!mediaUrl) return { ok: false, error: 'mediaUrl es requerido' };
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      return db.story.create({
+        data: {
+          author: body?.author ?? 'anon',
+          mediaUrl,
+          mediaType: body?.mediaType === 'video' ? 'video' : 'image',
+          expiresAt,
+        },
+      });
+    });
+
+    fastify.delete('/stories/:id', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { params } = request as { params?: { id?: string } };
+      return db.story.delete({ where: { id: params?.id } });
+    });
   },
 });
