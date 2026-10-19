@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { ConflictError, NotFoundError } from '@webs/core';
 import { findUserWithPermissions, toPublicUser, type UserProfile } from '../../lib/user';
@@ -137,3 +138,27 @@ export async function syncRoles(
 }
 
 export { toPublicUser };
+
+/** Crea una invitación de un solo uso (token opaco con expiración). */
+export async function createInvite(
+  fastify: FastifyInstance,
+  email: string,
+  role = 'user',
+  ttlDays = 7,
+): Promise<{ token: string; expiresAt: Date }> {
+  const token = randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + ttlDays * 86400_000);
+  await fastify.prisma.invite.create({ data: { email, token, role, expiresAt } });
+  return { token, expiresAt };
+}
+
+/** Consume una invitación válida (devuelve la invitación o null si es inválida). */
+export async function consumeInvite(
+  fastify: FastifyInstance,
+  token: string,
+): Promise<{ email: string; role: string } | null> {
+  const invite = await fastify.prisma.invite.findUnique({ where: { token } });
+  if (!invite || invite.usedAt || invite.expiresAt < new Date()) return null;
+  await fastify.prisma.invite.update({ where: { id: invite.id }, data: { usedAt: new Date() } });
+  return { email: invite.email, role: invite.role };
+}

@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.11.0] - 2026-10-19
+
+### Añadido
+
+- **Invitaciones de un solo uso**: `POST /api/v1/users/invite` (admin) genera un
+  link de registro por correo con expiración y rol asignado. El registro público
+  ahora queda **pendiente de aprobación** salvo que se use una invitación válida
+  (en ese caso queda activo y con el rol de la invitación).
+
 ## [1.10.0] - 2026-10-19
 
 ### Añadido

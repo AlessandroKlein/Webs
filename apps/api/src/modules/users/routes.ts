@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { paginationQuerySchema, pageParams, pageResponse } from '../../lib/pagination';
 import { findUserWithPermissions, toPublicUser } from '../../lib/user';
 import { audit } from '../../lib/audit';
-import { createUser, deleteUser, listUsers, updateUser } from './service';
+import { createUser, createInvite, deleteUser, listUsers, updateUser } from './service';
 import {
   createUserSchema,
   updateUserSchema,
@@ -11,6 +11,28 @@ import {
 } from './schema';
 
 export default async function usersRoutes(fastify: FastifyInstance): Promise<void> {
+  // Invitación de un solo uso para que alguien se registre (link para enviar).
+  fastify.post(
+    '/users/invite',
+    {
+      schema: {
+        tags: ['users'],
+        body: {
+          type: 'object',
+          required: ['email'],
+          properties: { email: { type: 'string', format: 'email' }, role: { type: 'string' } },
+        },
+      },
+      preHandler: [fastify.authenticate, fastify.authorize('user.write')],
+    },
+    async (request, reply) => {
+      const { email, role } = request.body as { email: string; role?: string };
+      const { token, expiresAt } = await createInvite(fastify, email, role ?? 'user');
+      audit(fastify, request, { actorId: request.user?.sub, action: 'user.invite', resource: 'user', resourceId: email });
+      return reply.status(201).send({ email, token, inviteUrl: `/register?token=${token}`, expiresAt });
+    },
+  );
+
   fastify.get(
     '/users',
     {

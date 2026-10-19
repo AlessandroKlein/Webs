@@ -402,6 +402,19 @@ model SocialAccount {
   @@map("social_accounts")
 }
 
+model Invite {
+  id        String    @id @default(uuid())
+  email     String
+  token     String    @unique
+  role      String    @default("user")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([email])
+  @@map("invites")
+}
+
 // ---------------------------------------------------------------------------
 // Configuración, bloques y colocaciones
 // ---------------------------------------------------------------------------

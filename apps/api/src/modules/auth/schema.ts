@@ -18,6 +18,7 @@ export const registerSchema = {
     password: { type: 'string', minLength: 8 },
     displayName: { type: 'string', minLength: 1 },
     username: { type: 'string', minLength: 3 },
+    inviteToken: { type: 'string' },
   },
 } as const;
 
@@ -34,4 +35,5 @@ export interface RegisterBody {
   password: string;
   displayName?: string;
   username?: string;
+  inviteToken?: string;
 }

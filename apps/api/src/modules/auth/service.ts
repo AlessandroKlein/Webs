@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import type { FastifyInstance } from 'fastify';
-import { ConflictError, UnauthorizedError } from '@webs/core';
+import { BadRequestError, ConflictError, UnauthorizedError } from '@webs/core';
 import { findUserWithPermissions, type UserProfile } from '../../lib/user';
 import {
   resetEmailHtml,
@@ -151,7 +151,7 @@ export async function login(
 
 export async function registerUser(
   fastify: FastifyInstance,
-  input: { email: string; password: string; displayName?: string; username?: string },
+  input: { email: string; password: string; displayName?: string; username?: string; inviteToken?: string },
 ): Promise<UserProfile> {
   const existing = await fastify.prisma.user.findUnique({ where: { email: input.email } });
   if (existing) throw new ConflictError('El correo ya está registrado');
@@ -161,12 +161,27 @@ export async function registerUser(
     if (byUsername) throw new ConflictError('El nombre de usuario ya está en uso');
   }
 
+  // Si viene un token de invitación válido, la cuenta queda aprobada (activa).
+  let active = false;
+  let invitedRole: string | null = null;
+  if (input.inviteToken) {
+    const invite = await fastify.prisma.invite.findUnique({ where: { token: input.inviteToken } });
+    if (!invite || invite.usedAt || invite.expiresAt < new Date()) {
+      throw new BadRequestError('Invitación inválida o expirada');
+    }
+    if (invite.email !== input.email) throw new BadRequestError('El correo no coincide con la invitación');
+    await fastify.prisma.invite.update({ where: { id: invite.id }, data: { usedAt: new Date() } });
+    active = true;
+    invitedRole = invite.role;
+  }
+
   const passwordHash = await bcrypt.hash(input.password, 10);
   const user = await fastify.prisma.user.create({
-    data: { email: input.email, username: input.username ?? null, passwordHash, displayName: input.displayName ?? null },
+    data: { email: input.email, username: input.username ?? null, passwordHash, displayName: input.displayName ?? null, active },
   });
 
-  const userRole = await fastify.prisma.role.findUnique({ where: { key: 'user' } });
+  const roleKey = invitedRole ?? 'user';
+  const userRole = await fastify.prisma.role.findUnique({ where: { key: roleKey } });
   if (userRole) {
     await fastify.prisma.userRole.create({ data: { userId: user.id, roleId: userRole.id } });
   }
