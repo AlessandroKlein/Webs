@@ -64,6 +64,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | Mi cuenta: perfil, eliminar cuenta, 2FA SMS condicional | ✅ | 1.9.0 |
 | Bloques: toggle claro + importación desde JSON | ✅ | 1.10.0 |
 | Invitaciones de un solo uso + registro con aprobación | ✅ | 1.11.0 |
+| Settings en subcategorías (site/branding/localization/maintenance) | ✅ | 1.12.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
