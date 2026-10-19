@@ -32,6 +32,16 @@ import { AccountPage } from './features/account/AccountPage';
 import { PagesPage } from './features/pages/PagesPage';
 import { OrganizationsPage } from './features/organizations/OrganizationsPage';
 import { InventoryPage } from './features/inventory/InventoryPage';
+import { BlogPage } from './features/blog/BlogPage';
+import { SocialPage } from './features/social/SocialPage';
+import { ChatPage } from './features/chat/ChatPage';
+import { CalendarPage } from './features/calendar/CalendarPage';
+import { FormsPage } from './features/forms/FormsPage';
+import { CommercePage } from './features/commerce/CommercePage';
+import { InvoicesPage } from './features/invoices/InvoicesPage';
+import { AnalyticsPage } from './features/analytics/AnalyticsPage';
+import { NotificationsPage } from './features/notifications/NotificationsPage';
+import { AuthConfigPage } from './features/auth-config/AuthConfigPage';
 import { PublicHome } from './features/public/PublicHome';
 import { SetupWizard } from './features/setup/SetupWizard';
 import { ErrorPage } from './pages/ErrorPage';
@@ -130,6 +140,16 @@ function MainApp() {
           <Route path="pages" element={<PagesPage />} />
           <Route path="organizations" element={<OrganizationsPage />} />
           <Route path="inventory" element={<InventoryPage />} />
+          <Route path="blog" element={<BlogPage />} />
+          <Route path="social" element={<SocialPage />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="calendar" element={<CalendarPage />} />
+          <Route path="forms" element={<FormsPage />} />
+          <Route path="commerce" element={<CommercePage />} />
+          <Route path="invoices" element={<InvoicesPage />} />
+          <Route path="analytics" element={<AnalyticsPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="auth" element={<AuthConfigPage />} />
           <Route path="email" element={<EmailPage />} />
           <Route path="blocks" element={<BlocksPage />} />
           <Route path="blocks/:blockId" element={<BlockConfigPage />} />
