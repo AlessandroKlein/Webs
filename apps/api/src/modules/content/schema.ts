@@ -1,3 +1,5 @@
+export type ContentStatus = 'draft' | 'published' | 'scheduled';
+
 export const createContentSchema = {
   type: 'object',
   required: ['slug', 'title'],
@@ -6,7 +8,7 @@ export const createContentSchema = {
     slug: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]*$' },
     title: { type: 'object', additionalProperties: { type: 'string' } },
     body: { type: 'object', additionalProperties: { type: 'string' } },
-    status: { type: 'string', enum: ['draft', 'published', 'archived'], default: 'draft' },
+    status: { type: 'string', enum: ['draft', 'published', 'scheduled'], default: 'draft' },
     seo: { type: 'object' },
   },
 } as const;
@@ -17,7 +19,7 @@ export const updateContentSchema = {
     slug: { type: 'string', pattern: '^[a-z0-9][a-z0-9-]*$' },
     title: { type: 'object', additionalProperties: { type: 'string' } },
     body: { type: 'object', additionalProperties: { type: 'string' } },
-    status: { type: 'string', enum: ['draft', 'published', 'archived'] },
+    status: { type: 'string', enum: ['draft', 'published', 'scheduled'] },
     seo: { type: 'object', nullable: true },
   },
 } as const;
@@ -35,7 +37,7 @@ export interface CreateContentBody {
   slug: string;
   title: Record<string, string>;
   body?: Record<string, string>;
-  status?: 'draft' | 'published' | 'archived';
+  status?: ContentStatus;
   seo?: ContentSeo;
 }
 
@@ -43,6 +45,6 @@ export interface UpdateContentBody {
   slug?: string;
   title?: Record<string, string>;
   body?: Record<string, string>;
-  status?: 'draft' | 'published' | 'archived';
+  status?: ContentStatus;
   seo?: ContentSeo | null;
 }

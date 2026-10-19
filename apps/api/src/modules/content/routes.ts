@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
-import { ConflictError, NotFoundError } from '@webs/core';
+import { ConflictError, ForbiddenError, NotFoundError } from '@webs/core';
 import { paginationQuerySchema, pageParams, pageResponse } from '../../lib/pagination';
 import { audit } from '../../lib/audit';
 import { sanitizeLocalized } from '../../lib/sanitize';
-import { createContentSchema, updateContentSchema, type CreateContentBody, type UpdateContentBody } from './schema';
+import { createContentSchema, updateContentSchema, type ContentStatus, type CreateContentBody, type UpdateContentBody } from './schema';
 
 function serialize(c: {
   id: string;
@@ -33,6 +33,13 @@ function serialize(c: {
   };
 }
 
+function assertCanPublish(request: { user?: { permissions?: string[] } }): void {
+  const permissions = request.user?.permissions ?? [];
+  if (!permissions.includes('content.publish')) {
+    throw new ForbiddenError("Se requiere el permiso 'content.publish' para publicar contenido");
+  }
+}
+
 export default async function contentRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/content',
@@ -58,7 +65,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
       const where: Record<string, unknown> = {};
       if (type) where.type = type;
       if (status) where.status = status;
-      if (q) where.slug = { contains: q };
+      if (q) where.slug = { contains: q, mode: 'insensitive' };
 
       const [items, total] = await fastify.prisma.$transaction([
         fastify.prisma.content.findMany({
@@ -83,6 +90,8 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
     async (request, reply) => {
       const body = request.body as CreateContentBody;
       const type = body.type ?? 'page';
+      const status: ContentStatus = body.status ?? 'draft';
+      if (status === 'published') assertCanPublish(request);
 
       const existing = await fastify.prisma.content.findUnique({
         where: { type_slug: { type, slug: body.slug } },
@@ -95,10 +104,10 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
           slug: body.slug,
           title: body.title as object,
           body: sanitizeLocalized(body.body) as object | undefined,
-          status: body.status ?? 'draft',
+          status,
           seo: (body.seo ?? undefined) as object | undefined,
           authorId: request.user?.sub ?? null,
-          publishedAt: body.status === 'published' ? new Date() : null,
+          publishedAt: status === 'published' ? new Date() : null,
         },
       });
 
@@ -138,6 +147,10 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
 
       const current = await fastify.prisma.content.findUnique({ where: { id } });
       if (!current) throw new NotFoundError('Contenido');
+
+      if (body.status === 'published' && current.status !== 'published') {
+        assertCanPublish(request);
+      }
 
       const data: Record<string, unknown> = {};
       if (body.slug !== undefined) data.slug = body.slug;

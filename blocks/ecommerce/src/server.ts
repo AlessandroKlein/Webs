@@ -15,6 +15,38 @@ export default defineBlock(manifest, {
 
     fastify.get('/products', async () => products);
 
+    fastify.post('/products', async (request: unknown) => {
+      const { body } = request as { body?: { title?: string; price?: number; stock?: number; category?: string } };
+      return db.product.create({
+        data: {
+          title: body?.title ?? '',
+          price: Number(body?.price ?? 0),
+          stock: Number(body?.stock ?? 0),
+          category: body?.category ?? null,
+        },
+      });
+    });
+
+    fastify.get('/products/persisted', async () => db.product.findMany({ orderBy: { title: 'asc' } }));
+
+    fastify.patch('/products/:id', async (request: unknown) => {
+      const { params, body } = request as {
+        params?: { id?: string };
+        body?: { title?: string; price?: number; stock?: number; category?: string | null };
+      };
+      const data: Record<string, unknown> = {};
+      if (body?.title !== undefined) data.title = body.title;
+      if (body?.price !== undefined) data.price = Number(body.price);
+      if (body?.stock !== undefined) data.stock = Number(body.stock);
+      if (body?.category !== undefined) data.category = body.category;
+      return db.product.update({ where: { id: params?.id }, data });
+    });
+
+    fastify.delete('/products/:id', async (request: unknown) => {
+      const { params } = request as { params?: { id?: string } };
+      return db.product.delete({ where: { id: params?.id } });
+    });
+
     fastify.get('/orders', async () => db.order.findMany({ orderBy: { createdAt: 'desc' } }));
 
     fastify.post('/orders', async (request: unknown) => {
