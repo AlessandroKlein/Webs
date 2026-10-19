@@ -3,6 +3,18 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.17.0] - 2026-10-19
+
+### Corregido
+
+- **Bloque "Tienda" roto**: se quitó la entrada placeholder del marketplace
+  (`store` → repo inexistente). La tienda real es el bloque local `ecommerce`.
+
+### Añadido
+
+- **Settings**: aviso "Guardado ✓" al guardar y **botón "Test SMTP"** para
+  verificar la configuración de correo.
+
 ## [1.16.0] - 2026-10-19
 
 ### Corregido

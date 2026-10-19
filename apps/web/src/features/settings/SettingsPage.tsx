@@ -79,13 +79,38 @@ function SettingsSectionCard({
 }) {
   const { t } = useTranslation();
   const [value, setValue] = useState<Record<string, unknown>>(section.value);
+  const [saved, setSaved] = useState(false);
+  const [smtpMsg, setSmtpMsg] = useState<string | null>(null);
+
+  const testSmtp = async () => {
+    const to = window.prompt('Enviar correo de prueba a:', value.from as string ?? '');
+    if (!to) return;
+    try {
+      const r = await api.post<{ ok: boolean; message: string }>('/api/v1/settings/test-smtp', { to });
+      setSmtpMsg(r.message);
+    } catch (e) {
+      setSmtpMsg(e instanceof Error ? e.message : 'Error al probar SMTP');
+    }
+  };
 
   return (
     <Card>
       <h3 style={{ marginBottom: 'var(--ws-space-4)' }}>{section.schema.title ?? section.key}</h3>
       <SchemaForm schema={section.schema} value={value} onChange={setValue} />
-      <div className="row" style={{ justifyContent: 'flex-end' }}>
-        <Button onClick={() => onSave(value)} disabled={saving}>
+      <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
+        {section.key === 'smtp' && (
+          <Button variant="secondary" onClick={() => void testSmtp()}>Test SMTP</Button>
+        )}
+        {smtpMsg && <span className="muted" style={{ marginRight: 'auto' }}>{smtpMsg}</span>}
+        {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>Guardado ✓</span>}
+        <Button
+          onClick={() => {
+            onSave(value);
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+          }}
+          disabled={saving}
+        >
           {t('common.save')}
         </Button>
       </div>
