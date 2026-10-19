@@ -73,9 +73,10 @@ las **plantillas** que los combinan y activan automáticamente.
 ### 2.4 Documentación / CI
 - [ ] (sin pendientes)
 
-### 2.5 Operación (al tener la VPS)
-- [ ] Validar **build de Docker** (compose + Dockerfiles).
-- [ ] Probar **Node en funcionamiento** en la VPS.
+### 2.5 Operación
+- ✅ **Build de Docker validado** (compose + Dockerfiles) en Docker Desktop local (v1.3.1).
+- ✅ **Node en funcionamiento** validado: instalación, login, catálogo, selector de proveedores.
+- [ ] (opcional) Despliegue en una VPS real.
 
 ---
 
