@@ -209,4 +209,26 @@ export function registerDefaultSections(): void {
     },
     defaults: { hsts: true, hstsMaxAge: 15552000, require2FAForAdmin: false, contentSecurityPolicy: '' },
   });
+
+  registerSettingSection({
+    key: 'footer',
+    group: 'general',
+    schema: {
+      type: 'object',
+      title: 'Footer',
+      properties: {
+        copyrightYear: { type: 'integer', title: 'Año de creación' },
+        copyrightMode: { type: 'string', enum: ['current', 'range'], title: 'Modo de copyright', default: 'range' },
+        contactEmail: { type: 'string', format: 'email', title: 'Email de contacto' },
+        contactPhone: { type: 'string', title: 'Teléfono de contacto' },
+        contactAddress: { type: 'string', title: 'Dirección' },
+        legalLinks: {
+          type: 'array',
+          title: 'Enlaces legales',
+          items: { type: 'object', properties: { label: { type: 'string' }, url: { type: 'string', format: 'uri' } } },
+        },
+      },
+    },
+    defaults: { copyrightMode: 'range' },
+  });
 }

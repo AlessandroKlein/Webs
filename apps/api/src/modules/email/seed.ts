@@ -28,6 +28,11 @@ const DEFAULT_TEMPLATES = [
   },
 ];
 
+/**
+ * Siembra las plantillas de correo por defecto mediante `upsert` por clave, de
+ * forma idempotente. Si no hay base de datos disponible, la operación se omite
+ * silenciosamente para no romper el arranque.
+ */
 export async function seedDefaultEmailTemplates(fastify: FastifyInstance): Promise<void> {
   try {
     for (const t of DEFAULT_TEMPLATES) {

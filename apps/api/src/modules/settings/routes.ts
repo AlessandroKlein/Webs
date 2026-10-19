@@ -2,9 +2,25 @@ import type { FastifyInstance } from 'fastify';
 import { audit } from '../../lib/audit';
 import { sendMail } from '../mail/service';
 import { ensureDefaultSections, getSectionValue, listSections, setSectionValue } from './service';
+import { decryptSecretFields } from '../../lib/crypto';
 
 export default async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
   ensureDefaultSections();
+
+  // Footer público (datos no sensibles para el pie de página).
+  fastify.get('/public/footer', { schema: { tags: ['settings'] } }, async () => {
+    const pick = (v: Record<string, unknown>) => ({ ...v });
+    const [site, footer, social] = await Promise.all([
+      fastify.prisma.setting.findUnique({ where: { key: 'site' } }),
+      fastify.prisma.setting.findUnique({ where: { key: 'footer' } }),
+      fastify.prisma.setting.findUnique({ where: { key: 'social' } }),
+    ]);
+    return {
+      site: pick((site?.value as Record<string, unknown>) ?? {}),
+      footer: pick((footer?.value as Record<string, unknown>) ?? {}),
+      social: pick((social?.value as Record<string, unknown>) ?? {}),
+    };
+  });
 
   fastify.get(
     '/settings',

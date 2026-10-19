@@ -1,11 +1,17 @@
 import type { FastifyInstance } from 'fastify';
 
+/**
+ * Expone métricas administrativas agregadas de la plataforma en `/admin/metrics`:
+ * totales de entidades principales y métricas de correo (envíos, aperturas y clics).
+ */
 export default async function metricsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/admin/metrics',
     { schema: { tags: ['metrics'] }, preHandler: [fastify.authenticate] },
     async () => {
       const now = new Date();
+
+      // Conteos de entidades principales, consultados en paralelo para reducir latencia.
       const [users, content, media, campaigns, automations, blocks, sessions, payments, roles, pages] = await Promise.all([
         fastify.prisma.user.count(),
         fastify.prisma.content.count(),
@@ -19,6 +25,7 @@ export default async function metricsRoutes(fastify: FastifyInstance): Promise<v
         fastify.prisma.page.count(),
       ]);
 
+      // Métricas de correo: mensajes enviados, aperturas y clics acumulados.
       const messages = await fastify.prisma.emailMessage.aggregate({
         _count: { _all: true },
         _sum: { clickCount: true },

@@ -8,13 +8,20 @@ import { audit } from '../../lib/audit';
  * `isHome` se renderiza en la raíz pública `/`.
  */
 
+/**
+ * Registra las rutas de administración y lectura pública de páginas.
+ * Las rutas administrativas exigen permisos de `content.read` / `content.write`;
+ * las rutas `/public/*` son de acceso abierto.
+ */
 export default async function pagesRoutes(fastify: FastifyInstance): Promise<void> {
+  // -------- Administración: listado de páginas --------
   fastify.get(
     '/pages',
     { schema: { tags: ['pages'] }, preHandler: [fastify.authenticate, fastify.authorize('content.read')] },
     async () => fastify.prisma.page.findMany({ orderBy: [{ isHome: 'desc' }, { createdAt: 'asc' }] }),
   );
 
+  // -------- Administración: creación de página --------
   fastify.post(
     '/pages',
     {
@@ -36,6 +43,7 @@ export default async function pagesRoutes(fastify: FastifyInstance): Promise<voi
     },
     async (request, reply) => {
       const body = request.body as { slug: string; title: string; layout?: unknown; redirectUrl?: string | null; isHome?: boolean };
+      // Si la nueva página es la home, se revoca ese rol a las demás (home única).
       if (body.isHome) {
         await fastify.prisma.page.updateMany({ data: { isHome: false } });
       }
@@ -53,6 +61,7 @@ export default async function pagesRoutes(fastify: FastifyInstance): Promise<voi
     },
   );
 
+  // -------- Administración: actualización parcial de página --------
   fastify.patch(
     '/pages/:id',
     {
@@ -75,6 +84,7 @@ export default async function pagesRoutes(fastify: FastifyInstance): Promise<voi
     async (request) => {
       const id = (request.params as { id: string }).id;
       const body = request.body as { slug?: string; title?: string; layout?: unknown; redirectUrl?: string | null; isHome?: boolean };
+      // Al promover esta página a home, se desmarca la home anterior (si existe).
       if (body.isHome) await fastify.prisma.page.updateMany({ where: { id: { not: id } }, data: { isHome: false } });
       const data: Record<string, unknown> = {};
       if (body.slug !== undefined) data.slug = body.slug;
@@ -86,6 +96,7 @@ export default async function pagesRoutes(fastify: FastifyInstance): Promise<voi
     },
   );
 
+  // -------- Administración: eliminación de página --------
   fastify.delete(
     '/pages/:id',
     { schema: { tags: ['pages'], params: { type: 'object', properties: { id: { type: 'string' } } } }, preHandler: [fastify.authenticate, fastify.authorize('content.write')] },
@@ -96,10 +107,12 @@ export default async function pagesRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   // -------- Público --------
+  // Listado reducido de páginas públicas (solo slug, título y marca de home).
   fastify.get('/public/pages', { schema: { tags: ['pages'] } }, async () =>
     fastify.prisma.page.findMany({ select: { slug: true, title: true, isHome: true } }),
   );
 
+  // Resuelve una página pública por slug; `home` redirige a la página marcada isHome.
   fastify.get('/public/page/:slug', { schema: { tags: ['pages'], params: { type: 'object', properties: { slug: { type: 'string' } } } } }, async (request) => {
     const slug = (request.params as { slug: string }).slug;
     const page = slug === 'home'

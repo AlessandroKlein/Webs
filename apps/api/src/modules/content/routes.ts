@@ -5,6 +5,10 @@ import { audit } from '../../lib/audit';
 import { sanitizeLocalized } from '../../lib/sanitize';
 import { createContentSchema, updateContentSchema, type ContentStatus, type CreateContentBody, type UpdateContentBody } from './schema';
 
+/**
+ * Serializa una entidad de contenido de Prisma al formato de respuesta de la API,
+ * convirtiendo las fechas a ISO 8601 y normalizando los campos opcionales a `null`.
+ */
 function serialize(c: {
   id: string;
   type: string;
@@ -33,6 +37,10 @@ function serialize(c: {
   };
 }
 
+/**
+ * Verifica que el usuario posea el permiso `content.publish`; de lo contrario
+ * lanza un ForbiddenError. Se invoca antes de crear o publicar contenido.
+ */
 function assertCanPublish(request: { user?: { permissions?: string[] } }): void {
   const permissions = request.user?.permissions ?? [];
   if (!permissions.includes('content.publish')) {
@@ -40,7 +48,13 @@ function assertCanPublish(request: { user?: { permissions?: string[] } }): void 
   }
 }
 
+/**
+ * Registra las rutas CRUD de contenido: listado paginado, creación, detalle,
+ * actualización parcial y eliminación. Cada endpoint exige autenticación y el
+ * permiso de lectura (`content.read`) o escritura (`content.write`) correspondiente.
+ */
 export default async function contentRoutes(fastify: FastifyInstance): Promise<void> {
+  // -------- Listado paginado y filtrado de contenido --------
   fastify.get(
     '/content',
     {
@@ -62,6 +76,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
       const { page, pageSize } = pageParams(request.query as { page?: number; pageSize?: number });
       const { type, status, q } = request.query as { type?: string; status?: string; q?: string };
 
+      // Filtros opcionales: por tipo, por estado y búsqueda por slug.
       const where: Record<string, unknown> = {};
       if (type) where.type = type;
       if (status) where.status = status;
@@ -81,6 +96,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
     },
   );
 
+  // -------- Creación de contenido --------
   fastify.post(
     '/content',
     {
@@ -93,6 +109,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
       const status: ContentStatus = body.status ?? 'draft';
       if (status === 'published') assertCanPublish(request);
 
+      // Valida unicidad del slug para el tipo de contenido antes de crear.
       const existing = await fastify.prisma.content.findUnique({
         where: { type_slug: { type, slug: body.slug } },
       });
@@ -116,6 +133,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
     },
   );
 
+  // -------- Detalle de contenido por id --------
   fastify.get(
     '/content/:id',
     {
@@ -131,6 +149,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
     },
   );
 
+  // -------- Actualización parcial de contenido --------
   fastify.patch(
     '/content/:id',
     {
@@ -152,6 +171,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
         assertCanPublish(request);
       }
 
+      // Construye únicamente los campos provistos en el body.
       const data: Record<string, unknown> = {};
       if (body.slug !== undefined) data.slug = body.slug;
       if (body.title !== undefined) data.title = body.title as object;
@@ -171,6 +191,7 @@ export default async function contentRoutes(fastify: FastifyInstance): Promise<v
     },
   );
 
+  // -------- Eliminación de contenido --------
   fastify.delete(
     '/content/:id',
     {

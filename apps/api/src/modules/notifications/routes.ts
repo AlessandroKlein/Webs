@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { NotFoundError, ValidationError } from '@webs/core';
 import { getNotificationProvider, listNotificationProviders } from './registry';
 
+/** Esquema de validación para el envío de una notificación por un proveedor. */
 const sendSchema = z.object({
   provider: z.string().min(1),
   to: z.string().min(1),
@@ -10,14 +11,19 @@ const sendSchema = z.object({
   channel: z.string().optional(),
 });
 
+/**
+ * Registra las rutas de notificaciones: bandeja in-app (inbox), listado de
+ * proveedores disponibles y envío de notificaciones a través de un proveedor.
+ */
 export default async function notificationsRoutes(fastify: FastifyInstance): Promise<void> {
-  // Bandeja de notificaciones en-app (global, usa el modelo `notification`).
+  // -------- Bandeja de notificaciones en-app (global, usa el modelo `notification`) --------
   fastify.get(
     '/notifications/inbox',
     { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate] },
     async () => fastify.prisma.notification.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
   );
 
+  // Creación de una notificación en la bandeja (requiere permiso de escritura de ajustes).
   fastify.post(
     '/notifications/inbox',
     { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate, fastify.authorize('setting.write')] },
@@ -30,6 +36,7 @@ export default async function notificationsRoutes(fastify: FastifyInstance): Pro
     },
   );
 
+  // Marca una notificación como leída.
   fastify.patch(
     '/notifications/inbox/:id',
     { schema: { tags: ['notifications'], params: { type: 'object', properties: { id: { type: 'string' } } } }, preHandler: [fastify.authenticate] },
@@ -39,12 +46,14 @@ export default async function notificationsRoutes(fastify: FastifyInstance): Pro
     },
   );
 
+  // -------- Proveedores de notificación disponibles --------
   fastify.get(
     '/notifications/providers',
     { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate] },
     async () => listNotificationProviders(),
   );
 
+  // -------- Envío de notificación vía un proveedor --------
   fastify.post(
     '/notifications/send',
     { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate, fastify.authorize('user.read')] },
@@ -61,6 +70,7 @@ export default async function notificationsRoutes(fastify: FastifyInstance): Pro
       if (!provider) throw new NotFoundError(`Proveedor de notificaciones '${input.provider}'`);
 
       const result = await provider.send({ to: input.to, message: input.message, channel: input.channel });
+      // Emite el evento `notification.sent` para observadores (auditoría, webhooks, etc.).
       if (fastify.events) {
         await fastify.events.emit('notification.sent', {
           notification: { provider: provider.id, to: input.to, channel: input.channel ?? null, id: result.id },

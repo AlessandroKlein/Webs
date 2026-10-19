@@ -7,6 +7,7 @@ import type { FastifyInstance } from 'fastify';
  * Se usa para email, generación de reportes, procesamiento de imágenes, etc.
  */
 
+/** Opciones de encolado de un trabajo: retardo inicial y cantidad de reintentos. */
 export interface EnqueueOptions {
   delay?: number;
   attempts?: number;
@@ -28,6 +29,10 @@ function bullConnection(url?: string) {
   };
 }
 
+/**
+ * Encola un trabajo en la cola indicada. Sin Redis configurado, no hace nada
+ * (el llamador decide el fallback). Aplica reintentos con backoff exponencial.
+ */
 export async function enqueueJob(
   fastify: FastifyInstance,
   queueName: string,
@@ -46,6 +51,10 @@ export async function enqueueJob(
   await queue.close();
 }
 
+/**
+ * Arranca un worker para la cola indicada con concurrencia 5. Registra un log
+ * de advertencia ante trabajos fallidos y cierra el worker al apagar Fastify.
+ */
 export function startWorker(
   fastify: FastifyInstance,
   queueName: string,

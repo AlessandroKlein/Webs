@@ -3,6 +3,17 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.34.0] - 2026-10-19
+
+### Añadido
+
+- **Footer**: copyright (© año[s] Nombre del Sitio) con modo año en curso/rango,
+  datos de contacto, enlaces legales y redes sociales (solo los completos). El
+  `<title>` de la pestaña refleja el nombre del sitio. Sección `footer` en ajustes
+  + endpoint público `GET /public/footer`.
+- **Contenido**: vista separada (lista / editor) con barra lateral, botón "Ver"
+  (preview) en Acciones y edición corregida.
+
 ## [1.33.0] - 2026-10-19
 
 ### Añadido

@@ -3,6 +3,7 @@ import { BlockSlot, BlockById } from '../../blocks/BlockSlot';
 import { useAuthStore } from '../../lib/auth-store';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { SiteFooter } from '../../components/SiteFooter';
 
 interface HomePage {
   slug: string;
@@ -66,6 +67,7 @@ export function PublicHome() {
 
       <footer style={{ padding: 'var(--ws-space-6)', borderTop: '1px solid var(--ws-border)' }}>
         <BlockSlot slotId="footer" />
+        <SiteFooter />
       </footer>
     </div>
   );

@@ -1,0 +1,70 @@
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
+
+interface FooterData {
+  site: { name?: string };
+  footer: {
+    copyrightYear?: number;
+    copyrightMode?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    contactAddress?: string;
+    legalLinks?: Array<{ label: string; url: string }>;
+  };
+  social: Record<string, string>;
+}
+
+/**
+ * Footer del sitio: copyright (© año[s] Nombre del Sitio), datos de contacto,
+ * enlaces legales y redes sociales — solo muestra los que están completos.
+ */
+export function SiteFooter() {
+  const { data } = useQuery({
+    queryKey: ['public-footer'],
+    queryFn: () => api.get<FooterData>('/api/v1/public/footer'),
+    retry: 0,
+  });
+
+  const siteName = data?.site.name ?? 'Webs';
+  const year = new Date().getFullYear();
+  const startYear = data?.footer.copyrightYear ?? year;
+  const range = data?.footer.copyrightMode === 'range' && startYear < year ? `${startYear}-${year}` : `${year}`;
+  const social = Object.entries(data?.social ?? {}).filter(([, url]) => url);
+  const legal = (data?.footer.legalLinks ?? []).filter((l) => l.label && l.url);
+  const hasContact = data?.footer.contactEmail || data?.footer.contactPhone || data?.footer.contactAddress;
+
+  // El título de la pestaña refleja el nombre del sitio.
+  useEffect(() => {
+    document.title = siteName;
+  }, [siteName]);
+
+  return (
+    <footer className="footer" style={{ padding: 'var(--ws-space-5) var(--ws-space-6)' }}>
+      <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-4)', justifyContent: 'space-between' }}>
+          <span>© {range} {siteName}. Todos los derechos reservados.</span>
+
+          {hasContact && (
+            <span className="muted">
+              {data?.footer.contactEmail && <a href={`mailto:${data.footer.contactEmail}`}><i className="bi bi-envelope" /> {data.footer.contactEmail}</a>}
+              {data?.footer.contactPhone && <span style={{ marginLeft: 'var(--ws-space-3)' }}><i className="bi bi-telephone" /> {data.footer.contactPhone}</span>}
+              {data?.footer.contactAddress && <span style={{ marginLeft: 'var(--ws-space-3)' }}><i className="bi bi-geo-alt" /> {data.footer.contactAddress}</span>}
+            </span>
+          )}
+        </div>
+
+        {(legal.length > 0 || social.length > 0) && (
+          <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-4)' }}>
+            {legal.map((l) => (
+              <a key={l.url} href={l.url} target="_blank" rel="noopener">{l.label}</a>
+            ))}
+            {social.map(([name, url]) => (
+              <a key={name} href={url} target="_blank" rel="noopener" title={name}><i className={`bi bi-${name === 'x' ? 'twitter-x' : name}`} /> {name}</a>
+            ))}
+          </div>
+        )}
+      </div>
+    </footer>
+  );
+}

@@ -81,6 +81,8 @@ export function ContentPage() {
   const [formKey, setFormKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<ContentRow | null>(null);
+  const [view, setView] = useState<'list' | 'editor'>('list');
+  const [preview, setPreview] = useState<ContentRow | null>(null);
 
   const save = useMutation({
     mutationFn: (input: ContentInput) =>
@@ -144,9 +146,15 @@ export function ContentPage() {
   const items = data?.items ?? [];
 
   return (
-    <div className="stack">
-      <h1>{t('nav.content')}</h1>
+    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
+      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.content')}</h1>
+        <button className={`nav-link ${view === 'list' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('list')}>Contenido</button>
+        <button className={`nav-link ${view === 'editor' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { resetForm(); setView('editor'); }}>{editing ? 'Editor' : 'Nuevo contenido'}</button>
+      </aside>
 
+      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+      {view === 'editor' && (
       <Card>
         <h3>{editing ? 'Editar contenido' : 'Nuevo contenido'}</h3>
         <form className="stack" onSubmit={onSubmit}>
@@ -188,15 +196,15 @@ export function ContentPage() {
             <Button type="submit" disabled={save.isPending}>
               {editing ? 'Guardar' : 'Crear'}
             </Button>
-            {editing && (
-              <Button variant="ghost" onClick={resetForm}>
-                Cancelar
-              </Button>
-            )}
+            <Button variant="ghost" onClick={() => { resetForm(); setView('list'); }}>
+              Cancelar
+            </Button>
           </div>
         </form>
       </Card>
+      )}
 
+      {view === 'list' && (
       <Card>
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end', gap: 'var(--ws-space-2)' }}>
@@ -227,7 +235,7 @@ export function ContentPage() {
               Filtrar
             </Button>
           </div>
-          <Button onClick={resetForm}>Nuevo</Button>
+          <Button onClick={() => { resetForm(); setView('editor'); }}>Nuevo</Button>
         </div>
 
         <table className="table">
@@ -253,7 +261,10 @@ export function ContentPage() {
                 <td>{new Date(c.updatedAt).toLocaleString()}</td>
                 <td>
                   <div className="row">
-                    <Button variant="secondary" onClick={() => startEdit(c)}>
+                    <Button variant="ghost" onClick={() => setPreview(c)}>
+                      Ver
+                    </Button>
+                    <Button variant="secondary" onClick={() => { startEdit(c); setView('editor'); }}>
                       Editar
                     </Button>
                     <Button variant="ghost" onClick={() => setConfirmDelete(c)}>
@@ -272,6 +283,8 @@ export function ContentPage() {
           </p>
         )}
       </Card>
+      )}
+      </div>
 
       <ConfirmDialog
         open={confirmDelete !== null}
@@ -286,6 +299,18 @@ export function ContentPage() {
       >
         ¿Eliminar el contenido <strong>{confirmDelete ? localizedText(confirmDelete.title) || confirmDelete.slug : ''}</strong>? Esta acción es irreversible.
       </ConfirmDialog>
+
+      {preview && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setPreview(null)}>
+          <div style={{ background: 'var(--ws-surface)', border: '1px solid var(--ws-border)', borderRadius: 'var(--ws-radius-lg)', padding: 'var(--ws-space-6)', maxWidth: 720, width: '90%', maxHeight: '80vh', overflow: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>{localizedText(preview.title) || preview.slug}</h2>
+            <div dangerouslySetInnerHTML={{ __html: localizedText(preview.body) }} />
+            <div className="row" style={{ justifyContent: 'flex-end' }}>
+              <Button variant="ghost" onClick={() => setPreview(null)}>Cerrar</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

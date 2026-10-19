@@ -1,5 +1,7 @@
+/** Estado del ciclo de vida de un contenido: borrador, publicado o programado. */
 export type ContentStatus = 'draft' | 'published' | 'scheduled';
 
+/** Esquema de validación para crear contenido: exige `slug` y `title`. */
 export const createContentSchema = {
   type: 'object',
   required: ['slug', 'title'],
@@ -13,6 +15,7 @@ export const createContentSchema = {
   },
 } as const;
 
+/** Esquema de validación para actualizar contenido: todos los campos son opcionales. */
 export const updateContentSchema = {
   type: 'object',
   properties: {
@@ -24,6 +27,7 @@ export const updateContentSchema = {
   },
 } as const;
 
+/** Metadatos SEO opcionales asociados a un contenido. */
 export interface ContentSeo {
   title?: string;
   description?: string;
@@ -32,6 +36,7 @@ export interface ContentSeo {
   canonicalUrl?: string;
 }
 
+/** Cuerpo esperado al crear contenido. */
 export interface CreateContentBody {
   type?: string;
   slug: string;
@@ -41,6 +46,7 @@ export interface CreateContentBody {
   seo?: ContentSeo;
 }
 
+/** Cuerpo esperado al actualizar contenido (todos los campos opcionales). */
 export interface UpdateContentBody {
   slug?: string;
   title?: Record<string, string>;
