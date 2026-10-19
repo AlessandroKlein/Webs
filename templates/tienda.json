@@ -1,0 +1,28 @@
+{
+  "id": "tienda",
+  "name": "Tienda online",
+  "description": "E-commerce completo: productos, carrito, pagos, facturación y analíticas. Reutiliza el mismo núcleo que el gimnasio.",
+  "blocks": [
+    { "id": "ecommerce", "config": { "shippingProvider": "flat", "originCountry": "AR" } },
+    { "id": "carrito", "config": {} },
+    { "id": "mercadopago", "config": {} },
+    { "id": "stripe", "config": {} },
+    { "id": "paypal", "config": {} },
+    { "id": "facturacion", "config": { "afipMode": "factura", "arcaEnvironment": "homol" } },
+    { "id": "marketing", "config": { "enableCoupons": true } },
+    { "id": "analytics", "config": { "provider": "internal", "trackPageViews": true } },
+    { "id": "social", "config": { "allowImages": true, "enableLikes": true } },
+    { "id": "search", "config": {} },
+    { "id": "support", "config": {} }
+  ],
+  "settings": {
+    "site": { "name": "Mi Tienda", "tagline": "Productos de calidad" },
+    "appearance": { "primaryColor": "#2563eb", "defaultTheme": "light" }
+  },
+  "menu": [
+    { "label": "Inicio", "path": "/", "order": 0 },
+    { "label": "Productos", "path": "/productos", "order": 1 },
+    { "label": "Carrito", "path": "/carrito", "order": 2 },
+    { "label": "Ofertas", "path": "/ofertas", "order": 3 }
+  ]
+}

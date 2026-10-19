@@ -1,9 +1,21 @@
 {
   "id": "gym",
   "name": "Gimnasio",
-  "description": "Sitio para gimnasios: clases, horarios, planes y membresías.",
+  "description": "Plataforma para gimnasios y cadenas: membresías, clases/reservas, tienda, inventario, rutinas, chat, red social y analíticas.",
   "blocks": [
-    { "id": "example", "config": { "greeting": "Bienvenido a tu gimnasio" } }
+    { "id": "organizaciones", "config": { "multiTenant": true, "shareInventory": false, "shareMembers": false } },
+    { "id": "reservas", "config": { "provider": "local", "reminderEmail": true, "leadTimeHours": 1, "cancelPolicyHours": 12 } },
+    { "id": "calendario", "config": { "provider": "local", "timezone": "America/Argentina/Buenos_Aires" } },
+    { "id": "ecommerce", "config": { "shippingProvider": "flat", "originCountry": "AR" } },
+    { "id": "carrito", "config": {} },
+    { "id": "mercadopago", "config": {} },
+    { "id": "facturacion", "config": { "afipMode": "factura", "arcaEnvironment": "homol" } },
+    { "id": "academia", "config": { "allowEnroll": true, "certificateEnabled": false } },
+    { "id": "chat", "config": { "allowCommunities": true, "moderation": "basic" } },
+    { "id": "social", "config": { "allowImages": true, "enableLikes": true } },
+    { "id": "analytics", "config": { "provider": "internal", "trackPageViews": true } },
+    { "id": "notificaciones", "config": {} },
+    { "id": "support", "config": {} }
   ],
   "settings": {
     "site": { "name": "Mi Gimnasio", "tagline": "Entrená sin límites" },
@@ -12,6 +24,9 @@
   "menu": [
     { "label": "Inicio", "path": "/", "order": 0 },
     { "label": "Clases", "path": "/clases", "order": 1 },
-    { "label": "Planes", "path": "/planes", "order": 2 }
+    { "label": "Planes", "path": "/planes", "order": 2 },
+    { "label": "Tienda", "path": "/tienda", "order": 3 },
+    { "label": "Rutinas", "path": "/rutinas", "order": 4 },
+    { "label": "Comunidad", "path": "/comunidad", "order": 5 }
   ]
 }
