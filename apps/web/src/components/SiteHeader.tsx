@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { useAuthStore } from '../lib/auth-store';
+import { useRealtime } from '../lib/realtime';
 
 interface SiteData {
   name: string;
@@ -57,6 +58,11 @@ export function SiteHeader() {
   });
 
   const qc = useQueryClient();
+  useRealtime((event) => {
+    if (event === 'notification.created') {
+      void qc.invalidateQueries({ queryKey: ['site-notifications-inbox'] });
+    }
+  });
   const { data: inbox } = useQuery({
     queryKey: ['site-notifications-inbox'],
     queryFn: () => api.get<InboxNotification[]>('/api/v1/notifications/inbox'),

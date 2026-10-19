@@ -7,6 +7,7 @@ import { useAuthStore } from '../lib/auth-store';
 import { setLocale } from '../lib/i18n';
 import { useLocaleStore } from '../lib/locale-store';
 import { api } from '../lib/api';
+import { useRealtime } from '../lib/realtime';
 
 export function AdminLayout() {
   const { t, i18n } = useTranslation();
@@ -30,6 +31,11 @@ export function AdminLayout() {
     refetchInterval: 30_000,
   });
   const qc = useQueryClient();
+  useRealtime((event) => {
+    if (event === 'notification.created') {
+      void qc.invalidateQueries({ queryKey: ['notifications-inbox'] });
+    }
+  });
   const unread = (inbox ?? []).filter((n) => !n.read).length;
 
   const markRead = useMutation({

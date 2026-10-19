@@ -89,6 +89,12 @@ export default defineBlock(manifest, {
           createdAt: msg.createdAt,
         });
       }
+      // Tiempo real: avisa al destinatario y al remitente (si están conectados).
+      const realtime = (fastify as unknown as { realtime?: { sendToUser: (u: string, e: string, p: unknown) => void } }).realtime;
+      if (realtime) {
+        realtime.sendToUser(msg.to, 'chat.message', msg);
+        if (msg.from && msg.from !== msg.to) realtime.sendToUser(msg.from, 'chat.message', msg);
+      }
       return msg;
     });
 

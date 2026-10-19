@@ -75,6 +75,23 @@ export default fp(async (fastify) => {
     };
   }
 
+  // API de tiempo real para el resto de la app: envía un evento a un usuario
+  // (canal `user:<id>`) o a un canal arbitral. Formato de frame: { channel, event, payload }.
+  fastify.decorate('realtime', {
+    sendToUser: (userId: string, event: string, payload: unknown) => {
+      const frame = JSON.stringify({ channel: `user:${userId}`, event, payload });
+      userSockets.get(userId)?.forEach((s) => {
+        if (s.readyState === 1) s.send(frame);
+      });
+    },
+    sendToChannel: (channel: string, event: string, payload: unknown) => {
+      const frame = JSON.stringify({ channel, event, payload });
+      channels.get(channel)?.forEach((s) => {
+        if (s.readyState === 1) s.send(frame);
+      });
+    },
+  });
+
   fastify.get('/ws', { websocket: true }, (socket, request) => {
     // Autenticación: token en query `?token=` o cabecera `Authorization: Bearer`.
     let userId: string | null = null;

@@ -47,6 +47,11 @@ export default async function notificationsRoutes(fastify: FastifyInstance): Pro
           expiresAt: body?.expiresAt ? new Date(body.expiresAt) : null,
         },
       });
+      // Tiempo real: avisa al usuario destinatario (si está conectado).
+      if (n.userId) {
+        const realtime = (fastify as unknown as { realtime?: { sendToUser: (u: string, e: string, p: unknown) => void } }).realtime;
+        realtime?.sendToUser(n.userId, 'notification.created', n);
+      }
       return reply.status(201).send(n);
     },
   );

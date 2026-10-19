@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
+import { useRealtime } from '../../lib/realtime';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -36,6 +37,12 @@ export function ChatPage() {
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const me = user?.id ?? 'anon';
+  useRealtime((event) => {
+    if (event === 'chat.message') {
+      void qc.invalidateQueries({ queryKey: ['chat-messages'] });
+      void qc.invalidateQueries({ queryKey: ['chat-conversations'] });
+    }
+  });
 
   const [view, setView] = useState<View>('conversations');
   const [activeId, setActiveId] = useState<string | null>(null);
