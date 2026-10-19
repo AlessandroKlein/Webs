@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-reservas",
+  "id": "reservas",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Bookings", "es": "Reservas y turnos" },
+  "description": { "en": "Appointments and bookings.", "es": "Citas y reservas." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Reservas", "properties": { "services": { "type": "array", "title": "Servicios", "items": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "duration": { "type": "number" }, "price": { "type": "number" } } }, "default": [] } } }
+}

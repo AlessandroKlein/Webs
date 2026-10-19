@@ -1,0 +1,22 @@
+{
+  "name": "@webs/block-ecommerce",
+  "id": "ecommerce",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "E-commerce", "es": "Comercio electrónico" },
+  "description": { "en": "Store with products, orders and shipping.", "es": "Tienda con productos, pedidos y envíos." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": {
+    "type": "object",
+    "title": "Tienda",
+    "properties": {
+      "shippingFlat": { "type": "number", "title": "Tarifa de envío fija", "default": 0 },
+      "products": { "type": "array", "title": "Productos", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "price": { "type": "number" }, "stock": { "type": "number" }, "category": { "type": "string" } } }, "default": [] }
+    }
+  }
+}

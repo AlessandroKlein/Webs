@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.40.0] - 2026-10-18
+
+### Añadido
+
+- **Bloques de negocio**: `ecommerce` (productos, pedidos con estados, envíos y
+  dashboard de ventas), `reservas` (servicios, agenda y reservas con estados),
+  `blog` (posts con estados, categorías/etiquetas) y `academia` (cursos, lecciones,
+  matriculación y progreso).
+
 ## [0.39.0] - 2026-10-18
 
 ### Añadido

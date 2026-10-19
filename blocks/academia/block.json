@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-academia",
+  "id": "academia",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Academy / LMS", "es": "Academia / LMS" },
+  "description": { "en": "Courses, lessons and progress.", "es": "Cursos, lecciones y progreso." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Academia", "properties": { "courses": { "type": "array", "title": "Cursos", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "description": { "type": "string" }, "level": { "type": "string" }, "lessons": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "videoUrl": { "type": "string" }, "pdfUrl": { "type": "string" } } } } } }, "default": [] } } }
+}
