@@ -37,6 +37,7 @@ interface CatalogItem {
   source: 'local' | 'git' | 'npm';
   installed: boolean;
   verified?: boolean;
+  category?: string;
   installedVersion?: string | null;
   hasUpdate?: boolean;
 }
@@ -112,6 +113,11 @@ export function BlocksPage() {
   const allCatalog = [...(catalogData?.local ?? []), ...(catalogData?.remote ?? [])];
   const updateMap = new Map(allCatalog.filter((b) => b.hasUpdate).map((b) => [b.id, b.version]));
   const catalog = allCatalog.filter((b) => !b.installed);
+  const groupedCatalog = catalog.reduce<Record<string, CatalogItem[]>>((acc, b) => {
+    const cat = b.category ?? 'otros';
+    (acc[cat] ??= []).push(b);
+    return acc;
+  }, {});
 
   return (
     <div className="stack">
@@ -149,26 +155,33 @@ export function BlocksPage() {
         <h3>Catálogo</h3>
         {catalog.length === 0 && <p className="muted">No hay bloques disponibles para instalar.</p>}
         <div className="stack">
-          {catalog.map((b) => (
-            <div key={b.id} className="row" style={{ justifyContent: 'space-between' }}>
-              <div>
-                <strong>{catName(b)}</strong>
-                <span className="muted"> v{b.version}</span>
-                {b.author && <span className="muted"> · {b.author}</span>}
-                <span className="badge" style={{ marginLeft: 8 }}>{b.source}</span>
-                {b.verified && (
-                  <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-success)', color: '#fff' }}>✔ verificado</span>
-                )}
-                {b.icon && (
-                  <img src={b.icon} alt="" style={{ width: 28, height: 28, borderRadius: 6, marginLeft: 8, verticalAlign: 'middle' }} />
-                )}
-                <p className="muted" style={{ margin: 0 }}>
-                  {b.description?.['es'] ?? b.description?.['en']}
-                </p>
+          {Object.entries(groupedCatalog).map(([category, items]) => (
+            <div key={category}>
+              <h4 style={{ textTransform: 'capitalize', margin: 'var(--ws-space-3) 0 var(--ws-space-2)' }}>{category}</h4>
+              <div className="stack">
+              {items.map((b) => (
+                <div key={b.id} className="row" style={{ justifyContent: 'space-between' }}>
+                  <div>
+                    <strong>{catName(b)}</strong>
+                    <span className="muted"> v{b.version}</span>
+                    {b.author && <span className="muted"> · {b.author}</span>}
+                    <span className="badge" style={{ marginLeft: 8 }}>{b.source}</span>
+                    {b.verified && (
+                      <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-success)', color: '#fff' }}>✔ verificado</span>
+                    )}
+                    {b.icon && (
+                      <img src={b.icon} alt="" style={{ width: 28, height: 28, borderRadius: 6, marginLeft: 8, verticalAlign: 'middle' }} />
+                    )}
+                    <p className="muted" style={{ margin: 0 }}>
+                      {b.description?.['es'] ?? b.description?.['en']}
+                    </p>
+                  </div>
+                  <Button onClick={() => install.mutate({ id: b.id })} disabled={install.isPending}>
+                    {t('common.create')}
+                  </Button>
+                </div>
+              ))}
               </div>
-              <Button onClick={() => install.mutate({ id: b.id })} disabled={install.isPending}>
-                {t('common.create')}
-              </Button>
             </div>
           ))}
         </div>

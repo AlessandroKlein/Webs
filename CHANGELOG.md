@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.21.0] - 2026-10-19
+
+### Añadido
+
+- **Catálogo agrupado por categoría** (negocio, contenido, seo, marketing,
+  comunicación, auth, etc.).
+- **Modal de confirmación** (componente `ConfirmDialog`) con estilos del design
+  system; reemplaza `window.confirm` en "Eliminar cuenta".
+
 ## [1.20.0] - 2026-10-19
 
 ### Añadido

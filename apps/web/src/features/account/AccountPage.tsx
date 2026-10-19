@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { QrCode } from '../../components/ui/QrCode';
 import { Spinner } from '../../components/ui/Spinner';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 interface MeResponse {
   user: { id: string; email: string; displayName: string | null; username: string | null } | null;
@@ -42,6 +43,7 @@ export function AccountPage() {
   const twilioInstalled = blocksData?.installed?.some((b) => b.blockId === 'twilio' && b.enabled);
 
   const [tab, setTab] = useState<'profile' | 'security' | 'danger'>('profile');
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (isLoading) return <Spinner />;
 
@@ -96,12 +98,20 @@ export function AccountPage() {
             variant="ghost"
             style={{ color: 'var(--ws-danger)' }}
             disabled={deleteAccount.isPending}
-            onClick={() => {
-              if (window.confirm('¿Eliminar tu cuenta? Esta acción es irreversible.')) deleteAccount.mutate();
-            }}
+            onClick={() => setConfirmDelete(true)}
           >
             Eliminar cuenta
           </Button>
+          <ConfirmDialog
+            open={confirmDelete}
+            title="Eliminar cuenta"
+            confirmLabel="Eliminar definitivamente"
+            danger
+            onConfirm={() => { setConfirmDelete(false); deleteAccount.mutate(); }}
+            onCancel={() => setConfirmDelete(false)}
+          >
+            ¿Seguro que querés eliminar tu cuenta? Esta acción es irreversible y no se puede deshacer.
+          </ConfirmDialog>
         </Card>
       )}
     </div>
