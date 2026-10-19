@@ -7,9 +7,19 @@
   "description": { "en": "Real-time chat between users.", "es": "Chat en tiempo real entre usuarios." },
   "author": "Webs",
   "license": "MIT",
+  "category": "comunicacion",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
-  "settings": { "type": "object", "title": "Chat", "properties": { "room": { "type": "string", "title": "Sala", "default": "general" } } }
+  "settings": {
+    "type": "object",
+    "title": "Chat",
+    "properties": {
+      "room": { "type": "string", "title": "Sala", "default": "general" },
+      "allowCommunities": { "type": "boolean", "title": "Permitir comunidades", "default": false },
+      "moderation": { "type": "string", "title": "Moderación", "enum": ["none", "basic"], "default": "none" },
+      "maxMessageLength": { "type": "number", "title": "Longitud máxima del mensaje", "default": 500 }
+    }
+  }
 }

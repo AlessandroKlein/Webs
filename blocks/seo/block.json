@@ -9,12 +9,18 @@
   "license": "MIT",
   "entry": "./dist/server.js",
   "apiVersion": "1.0.0",
+  "category": "seo",
   "settings": {
     "type": "object",
     "title": "SEO",
     "properties": {
       "siteUrl": { "type": "string", "title": "URL del sitio" },
-      "metaDescription": { "type": "string", "title": "Descripción meta por defecto" }
+      "metaDescription": { "type": "string", "title": "Descripción meta por defecto" },
+      "defaultTitle": { "type": "string", "title": "Título por defecto" },
+      "ogImageUrl": { "type": "string", "title": "Imagen Open Graph", "x-ui": { "widget": "image" } },
+      "twitterHandle": { "type": "string", "title": "Usuario de Twitter/X" },
+      "enableSchemaOrg": { "type": "boolean", "title": "Habilitar Schema.org", "default": true },
+      "sitemapExcludePaths": { "type": "array", "title": "Rutas excluidas del sitemap", "items": { "type": "string" }, "default": [] }
     }
   }
 }

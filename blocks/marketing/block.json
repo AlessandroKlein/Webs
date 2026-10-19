@@ -7,6 +7,7 @@
   "description": { "en": "Discount coupons and promotions.", "es": "Cupones de descuento y promociones." },
   "author": "Webs",
   "license": "MIT",
+  "category": "marketing",
   "entry": "./dist/server.js",
   "apiVersion": "1.0.0",
   "blockDependencies": ["ecommerce"],
@@ -14,6 +15,9 @@
     "type": "object",
     "title": "Marketing",
     "properties": {
+      "enableCoupons": { "type": "boolean", "title": "Habilitar cupones", "default": false },
+      "defaultDiscountPercent": { "type": "number", "title": "Descuento por defecto (%)", "default": 10 },
+      "pointsPerPurchase": { "type": "number", "title": "Puntos por compra", "default": 1 },
       "coupons": {
         "type": "array",
         "title": "Cupones",

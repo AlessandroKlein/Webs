@@ -7,6 +7,7 @@
   "description": { "en": "Invoice generation for payments.", "es": "Generación de facturas para pagos." },
   "author": "Webs",
   "license": "MIT",
+  "category": "negocio",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
@@ -20,7 +21,11 @@
       "businessName": { "type": "string", "title": "Razón social" },
       "taxId": { "type": "string", "title": "CUIT/CIF" },
       "taxRate": { "type": "number", "title": "IVA (%)", "default": 21 },
-      "invoicePrefix": { "type": "string", "title": "Prefijo de factura", "default": "A" }
+      "invoicePrefix": { "type": "string", "title": "Prefijo de factura", "default": "A" },
+      "arcaCuit": { "type": "string", "title": "CUIT ARCA" },
+      "arcaEnvironment": { "type": "string", "title": "Entorno ARCA", "enum": ["homol", "prod"], "default": "homol" },
+      "arcaCert": { "type": "string", "title": "Certificado ARCA", "x-ui": { "widget": "password", "secret": true } },
+      "afipMode": { "type": "string", "title": "Modo AFIP", "enum": ["factura", "ticket"], "default": "factura" }
     }
   }
 }

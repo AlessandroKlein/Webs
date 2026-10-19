@@ -14,5 +14,15 @@
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
-  "settings": { "type": "object", "title": "Registro", "properties": {} }
+  "category": "auth",
+  "settings": {
+    "type": "object",
+    "title": "Registro",
+    "properties": {
+      "requireApproval": { "type": "boolean", "title": "Requerir aprobación", "default": true },
+      "inviteOnly": { "type": "boolean", "title": "Solo por invitación", "default": false },
+      "defaultRole": { "type": "string", "title": "Rol por defecto", "enum": ["user", "editor"], "default": "user" },
+      "sendWelcomeEmail": { "type": "boolean", "title": "Enviar email de bienvenida", "default": true }
+    }
+  }
 }

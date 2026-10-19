@@ -7,9 +7,21 @@
   "description": { "en": "Calendar for events and activities.", "es": "Calendario para turnos y actividades." },
   "author": "Webs",
   "license": "MIT",
+  "category": "negocio",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
-  "settings": { "type": "object", "title": "Calendario", "properties": { "enabled": { "type": "boolean", "default": true } } }
+  "settings": {
+    "type": "object",
+    "title": "Calendario",
+    "properties": {
+      "enabled": { "type": "boolean", "default": true },
+      "provider": { "type": "string", "title": "Proveedor", "enum": ["local", "google", "outlook"], "default": "local" },
+      "timezone": { "type": "string", "title": "Zona horaria", "default": "America/Argentina/Buenos_Aires" },
+      "workingHoursStart": { "type": "string", "title": "Inicio de jornada", "default": "09:00" },
+      "workingHoursEnd": { "type": "string", "title": "Fin de jornada", "default": "18:00" },
+      "calendarApiKey": { "type": "string", "title": "API Key del calendario", "x-ui": { "widget": "password", "secret": true } }
+    }
+  }
 }

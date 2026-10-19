@@ -7,6 +7,7 @@
   "description": { "en": "Store with products, orders and shipping.", "es": "Tienda con productos, pedidos y envíos." },
   "author": "Webs",
   "license": "MIT",
+  "category": "negocio",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
@@ -16,6 +17,11 @@
     "type": "object",
     "title": "Tienda",
     "properties": {
+      "shippingProvider": { "type": "string", "title": "Proveedor de envíos", "enum": ["flat", "terceros"], "default": "flat" },
+      "shippingApiKey": { "type": "string", "title": "API Key de envíos", "x-ui": { "widget": "password", "secret": true } },
+      "shippingBaseUrl": { "type": "string", "title": "URL base de envíos" },
+      "originCountry": { "type": "string", "title": "País de origen" },
+      "originPostalCode": { "type": "string", "title": "Código postal de origen" },
       "shippingFlat": { "type": "number", "title": "Tarifa de envío fija", "default": 0 },
       "products": { "type": "array", "title": "Productos", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "price": { "type": "number" }, "stock": { "type": "number" }, "category": { "type": "string" } } }, "default": [] }
     }

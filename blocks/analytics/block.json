@@ -11,11 +11,16 @@
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["footer"],
+  "category": "seo",
   "settings": {
     "type": "object",
     "title": "Analítica",
     "properties": {
-      "enabled": { "type": "boolean", "title": "Registrar visitas", "default": true }
+      "enabled": { "type": "boolean", "title": "Registrar visitas", "default": true },
+      "provider": { "type": "string", "title": "Proveedor", "enum": ["internal", "google", "plausible"], "default": "internal" },
+      "trackingId": { "type": "string", "title": "ID de seguimiento", "x-ui": { "widget": "password", "secret": true } },
+      "trackPageViews": { "type": "boolean", "title": "Registrar vistas de página", "default": true },
+      "anonymizeIp": { "type": "boolean", "title": "Anonimizar IP", "default": true }
     }
   }
 }

@@ -3,6 +3,20 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.19.0] - 2026-10-19
+
+### Añadido
+
+- **Configuración ampliada de 15 bloques** (settings + categorías): ecommerce
+  (envíos), facturación (ARCA), marketing, chat (comunidades), chat-ia (modelos/
+  proveedores), calendario, reservas, social-login (OAuth), blog, academia,
+  social, seo, analytics (3ros), afiliados, register.
+- **Categorías de bloques**: campo `category` en el SDK + expuesto en el catálogo.
+
+### Corregido
+
+- Roles: endpoint de permisos correcto (`/api/v1/permissions`).
+
 ## [1.18.0] - 2026-10-19
 
 ### Añadido

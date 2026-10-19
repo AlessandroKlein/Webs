@@ -72,6 +72,8 @@ export interface CatalogItem {
   source: BlockSource;
   installed: boolean;
   verified?: boolean;
+  /** Categoría del bloque (agrupación en el catálogo). */
+  category?: string;
   /** Versión instalada (null si no está instalado). */
   installedVersion?: string | null;
   /** true si hay una versión más nueva disponible. */
@@ -139,6 +141,7 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
       license: m.license,
       homepage: m.homepage,
       source: 'local',
+      category: m.category,
       installed: installedIds.has(m.id),
       installedVersion,
       hasUpdate: installedVersion !== null && installedVersion !== m.version,

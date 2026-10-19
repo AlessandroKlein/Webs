@@ -7,9 +7,20 @@
   "description": { "en": "AI chat (configurable endpoint).", "es": "Chat con IA (endpoint configurable)." },
   "author": "Webs",
   "license": "MIT",
+  "category": "comunicacion",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
-  "settings": { "type": "object", "title": "Chat IA", "properties": { "endpoint": { "type": "string", "title": "Endpoint (URL)" }, "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password", "secret": true } }, "model": { "type": "string", "title": "Modelo", "default": "gpt-4o-mini" } } }
+  "settings": {
+    "type": "object",
+    "title": "Chat IA",
+    "properties": {
+      "provider": { "type": "string", "title": "Proveedor", "enum": ["openai", "anthropic", "google", "local"], "default": "openai" },
+      "model": { "type": "string", "title": "Modelo", "default": "gpt-4o-mini" },
+      "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password", "secret": true } },
+      "endpoint": { "type": "string", "title": "Endpoint (URL)" },
+      "systemPrompt": { "type": "string", "title": "Prompt del sistema", "x-ui": { "widget": "textarea" } }
+    }
+  }
 }

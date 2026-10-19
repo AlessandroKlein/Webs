@@ -11,5 +11,17 @@
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
-  "settings": { "type": "object", "title": "Red social", "properties": { "enabled": { "type": "boolean", "default": true } } }
+  "category": "contenido",
+  "settings": {
+    "type": "object",
+    "title": "Red social",
+    "properties": {
+      "enabled": { "type": "boolean", "title": "Habilitado", "default": true },
+      "allowImages": { "type": "boolean", "title": "Permitir imágenes", "default": true },
+      "allowVideos": { "type": "boolean", "title": "Permitir videos", "default": true },
+      "maxPostLength": { "type": "number", "title": "Largo máximo de publicación", "default": 500 },
+      "moderation": { "type": "string", "title": "Moderación", "enum": ["none", "basic"], "default": "basic" },
+      "enableLikes": { "type": "boolean", "title": "Habilitar me gusta", "default": true }
+    }
+  }
 }

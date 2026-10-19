@@ -11,5 +11,16 @@
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
-  "settings": { "type": "object", "title": "Blog", "properties": { "postsPerPage": { "type": "number", "default": 10 } } }
+  "category": "contenido",
+  "settings": {
+    "type": "object",
+    "title": "Blog",
+    "properties": {
+      "postsPerPage": { "type": "number", "title": "Publicaciones por página", "default": 10 },
+      "showAuthor": { "type": "boolean", "title": "Mostrar autor", "default": true },
+      "showDate": { "type": "boolean", "title": "Mostrar fecha", "default": true },
+      "defaultCategory": { "type": "string", "title": "Categoría por defecto", "default": "" },
+      "allowComments": { "type": "boolean", "title": "Permitir comentarios", "default": true }
+    }
+  }
 }

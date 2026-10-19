@@ -7,10 +7,21 @@
   "description": { "en": "Appointments and bookings.", "es": "Citas y reservas." },
   "author": "Webs",
   "license": "MIT",
+  "category": "negocio",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "blockDependencies": ["notificaciones"],
   "slots": ["content"],
-  "settings": { "type": "object", "title": "Reservas", "properties": { "services": { "type": "array", "title": "Servicios", "items": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "duration": { "type": "number" }, "price": { "type": "number" } } }, "default": [] } } }
+  "settings": {
+    "type": "object",
+    "title": "Reservas",
+    "properties": {
+      "provider": { "type": "string", "title": "Proveedor", "enum": ["local", "externo"], "default": "local" },
+      "reminderEmail": { "type": "boolean", "title": "Recordatorio por email", "default": false },
+      "leadTimeHours": { "type": "number", "title": "Antelación (horas)", "default": 24 },
+      "cancelPolicyHours": { "type": "number", "title": "Política de cancelación (horas)", "default": 24 },
+      "services": { "type": "array", "title": "Servicios", "items": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" }, "duration": { "type": "number" }, "price": { "type": "number" } } }, "default": [] }
+    }
+  }
 }
