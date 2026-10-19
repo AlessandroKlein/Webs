@@ -703,6 +703,53 @@ model Payment {
 }
 
 // ---------------------------------------------------------------------------
+// Facturación, envíos y cupones (bloques facturacion/ecommerce/marketing)
+// ---------------------------------------------------------------------------
+
+model Invoice {
+  id            String   @id @default(uuid())
+  number        String   @unique
+  type          String   @default("invoice")
+  amount        Int      @default(0)
+  currency      String   @default("ARS")
+  status        String   @default("draft")
+  customerName  String?
+  customerTaxId String?
+  vatCondition  String?
+  cae           String?
+  pdfUrl        String?
+  paymentId     String?
+  createdAt     DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+model Shipment {
+  id             String   @id @default(uuid())
+  orderId        String
+  provider       String
+  trackingNumber String?
+  status         String   @default("pending")
+  cost           Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  @@index([orderId])
+  @@map("shipments")
+}
+
+model Coupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  discountPercent Int       @default(0)
+  validUntil      DateTime?
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  @@map("coupons")
+}
+
+// ---------------------------------------------------------------------------
 // Auditoría
 // ---------------------------------------------------------------------------
 

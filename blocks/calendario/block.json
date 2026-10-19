@@ -16,12 +16,20 @@
     "type": "object",
     "title": "Calendario",
     "properties": {
-      "enabled": { "type": "boolean", "default": true },
-      "provider": { "type": "string", "title": "Proveedor", "enum": ["local", "google", "outlook"], "default": "local" },
+      "provider": {
+        "type": "string",
+        "title": "Proveedor",
+        "enum": ["local", "google", "caldav"],
+        "default": "local"
+      },
       "timezone": { "type": "string", "title": "Zona horaria", "default": "America/Argentina/Buenos_Aires" },
       "workingHoursStart": { "type": "string", "title": "Inicio de jornada", "default": "09:00" },
       "workingHoursEnd": { "type": "string", "title": "Fin de jornada", "default": "18:00" },
-      "calendarApiKey": { "type": "string", "title": "API Key del calendario", "x-ui": { "widget": "password", "secret": true } }
+      "calendarApiKey": {
+        "type": "string",
+        "title": "API Key del calendario",
+        "x-ui": { "widget": "password", "secret": true }
+      }
     }
   }
 }

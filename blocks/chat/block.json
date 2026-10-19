@@ -12,6 +12,7 @@
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
+  "events": ["chat.message"],
   "settings": {
     "type": "object",
     "title": "Chat",

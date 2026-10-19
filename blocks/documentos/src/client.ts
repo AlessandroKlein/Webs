@@ -3,6 +3,8 @@ import manifestJson from '../block.json';
 
 const manifest = manifestJson as unknown as BlockManifest;
 
+const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('webs_access_token') ?? ''}` });
+
 export default defineClientBlock(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = `<h4>Documentos</h4>
@@ -19,7 +21,7 @@ export default defineClientBlock(manifest, ({ container }) => {
       .join('');
     target.querySelectorAll<HTMLButtonElement>('[data-sign]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        await fetch(`/api/v1/blocks/documentos/documents/${btn.dataset.sign}/sign`, { method: 'POST' });
+        await fetch(`/api/v1/blocks/documentos/documents/${btn.dataset.sign}/sign`, { method: 'POST', headers: authHeaders() });
         refresh();
       });
     });
@@ -28,7 +30,7 @@ export default defineClientBlock(manifest, ({ container }) => {
   el.querySelector('#d-send')!.addEventListener('click', async () => {
     await fetch('/api/v1/blocks/documentos/documents', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({
         name: (el.querySelector('#d-name') as HTMLInputElement).value,
         content: (el.querySelector('#d-content') as HTMLInputElement).value,

@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "block",
   "displayName": { "en": "AI Chat", "es": "Chat con IA" },
-  "description": { "en": "AI chat (configurable endpoint).", "es": "Chat con IA (endpoint configurable)." },
+  "description": { "en": "AI chat (configurable provider).", "es": "Chat con IA (proveedor configurable)." },
   "author": "Webs",
   "license": "MIT",
   "category": "comunicacion",
@@ -16,11 +16,11 @@
     "type": "object",
     "title": "Chat IA",
     "properties": {
-      "provider": { "type": "string", "title": "Proveedor", "enum": ["openai", "anthropic", "google", "local"], "default": "openai" },
+      "provider": { "type": "string", "title": "Proveedor", "enum": ["openai", "anthropic", "gemini", "ollama"], "default": "openai" },
       "model": { "type": "string", "title": "Modelo", "default": "gpt-4o-mini" },
-      "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password", "secret": true } },
-      "endpoint": { "type": "string", "title": "Endpoint (URL)" },
-      "systemPrompt": { "type": "string", "title": "Prompt del sistema", "x-ui": { "widget": "textarea" } }
+      "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password" } },
+      "ollamaUrl": { "type": "string", "title": "URL de Ollama", "default": "http://localhost:11434" },
+      "room": { "type": "string", "title": "Sala / room", "default": "general" }
     }
   }
 }

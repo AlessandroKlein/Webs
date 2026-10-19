@@ -21,18 +21,26 @@
     "properties": {
       "providers": {
         "type": "array",
+        "title": "Proveedores",
         "items": {
           "type": "object",
           "properties": {
-            "id": { "type": "string" },
-            "name": { "type": "string" },
-            "enabled": { "type": "boolean", "title": "Habilitado", "default": true },
-            "clientId": { "type": "string" },
-            "clientSecret": { "type": "string", "x-ui": { "secret": true } },
+            "id": { "type": "string", "title": "ID" },
+            "name": { "type": "string", "title": "Nombre" },
+            "enabled": { "type": "boolean", "title": "Habilitado", "default": false },
+            "clientId": { "type": "string", "title": "Client ID" },
+            "clientSecret": { "type": "string", "title": "Client Secret", "x-ui": { "widget": "password" } },
             "redirectUri": { "type": "string", "title": "URI de redirección" }
           }
-        }
-      }
+        },
+        "default": [
+          { "id": "google", "name": "Google", "enabled": false, "clientId": "", "clientSecret": "", "redirectUri": "" },
+          { "id": "facebook", "name": "Facebook", "enabled": false, "clientId": "", "clientSecret": "", "redirectUri": "" },
+          { "id": "apple", "name": "Apple", "enabled": false, "clientId": "", "clientSecret": "", "redirectUri": "" },
+          { "id": "github", "name": "GitHub", "enabled": false, "clientId": "", "clientSecret": "", "redirectUri": "" }
+        ]
+      },
+      "autoLinkByEmail": { "type": "boolean", "title": "Vincular por email automáticamente", "default": true }
     }
   }
 }

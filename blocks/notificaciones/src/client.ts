@@ -12,7 +12,7 @@ export default defineClientBlock(manifest, ({ container }) => {
   container.appendChild(el);
 
   const refresh = async () => {
-    const res = await fetch('/api/v1/blocks/notificaciones/notifications');
+    const res = await fetch('/api/v1/blocks/notificaciones/inbox');
     const list = (await res.json()) as Notif[];
     const unread = list.filter((n) => !n.read).length;
     const badge = el.querySelector('#badge') as HTMLElement;
@@ -21,9 +21,14 @@ export default defineClientBlock(manifest, ({ container }) => {
     (el.querySelector('#panel') as HTMLElement).innerHTML = list.map((n) => `<div style="padding:6px 0;border-bottom:1px solid var(--ws-border)"><strong>${n.title}</strong><p class="muted">${n.body}</p></div>`).join('') || '<p class="muted">Sin notificaciones</p>';
   };
 
-  (el.querySelector('#bell') as HTMLElement).onclick = () => {
+  (el.querySelector('#bell') as HTMLElement).onclick = async () => {
     const panel = el.querySelector('#panel') as HTMLElement;
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    const visible = panel.style.display === 'block';
+    panel.style.display = visible ? 'none' : 'block';
+    if (!visible) {
+      await fetch('/api/v1/blocks/notificaciones/read-all', { method: 'PATCH' });
+      void refresh();
+    }
   };
   refresh();
   return () => el.remove();

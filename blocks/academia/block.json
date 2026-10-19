@@ -11,16 +11,15 @@
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
-  "category": "contenido",
+  "category": "educacion",
   "settings": {
     "type": "object",
     "title": "Academia",
     "properties": {
-      "courses": { "type": "array", "title": "Cursos", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "description": { "type": "string" }, "level": { "type": "string" }, "lessons": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "videoUrl": { "type": "string" }, "pdfUrl": { "type": "string" } } } } } }, "default": [] },
       "allowEnroll": { "type": "boolean", "title": "Permitir inscripción", "default": true },
       "certificateEnabled": { "type": "boolean", "title": "Certificados habilitados", "default": false },
-      "certificateTemplate": { "type": "string", "title": "Plantilla de certificado", "default": "" },
-      "passingScore": { "type": "number", "title": "Nota de aprobación", "default": 70 }
+      "passingScore": { "type": "integer", "title": "Nota de aprobación", "minimum": 0, "maximum": 100, "default": 70 },
+      "defaultLevel": { "type": "string", "title": "Nivel por defecto", "enum": ["básico", "intermedio", "avanzado"], "default": "básico" }
     }
   }
 }

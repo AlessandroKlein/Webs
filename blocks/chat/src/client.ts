@@ -3,7 +3,7 @@ import manifestJson from '../block.json';
 
 const manifest = manifestJson as unknown as BlockManifest;
 
-interface Msg { from: string; body: string; createdAt: string }
+interface Msg { id: string; from: string; body: string; createdAt: string }
 
 export default defineClientBlock(manifest, ({ container }) => {
   const el = document.createElement('div');
@@ -12,35 +12,43 @@ export default defineClientBlock(manifest, ({ container }) => {
   container.appendChild(el);
 
   const log = el.querySelector('#log') as HTMLElement;
+  let lastId = '';
+
   const add = (m: Msg) => {
     log.insertAdjacentHTML('beforeend', `<div><strong>${m.from}</strong>: ${m.body}</div>`);
     log.scrollTop = log.scrollHeight;
   };
 
-  void fetch('/api/v1/blocks/chat/messages').then(async (r) => {
+  const refresh = async () => {
+    const r = await fetch('/api/v1/blocks/chat/messages');
     const data = (await r.json()) as Msg[];
-    data.reverse().forEach(add);
-  });
+    const newest = data[0];
+    if (newest && newest.id !== lastId) {
+      log.innerHTML = '';
+      lastId = newest.id;
+      data.reverse().forEach(add);
+    }
+  };
 
   const send = async () => {
     const from = (el.querySelector('#from') as HTMLInputElement).value || 'anon';
     const body = (el.querySelector('#msg') as HTMLInputElement).value;
     if (!body) return;
-    await fetch('/api/v1/blocks/chat/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from, body }) });
+    await fetch('/api/v1/blocks/chat/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from, body }),
+    });
     (el.querySelector('#msg') as HTMLInputElement).value = '';
+    await refresh();
   };
   (el.querySelector('#send') as HTMLElement).onclick = () => void send();
 
-  // Tiempo real por WebSocket (fallback: polling cada 3s).
-  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = new WebSocket(`${proto}//${location.host}/api/v1/blocks/chat/ws`);
-  ws.onmessage = (e) => add(JSON.parse(e.data) as Msg);
-  ws.onerror = () => setInterval(async () => {
-    const r = await fetch('/api/v1/blocks/chat/messages');
-    const data = (await r.json()) as Msg[];
-    const last = data[0];
-    if (last && !log.textContent?.includes(last.body)) add(last);
-  }, 3000);
+  void refresh();
+  const timer = setInterval(() => void refresh(), 3000);
 
-  return () => el.remove();
+  return () => {
+    clearInterval(timer);
+    el.remove();
+  };
 });

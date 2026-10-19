@@ -4,26 +4,24 @@
   "version": "0.1.0",
   "type": "block",
   "displayName": { "en": "Marketing", "es": "Marketing" },
-  "description": { "en": "Discount coupons and promotions.", "es": "Cupones de descuento y promociones." },
+  "description": { "en": "Discount coupons, email campaigns and metrics.", "es": "Cupones de descuento, campañas de email y métricas." },
   "author": "Webs",
   "license": "MIT",
   "category": "marketing",
   "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "blockDependencies": ["ecommerce"],
+  "slots": ["content"],
+  "translations": { "es": { "marketing": "Marketing" }, "en": { "marketing": "Marketing" } },
   "settings": {
     "type": "object",
     "title": "Marketing",
     "properties": {
-      "enableCoupons": { "type": "boolean", "title": "Habilitar cupones", "default": false },
       "defaultDiscountPercent": { "type": "number", "title": "Descuento por defecto (%)", "default": 10 },
       "pointsPerPurchase": { "type": "number", "title": "Puntos por compra", "default": 1 },
-      "coupons": {
-        "type": "array",
-        "title": "Cupones",
-        "items": { "type": "object", "properties": { "code": { "type": "string" }, "percent": { "type": "number" } } },
-        "default": []
-      }
+      "emailProvider": { "type": "string", "title": "Proveedor de email", "enum": ["internal", "mailchimp", "resend", "sendgrid"], "default": "internal" },
+      "emailApiKey": { "type": "string", "title": "API Key de email", "x-ui": { "widget": "password", "secret": true } }
     }
   }
 }

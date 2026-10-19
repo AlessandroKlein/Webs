@@ -6,30 +6,44 @@ const manifest = manifestJson as unknown as BlockManifest;
 export default defineBlock(manifest, {
   register: async (fastify, config) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
-    const room = String((config as Record<string, unknown>).room ?? 'general');
-    const sockets = new Set<{ send: (s: string) => void }>();
+    const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
+      req: unknown,
+    ) => Promise<void>;
+    const defaultRoom = String(config.room ?? 'general');
 
-    fastify.get('/messages', async () => db.chatMessage.findMany({ where: { to: room }, orderBy: { createdAt: 'desc' }, take: 100 }));
-
-    fastify.post('/messages', async (request: unknown) => {
-      const { body } = request as { body?: { from?: string; body?: string } };
-      const msg = await db.chatMessage.create({ data: { from: body?.from ?? 'anon', to: room, body: body?.body ?? '' } });
-      const text = JSON.stringify(msg);
-      for (const s of sockets) s.send(text);
-      return msg;
+    // Mensajes por sala: GET /messages?room=<to>
+    fastify.get('/messages', async (request: unknown) => {
+      const { query } = request as { query?: { room?: string } };
+      const room = query?.room ?? defaultRoom;
+      return db.chatMessage.findMany({ where: { to: room }, orderBy: { createdAt: 'desc' }, take: 100 });
     });
 
-    // WebSocket para tiempo real (requiere @fastify/websocket, ya registrado en el núcleo).
-    (fastify as unknown as { get: (p: string, o: unknown, h: unknown) => void }).get('/ws', { websocket: true }, (socket: { on: (e: string, cb: (d?: Uint8Array) => void) => void; send: (s: string) => void }) => {
-      sockets.add(socket);
-      socket.on('message', async (raw) => {
-        const text = raw ? new TextDecoder().decode(raw) : '{}';
-        const data = JSON.parse(text) as { from?: string; body?: string };
-        const msg = await db.chatMessage.create({ data: { from: data.from ?? 'anon', to: room, body: data.body ?? '' } });
-        const payload = JSON.stringify(msg);
-        for (const s of sockets) s.send(payload);
+    // Salas disponibles: valores distintos de `to`.
+    fastify.get('/rooms', async () => {
+      const rows = await db.chatMessage.findMany({ distinct: ['to'], select: { to: true } });
+      const rooms = (rows as Array<{ to: string }>).map((r) => r.to).filter(Boolean);
+      return Array.from(new Set([defaultRoom, ...rooms]));
+    });
+
+    fastify.post('/messages', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { body } = request as { body?: { from?: string; to?: string; body?: string } };
+      const msg = await db.chatMessage.create({
+        data: {
+          from: body?.from ?? 'anon',
+          to: body?.to ?? defaultRoom,
+          body: body?.body ?? '',
+        },
       });
-      socket.on('close', () => sockets.delete(socket));
+      if (fastify.events) {
+        await fastify.events.emit('chat.message', {
+          id: msg.id,
+          from: msg.from,
+          to: msg.to,
+          body: msg.body,
+          createdAt: msg.createdAt,
+        });
+      }
+      return msg;
     });
   },
 });

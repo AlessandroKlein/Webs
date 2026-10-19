@@ -14,9 +14,9 @@ export default defineClientBlock(manifest, ({ container }) => {
     if (!msg) return;
     log.insertAdjacentHTML('beforeend', `<div><strong>Tú</strong>: ${msg}</div>`);
     (el.querySelector('#msg') as HTMLInputElement).value = '';
-    const r = await fetch('/api/v1/blocks/chat-ia/message', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
-    const d = (await r.json()) as { reply: string };
-    log.insertAdjacentHTML('beforeend', `<div><strong>IA</strong>: ${d.reply}</div>`);
+    const r = await fetch('/api/v1/blocks/chat-ia/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: msg }) });
+    const d = (await r.json()) as { reply?: string; error?: string };
+    log.insertAdjacentHTML('beforeend', `<div><strong>IA</strong>: ${d.reply ?? d.error ?? ''}</div>`);
     log.scrollTop = log.scrollHeight;
   };
   (el.querySelector('#send') as HTMLElement).onclick = () => void send();

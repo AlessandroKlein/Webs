@@ -4,12 +4,22 @@
   "version": "0.1.0",
   "type": "block",
   "displayName": { "en": "Search", "es": "Búsqueda" },
-  "description": { "en": "Fuzzy search with autocomplete.", "es": "Búsqueda difusa con autocompletado." },
+  "description": { "en": "Unified search across content, posts and products.", "es": "Búsqueda unificada en contenido, publicaciones y productos." },
   "author": "Webs",
   "license": "MIT",
+  "category": "seo",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["header"],
-  "settings": { "type": "object", "title": "Búsqueda", "properties": { "minChars": { "type": "number", "default": 2 } } }
+  "settings": {
+    "type": "object",
+    "title": "Búsqueda",
+    "properties": {
+      "minChars": { "type": "number", "title": "Mínimo de caracteres", "default": 2 },
+      "maxResults": { "type": "number", "title": "Resultados por tipo", "default": 20 },
+      "indexContent": { "type": "boolean", "title": "Indexar contenido", "default": true },
+      "indexProducts": { "type": "boolean", "title": "Indexar productos", "default": true }
+    }
+  }
 }

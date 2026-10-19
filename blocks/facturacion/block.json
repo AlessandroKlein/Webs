@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "block",
   "displayName": { "en": "Invoicing", "es": "Facturación" },
-  "description": { "en": "Invoice generation for payments.", "es": "Generación de facturas para pagos." },
+  "description": { "en": "Invoice generation with fiscal emission (CAE).", "es": "Generación de facturas con emisión fiscal (CAE)." },
   "author": "Webs",
   "license": "MIT",
   "category": "negocio",
@@ -21,11 +21,8 @@
       "businessName": { "type": "string", "title": "Razón social" },
       "taxId": { "type": "string", "title": "CUIT/CIF" },
       "taxRate": { "type": "number", "title": "IVA (%)", "default": 21 },
-      "invoicePrefix": { "type": "string", "title": "Prefijo de factura", "default": "A" },
-      "arcaCuit": { "type": "string", "title": "CUIT ARCA" },
-      "arcaEnvironment": { "type": "string", "title": "Entorno ARCA", "enum": ["homol", "prod"], "default": "homol" },
-      "arcaCert": { "type": "string", "title": "Certificado ARCA", "x-ui": { "widget": "password", "secret": true } },
-      "afipMode": { "type": "string", "title": "Modo AFIP", "enum": ["factura", "ticket"], "default": "factura" }
+      "taxProvider": { "type": "string", "title": "Proveedor fiscal", "enum": ["local", "afip", "facturante", "tsd"], "default": "local" },
+      "arcaCert": { "type": "string", "title": "Certificado ARCA", "x-ui": { "widget": "password", "secret": true } }
     }
   }
 }

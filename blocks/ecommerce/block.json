@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "block",
   "displayName": { "en": "E-commerce", "es": "Comercio electrónico" },
-  "description": { "en": "Store with products, orders and shipping.", "es": "Tienda con productos, pedidos y envíos." },
+  "description": { "en": "Store with products, orders, shipping and coupons.", "es": "Tienda con productos, pedidos, envíos y cupones." },
   "author": "Webs",
   "license": "MIT",
   "category": "negocio",
@@ -17,11 +17,28 @@
     "type": "object",
     "title": "Tienda",
     "properties": {
-      "shippingProvider": { "type": "string", "title": "Proveedor de envíos", "enum": ["flat", "terceros"], "default": "flat" },
+      "shippingProviders": { "type": "string", "title": "Proveedor de envío", "enum": ["local", "andreani", "oca", "correo", "dhl"], "default": "local" },
+      "shippingRates": {
+        "type": "array",
+        "title": "Tarifas de envío",
+        "items": {
+          "type": "object",
+          "properties": {
+            "provider": { "type": "string", "enum": ["local", "andreani", "oca", "correo", "dhl"] },
+            "baseCost": { "type": "number", "title": "Costo base" },
+            "costPerKg": { "type": "number", "title": "Costo por kg" },
+            "days": { "type": "number", "title": "Días de entrega" }
+          }
+        },
+        "default": [
+          { "provider": "local", "baseCost": 500, "costPerKg": 100, "days": 2 },
+          { "provider": "andreani", "baseCost": 1200, "costPerKg": 150, "days": 3 },
+          { "provider": "oca", "baseCost": 1300, "costPerKg": 160, "days": 4 },
+          { "provider": "correo", "baseCost": 900, "costPerKg": 120, "days": 5 },
+          { "provider": "dhl", "baseCost": 3000, "costPerKg": 300, "days": 2 }
+        ]
+      },
       "shippingApiKey": { "type": "string", "title": "API Key de envíos", "x-ui": { "widget": "password", "secret": true } },
-      "shippingBaseUrl": { "type": "string", "title": "URL base de envíos" },
-      "originCountry": { "type": "string", "title": "País de origen" },
-      "originPostalCode": { "type": "string", "title": "Código postal de origen" },
       "shippingFlat": { "type": "number", "title": "Tarifa de envío fija", "default": 0 },
       "products": { "type": "array", "title": "Productos", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "price": { "type": "number" }, "stock": { "type": "number" }, "category": { "type": "string" } } }, "default": [] }
     }

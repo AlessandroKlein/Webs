@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "block",
   "displayName": { "en": "Analytics", "es": "Analítica" },
-  "description": { "en": "Page view tracking and metrics.", "es": "Seguimiento de visitas y métricas." },
+  "description": { "en": "Business metrics, revenue and page view tracking.", "es": "Métricas de negocio, ingresos y seguimiento de visitas." },
   "author": "Webs",
   "license": "MIT",
   "entry": "./dist/server.js",
@@ -17,7 +17,7 @@
     "title": "Analítica",
     "properties": {
       "enabled": { "type": "boolean", "title": "Registrar visitas", "default": true },
-      "provider": { "type": "string", "title": "Proveedor", "enum": ["internal", "google", "plausible"], "default": "internal" },
+      "provider": { "type": "string", "title": "Proveedor", "enum": ["internal", "google-analytics", "plausible", "matomo"], "default": "internal" },
       "trackingId": { "type": "string", "title": "ID de seguimiento", "x-ui": { "widget": "password", "secret": true } },
       "trackPageViews": { "type": "boolean", "title": "Registrar vistas de página", "default": true },
       "anonymizeIp": { "type": "boolean", "title": "Anonimizar IP", "default": true }

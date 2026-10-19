@@ -7,9 +7,23 @@
   "description": { "en": "Documents and e-signature.", "es": "Documentos y firma electrónica." },
   "author": "Webs",
   "license": "MIT",
+  "category": "contenido",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
-  "settings": { "type": "object", "title": "Documentos", "properties": { "requireSignature": { "type": "boolean", "default": true } } }
+  "settings": {
+    "type": "object",
+    "title": "Documentos",
+    "properties": {
+      "requireSignature": { "type": "boolean", "title": "Requerir firma", "default": true },
+      "auditTrail": { "type": "boolean", "title": "Registrar auditoría", "default": false },
+      "signatureProvider": {
+        "type": "string",
+        "title": "Proveedor de firma",
+        "enum": ["local", "docusign", "external"],
+        "default": "local"
+      }
+    }
+  }
 }

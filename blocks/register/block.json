@@ -5,24 +5,32 @@
   "type": "block",
   "displayName": { "en": "Register", "es": "Registro" },
   "description": {
-    "en": "Public registration with pending approval.",
-    "es": "Registro público con aprobación pendiente."
+    "en": "Public registration orchestrated over the auth core.",
+    "es": "Registro público orquestado sobre el núcleo de auth."
   },
   "author": "Webs",
   "license": "MIT",
+  "category": "auth",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["content"],
-  "category": "auth",
   "settings": {
     "type": "object",
     "title": "Registro",
     "properties": {
-      "requireApproval": { "type": "boolean", "title": "Requerir aprobación", "default": true },
-      "inviteOnly": { "type": "boolean", "title": "Solo por invitación", "default": false },
-      "defaultRole": { "type": "string", "title": "Rol por defecto", "enum": ["user", "editor"], "default": "user" },
-      "sendWelcomeEmail": { "type": "boolean", "title": "Enviar email de bienvenida", "default": true }
+      "mode": {
+        "type": "string",
+        "title": "Modo de registro",
+        "enum": ["open", "invite", "both"],
+        "default": "open"
+      },
+      "defaultRole": {
+        "type": "string",
+        "title": "Rol por defecto",
+        "enum": ["user", "editor"],
+        "default": "user"
+      }
     }
   }
 }

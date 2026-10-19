@@ -7,9 +7,35 @@
   "description": { "en": "In-app notification center.", "es": "Centro de notificaciones dentro de la app." },
   "author": "Webs",
   "license": "MIT",
+  "category": "comunicacion",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
   "slots": ["header"],
-  "settings": { "type": "object", "title": "Notificaciones", "properties": { "enabled": { "type": "boolean", "default": true } } }
+  "events": ["notification.created"],
+  "settings": {
+    "type": "object",
+    "title": "Notificaciones",
+    "properties": {
+      "enabled": { "type": "boolean", "title": "Habilitado", "default": true },
+      "providers": {
+        "type": "array",
+        "title": "Proveedores",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "enabled": { "type": "boolean", "title": "Habilitado", "default": true }
+          }
+        },
+        "default": [
+          { "id": "email", "name": "Email", "enabled": true },
+          { "id": "sms", "name": "SMS", "enabled": false },
+          { "id": "whatsapp", "name": "WhatsApp", "enabled": false },
+          { "id": "push", "name": "Push", "enabled": false }
+        ]
+      }
+    }
+  }
 }

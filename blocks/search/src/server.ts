@@ -3,43 +3,80 @@ import manifestJson from '../block.json';
 
 const manifest = manifestJson as unknown as BlockManifest;
 
-// Distancia de Levenshtein (tolerancia a errores de tipeo).
-function levenshtein(a: string, b: string): number {
-  const m = a.length;
-  const n = b.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[i]![0] = i;
-  for (let j = 0; j <= n; j++) dp[0]![j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i]![j] = Math.min(dp[i - 1]![j]! + 1, dp[i]![j - 1]! + 1, dp[i - 1]![j - 1]! + cost);
-    }
-  }
-  return dp[m]![n]!;
-}
-
-const INDEX = ['Inicio', 'Tienda', 'Cursos', 'Contacto', 'Plantillas', 'Pagos', 'Bloques', 'SEO', 'Analítica'];
-
 export default defineBlock(manifest, {
   register: async (fastify, config) => {
-    const minChars = Number((config as Record<string, unknown>).minChars ?? 2);
+    const cfg = config as Record<string, unknown>;
+    const minChars = Number(cfg.minChars ?? 1);
+    const maxResults = Number(cfg.maxResults ?? 20);
+    const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
 
     fastify.get('/search', async (request: unknown) => {
       const { query } = request as { query?: { q?: string } };
-      const q = (query?.q ?? '').toLowerCase().trim();
-      if (q.length < minChars) return { query: q, results: [] };
+      const q = (query?.q ?? '').trim();
+      if (q.length < minChars) return { results: { content: [], posts: [], products: [] } };
 
-      const results = INDEX.map((item) => ({ item, score: levenshtein(q, item.toLowerCase()) }))
-        .filter((r) => r.score <= 3 || itemIncludes(r.item.toLowerCase(), q))
-        .sort((a, b) => a.score - b.score)
-        .slice(0, 10)
-        .map((r) => r.item);
-      return { query: q, results };
+      const [content, posts, products] = await Promise.all([
+        searchContent(q),
+        searchPosts(q),
+        searchProducts(q),
+      ]);
+      return { results: { content, posts, products } };
     });
 
-    function itemIncludes(item: string, q: string): boolean {
-      return q.split(/\s+/).every((word) => item.includes(word));
+    // Prisma `contains` con `mode: 'insensitive'` (Postgres). Si el provider no lo
+    // soporta, se hace fallback a filtrado en JS con toLowerCase.
+    async function searchContent(q: string) {
+      try {
+        return await db.content.findMany({
+          where: { slug: { contains: q, mode: 'insensitive' } },
+          orderBy: { updatedAt: 'desc' },
+          take: maxResults,
+        });
+      } catch {
+        const all = await db.content.findMany({ orderBy: { updatedAt: 'desc' } });
+        return (all as Array<{ slug: string }>)
+          .filter((c) => String(c.slug ?? '').toLowerCase().includes(q.toLowerCase()))
+          .slice(0, maxResults);
+      }
+    }
+
+    async function searchPosts(q: string) {
+      try {
+        return await db.blogPost.findMany({
+          where: {
+            OR: [
+              { title: { contains: q, mode: 'insensitive' } },
+              { body: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+          orderBy: { createdAt: 'desc' },
+          take: maxResults,
+        });
+      } catch {
+        const all = await db.blogPost.findMany({ orderBy: { createdAt: 'desc' } });
+        return (all as Array<{ title: string; body: string }>)
+          .filter(
+            (p) =>
+              p.title.toLowerCase().includes(q.toLowerCase()) ||
+              p.body.toLowerCase().includes(q.toLowerCase()),
+          )
+          .slice(0, maxResults);
+      }
+    }
+
+    async function searchProducts(q: string) {
+      try {
+        return await db.product.findMany({
+          where: { title: { contains: q, mode: 'insensitive' } },
+          orderBy: { title: 'asc' },
+          take: maxResults,
+        });
+      } catch {
+        const all = await db.product.findMany({ orderBy: { title: 'asc' } });
+        return (all as Array<{ title: string }>)
+          .filter((p) => p.title.toLowerCase().includes(q.toLowerCase()))
+          .slice(0, maxResults);
+      }
     }
   },
 });
