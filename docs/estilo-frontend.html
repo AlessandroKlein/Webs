@@ -148,9 +148,23 @@
 
   <div class="wrap">
     <p class="muted">
-      Preview estático con los tokens reales de <code>packages/ui/src/styles/tokens.css</code>.
-      Abrí este archivo en el navegador para ver cómo se ve el frontend (claro/oscuro) sin servidor.
+      Preview estático del frontend de Webs. Base: <strong>TailwindCSS v4</strong> mapeado a los
+      tokens de <code>packages/ui/src/styles/tokens.css</code> + componentes propios y
+      <strong>Bootstrap Icons</strong>. Abrí este archivo en el navegador para ver el estilo
+      (claro/oscuro) sin servidor.
     </p>
+
+    <h2>Utilidades Tailwind (mapeadas a tokens)</h2>
+    <div class="row">
+      <span class="badge" style="background:var(--ws-primary);color:var(--ws-on-primary)">bg-primary</span>
+      <span class="badge" style="background:var(--ws-success);color:#fff">bg-success</span>
+      <span class="badge" style="background:var(--ws-danger);color:#fff">bg-danger</span>
+      <span class="badge">text-muted</span>
+      <span class="badge" style="border:1px solid var(--ws-border)">border-border</span>
+      <span class="badge" style="box-shadow:var(--ws-shadow-md)">shadow-md</span>
+    </div>
+    <p class="muted">Disponibles: <code>bg-*</code>, <code>text-*</code>, <code>border-*</code>, <code>rounded-*</code>,
+      <code>shadow-*</code>, <code>grid</code>/<code>grid-cols-*</code> y responsive <code>md:</code>/<code>lg:</code>.</p>
 
     <h2>Color de marca</h2>
     <div class="row">
