@@ -47,6 +47,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | Bootstrap Icons + CSS responsive | ✅ | 0.32.0 |
 | QR visual de 2FA + renombrar dispositivos FIDO2 | ✅ | 0.33.0 |
 | Releases automáticas + plantillas blog/corporativo + bloque mapa | ✅ | 0.34.0 |
+| WebAuthn en Redis + plantilla cursos + bloques carrito/facturación/push | ✅ | 0.37.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
@@ -54,7 +55,7 @@ las **plantillas** que los combinan y activan automáticamente.
 ## 2. Backlog pendiente (priorizado)
 
 ### 2.1 Seguridad e identidad
-- [ ] Desafíos WebAuthn **en Redis** (clúster).
+- [ ] (sin pendientes)
 
 ### 2.2 Email / marketing
 - [ ] (sin pendientes)
@@ -78,20 +79,17 @@ las **plantillas** que los combinan y activan automáticamente.
 - ✅ Bloque **Mercado Pago** de referencia (secretos cifrados, webhook firmado, idempotencia).
 
 ### Siguientes plantillas/bloques sugeridos
-- [ ] Plantillas: **cursos**, **e-learning**.
-- [ ] Bloques: **carrito + stock**, **facturación**, **notificaciones push**.
+- ✅ Plantillas: gimnasio, mercado, blog, corporativo, **cursos**.
+- ✅ Bloques: pagos (varias pasarelas), storage, Twilio, mapa, **carrito**, **facturación**, **push**.
 
 
 ---
 
 ## 4. Orden sugerido (backlog restante)
 
-1. **Editor WYSIWYG** (TipTap/Quill) + **QR visual** de 2FA.
-2. **Badges de autor de confianza** en el marketplace.
-3. **2FA FIDO2 con gestión de dispositivos** + **WebAuthn en Redis** (clúster).
-4. **Releases automáticas** (CI/CD con notas generadas).
-5. **Plantillas/bloques extra**: blog, corporativo, cursos; carrito+stock, facturación, push, mapa.
-6. **Operación** (con la VPS): validar Docker y Node.
+1. **Operación (con la VPS)**: validar Docker + Node → declarar **`v1.0.0`**.
+
+> Todo el backlog de features está implementado (v0.7.0 → v0.37.0).
 
 > Previsualizá el estilo del frontend sin servidor abriendo
 > [`docs/estilo-frontend.html`](estilo-frontend.html) en el navegador.
