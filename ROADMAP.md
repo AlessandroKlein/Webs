@@ -51,6 +51,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | Núcleo: modo mantenimiento + zona horaria + respaldos | ✅ | 0.38.0 |
 | Módulos opcionales: SEO, analítica, marketing, comentarios, búsqueda, soporte | ✅ | 0.39.0 |
 | Bloques de negocio: ecommerce, reservas, blog, academia/LMS | ✅ | 0.40.0 |
+| **v1.0.0 estable**: datos persistentes + sistema de versiones/actualización | ✅ | 1.0.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
