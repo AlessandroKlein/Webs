@@ -78,14 +78,14 @@ const ROLES = [
     key: 'admin',
     name: 'Administrador',
     description: 'Administración operativa (sin gestión de roles).',
-    system: true,
+    system: false,
     permissions: ALL_PERMISSION_KEYS.filter((p) => !p.startsWith('role.')),
   },
   {
     key: 'editor',
     name: 'Editor',
     description: 'Gestión de contenido y medios.',
-    system: true,
+    system: false,
     permissions: [
       'content.read',
       'content.write',
@@ -102,7 +102,7 @@ const ROLES = [
     key: 'user',
     name: 'Usuario',
     description: 'Rol básico de usuario final.',
-    system: true,
+    system: false,
     permissions: ['content.read'],
   },
 ];
@@ -125,7 +125,7 @@ async function main() {
   for (const role of ROLES) {
     const saved = await prisma.role.upsert({
       where: { key: role.key },
-      update: { name: role.name, description: role.description },
+      update: { name: role.name, description: role.description, system: role.system },
       create: {
         key: role.key,
         name: role.name,
