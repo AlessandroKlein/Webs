@@ -22,6 +22,29 @@ export default async function settingsRoutes(fastify: FastifyInstance): Promise<
     };
   });
 
+  // Sitio público (identidad + logo) para el encabezado del sitio.
+  fastify.get('/public/site', { schema: { tags: ['settings'] } }, async () => {
+    const [site, branding] = await Promise.all([
+      fastify.prisma.setting.findUnique({ where: { key: 'site' } }),
+      fastify.prisma.setting.findUnique({ where: { key: 'branding' } }),
+    ]);
+    const s = (site?.value ?? {}) as Record<string, unknown>;
+    const b = (branding?.value ?? {}) as Record<string, unknown>;
+    return {
+      name: (s.name as string) ?? 'Webs',
+      tagline: (s.tagline as string) ?? '',
+      logoUrl: (b.logoUrl as string) ?? '',
+      logoDarkUrl: (b.logoDarkUrl as string) ?? '',
+      faviconUrl: (b.faviconUrl as string) ?? '',
+    };
+  });
+
+  // Menú principal público (items guardados en la tabla `menu`, clave `main`).
+  fastify.get('/public/menu', { schema: { tags: ['settings'] } }, async () => {
+    const menu = await fastify.prisma.menu.findUnique({ where: { key: 'main' } });
+    return { items: (menu?.items as Array<{ label: string; path: string }>) ?? [] };
+  });
+
   fastify.get(
     '/settings',
     {
