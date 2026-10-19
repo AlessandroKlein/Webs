@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.15.2] - 2026-10-19
+
+### Corregido
+
+- Login en el frontend envía `identifier` (antes seguía enviando `email`, lo que
+  rompía el login con el esquema nuevo).
+
 ## [1.15.1] - 2026-10-19
 
 ### Corregido

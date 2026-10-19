@@ -26,10 +26,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   permissions: [],
   status: 'idle',
 
-  login: async (email, password, totp, rememberMe, smsCode) => {
+  login: async (identifier, password, totp, rememberMe, smsCode) => {
     set({ status: 'loading' });
     const data = await api.post<{ accessToken: string; user: AuthUser }>('/api/v1/auth/login', {
-      email,
+      identifier,
       password,
       ...(totp ? { totp } : {}),
       ...(smsCode ? { smsCode } : {}),
