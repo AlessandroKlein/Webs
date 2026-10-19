@@ -85,6 +85,7 @@ export function BlocksPage() {
   const [chosen, setChosen] = useState<Record<string, string[]>>({});
   const [jsonInput, setJsonInput] = useState('');
   const [tab, setTab] = useState<'installed' | 'catalog' | 'import'>('installed');
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
   const importJson = () => {
@@ -123,17 +124,25 @@ export function BlocksPage() {
   }, {});
 
   return (
-    <div className="stack">
-      <h1>{t('nav.blocks')}</h1>
-
-      <div className="row" style={{ gap: 4, borderBottom: '1px solid var(--ws-border)', paddingBottom: 'var(--ws-space-2)' }}>
-        {(['installed', 'catalog', 'import'] as const).map((t) => (
-          <Button key={t} variant={tab === t ? 'secondary' : 'ghost'} onClick={() => setTab(t)}>
-            {t === 'installed' ? 'Instalados' : t === 'catalog' ? 'Catálogo' : 'Importar JSON'}
-          </Button>
+    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
+      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.blocks')}</h1>
+        <button className={`nav-link ${tab === 'installed' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('installed')}>Instalados</button>
+        <button className={`nav-link ${tab === 'catalog' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('catalog')}>Catálogo</button>
+        {tab === 'catalog' && Object.keys(groupedCatalog).map((cat) => (
+          <button
+            key={cat}
+            className={`nav-link ${activeCategory === cat ? 'active' : ''}`}
+            style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', paddingLeft: 'var(--ws-space-6)', textTransform: 'capitalize' }}
+            onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+          >
+            {cat}
+          </button>
         ))}
-      </div>
+        <button className={`nav-link ${tab === 'import' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('import')}>Importar JSON</button>
+      </aside>
 
+      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
       {tab === 'installed' && (
       <Card>
         <h3>Instalados</h3>
@@ -155,38 +164,40 @@ export function BlocksPage() {
 
       {tab === 'catalog' && (
       <Card>
-        <h3>Catálogo</h3>
+        <h3>Catálogo{activeCategory ? ` — ${activeCategory}` : ''}</h3>
         {catalog.length === 0 && <p className="muted">No hay bloques disponibles para instalar.</p>}
         <div className="stack">
-          {Object.entries(groupedCatalog).map(([category, items]) => (
-            <div key={category}>
-              <h4 style={{ textTransform: 'capitalize', margin: 'var(--ws-space-3) 0 var(--ws-space-2)' }}>{category}</h4>
-              <div className="stack">
-              {items.map((b) => (
-                <div key={b.id} className="row" style={{ justifyContent: 'space-between' }}>
-                  <div>
-                    <strong>{catName(b)}</strong>
-                    <span className="muted"> v{b.version}</span>
-                    {b.author && <span className="muted"> · {b.author}</span>}
-                    <span className="badge" style={{ marginLeft: 8 }}>{b.source}</span>
-                    {b.verified && (
-                      <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-success)', color: '#fff' }}>✔ verificado</span>
-                    )}
-                    {b.icon && (
-                      <img src={b.icon} alt="" style={{ width: 28, height: 28, borderRadius: 6, marginLeft: 8, verticalAlign: 'middle' }} />
-                    )}
-                    <p className="muted" style={{ margin: 0 }}>
-                      {b.description?.['es'] ?? b.description?.['en']}
-                    </p>
-                  </div>
-                  <Button onClick={() => install.mutate({ id: b.id })} disabled={install.isPending}>
-                    {t('common.create')}
-                  </Button>
+          {Object.entries(groupedCatalog)
+            .filter(([cat]) => !activeCategory || cat === activeCategory)
+            .map(([category, items]) => (
+              <div key={category}>
+                <h4 style={{ textTransform: 'capitalize', margin: 'var(--ws-space-3) 0 var(--ws-space-2)' }}>{category}</h4>
+                <div className="stack">
+                  {items.map((b) => (
+                    <div key={b.id} className="row" style={{ justifyContent: 'space-between' }}>
+                      <div>
+                        <strong>{catName(b)}</strong>
+                        <span className="muted"> v{b.version}</span>
+                        {b.author && <span className="muted"> · {b.author}</span>}
+                        <span className="badge" style={{ marginLeft: 8 }}>{b.source}</span>
+                        {b.verified && (
+                          <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-success)', color: '#fff' }}>✔ verificado</span>
+                        )}
+                        {b.icon && (
+                          <img src={b.icon} alt="" style={{ width: 28, height: 28, borderRadius: 6, marginLeft: 8, verticalAlign: 'middle' }} />
+                        )}
+                        <p className="muted" style={{ margin: 0 }}>
+                          {b.description?.['es'] ?? b.description?.['en']}
+                        </p>
+                      </div>
+                      <Button onClick={() => install.mutate({ id: b.id })} disabled={install.isPending}>
+                        {t('common.create')}
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              ))}
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </Card>
       )}
@@ -230,6 +241,7 @@ export function BlocksPage() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   );
 }

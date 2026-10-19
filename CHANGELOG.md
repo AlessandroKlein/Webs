@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.32.0] - 2026-10-19
+
+### Añadido
+
+- **Bloques**: barra lateral (estilo settings) con Instalados / Catálogo /
+  Importar JSON, y **categorías como submenús** navegables (filtran el catálogo).
+
 ## [1.31.0] - 2026-10-19
 
 ### Añadido
