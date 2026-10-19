@@ -3,6 +3,7 @@
   "id": "mapa",
   "version": "0.1.0",
   "type": "block",
+  "category": "contenido",
   "displayName": { "en": "Map / Contact", "es": "Mapa / Contacto" },
   "description": { "en": "Contact card with map link.", "es": "Tarjeta de contacto con enlace al mapa." },
   "author": "Webs",

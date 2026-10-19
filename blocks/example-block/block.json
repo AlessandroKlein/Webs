@@ -3,6 +3,7 @@
   "id": "example",
   "version": "0.1.0",
   "type": "block",
+  "category": "otros",
   "displayName": {
     "en": "Example block",
     "es": "Bloque de ejemplo"

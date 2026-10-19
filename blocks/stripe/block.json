@@ -3,6 +3,7 @@
   "id": "stripe",
   "version": "0.1.0",
   "type": "block",
+  "category": "pagos",
   "displayName": { "en": "Stripe", "es": "Stripe" },
   "description": { "en": "Card payments via Stripe.", "es": "Pagos con tarjeta vía Stripe." },
   "author": "Webs",

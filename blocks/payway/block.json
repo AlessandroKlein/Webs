@@ -3,6 +3,7 @@
   "id": "payway",
   "version": "0.1.0",
   "type": "block",
+  "category": "pagos",
   "displayName": { "en": "Payway / Decidir", "es": "Payway / Decidir" },
   "description": { "en": "Payments via Payway (Decidir 2.0).", "es": "Pagos con Payway (Decidir 2.0)." },
   "author": "Webs",

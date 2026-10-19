@@ -20,7 +20,8 @@
         "type": "string",
         "title": "Proveedor",
         "enum": ["local", "google", "caldav"],
-        "default": "local"
+        "default": "local",
+        "x-ui": { "help": { "text": "Local (persistencia interna), Google Calendar (OAuth2) o CalDAV (Nextcloud/Radicale). Sin credenciales se usa local.", "url": "https://developers.google.com/calendar/api/v3/reference/events/insert" } }
       },
       "timezone": { "type": "string", "title": "Zona horaria", "default": "America/Argentina/Buenos_Aires" },
       "workingHoursStart": { "type": "string", "title": "Inicio de jornada", "default": "09:00" },

@@ -17,7 +17,7 @@
     "title": "Analítica",
     "properties": {
       "enabled": { "type": "boolean", "title": "Registrar visitas", "default": true },
-      "provider": { "type": "string", "title": "Proveedor", "enum": ["internal", "google-analytics", "plausible", "matomo"], "default": "internal" },
+      "provider": { "type": "string", "title": "Proveedor", "enum": ["internal", "google-analytics", "plausible", "matomo"], "default": "internal", "x-ui": { "help": { "text": "GA4 (Measurement Protocol), Plausible, Matomo o el interno. El interno no envía datos a terceros.", "url": "https://developers.google.com/analytics/devguides/collection/protocol/ga4" } } },
       "trackingId": { "type": "string", "title": "ID de seguimiento", "x-ui": { "widget": "password", "secret": true } },
       "apiSecret": { "type": "string", "title": "API Secret (GA4)", "x-ui": { "widget": "password", "secret": true } },
       "domain": { "type": "string", "title": "Dominio (Plausible)" },

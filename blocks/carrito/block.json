@@ -3,6 +3,7 @@
   "id": "carrito",
   "version": "0.1.0",
   "type": "block",
+  "category": "negocio",
   "displayName": { "en": "Cart / Store", "es": "Carrito / Tienda" },
   "description": { "en": "Product catalog with cart and checkout.", "es": "Catálogo de productos con carrito y checkout." },
   "author": "Webs",

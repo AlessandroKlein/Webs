@@ -132,6 +132,13 @@ export function AdminLayout() {
                       {item.label}
                     </NavLink>
                   ))}
+                  <NavLink
+                    to="/admin/block-settings"
+                    title="Configuración de bloques"
+                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  >
+                    Configuración de bloques
+                  </NavLink>
                 </div>
               )}
             </div>

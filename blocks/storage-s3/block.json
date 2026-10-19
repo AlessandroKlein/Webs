@@ -3,6 +3,7 @@
   "id": "storage-s3",
   "version": "0.1.0",
   "type": "block",
+  "category": "infraestructura",
   "displayName": { "en": "Storage S3/R2/MinIO", "es": "Almacenamiento S3/R2/MinIO" },
   "description": { "en": "Object storage (Amazon S3, Cloudflare R2, MinIO).", "es": "Almacenamiento de objetos (Amazon S3, Cloudflare R2, MinIO)." },
   "author": "Webs",

@@ -18,6 +18,7 @@ import { SettingsPage } from './features/settings/SettingsPage';
 import { AppearancePage } from './features/appearance/AppearancePage';
 import { BlocksPage } from './features/blocks/BlocksPage';
 import { BlockConfigPage } from './features/blocks/BlockConfigPage';
+import { BlockSettingsPage } from './features/blocks/BlockSettingsPage';
 import { TemplatesPage } from './features/templates/TemplatesPage';
 import { PaymentsPage } from './features/payments/PaymentsPage';
 import { StorePage } from './features/store/StorePage';
@@ -163,6 +164,8 @@ function MainApp() {
           <Route path="email" element={<EmailPage />} />
           <Route path="blocks" element={<BlocksPage />} />
           <Route path="blocks/:blockId" element={<BlockConfigPage />} />
+          <Route path="block-settings" element={<BlockSettingsPage />} />
+          <Route path="block-settings/:category" element={<BlockSettingsPage />} />
           <Route path="templates" element={<TemplatesPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="users" element={<UsersPage />} />

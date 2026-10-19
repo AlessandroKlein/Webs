@@ -3,6 +3,7 @@
   "id": "workflows",
   "version": "0.1.0",
   "type": "block",
+  "category": "negocio",
   "displayName": { "en": "Workflows", "es": "Flujos de trabajo" },
   "description": { "en": "Automations and workflows.", "es": "Automatizaciones y flujos de trabajo." },
   "author": "Webs",

@@ -16,7 +16,7 @@
     "type": "object",
     "title": "Chat IA",
     "properties": {
-      "provider": { "type": "string", "title": "Proveedor", "enum": ["openai", "anthropic", "gemini", "ollama"], "default": "openai" },
+      "provider": { "type": "string", "title": "Proveedor", "enum": ["openai", "anthropic", "gemini", "ollama"], "default": "openai", "x-ui": { "help": { "text": "OpenAI (Chat Completions), Anthropic (Messages), Google Gemini (generateContent) u Ollama local. Sin API key se usa una respuesta simulada.", "url": "https://platform.openai.com/docs/api-reference/chat" } } },
       "model": { "type": "string", "title": "Modelo", "default": "gpt-4o-mini" },
       "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password" } },
       "baseUrl": { "type": "string", "title": "URL base (OpenAI-compatible)" },

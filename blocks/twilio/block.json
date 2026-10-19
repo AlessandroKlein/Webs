@@ -3,6 +3,7 @@
   "id": "twilio",
   "version": "0.1.0",
   "type": "block",
+  "category": "comunicacion",
   "displayName": { "en": "Twilio (SMS/WhatsApp)", "es": "Twilio (SMS/WhatsApp)" },
   "description": { "en": "SMS and WhatsApp notifications via Twilio.", "es": "Notificaciones SMS y WhatsApp vía Twilio." },
   "author": "Webs",

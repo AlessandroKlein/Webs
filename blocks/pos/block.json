@@ -3,6 +3,7 @@
   "id": "pos",
   "version": "0.1.0",
   "type": "block",
+  "category": "pagos",
   "displayName": { "en": "Cash on delivery / POS", "es": "Contra entrega / POS" },
   "description": { "en": "Cash on delivery and physical card readers (mPOS / Point / Payway terminals).", "es": "Pagos contra entrega y lectores de tarjeta (mPOS / Point / terminales Payway)." },
   "author": "Webs",

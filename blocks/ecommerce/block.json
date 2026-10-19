@@ -17,7 +17,7 @@
     "type": "object",
     "title": "Tienda",
     "properties": {
-      "shippingProviders": { "type": "string", "title": "Proveedor de envío", "enum": ["local", "andreani", "oca", "correo", "dhl"], "default": "local" },
+      "shippingProviders": { "type": "string", "title": "Proveedor de envío", "enum": ["local", "andreani", "oca", "correo", "dhl"], "default": "local", "x-ui": { "help": { "text": "Local (tarifas fijas) o cotización con Andreani/OCA/Correo Argentino/DHL. Sin credenciales se usa la tarifa local.", "url": "https://developers.andreani.com/documentacion" } } },
       "shippingRates": {
         "type": "array",
         "title": "Tarifas de envío",

@@ -3,6 +3,7 @@
   "id": "paypal",
   "version": "0.1.0",
   "type": "block",
+  "category": "pagos",
   "displayName": { "en": "PayPal", "es": "PayPal" },
   "description": { "en": "Payments via PayPal.", "es": "Pagos con PayPal." },
   "author": "Webs",

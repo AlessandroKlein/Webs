@@ -3,6 +3,7 @@
   "id": "modo",
   "version": "0.1.0",
   "type": "block",
+  "category": "pagos",
   "displayName": { "en": "MODO", "es": "MODO" },
   "description": { "en": "Payments via MODO (QR).", "es": "Pagos con MODO (QR)." },
   "author": "Webs",

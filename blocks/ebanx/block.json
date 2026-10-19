@@ -3,6 +3,7 @@
   "id": "ebanx",
   "version": "0.1.0",
   "type": "block",
+  "category": "pagos",
   "displayName": { "en": "EBANX", "es": "EBANX" },
   "description": { "en": "Payments via EBANX (Latam).", "es": "Pagos con EBANX (Latam)." },
   "author": "Webs",

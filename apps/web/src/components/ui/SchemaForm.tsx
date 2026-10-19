@@ -1,5 +1,92 @@
+import { useState } from 'react';
 import type { JsonSchema } from '@webs/plugin-sdk';
 import { uploadFile } from '../../lib/api';
+
+interface HelpInfo {
+  text?: string;
+  url?: string;
+}
+
+function readHelp(xui: Record<string, unknown> | undefined): HelpInfo | null {
+  if (!xui) return null;
+  const help = xui.help;
+  if (typeof help === 'string' && help.trim()) return { text: help };
+  if (help && typeof help === 'object') {
+    const h = help as { text?: string; url?: string };
+    if (h.text || h.url) return { text: h.text, url: h.url };
+  }
+  return null;
+}
+
+/** Etiqueta de campo con icono "?" opcional que abre un diálogo de ayuda. */
+function FieldLabel({ label, help }: { label: string; help: HelpInfo | null }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ws-space-1)' }}>
+      {label}
+      {help && (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            title="Ayuda"
+            aria-label={`Ayuda de ${label}`}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--ws-primary)',
+              cursor: 'pointer',
+              padding: 0,
+              fontSize: '0.9em',
+            }}
+          >
+            <i className="bi bi-question-circle" />
+          </button>
+          {open && (
+            <div
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000,
+              }}
+              onClick={() => setOpen(false)}
+            >
+              <div
+                style={{
+                  background: 'var(--ws-surface)',
+                  border: '1px solid var(--ws-border)',
+                  borderRadius: 'var(--ws-radius-lg)',
+                  boxShadow: 'var(--ws-shadow-lg)',
+                  padding: 'var(--ws-space-6)',
+                  minWidth: 320,
+                  maxWidth: 480,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h4 style={{ marginTop: 0 }}>{label}</h4>
+                {help.text && <p style={{ margin: 0 }}>{help.text}</p>}
+                {help.url && (
+                  <p style={{ marginTop: 'var(--ws-space-3)' }}>
+                    <a href={help.url} target="_blank" rel="noopener noreferrer">
+                      <i className="bi bi-box-arrow-up-right" /> Documentación del proveedor
+                    </a>
+                  </p>
+                )}
+                <div className="row" style={{ justifyContent: 'flex-end', marginTop: 'var(--ws-space-4)' }}>
+                  <button className="btn" onClick={() => setOpen(false)}>Cerrar</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </label>
+  );
+}
 
 /**
  * Formulario auto-generado a partir de un JSON Schema. Es la pieza que permite
@@ -8,7 +95,9 @@ import { uploadFile } from '../../lib/api';
  * renderiza el formulario correspondiente.
  *
  * Soporta: string, number/integer, boolean, enum (select), object (anidado) y
- * widgets por `x-ui.widget` (`textarea`, `richtext`, `color`).
+ * widgets por `x-ui.widget` (`textarea`, `richtext`, `color`). Además, los
+ * campos con `x-ui.help` (string o `{text, url}`) muestran un icono "?" con un
+ * diálogo de ayuda (útil para campos de APIs de terceros).
  */
 export function SchemaForm({
   schema,
@@ -54,6 +143,7 @@ function SchemaField({
 }) {
   const label = schema.title ?? name;
   const widget = schema['x-ui']?.widget;
+  const help = readHelp(schema['x-ui']);
 
   if (schema.type === 'object' && schema.properties) {
     return (
@@ -77,7 +167,7 @@ function SchemaField({
     const current = Array.isArray(value) ? value : [];
     return (
       <div className="field">
-        <label>{label}</label>
+        <FieldLabel label={label} help={help} />
         <div className="stack">
           {options.map((opt) => (
             <label key={String(opt)} className="row" style={{ gap: 'var(--ws-space-2)' }}>
@@ -105,7 +195,7 @@ function SchemaField({
           checked={Boolean(value)}
           onChange={(e) => onChange(e.target.checked)}
         />
-        <span>{label}</span>
+        <FieldLabel label={label} help={help} />
       </label>
     );
   }
@@ -113,7 +203,7 @@ function SchemaField({
   if (schema.enum) {
     return (
       <div className="field">
-        <label>{label}</label>
+        <FieldLabel label={label} help={help} />
         <select className="input" value={String(value ?? '')} onChange={(e) => onChange(e.target.value)}>
           <option value="">—</option>
           {schema.enum.map((opt) => (
@@ -129,7 +219,7 @@ function SchemaField({
   if (widget === 'textarea' || widget === 'richtext') {
     return (
       <div className="field">
-        <label>{label}</label>
+        <FieldLabel label={label} help={help} />
         <textarea
           className="input"
           value={String(value ?? '')}
@@ -142,7 +232,7 @@ function SchemaField({
   if (widget === 'image') {
     return (
       <div className="field">
-        <label>{label}</label>
+        <FieldLabel label={label} help={help} />
         <div className="row" style={{ alignItems: 'center' }}>
           <input
             className="input"
@@ -177,7 +267,7 @@ function SchemaField({
   if (schema.type === 'number' || schema.type === 'integer') {
     return (
       <div className="field">
-        <label>{label}</label>
+        <FieldLabel label={label} help={help} />
         <input
           className="input"
           type="number"
@@ -191,7 +281,7 @@ function SchemaField({
   const inputType = widget === 'color' ? 'color' : schema.format === 'uri' ? 'url' : 'text';
   return (
     <div className="field">
-      <label>{label}</label>
+      <FieldLabel label={label} help={help} />
       <input
         className="input"
         type={inputType}

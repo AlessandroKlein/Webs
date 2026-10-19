@@ -3,6 +3,7 @@
   "id": "push",
   "version": "0.1.0",
   "type": "block",
+  "category": "comunicacion",
   "displayName": { "en": "Web Push", "es": "Notificaciones push" },
   "description": { "en": "Web push notifications (reference).", "es": "Notificaciones push web (referencia)." },
   "author": "Webs",
