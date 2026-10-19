@@ -1,5 +1,5 @@
 import Fastify, { type FastifyInstance } from 'fastify';
-import { API_PREFIX } from '@webs/core';
+import { API_PREFIX, REFRESH_TOKEN_COOKIE } from '@webs/core';
 import { loadEnv, corsOrigins, type Env } from './config/env';
 import { createLogger } from './lib/logger';
 import { readState } from './lib/state';
@@ -31,11 +31,13 @@ import paymentsRoutes from './modules/payments/routes';
 import mediaRoutes from './modules/media/routes';
 import notificationsRoutes from './modules/notifications/routes';
 import expensesRoutes from './modules/expenses';
+import systemRoutes from './modules/system';
 import authRoutes from './modules/auth';
 import passkeyRoutes from './modules/auth/passkeys';
 import usersRoutes from './modules/users';
 import rolesRoutes from './modules/roles';
 import settingsRoutes from './modules/settings';
+import { getSectionValue } from './modules/settings/service';
 import contentRoutes from './modules/content';
 import translationsRoutes from './modules/translations';
 import auditRoutes from './modules/audit';
@@ -100,6 +102,29 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(authPlugin, { jwtSecret: env.JWT_SECRET });
   await app.register(websocketPlugin);
 
+  // Modo mantenimiento: bloquea rutas públicas salvo whitelist / autenticadas.
+  await app.addHook('onRequest', async (request, reply) => {
+    try {
+      const section = (await getSectionValue(app, 'site')) as { value?: Record<string, unknown> };
+      if (!section.value?.maintenanceMode) return;
+    } catch {
+      return;
+    }
+    const url = request.url;
+    if (
+      url.startsWith('/health') ||
+      url.startsWith('/api/v1/setup') ||
+      url.startsWith('/api/v1/auth') ||
+      url.startsWith('/api/v1/public')
+    ) {
+      return;
+    }
+    if (request.headers.authorization?.startsWith('Bearer ') || request.cookies?.[REFRESH_TOKEN_COOKIE]) {
+      return;
+    }
+    return reply.status(503).send({ error: { code: 'MAINTENANCE_MODE', message: 'Sitio en mantenimiento' } });
+  });
+
   // 5. Módulos de dominio (bajo /api/v1).
   await app.register(healthRoutes);
   await app.register(metricsRoutes, { prefix: API_PREFIX });
@@ -108,6 +133,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(mediaRoutes, { prefix: API_PREFIX });
   await app.register(notificationsRoutes, { prefix: API_PREFIX });
   await app.register(expensesRoutes, { prefix: API_PREFIX });
+  await app.register(systemRoutes, { prefix: API_PREFIX });
   await app.register(authRoutes, { prefix: API_PREFIX });
   await app.register(passkeyRoutes, { prefix: API_PREFIX });
   await app.register(usersRoutes, { prefix: API_PREFIX });

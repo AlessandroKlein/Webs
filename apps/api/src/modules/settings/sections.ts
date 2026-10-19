@@ -21,6 +21,8 @@ export function registerDefaultSections(): void {
         iconUrl: { type: 'string', format: 'uri', title: 'URL del icono' },
         faviconUrl: { type: 'string', format: 'uri', title: 'URL del favicon' },
         defaultLocale: { type: 'string', enum: ['es', 'en', 'pt'], title: 'Idioma por defecto' },
+        timezone: { type: 'string', title: 'Zona horaria', default: 'America/Argentina/Buenos_Aires' },
+        maintenanceMode: { type: 'boolean', title: 'Modo mantenimiento', default: false },
         languages: {
           type: 'array',
           title: 'Idiomas habilitados',
@@ -28,7 +30,7 @@ export function registerDefaultSections(): void {
         },
       },
     },
-    defaults: { name: 'Webs', tagline: '', defaultLocale: 'es', languages: ['es'] },
+    defaults: { name: 'Webs', tagline: '', defaultLocale: 'es', timezone: 'America/Argentina/Buenos_Aires', maintenanceMode: false, languages: ['es'] },
   });
 
   registerSettingSection({

@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.38.0] - 2026-10-18
+
+### Añadido
+
+- **Núcleo**: modo mantenimiento (`site.maintenanceMode` + hook 503), zona horaria
+  (`site.timezone`), y **respaldos de BD** (`POST /system/backup` + script).
+- Controlador de errores ya devuelve `requestId` único (verificado).
+
 ## [0.37.0] - 2026-10-18
 
 ### Añadido
