@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.26.0] - 2026-10-19
+
+### Añadido
+
+- **Usuarios**: sección "Invitar usuario" para generar links de registro de un
+  solo uso (con rol asignado) y mostrarlos para copiar.
+
 ## [1.25.0] - 2026-10-19
 
 ### Añadido

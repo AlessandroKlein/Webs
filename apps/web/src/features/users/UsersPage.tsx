@@ -87,6 +87,17 @@ export function UsersPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   });
 
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('user');
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const invite = useMutation({
+    mutationFn: (body: { email: string; role: string }) => api.post<{ inviteUrl: string }>('/api/v1/users/invite', body),
+    onSuccess: (r) => {
+      setInviteUrl(r.inviteUrl);
+      setInviteEmail('');
+    },
+  });
+
   if (isLoading) return <Spinner />;
 
   const roles = rolesData?.items ?? [];
@@ -133,6 +144,22 @@ export function UsersPage() {
             {t('common.create')}
           </Button>
         </form>
+      </Card>
+
+      <Card>
+        <h3>Invitar usuario (link de un solo uso)</h3>
+        <form className="row" onSubmit={(e) => { e.preventDefault(); if (inviteEmail) invite.mutate({ email: inviteEmail, role: inviteRole }); }} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <TextField label="Email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
+          <select className="input" style={{ width: 'auto' }} value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+            {roles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
+          </select>
+          <Button type="submit" disabled={invite.isPending}>Generar link</Button>
+        </form>
+        {inviteUrl && (
+          <p className="muted" style={{ wordBreak: 'break-all', marginTop: 'var(--ws-space-2)' }}>
+            Link: <code>{window.location.origin}{inviteUrl}</code>
+          </p>
+        )}
       </Card>
 
       {editing && (
