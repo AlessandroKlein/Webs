@@ -54,6 +54,7 @@ export function PagesPage() {
   const [sections, setSections] = useState<Array<{ blocks: string[]; size: Size }>>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [view, setView] = useState<'editor' | 'list'>('editor');
 
   const resetForm = () => {
     setSlug(''); setTitle(''); setRedirectUrl(''); setSections([]); setIsHome(false); setEditingId(null);
@@ -89,9 +90,15 @@ export function PagesPage() {
   };
 
   return (
-    <div className="stack">
-      <h1>Páginas</h1>
+    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
+      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Páginas</h1>
+        <button className={`nav-link ${view === 'editor' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('editor')}>Editor</button>
+        <button className={`nav-link ${view === 'list' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('list')}>Páginas existentes</button>
+      </aside>
 
+      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+      {view === 'editor' && (
       <Card>
         <h3>{editingId ? `Editar página` : 'Nueva página'}</h3>
         <form className="row" onSubmit={onSubmit} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -153,7 +160,9 @@ export function PagesPage() {
           {sections.length === 0 && <p className="muted">Sin secciones. Agregá una o dejá la redirección para una página externa.</p>}
         </div>
       </Card>
+      )}
 
+      {view === 'list' && (
       <Card>
         <h3>Páginas existentes</h3>
         <div className="stack">
@@ -165,7 +174,7 @@ export function PagesPage() {
                 {p.redirectUrl && <span className="badge" style={{ marginLeft: 6 }}>redirige</span>}
               </span>
               <div className="row">
-                <Button variant="secondary" onClick={() => editPage(p)}>Editar</Button>
+                <Button variant="secondary" onClick={() => { editPage(p); setView('editor'); }}>Editar</Button>
                 <Button variant="ghost" onClick={() => remove.mutate(p.id)}>Eliminar</Button>
               </div>
             </div>
@@ -173,6 +182,8 @@ export function PagesPage() {
           {(data ?? []).length === 0 && <p className="muted">No hay páginas.</p>}
         </div>
       </Card>
+      )}
+      </div>
     </div>
   );
 }
