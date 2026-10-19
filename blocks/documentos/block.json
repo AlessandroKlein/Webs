@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-documentos",
+  "id": "documentos",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Documents", "es": "Documentos" },
+  "description": { "en": "Documents and e-signature.", "es": "Documentos y firma electrónica." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Documentos", "properties": { "requireSignature": { "type": "boolean", "default": true } } }
+}

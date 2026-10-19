@@ -1,0 +1,18 @@
+{
+  "name": "@webs/block-register",
+  "id": "register",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Register", "es": "Registro" },
+  "description": {
+    "en": "Public registration with pending approval.",
+    "es": "Registro público con aprobación pendiente."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Registro", "properties": {} }
+}

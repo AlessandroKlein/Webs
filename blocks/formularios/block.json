@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-formularios",
+  "id": "formularios",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Forms", "es": "Formularios" },
+  "description": { "en": "Form builder and responses.", "es": "Creador de formularios y respuestas." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Formularios", "properties": { "allowAnonymous": { "type": "boolean", "default": true } } }
+}

@@ -3,6 +3,23 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.4.0] - 2026-10-19
+
+### Añadido
+
+- **Tests automatizados**: vitest + tests unitarios de `@webs/core` (`slugify`,
+  `totalPages`, `normalizePagination`, `mask`).
+- **7 bloques nuevos**: `organizaciones` (multi-tenancy), `formularios` (form
+  builder), `documentos` (docs/firma), `workflows` (automatizaciones), `afiliados`
+  (referidos), `register` (registro público) y `social-login` (Google/Facebook/
+  GitHub/Microsoft). Modelos Prisma correspondientes.
+
+### Corregido
+
+- **Sesión "recordarme"**: la cookie de refresco ahora auto-detecta HTTPS por
+  protocolo (`request.protocol`), por lo que persiste correctamente en HTTP local
+  (antes usaba `NODE_ENV=production` y el navegador no la enviaba).
+
 ## [1.3.1] - 2026-10-19
 
 ### Corregido (validado en Docker)

@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-organizaciones",
+  "id": "organizaciones",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Organizations", "es": "Organizaciones" },
+  "description": { "en": "Multi-tenant organizations and memberships.", "es": "Organizaciones multi-tenant y membresías." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Organizaciones", "properties": { "defaultPlan": { "type": "string", "default": "free" }, "requireApproval": { "type": "boolean", "default": false } } }
+}

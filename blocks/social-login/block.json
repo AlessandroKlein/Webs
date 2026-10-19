@@ -1,0 +1,35 @@
+{
+  "name": "@webs/block-social-login",
+  "id": "social-login",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Social Login", "es": "Login social" },
+  "description": {
+    "en": "Sign in with social providers.",
+    "es": "Inicio de sesión con redes sociales."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": {
+    "type": "object",
+    "title": "Social Login",
+    "properties": {
+      "providers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "clientId": { "type": "string" },
+            "clientSecret": { "type": "string", "x-ui": { "secret": true } }
+          }
+        }
+      }
+    }
+  }
+}
