@@ -36,6 +36,8 @@ interface CatalogItem {
   source: 'local' | 'git' | 'npm';
   installed: boolean;
   verified?: boolean;
+  installedVersion?: string | null;
+  hasUpdate?: boolean;
 }
 
 interface CatalogResponse {
@@ -78,13 +80,16 @@ export function BlocksPage() {
       api.post(`/api/v1/blocks/${id}/${enabled ? 'activate' : 'deactivate'}`),
     onSuccess: invalidate,
   });
+  const update = useMutation({
+    mutationFn: (id: string) => api.post(`/api/v1/blocks/${id}/update`),
+    onSuccess: invalidate,
+  });
 
   if (isLoading) return <Spinner />;
 
-  const catalog = [
-    ...(catalogData?.local ?? []),
-    ...(catalogData?.remote ?? []),
-  ].filter((b) => !b.installed);
+  const allCatalog = [...(catalogData?.local ?? []), ...(catalogData?.remote ?? [])];
+  const updateMap = new Map(allCatalog.filter((b) => b.hasUpdate).map((b) => [b.id, b.version]));
+  const catalog = allCatalog.filter((b) => !b.installed);
 
   return (
     <div className="stack">
@@ -95,7 +100,14 @@ export function BlocksPage() {
         {(data?.installed ?? []).length === 0 && <p className="muted">No hay bloques instalados.</p>}
         <div className="stack">
           {(data?.installed ?? []).map((b) => (
-            <InstalledBlockRow key={b.id} block={b} onToggle={toggle.mutate} onUninstall={uninstall.mutate} />
+            <InstalledBlockRow
+              key={b.id}
+              block={b}
+              latestVersion={updateMap.get(b.blockId)}
+              onToggle={toggle.mutate}
+              onUninstall={uninstall.mutate}
+              onUpdate={update.mutate}
+            />
           ))}
         </div>
       </Card>
@@ -134,12 +146,16 @@ export function BlocksPage() {
 
 function InstalledBlockRow({
   block,
+  latestVersion,
   onToggle,
   onUninstall,
+  onUpdate,
 }: {
   block: InstalledBlock;
+  latestVersion?: string;
   onToggle: (arg: { id: string; enabled: boolean }) => void;
   onUninstall: (id: string) => void;
+  onUpdate: (id: string) => void;
 }) {
   const { t } = useTranslation();
 
@@ -149,6 +165,11 @@ function InstalledBlockRow({
         <div>
           <strong>{block.name}</strong>
           <span className="muted"> v{block.version}</span>
+          {latestVersion && (
+            <span className="badge" style={{ marginLeft: 8, background: 'var(--ws-warning)', color: '#111' }}>
+              ▲ actualización v{latestVersion}
+            </span>
+          )}
           <span className="badge" style={{ marginLeft: 8 }}>
             {block.enabled ? t('common.enabled') : t('common.disabled')}
           </span>
@@ -158,6 +179,11 @@ function InstalledBlockRow({
             <Link to={`/blocks/${block.blockId}`} className="btn secondary">
               Configurar
             </Link>
+          )}
+          {latestVersion && (
+            <Button variant="secondary" onClick={() => onUpdate(block.blockId)}>
+              Actualizar
+            </Button>
           )}
           <Button variant="secondary" onClick={() => onToggle({ id: block.blockId, enabled: !block.enabled })}>
             {block.enabled ? t('common.disabled') : t('common.enabled')}

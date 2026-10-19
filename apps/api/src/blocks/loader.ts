@@ -19,7 +19,7 @@ import { blockRegistry } from './registry';
 import { CORE_SLOTS } from './slots';
 import { blocksDir } from '../lib/paths';
 import { registerBlockEvent } from '../modules/email/events';
-import type { RegistryBlockEntry } from './catalog';
+import { findRemoteBlock, type RegistryBlockEntry } from './catalog';
 
 const execFileAsync = promisify(execFile);
 
@@ -315,4 +315,35 @@ export async function installRemoteBlock(app: FastifyInstance, entry: RegistryBl
 
   blockRegistry.registerAvailable(manifest);
   return installBlock(app, manifest.id);
+}
+
+/** Actualiza un bloque instalado a su última versión, preservando config y estado. */
+export async function updateBlock(app: FastifyInstance, blockId: string) {
+  const installation = await app.prisma.blockInstallation.findUnique({ where: { blockId } });
+  if (!installation) throw new NotFoundError('El bloque no está instalado');
+
+  const localManifest = blockRegistry.getAvailableManifest(blockId);
+  if (localManifest) {
+    await app.prisma.blockInstallation.update({
+      where: { blockId },
+      data: { name: localManifest.name, version: localManifest.version, manifest: asJson(localManifest) },
+    });
+    return { ok: true, blockId, version: localManifest.version };
+  }
+
+  const entry = await findRemoteBlock(blockId);
+  if (!entry) throw new NotFoundError(`Bloque '${blockId}' no disponible en el catálogo`);
+
+  try {
+    return await installRemoteBlock(app, entry);
+  } catch (err) {
+    if (!(err instanceof ConflictError)) throw err;
+    const manifest = blockRegistry.getAvailableManifest(blockId);
+    if (!manifest) throw err;
+    await app.prisma.blockInstallation.update({
+      where: { blockId },
+      data: { name: manifest.name, version: manifest.version, manifest: asJson(manifest) },
+    });
+    return { ok: true, blockId, version: manifest.version };
+  }
 }

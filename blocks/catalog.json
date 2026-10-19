@@ -1,6 +1,6 @@
 {
   "name": "Webs Block Registry",
-  "_comment": "Índice del marketplace. Cada entrada referencia un bloque remoto. Usá BLOCK_REGISTRY_URL para servir este índice desde una URL (GitHub raw, un sitio, etc.) en lugar del archivo local. La instalación soporta source=git (clone); source=npm llegará próximamente.",
+  "_comment": "Índice del marketplace (bloques REMOTOS). Los bloques locales se autodetectan desde blocks/*. Cada entrada: id, name, version (explícita para detectar actualizaciones), source (git/npm) o downloadUrl, y opcionalmente verified/publicKey/signature. Usá BLOCK_REGISTRY_URL para servir este índice desde una URL (GitHub raw, un sitio, etc.). La app compara la version instalada vs la del índice para mostrar el botón 'Actualizar' (POST /blocks/:id/update, preserva config).",
   "blocks": [
     {
       "id": "store",
@@ -16,7 +16,8 @@
       "homepage": "https://github.com/AlessandroKlein/Webs",
       "source": "git",
       "url": "https://github.com/AlessandroKlein/block-store.git",
-      "subdir": "block"
+      "subdir": "block",
+      "verified": false
     }
   ]
 }

@@ -5,12 +5,11 @@ const manifest = manifestJson as unknown as BlockManifest;
 
 interface Lesson { id: string; title: string; videoUrl?: string; pdfUrl?: string }
 interface Course { id: string; title: string; description: string; level: string; lessons: Lesson[] }
-interface Enrollment { id: string; courseId: string; student: string; progress: number; completedAt?: string }
-const enrollments: Enrollment[] = [];
 
 export default defineBlock(manifest, {
   register: async (fastify, config) => {
     const courses = (Array.isArray((config as Record<string, unknown>).courses) ? (config as Record<string, unknown>).courses : []) as Course[];
+    const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
 
     fastify.get('/courses', async () => courses.map(({ lessons, ...c }) => ({ ...c, lessons: lessons.length })));
     fastify.get('/courses/:id', async (request: unknown) => {
@@ -19,20 +18,15 @@ export default defineBlock(manifest, {
     });
     fastify.post('/enrollments', async (request: unknown) => {
       const { body } = request as { body?: { courseId?: string; student?: string } };
-      const e: Enrollment = { id: crypto.randomUUID(), courseId: body?.courseId ?? '', student: body?.student ?? '', progress: 0 };
-      enrollments.unshift(e);
-      return e;
+      return db.enrollment.create({ data: { courseId: body?.courseId ?? '', student: body?.student ?? '', progress: 0 } });
     });
     fastify.patch('/enrollments/:id', async (request: unknown) => {
       const { params, body } = request as { params?: { id?: string }; body?: { progress?: number } };
-      const e = enrollments.find((x) => x.id === params?.id);
-      if (!e) return { ok: false };
-      if (body?.progress !== undefined) {
-        e.progress = body.progress;
-        if (e.progress >= 100 && !e.completedAt) e.completedAt = new Date().toISOString();
-      }
-      return e;
+      if (body?.progress === undefined) return { ok: false };
+      const data: Record<string, unknown> = { progress: body.progress };
+      if (body.progress >= 100) data.completedAt = new Date();
+      return db.enrollment.update({ where: { id: params?.id }, data });
     });
-    fastify.get('/enrollments', async () => enrollments);
+    fastify.get('/enrollments', async () => db.enrollment.findMany({ orderBy: { createdAt: 'desc' } }));
   },
 });

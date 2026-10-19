@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { NotFoundError, ValidationError } from '@webs/core';
 import { parseBlockManifest } from '@webs/plugin-sdk';
 import { blockRegistry } from '../../blocks/registry';
-import { installBlock, installRemoteBlock, uninstallBlock } from '../../blocks/loader';
+import { installBlock, installRemoteBlock, uninstallBlock, updateBlock } from '../../blocks/loader';
 import { findRemoteBlock, getCatalog } from '../../blocks/catalog';
 import { audit } from '../../lib/audit';
 
@@ -138,6 +138,21 @@ export default async function blocksRoutes(fastify: FastifyInstance): Promise<vo
       await fastify.prisma.blockInstallation.update({ where: { blockId }, data: { enabled: true } });
       audit(fastify, request, { actorId: request.user?.sub, action: 'block.activate', resource: 'block', resourceId: blockId });
       return { enabled: true };
+    },
+  );
+
+  // Actualiza un bloque instalado a su última versión (preserva config).
+  fastify.post(
+    '/blocks/:id/update',
+    {
+      schema: { tags: ['blocks'], params: { type: 'object', properties: { id: { type: 'string' } } } },
+      preHandler: [fastify.authenticate, fastify.authorize('block.manage')],
+    },
+    async (request) => {
+      const blockId = (request.params as { id: string }).id;
+      const result = await updateBlock(fastify, blockId);
+      audit(fastify, request, { actorId: request.user?.sub, action: 'block.update', resource: 'block', resourceId: blockId });
+      return result;
     },
   );
 

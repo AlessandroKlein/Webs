@@ -171,6 +171,96 @@ model Expense {
 }
 
 // ---------------------------------------------------------------------------
+// Negocio (datos persistentes de los bloques: ecommerce, reservas, blog, LMS…)
+// ---------------------------------------------------------------------------
+
+model Product {
+  id       String  @id @default(uuid())
+  title    String
+  price    Int
+  stock    Int     @default(0)
+  category String?
+
+  @@map("products")
+}
+
+model Order {
+  id        String   @id @default(uuid())
+  status    String   @default("pending")
+  total     Int      @default(0)
+  items     Json     @default("[]")
+  createdAt DateTime @default(now())
+
+  @@map("orders")
+}
+
+model Booking {
+  id        String   @id @default(uuid())
+  serviceId String
+  name      String
+  date      DateTime
+  status    String   @default("confirmed")
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@map("bookings")
+}
+
+model BlogPost {
+  id        String   @id @default(uuid())
+  title     String
+  body      String
+  category  String?
+  tags      Json     @default("[]")
+  status    String   @default("draft")
+  createdAt DateTime @default(now())
+
+  @@map("blog_posts")
+}
+
+model Course {
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  level       String?
+  lessons     Json    @default("[]")
+
+  @@map("courses")
+}
+
+model Enrollment {
+  id          String    @id @default(uuid())
+  courseId    String
+  student     String
+  progress    Int       @default(0)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  author    String
+  body      String
+  rating    Int      @default(5)
+  createdAt DateTime @default(now())
+
+  @@map("comments")
+}
+
+model Ticket {
+  id        String   @id @default(uuid())
+  subject   String
+  message   String
+  status    String   @default("open")
+  createdAt DateTime @default(now())
+
+  @@map("tickets")
+}
+
+// ---------------------------------------------------------------------------
 // Configuración, bloques y colocaciones
 // ---------------------------------------------------------------------------
 

@@ -47,6 +47,8 @@ export interface BlockFastify {
   notifications?: {
     register: (adapter: import('./notifications').NotificationProviderAdapter) => void;
   };
+  /** Cliente de base de datos (Prisma) heredado de la app. */
+  prisma?: unknown;
 }
 
 /**

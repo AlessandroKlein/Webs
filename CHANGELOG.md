@@ -3,6 +3,23 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.0.0] - 2026-10-18
+
+### Primer lanzamiento estable
+
+- **Datos persistentes**: los bloques de negocio (ecommerce, reservas, blog, LMS,
+  comentarios, soporte) guardan sus datos en tablas Prisma (`products`, `orders`,
+  `bookings`, `blog_posts`, `courses`, `enrollments`, `comments`, `tickets`) en
+  lugar de memoria.
+- **Sistema de versiones**:
+  - `GET /system/version` (versión actual + última de GitHub Releases).
+  - Versión explícita por bloque instalado + detección de actualizaciones
+    (`hasUpdate` en el catálogo).
+  - `POST /blocks/:id/update` (actualiza un bloque preservando su configuración).
+  - Botón "Actualizar" en el marketplace (UI).
+- **Marketplace**: `blocks/catalog.json` documenta versión explícita y verificación.
+- **Versionado**: SemVer estricto a partir de `v1.0.0`.
+
 ## [0.40.0] - 2026-10-18
 
 ### Añadido

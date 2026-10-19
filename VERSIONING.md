@@ -12,24 +12,26 @@ Webs usa **Semantic Versioning**: `MAJOR.MINOR.PATCH` (`v1.4.2`).
 - Al subir **MINOR** → `PATCH` vuelve a `0`.
 - Al subir **MAJOR** → `MINOR` y `PATCH` vuelven a `0`.
 
-## Fase actual: `v0.x.x` (desarrollo inicial)
+## Fase actual: `v1.0.0` (estable)
 
-- Empezamos en `v0.1.0`; hoy estamos en **v0.32.0**.
-- En la rama `0.x.x` la API/arquitectura **no se considera estable**: los cambios
-  estructurales o rompedores se publican **incrementando MINOR** (no MAJOR).
-- Convención aplicada hasta ahora: **cada feature = +MINOR**, cada fix = +PATCH.
+- Primer lanzamiento estable declarado en **v1.0.0** (datos persistentes + sistema
+  de versiones/actualización de bloques y del sistema).
+- A partir de `v1.0.0`, SemVer se aplica de forma estricta:
+  - **MAJOR** solo para cambios rompedores.
+  - **MINOR** para features compatibles.
+  - **PATCH** para fixes.
 
-## Criterio para pasar a `v1.0.0`
+## Historial `v0.x.x` (desarrollo inicial)
 
-Declaramos **`v1.0.0`** (primer lanzamiento estable) cuando:
+- Desde `v0.1.0` hasta `v0.40.0`: en `0.x.x` los cambios estructurales se publicaron
+  incrementando MINOR (sin garantizar compatibilidad).
 
-- [ ] El build de **Docker** (compose + Dockerfiles) está validado.
-- [ ] La app se **ejecutó en producción** (o al menos en una VPS real) sin errores.
-- [ ] La API pública (rutas REST/WebSocket, SDK de bloques, contrato de
-      `block.json`) se considera estable para terceros.
+## Criterio para futuros saltos MAJOR
 
-A partir de `v1.0.0`, SemVer se aplica de forma estricta (MAJOR solo para cambios
-rompedores).
+- **2.0.0** si hay un cambio rompedor en la API pública (rutas, SDK de bloques,
+  contrato `block.json`) o en el modelo de datos.
+- La validación de **Docker/producción en VPS** queda como verificación operativa
+  (no bloquea el versionado estable).
 
 ## Pre-releases
 

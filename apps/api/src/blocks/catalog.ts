@@ -72,6 +72,10 @@ export interface CatalogItem {
   source: BlockSource;
   installed: boolean;
   verified?: boolean;
+  /** Versión instalada (null si no está instalado). */
+  installedVersion?: string | null;
+  /** true si hay una versión más nueva disponible. */
+  hasUpdate?: boolean;
 }
 
 let cachedIndex: RegistryBlockEntry[] | null = null;
@@ -119,21 +123,27 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
   const cached = await cacheGet<{ local: CatalogItem[]; remote: CatalogItem[] }>(fastify.redis, cacheKey);
   if (cached) return cached;
 
-  const installations = await fastify.prisma.blockInstallation.findMany({ select: { blockId: true } });
+  const installations = await fastify.prisma.blockInstallation.findMany({ select: { blockId: true, version: true } });
+  const installedMap = new Map(installations.map((i) => [i.blockId, i.version]));
   const installedIds = new Set(installations.map((i) => i.blockId));
 
-  const local: CatalogItem[] = blockRegistry.getAvailable().map((m) => ({
-    id: m.id,
-    name: m.name,
-    version: m.version,
-    displayName: m.displayName,
-    description: m.description,
-    author: m.author,
-    license: m.license,
-    homepage: m.homepage,
-    source: 'local',
-    installed: installedIds.has(m.id),
-  }));
+  const local: CatalogItem[] = blockRegistry.getAvailable().map((m) => {
+    const installedVersion = installedMap.get(m.id) ?? null;
+    return {
+      id: m.id,
+      name: m.name,
+      version: m.version,
+      displayName: m.displayName,
+      description: m.description,
+      author: m.author,
+      license: m.license,
+      homepage: m.homepage,
+      source: 'local',
+      installed: installedIds.has(m.id),
+      installedVersion,
+      hasUpdate: installedVersion !== null && installedVersion !== m.version,
+    };
+  });
 
   const remote: CatalogItem[] = (await loadRegistryIndex())
     .filter((b) => !installedIds.has(b.id) && !local.some((l) => l.id === b.id))
