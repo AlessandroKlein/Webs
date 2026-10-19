@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme, type ThemeMode } from '@webs/ui';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../lib/auth-store';
 import { setLocale } from '../lib/i18n';
 import { useLocaleStore } from '../lib/locale-store';
+import { api } from '../lib/api';
 
 export function AdminLayout() {
   const { t, i18n } = useTranslation();
@@ -16,6 +18,12 @@ export function AdminLayout() {
   const enabledLocales = useLocaleStore((s) => s.enabled);
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const { data: blocksData } = useQuery({
+    queryKey: ['blocks'],
+    queryFn: () => api.get<{ installed: Array<{ blockId: string; name: string; enabled: boolean }> }>('/api/v1/blocks'),
+  });
+  const installedBlocks = (blocksData?.installed ?? []).filter((b) => b.enabled);
 
   const nav = [
     { to: '/admin', label: t('nav.dashboard'), end: true, perm: null as string | null },
@@ -32,7 +40,6 @@ export function AdminLayout() {
     { to: '/admin/translations', label: t('nav.translations'), perm: 'translation.read' },
     { to: '/admin/audit', label: t('nav.audit'), perm: 'audit.read' },
     { to: '/admin/api-tokens', label: t('nav.api'), perm: null },
-    { to: '/admin/account', label: t('nav.account'), perm: null },
   ].filter((item) => item.perm === null || hasPermission(item.perm));
 
   return (
@@ -51,6 +58,21 @@ export function AdminLayout() {
               {collapsed ? item.label.charAt(0) : item.label}
             </NavLink>
           ))}
+          {installedBlocks.length > 0 && !collapsed && (
+            <>
+              <div className="muted" style={{ fontSize: 'var(--ws-font-size-sm)', marginTop: 'var(--ws-space-3)', paddingInline: 'var(--ws-space-3)' }}>Bloques instalados</div>
+              {installedBlocks.map((b) => (
+                <NavLink
+                  key={b.blockId}
+                  to={`/admin/blocks/${b.blockId}`}
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  style={{ paddingLeft: 'var(--ws-space-6)' }}
+                >
+                  {b.name}
+                </NavLink>
+              ))}
+            </>
+          )}
         </nav>
       </aside>
 
@@ -88,28 +110,33 @@ export function AdminLayout() {
             </select>
           </div>
 
-          <div className="user-menu-wrap">
-            <button className="btn ghost" onClick={() => setMenuOpen((o) => !o)} aria-label="Menú de usuario">
-              <i className="bi bi-person-circle" /> <span>{user?.displayName ?? user?.email ?? 'Usuario'}</span>
-            </button>
-            {menuOpen && (
-              <div className="dropdown">
-                <Link to="/admin/account" onClick={() => setMenuOpen(false)}>
-                  <i className="bi bi-person" /> {t('nav.account')}
-                </Link>
-                <Link to="/admin/account" onClick={() => setMenuOpen(false)}>
-                  <i className="bi bi-gear" /> Preferencias
-                </Link>
-                {hasPermission('user.read') && (
-                  <Link to="/admin" onClick={() => setMenuOpen(false)}>
-                    <i className="bi bi-speedometer2" /> Panel admin
+          <div className="row">
+            <Link to="/" className="btn ghost" title="Ver sitio" aria-label="Ver sitio">
+              <i className="bi bi-box-arrow-up-right" /> <span>Ver sitio</span>
+            </Link>
+            <div className="user-menu-wrap">
+              <button className="btn ghost" onClick={() => setMenuOpen((o) => !o)} aria-label="Menú de usuario">
+                <i className="bi bi-person-circle" /> <span>{user?.displayName ?? user?.email ?? 'Usuario'}</span>
+              </button>
+              {menuOpen && (
+                <div className="dropdown">
+                  <Link to="/account" onClick={() => setMenuOpen(false)}>
+                    <i className="bi bi-person" /> {t('nav.account')}
                   </Link>
-                )}
-                <button onClick={() => void logout()}>
-                  <i className="bi bi-box-arrow-right" /> {t('auth.logout')}
-                </button>
-              </div>
-            )}
+                  <Link to="/" onClick={() => setMenuOpen(false)}>
+                    <i className="bi bi-box-arrow-up-right" /> Ver sitio
+                  </Link>
+                  {hasPermission('user.read') && (
+                    <Link to="/admin" onClick={() => setMenuOpen(false)}>
+                      <i className="bi bi-speedometer2" /> Panel admin
+                    </Link>
+                  )}
+                  <button onClick={() => void logout()}>
+                    <i className="bi bi-box-arrow-right" /> {t('auth.logout')}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

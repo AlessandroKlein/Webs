@@ -112,6 +112,7 @@ function MainApp() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/store" element={<StorePage />} />
         <Route path="/" element={<PublicHome />} />
+        <Route path="/account" element={<RequireAuth><AccountPage /></RequireAuth>} />
 
         <Route
           path="/admin"
@@ -136,7 +137,6 @@ function MainApp() {
           <Route path="translations" element={<TranslationsPage />} />
           <Route path="audit" element={<AuditPage />} />
           <Route path="api-tokens" element={<ApiTokensPage />} />
-          <Route path="account" element={<AccountPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

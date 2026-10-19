@@ -83,6 +83,7 @@ export function BlocksPage() {
   const [pending, setPending] = useState<null | { id: string; missingProviders: Array<{ group: string; choices: Array<{ id: string; name: string }> }> }>(null);
   const [chosen, setChosen] = useState<Record<string, string[]>>({});
   const [jsonInput, setJsonInput] = useState('');
+  const [tab, setTab] = useState<'installed' | 'catalog' | 'import'>('installed');
 
   const importJson = () => {
     try {
@@ -116,6 +117,15 @@ export function BlocksPage() {
     <div className="stack">
       <h1>{t('nav.blocks')}</h1>
 
+      <div className="row" style={{ gap: 4, borderBottom: '1px solid var(--ws-border)', paddingBottom: 'var(--ws-space-2)' }}>
+        {(['installed', 'catalog', 'import'] as const).map((t) => (
+          <Button key={t} variant={tab === t ? 'secondary' : 'ghost'} onClick={() => setTab(t)}>
+            {t === 'installed' ? 'Instalados' : t === 'catalog' ? 'Catálogo' : 'Importar JSON'}
+          </Button>
+        ))}
+      </div>
+
+      {tab === 'installed' && (
       <Card>
         <h3>Instalados</h3>
         {(data?.installed ?? []).length === 0 && <p className="muted">No hay bloques instalados.</p>}
@@ -132,7 +142,9 @@ export function BlocksPage() {
           ))}
         </div>
       </Card>
+      )}
 
+      {tab === 'catalog' && (
       <Card>
         <h3>Catálogo</h3>
         {catalog.length === 0 && <p className="muted">No hay bloques disponibles para instalar.</p>}
@@ -161,13 +173,16 @@ export function BlocksPage() {
           ))}
         </div>
       </Card>
+      )}
 
+      {tab === 'import' && (
       <Card>
         <h3>Importar bloques desde JSON</h3>
         <p className="muted">Pegá una lista de bloques para instalar (formato JSON):</p>
         <textarea className="input" rows={3} value={jsonInput} onChange={(e) => setJsonInput(e.target.value)} placeholder={'[{"id":"mi-bloque","url":"https://github.com/usuario/repo.git","source":"git"}]'} />
         <Button variant="secondary" onClick={importJson}>Importar</Button>
       </Card>
+      )}
 
       {pending && (
         <Card>
