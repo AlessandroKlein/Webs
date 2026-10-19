@@ -36,6 +36,49 @@ interface DocumentRow {
 
 type View = 'forms' | 'documents';
 
+type FieldType = 'text' | 'email' | 'number' | 'date' | 'select' | 'textarea' | 'checkbox';
+
+interface FormFieldDraft {
+  key: string;
+  label: string;
+  type: FieldType;
+  required: boolean;
+  optionsText: string;
+}
+
+const FIELD_TYPES: Array<{ value: FieldType; label: string }> = [
+  { value: 'text', label: 'Texto' },
+  { value: 'email', label: 'Email' },
+  { value: 'number', label: 'Número' },
+  { value: 'date', label: 'Fecha' },
+  { value: 'select', label: 'Select' },
+  { value: 'textarea', label: 'Área de texto' },
+  { value: 'checkbox', label: 'Checkbox' },
+];
+
+/** Normaliza `fields` (JSON) a borradores editables en el constructor visual. */
+const parseFields = (raw: unknown): FormFieldDraft[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((f, i) => {
+    const obj = (f ?? {}) as Record<string, unknown>;
+    const key =
+      typeof obj.key === 'string' && obj.key
+        ? obj.key
+        : typeof obj.name === 'string' && obj.name
+          ? obj.name
+          : `campo_${i + 1}`;
+    const label = typeof obj.label === 'string' ? obj.label : key;
+    const type = FIELD_TYPES.some((ft) => ft.value === obj.type) ? (obj.type as FieldType) : 'text';
+    const required = obj.required === true;
+    const optionsText = Array.isArray(obj.options)
+      ? obj.options.map(String).join(', ')
+      : typeof obj.options === 'string'
+        ? obj.options
+        : '';
+    return { key, label, type, required, optionsText };
+  });
+};
+
 export function FormsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -48,8 +91,8 @@ export function FormsPage() {
   });
 
   const [formTitle, setFormTitle] = useState('');
-  const [fieldsJson, setFieldsJson] = useState('');
-  const [fieldsError, setFieldsError] = useState('');
+  const [fields, setFields] = useState<FormFieldDraft[]>([]);
+  const [editingForm, setEditingForm] = useState<FormDef | null>(null);
   const [selectedForm, setSelectedForm] = useState<FormDef | null>(null);
   const [confirmForm, setConfirmForm] = useState<FormDef | null>(null);
 
@@ -62,13 +105,42 @@ export function FormsPage() {
     enabled: selectedForm !== null,
   });
 
-  const createForm = useMutation({
-    mutationFn: (fields: unknown) => api.post<FormDef>(`${FORMS_BASE}/forms`, { title: formTitle.trim(), fields }),
+  const resetFormBuilder = () => {
+    setFormTitle('');
+    setFields([]);
+    setEditingForm(null);
+  };
+
+  const addField = () => {
+    setFields((prev) => [
+      ...prev,
+      { key: `campo_${prev.length + 1}`, label: '', type: 'text', required: false, optionsText: '' },
+    ]);
+  };
+
+  const updateField = (index: number, patch: Partial<FormFieldDraft>) => {
+    setFields((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
+  };
+
+  const removeField = (index: number) => {
+    setFields((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const startEditForm = (f: FormDef) => {
+    setEditingForm(f);
+    setFormTitle(f.title);
+    setFields(parseFields(f.fields));
+    setSelectedForm(null);
+  };
+
+  const saveForm = useMutation({
+    mutationFn: (vars: { id: string | null; body: { title: string; fields: unknown } }) =>
+      vars.id
+        ? api.patch<FormDef>(`${FORMS_BASE}/forms/${vars.id}`, vars.body)
+        : api.post<FormDef>(`${FORMS_BASE}/forms`, vars.body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['forms'] });
-      setFormTitle('');
-      setFieldsJson('');
-      setFieldsError('');
+      resetFormBuilder();
     },
   });
 
@@ -81,15 +153,18 @@ export function FormsPage() {
   });
 
   const submitForm = () => {
-    let fields: unknown;
-    try {
-      fields = JSON.parse(fieldsJson);
-    } catch {
-      setFieldsError(t('admin.forms.invalidJson'));
-      return;
-    }
-    setFieldsError('');
-    createForm.mutate(fields);
+    const built = fields
+      .filter((f) => f.key.trim() && f.label.trim())
+      .map((f) => ({
+        key: f.key.trim(),
+        label: f.label.trim(),
+        type: f.type,
+        required: f.required,
+        ...(f.type === 'select'
+          ? { options: f.optionsText.split(',').map((s) => s.trim()).filter(Boolean) }
+          : {}),
+      }));
+    saveForm.mutate({ id: editingForm?.id ?? null, body: { title: formTitle.trim(), fields: built } });
   };
 
   // ── Documentos ──────────────────────────────────────────
@@ -145,7 +220,7 @@ export function FormsPage() {
         {view === 'forms' && (
           <>
             <Card>
-              <h3 style={{ marginTop: 0 }}>{t('admin.forms.newForm')}</h3>
+              <h3 style={{ marginTop: 0 }}>{editingForm ? 'Editar formulario' : t('admin.forms.newForm')}</h3>
               <form
                 className="stack"
                 onSubmit={(e) => {
@@ -156,22 +231,90 @@ export function FormsPage() {
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
                   <TextField label={t('common.title')} value={formTitle} onChange={(e) => setFormTitle(e.target.value)} required />
                 </div>
-                <div className="field">
-                  <label>{t('admin.forms.fieldsJson')}</label>
-                  <textarea
-                    className="input"
-                    value={fieldsJson}
-                    onChange={(e) => setFieldsJson(e.target.value)}
-                    placeholder='[{"name":"email","label":"Email","type":"text"}]'
-                    rows={4}
-                  />
+
+                <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
+                  {fields.map((f, i) => (
+                    <div
+                      key={i}
+                      className="stack"
+                      style={{
+                        border: '1px solid var(--ws-surface-2)',
+                        borderRadius: 'var(--ws-radius-md)',
+                        padding: 'var(--ws-space-3)',
+                        gap: 'var(--ws-space-2)',
+                      }}
+                    >
+                      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                        <strong>Campo {i + 1}</strong>
+                        <Button variant="ghost" type="button" onClick={() => removeField(i)}>
+                          Eliminar
+                        </Button>
+                      </div>
+                      <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                        <TextField label="Etiqueta" value={f.label} onChange={(e) => updateField(i, { label: e.target.value })} />
+                        <TextField label="Clave" value={f.key} onChange={(e) => updateField(i, { key: e.target.value })} />
+                        <div className="field">
+                          <label>Tipo</label>
+                          <select
+                            className="input"
+                            style={{ width: 'auto' }}
+                            value={f.type}
+                            onChange={(e) => updateField(i, { type: e.target.value as FieldType })}
+                          >
+                            {FIELD_TYPES.map((ft) => (
+                              <option key={ft.value} value={ft.value}>
+                                {ft.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="field" style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+                          <label style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+                            <input
+                              type="checkbox"
+                              checked={f.required}
+                              onChange={(e) => updateField(i, { required: e.target.checked })}
+                            />
+                            Requerido
+                          </label>
+                        </div>
+                      </div>
+                      {f.type === 'select' && (
+                        <div className="field">
+                          <label>Opciones (separadas por coma)</label>
+                          <input
+                            className="input"
+                            value={f.optionsText}
+                            onChange={(e) => updateField(i, { optionsText: e.target.value })}
+                            placeholder="Opción 1, Opción 2"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {fields.length === 0 && (
+                    <p className="muted" style={{ margin: 0 }}>
+                      Sin campos todavía. Agregá campos para construir el formulario.
+                    </p>
+                  )}
                 </div>
-                {fieldsError && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{fieldsError}</p>}
+
                 <div className="row">
-                  <Button type="submit" disabled={createForm.isPending || !formTitle}>
-                    {t('admin.forms.createForm')}
+                  <Button variant="secondary" type="button" onClick={addField}>
+                    Agregar campo
                   </Button>
-                  {createForm.error && <span style={{ color: 'var(--ws-danger)' }}>{createForm.error.message}</span>}
+                </div>
+
+                <div className="row">
+                  <Button type="submit" disabled={saveForm.isPending || !formTitle}>
+                    {editingForm ? t('common.save') : t('admin.forms.createForm')}
+                  </Button>
+                  {editingForm && (
+                    <Button variant="ghost" type="button" onClick={resetFormBuilder}>
+                      {t('common.cancel')}
+                    </Button>
+                  )}
+                  {saveForm.error && <span style={{ color: 'var(--ws-danger)' }}>{saveForm.error.message}</span>}
                 </div>
               </form>
             </Card>
@@ -200,6 +343,9 @@ export function FormsPage() {
                         <td>{new Date(f.createdAt).toLocaleString()}</td>
                         <td>
                           <div className="row">
+                            <Button variant="secondary" onClick={() => startEditForm(f)}>
+                              {t('common.edit')}
+                            </Button>
                             <Button variant="secondary" onClick={() => setSelectedForm(f)}>
                               {t('admin.forms.responses')}
                             </Button>

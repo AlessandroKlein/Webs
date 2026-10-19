@@ -95,7 +95,7 @@ const ORDER_STATUS_COLOR: Record<string, string> = {
   cancelled: 'var(--ws-danger)',
 };
 
-type Tab = 'summary' | 'profile' | 'security' | 'password' | 'danger';
+type Tab = 'summary' | 'profile' | 'security' | 'connections' | 'password' | 'danger';
 
 export function AccountPage() {
   const { t } = useTranslation();
@@ -138,6 +138,7 @@ export function AccountPage() {
 
   const twilioInstalled = blocksData?.installed?.some((b) => b.blockId === 'twilio' && b.enabled);
   const academiaInstalled = blocksData?.installed?.some((b) => b.blockId === 'academia' && b.enabled);
+  const socialLoginInstalled = blocksData?.installed?.some((b) => b.blockId === 'social-login' && b.enabled);
 
   const { data: profileFieldsData } = useQuery({
     queryKey: ['profile-fields'],
@@ -203,9 +204,15 @@ export function AccountPage() {
         ? t('admin.account.profile')
         : tab === 'security'
           ? t('admin.account.security')
-          : tab === 'password'
-            ? t('admin.account.changePassword')
-            : t('admin.account.dangerZone');
+          : tab === 'connections'
+            ? 'Conexiones'
+            : tab === 'password'
+              ? t('admin.account.changePassword')
+              : t('admin.account.dangerZone');
+
+  const tabs: Tab[] = socialLoginInstalled
+    ? ['summary', 'profile', 'security', 'connections', 'password', 'danger']
+    : ['summary', 'profile', 'security', 'password', 'danger'];
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
@@ -222,7 +229,7 @@ export function AccountPage() {
           }}
         >
           <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.account')}</h1>
-          {(['summary', 'profile', 'security', 'password', 'danger'] as const).map((tabKey) => (
+          {tabs.map((tabKey) => (
             <button
               key={tabKey}
               className={`nav-link ${tab === tabKey ? 'active' : ''}`}
@@ -403,6 +410,8 @@ export function AccountPage() {
             <PasskeysCard />
           </>
         )}
+
+        {tab === 'connections' && <ConnectionsCard userEmail={data?.user?.email ?? null} />}
 
         {tab === 'password' && <ChangePasswordCard />}
 
@@ -1009,6 +1018,151 @@ function PasskeysCard() {
         }}
         onCancel={() => setRenaming(null)}
       />
+    </Card>
+  );
+}
+
+interface SocialProvider {
+  id: string;
+  name: string;
+}
+
+interface SocialVerifyResult {
+  ok: boolean;
+  linked: boolean;
+  userId?: string;
+  socialAccountId?: string;
+  error?: string;
+}
+
+/**
+ * Conexiones — proveedores de login social habilitados y vínculo de cuentas.
+ *
+ * Lista `GET /api/v1/blocks/social-login/providers` y permite "Conectar" con un
+ * flujo SIMULADO (providerId/email por PromptDialog) que llama a
+ * `POST /api/v1/blocks/social-login/verify`.
+ */
+function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
+  const { data: providers } = useQuery({
+    queryKey: ['social-providers'],
+    queryFn: () => api.get<SocialProvider[]>('/api/v1/blocks/social-login/providers'),
+    retry: 0,
+  });
+  const [provider, setProvider] = useState<SocialProvider | null>(null);
+  const [step, setStep] = useState<'providerId' | 'email' | null>(null);
+  const [providerId, setProviderId] = useState('');
+  const [result, setResult] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const openConnect = (p: SocialProvider) => {
+    setProvider(p);
+    setProviderId('');
+    setStep('providerId');
+    setResult(null);
+    setError(null);
+  };
+
+  const verify = async (email: string) => {
+    if (!provider) return;
+    const pid = providerId.trim();
+    const name = provider.name;
+    if (!pid) {
+      setError('El providerId es obligatorio');
+      setStep(null);
+      setProvider(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      // TODO(OAuth real): acá iría el redirect → callback → exchange del
+      // proveedor. Por ahora se simula el vínculo con un providerId manual.
+      const res = await api.post<SocialVerifyResult>('/api/v1/blocks/social-login/verify', {
+        provider: provider.id,
+        providerId: pid,
+        ...(email ? { email } : {}),
+      });
+      if (res.ok) {
+        setResult(
+          res.linked
+            ? `Cuenta de ${name} vinculada correctamente.`
+            : `Cuenta de ${name} registrada (aún sin vínculo de usuario).`,
+        );
+      } else {
+        setError(res.error ?? 'No se pudo verificar la cuenta social');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al conectar la cuenta social');
+    } finally {
+      setLoading(false);
+      setStep(null);
+      setProvider(null);
+    }
+  };
+
+  return (
+    <Card>
+      <h3>Conexiones</h3>
+      <p className="muted">
+        Vinculá tu cuenta con proveedores de login social. El flujo OAuth real
+        (redirect → callback → exchange) está pendiente; por ahora se simula con
+        un providerId y un email.
+      </p>
+
+      {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
+      {result && <p style={{ color: 'var(--ws-success, #16a34a)' }}>{result}</p>}
+
+      {(providers ?? []).length === 0 ? (
+        <p className="muted">No hay proveedores de login social habilitados.</p>
+      ) : (
+        <div className="stack">
+          {(providers ?? []).map((p) => (
+            <div
+              key={p.id}
+              className="row"
+              style={{ justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}
+            >
+              <span>{p.name}</span>
+              <Button onClick={() => openConnect(p)} disabled={loading}>
+                Conectar
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {step === 'providerId' && provider && (
+        <PromptDialog
+          open
+          title={`Conectar con ${provider.name}`}
+          label="ID del proveedor (providerId)"
+          confirmLabel="Continuar"
+          onConfirm={(value) => {
+            setProviderId(value.trim());
+            setStep('email');
+          }}
+          onCancel={() => {
+            setProvider(null);
+            setStep(null);
+          }}
+        />
+      )}
+      {step === 'email' && provider && (
+        <PromptDialog
+          open
+          title={`${provider.name} — email`}
+          label="Email (opcional)"
+          defaultValue={userEmail ?? ''}
+          confirmLabel="Verificar"
+          onConfirm={(value) => void verify(value.trim())}
+          onCancel={() => {
+            setProvider(null);
+            setStep(null);
+          }}
+        />
+      )}
     </Card>
   );
 }

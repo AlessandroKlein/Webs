@@ -85,6 +85,20 @@ export function PaymentsPage() {
       qc.invalidateQueries({ queryKey: ['payments-summary'] });
     },
   });
+  const remove = useMutation({
+    mutationFn: (id: string) => api.del(`/api/v1/payments/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payments'] });
+      qc.invalidateQueries({ queryKey: ['payments-summary'] });
+    },
+  });
+  const cancelPending = useMutation({
+    mutationFn: () => api.post('/api/v1/payments/cancel-pending'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payments'] });
+      qc.invalidateQueries({ queryKey: ['payments-summary'] });
+    },
+  });
 
   if (isLoading) return <Spinner />;
 
@@ -113,6 +127,14 @@ export function PaymentsPage() {
             <option value="refunded">Reembolsado</option>
           </select>
           <input className="input" placeholder="Proveedor (ej. mercadopago)" value={provider} onChange={(e) => setProvider(e.target.value)} />
+          <Button
+            variant="ghost"
+            onClick={() => cancelPending.mutate()}
+            disabled={cancelPending.isPending || !summary?.pending}
+            style={{ color: 'var(--ws-danger)', marginLeft: 'auto' }}
+          >
+            <i className="bi bi-trash" /> Eliminar pendientes
+          </Button>
         </div>
 
         <table className="table" style={{ marginTop: 'var(--ws-space-3)' }}>
@@ -140,7 +162,17 @@ export function PaymentsPage() {
                       <Button variant="ghost" onClick={() => refund.mutate(p.id)}>Reembolsar</Button>
                     )}
                     {p.status === 'pending' && (
-                      <Button variant="ghost" onClick={() => markPaid.mutate(p.id)}>Marcar pagado</Button>
+                      <>
+                        <Button variant="ghost" onClick={() => markPaid.mutate(p.id)}>Marcar pagado</Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => remove.mutate(p.id)}
+                          disabled={remove.isPending}
+                          style={{ color: 'var(--ws-danger)' }}
+                        >
+                          <i className="bi bi-trash" /> Eliminar
+                        </Button>
+                      </>
                     )}
                   </div>
                 </td>

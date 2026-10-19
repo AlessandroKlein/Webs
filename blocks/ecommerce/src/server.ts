@@ -22,6 +22,76 @@ const DEFAULT_SHIPPING_RATES = [
 const stringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
 
+/** Convierte texto a slug (minúsculas, sin tildes, guiones) para el SKU. */
+const slugify = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-');
+
+/** Normaliza `stockBySize` a un mapa talle → cantidad. */
+const stockBySize = (value: unknown): Record<string, number> => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    const n = Number(v);
+    if (Number.isFinite(n)) out[k] = n;
+  }
+  return out;
+};
+
+/**
+ * Crea/actualiza un `InventoryItem` por cada talle del producto, de modo que el
+ * stock por talle se comparte con el bloque de inventario (`/admin/inventory`).
+ * - sku: `slug(title)-slug(size)`
+ * - name: `"title (size)"`
+ * - quantity: stock de ese talle
+ * - unitPrice: precio del producto
+ * - productId: id del producto
+ */
+const syncInventoryBySize = async (
+  db: Record<string, any>,
+  product: { id: string; title: string; price: number; category?: string | null },
+  sizes: string[],
+  bySize: Record<string, number>,
+): Promise<void> => {
+  for (const size of sizes) {
+    const sku = slugify(`${product.title}-${size}`);
+    const name = `${product.title} (${size})`;
+    const quantity = bySize[size] ?? 0;
+    const existing = await db.inventoryItem.findFirst({ where: { productId: product.id, sku } });
+    if (existing) {
+      await db.inventoryItem.update({
+        where: { id: existing.id },
+        data: {
+          sku,
+          name,
+          quantity,
+          unitPrice: product.price,
+          category: product.category ?? null,
+          productId: product.id,
+        },
+      });
+    } else {
+      await db.inventoryItem.create({
+        data: {
+          sku,
+          name,
+          quantity,
+          minQuantity: 0,
+          unitPrice: product.price,
+          category: product.category ?? null,
+          organizationId: null,
+          productId: product.id,
+        },
+      });
+    }
+  }
+};
+
 export default defineBlock(manifest, {
   register: async (fastify, config) => {
     const cfg = config as Record<string, unknown>;
@@ -73,20 +143,29 @@ export default defineBlock(manifest, {
           imageUrl?: string | null;
           images?: unknown;
           sizes?: unknown;
+          stockBySize?: unknown;
         };
       };
-      return db.product.create({
+      const title = body?.title ?? '';
+      const price = Number(body?.price ?? 0);
+      const sizes = stringArray(body?.sizes);
+      const product = await db.product.create({
         data: {
-          title: body?.title ?? '',
+          title,
           description: body?.description ?? null,
-          price: Number(body?.price ?? 0),
+          price,
           stock: Number(body?.stock ?? 0),
           category: body?.category ?? null,
           imageUrl: body?.imageUrl ?? null,
           images: stringArray(body?.images),
-          sizes: stringArray(body?.sizes),
+          sizes,
         },
       });
+      // Stock por talle: crea un ítem de inventario por cada talle del producto.
+      if (sizes.length > 0) {
+        await syncInventoryBySize(db, product, sizes, stockBySize(body?.stockBySize));
+      }
+      return product;
     });
 
     fastify.get('/products/persisted', async () => db.product.findMany({ orderBy: { title: 'asc' } }));
@@ -103,6 +182,7 @@ export default defineBlock(manifest, {
           imageUrl?: string | null;
           images?: unknown;
           sizes?: unknown;
+          stockBySize?: unknown;
         };
       };
       const data: Record<string, unknown> = {};
@@ -114,7 +194,15 @@ export default defineBlock(manifest, {
       if (body?.imageUrl !== undefined) data.imageUrl = body.imageUrl;
       if (body?.images !== undefined) data.images = stringArray(body.images);
       if (body?.sizes !== undefined) data.sizes = stringArray(body.sizes);
-      return db.product.update({ where: { id: params?.id }, data });
+      const product = await db.product.update({ where: { id: params?.id }, data });
+      // Stock por talle: actualiza los ítems de inventario si cambiaron los talles.
+      if (body?.sizes !== undefined) {
+        const sizes = stringArray(body.sizes);
+        if (sizes.length > 0) {
+          await syncInventoryBySize(db, product, sizes, stockBySize(body?.stockBySize));
+        }
+      }
+      return product;
     });
 
     fastify.delete('/products/:id', async (request: unknown) => {

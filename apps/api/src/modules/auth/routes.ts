@@ -95,8 +95,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       preHandler: [ipLimiter(fastify.redis, 5, 15 * 60)],
     },
     async (request, reply) => {
-      const { email, password, displayName, username, inviteToken } = request.body as RegisterBody;
-      const profile = await registerUser(fastify, { email, password, displayName, username, inviteToken });
+      const { email, password, displayName, firstName, lastName, birthDate, username, inviteToken } = request.body as RegisterBody;
+      const profile = await registerUser(fastify, { email, password, displayName, firstName, lastName, birthDate, username, inviteToken });
 
       const accessToken = signAccessToken(fastify, profile);
       const refreshToken = await createSession(fastify, profile.id, {

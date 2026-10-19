@@ -74,6 +74,19 @@ export default async function notificationsRoutes(fastify: FastifyInstance): Pro
     },
   );
 
+  // Elimina una notificación de la bandeja (el usuario puede borrar notificaciones).
+  fastify.delete(
+    '/notifications/inbox/:id',
+    { schema: { tags: ['notifications'], params: { type: 'object', properties: { id: { type: 'string' } } } }, preHandler: [fastify.authenticate] },
+    async (request) => {
+      const id = (request.params as { id: string }).id;
+      const notification = await fastify.prisma.notification.findUnique({ where: { id } });
+      if (!notification) throw new NotFoundError('Notificación');
+      await fastify.prisma.notification.delete({ where: { id } });
+      return { ok: true, id };
+    },
+  );
+
   // -------- Proveedores de notificación disponibles --------
   fastify.get(
     '/notifications/providers',

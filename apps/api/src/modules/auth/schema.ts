@@ -17,6 +17,9 @@ export const registerSchema = {
     email: { type: 'string', format: 'email' },
     password: { type: 'string', minLength: 8 },
     displayName: { type: 'string', minLength: 1 },
+    firstName: { type: 'string' },
+    lastName: { type: 'string' },
+    birthDate: { type: 'string' },
     username: { type: 'string', minLength: 3 },
     inviteToken: { type: 'string' },
   },
@@ -34,6 +37,9 @@ export interface RegisterBody {
   email: string;
   password: string;
   displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  birthDate?: string;
   username?: string;
   inviteToken?: string;
 }

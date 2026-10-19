@@ -73,6 +73,10 @@ export function SiteHeader() {
     mutationFn: () => api.patch('/api/v1/notifications/inbox/read-all', {}),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['site-notifications-inbox'] }),
   });
+  const remove = useMutation({
+    mutationFn: (id: string) => api.del(`/api/v1/notifications/inbox/${id}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['site-notifications-inbox'] }),
+  });
 
   const siteName = site?.name ?? 'Webs';
   const items = menuData?.items ?? [];
@@ -158,6 +162,16 @@ export function SiteHeader() {
                             <i className="bi bi-check2" />
                           </button>
                         )}
+                        <button
+                          className="btn ghost"
+                          title="Eliminar"
+                          aria-label="Eliminar notificación"
+                          onClick={() => remove.mutate(n.id)}
+                          disabled={remove.isPending}
+                          style={{ color: 'var(--ws-danger)' }}
+                        >
+                          <i className="bi bi-trash" />
+                        </button>
                       </div>
                       <p className="muted" style={{ margin: 0 }}>{n.body}</p>
                     </div>
@@ -179,6 +193,15 @@ export function SiteHeader() {
               </button>
               {userOpen && (
                 <div className="dropdown" style={{ right: 0 }}>
+                  <Link to="/dashboard" onClick={() => setUserOpen(false)}>
+                    <i className="bi bi-grid-1x2" /> Dashboard
+                  </Link>
+                  <Link to="/blog" onClick={() => setUserOpen(false)}>
+                    <i className="bi bi-journal-text" /> Blog
+                  </Link>
+                  <Link to="/social" onClick={() => setUserOpen(false)}>
+                    <i className="bi bi-people" /> Red social
+                  </Link>
                   <Link to="/account" onClick={() => setUserOpen(false)}>
                     <i className="bi bi-person" /> {t('site.header.myAccount')}
                   </Link>

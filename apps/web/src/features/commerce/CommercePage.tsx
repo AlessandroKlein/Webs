@@ -9,6 +9,13 @@ import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 const EC_BASE = '/api/v1/blocks/ecommerce';
+const INV_BASE = '/api/v1/blocks/inventario';
+
+const parseList = (s: string): string[] =>
+  s
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
 
 interface Product {
   id: string;
@@ -20,6 +27,13 @@ interface Product {
   imageUrl: string | null;
   images: string[];
   sizes: string[];
+}
+
+interface InventoryItem {
+  id: string;
+  productId: string | null;
+  name: string;
+  quantity: number;
 }
 
 interface Order {
@@ -115,6 +129,11 @@ export function CommercePage() {
     queryFn: () => api.get<Product[]>(`${EC_BASE}/products/persisted`),
   });
 
+  const { data: inventoryItems } = useQuery({
+    queryKey: ['ecommerce-inventory'],
+    queryFn: () => api.get<InventoryItem[]>(`${INV_BASE}/inventory`),
+  });
+
   const [productFormOpen, setProductFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [pTitle, setPTitle] = useState('');
@@ -125,6 +144,7 @@ export function CommercePage() {
   const [pImageUrl, setPImageUrl] = useState('');
   const [pImages, setPImages] = useState('');
   const [pSizes, setPSizes] = useState('');
+  const [pStockBySize, setPStockBySize] = useState<Record<string, string>>({});
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
 
   const saveProduct = useMutation({
@@ -132,6 +152,9 @@ export function CommercePage() {
       vars.id ? api.patch(`${EC_BASE}/products/${vars.id}`, vars.body) : api.post(`${EC_BASE}/products`, vars.body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['ecommerce-products'] });
+      qc.invalidateQueries({ queryKey: ['ecommerce-inventory'] });
+      qc.invalidateQueries({ queryKey: ['inventory'] });
+      qc.invalidateQueries({ queryKey: ['inventory-low'] });
       resetProduct();
     },
   });
@@ -152,6 +175,7 @@ export function CommercePage() {
     setPImageUrl('');
     setPImages('');
     setPSizes('');
+    setPStockBySize({});
   };
 
   const startEditProduct = (p: Product) => {
@@ -164,15 +188,24 @@ export function CommercePage() {
     setPImageUrl(p.imageUrl ?? '');
     setPImages((p.images ?? []).join(', '));
     setPSizes((p.sizes ?? []).join(', '));
+    const bySize: Record<string, string> = {};
+    for (const s of p.sizes ?? []) {
+      const item = (inventoryItems ?? []).find((it) => it.productId === p.id && it.name === `${p.title} (${s})`);
+      bySize[s] = item ? String(item.quantity) : '';
+    }
+    setPStockBySize(bySize);
     setProductFormOpen(true);
   };
 
+  const sizesList = parseList(pSizes);
+
   const submitProduct = () => {
-    const parseList = (s: string) =>
-      s
-        .split(',')
-        .map((x) => x.trim())
-        .filter(Boolean);
+    const sizes = parseList(pSizes);
+    const stockBySize: Record<string, number> = {};
+    for (const s of sizes) {
+      const n = Number(pStockBySize[s] ?? '');
+      stockBySize[s] = Number.isFinite(n) ? n : 0;
+    }
     const body: Record<string, unknown> = {
       title: pTitle.trim(),
       price: Number(pPrice),
@@ -181,7 +214,8 @@ export function CommercePage() {
       description: pDescription.trim() || undefined,
       imageUrl: pImageUrl.trim() || undefined,
       images: parseList(pImages),
-      sizes: parseList(pSizes),
+      sizes,
+      stockBySize,
     };
     saveProduct.mutate({ id: editingProduct?.id ?? null, body });
   };
@@ -348,6 +382,26 @@ export function CommercePage() {
                     <TextField label="Imágenes (URLs separadas por coma)" value={pImages} onChange={(e) => setPImages(e.target.value)} placeholder="https://…, https://…" />
                     <TextField label="Talles (separados por coma)" value={pSizes} onChange={(e) => setPSizes(e.target.value)} placeholder="S, M, L" />
                   </div>
+                  {sizesList.length > 0 && (
+                    <div className="field">
+                      <label>Stock por talle</label>
+                      <div className="row" style={{ flexWrap: 'wrap' }}>
+                        {sizesList.map((s) => (
+                          <div key={s} className="field" style={{ minWidth: 120 }}>
+                            <label>Stock {s}</label>
+                            <input
+                              className="input"
+                              type="number"
+                              min={0}
+                              value={pStockBySize[s] ?? ''}
+                              onChange={(e) => setPStockBySize((prev) => ({ ...prev, [s]: e.target.value }))}
+                              placeholder="0"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="field">
                     <label>Descripción</label>
                     <textarea className="input" value={pDescription} onChange={(e) => setPDescription(e.target.value)} />

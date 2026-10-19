@@ -259,4 +259,24 @@ export function registerDefaultSections(): void {
     },
     defaults: { fields: [] },
   });
+
+  // Pagos: umbral de auto-cancelación de transacciones pendientes.
+  registerSettingSection({
+    key: 'payments',
+    group: 'general',
+    schema: {
+      type: 'object',
+      title: 'Pagos',
+      properties: {
+        pendingExpiryMinutes: {
+          type: 'integer',
+          title: 'Minutos para cancelar pagos pendientes',
+          description: 'Los pagos pendientes más antiguos que este umbral se eliminan automáticamente.',
+          minimum: 1,
+          default: 60,
+        },
+      },
+    },
+    defaults: { pendingExpiryMinutes: 60 },
+  });
 }

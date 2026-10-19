@@ -149,14 +149,25 @@ function InboxView() {
                 </td>
                 <td>{n.expiresAt ? new Date(n.expiresAt).toLocaleString() : '—'}</td>
                 <td>
-                  <div className="row">
+                  <div className="row" style={{ gap: 'var(--ws-space-1)' }}>
                     {!n.read && (
-                      <Button variant="secondary" onClick={() => markRead.mutate(n.id)}>
-                        {t('common.markRead')}
+                      <Button
+                        variant="ghost"
+                        title={t('common.markRead')}
+                        aria-label={t('common.markRead')}
+                        onClick={() => markRead.mutate(n.id)}
+                      >
+                        <i className="bi bi-check2" />
                       </Button>
                     )}
-                    <Button variant="ghost" onClick={() => setConfirmDelete(n)}>
-                      {t('common.delete')}
+                    <Button
+                      variant="ghost"
+                      title={t('common.delete')}
+                      aria-label={t('common.delete')}
+                      onClick={() => setConfirmDelete(n)}
+                      style={{ color: 'var(--ws-danger)' }}
+                    >
+                      <i className="bi bi-trash" />
                     </Button>
                   </div>
                 </td>

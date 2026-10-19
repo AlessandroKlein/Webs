@@ -60,10 +60,10 @@ export default defineBlock(manifest, {
       };
     });
 
-    // POST /register {email, password, displayName?, username?, inviteToken?}
+    // POST /register {email, password, displayName?, firstName?, lastName?, birthDate?, username?, inviteToken?}
     fastify.post('/register', async (request: unknown, reply: unknown) => {
       const req = request as {
-        body?: { email?: string; password?: string; displayName?: string; username?: string; inviteToken?: string };
+        body?: { email?: string; password?: string; displayName?: string; firstName?: string; lastName?: string; birthDate?: string; username?: string; inviteToken?: string };
         protocol: string;
         host: string;
       };
@@ -106,6 +106,9 @@ export default defineBlock(manifest, {
             email,
             password,
             displayName: body.displayName,
+            firstName: body.firstName,
+            lastName: body.lastName,
+            birthDate: body.birthDate,
             username: body.username,
             inviteToken: body.inviteToken,
           }),

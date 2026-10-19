@@ -1,16 +1,17 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { DEFAULT_LOCALE } from '@webs/i18n';
+import { baseResources, DEFAULT_LOCALE } from '@webs/i18n';
 import { getCookie, setCookie } from '@webs/ui';
 
 const LOCALE_KEY = 'webs-locale';
 
-// Se inicializa sin recursos: se cargan en runtime SOLO los idiomas habilitados
-// por el administrador (vía applyRemoteResources), para no descargar peso de
-// idiomas/módulos que no se usan.
+// Se inicializa con los recursos base (compilados) para evitar el "flash" de
+// claves sin traducir en el primer render; en runtime se cargan además los
+// idiomas habilitados por el administrador vía applyRemoteResources.
 void i18next.use(initReactI18next).init({
   lng: getCookie(LOCALE_KEY) ?? DEFAULT_LOCALE,
   fallbackLng: 'en',
+  resources: baseResources,
   interpolation: { escapeValue: false },
   returnEmptyString: false,
 });

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
-import { NotFoundError, ValidationError } from '@webs/core';
+import { BadRequestError, NotFoundError, ValidationError } from '@webs/core';
 import { getPaymentProvider, listPaymentProviders } from './registry';
 
 /** Validación anti-manipulación de precios: montos enteros (centavos) y positivos. */
@@ -24,6 +24,17 @@ const checkoutSchema = z.object({
     .optional(),
   metadata: z.record(z.unknown()).optional(),
 });
+
+/**
+ * Lee el umbral de auto-cancelación de la sección de ajustes `payments`
+ * (`pendingExpiryMinutes`). Si no está configurado, devuelve 60 minutos.
+ */
+async function getPendingExpiryMinutes(fastify: FastifyInstance): Promise<number> {
+  const setting = await fastify.prisma.setting.findUnique({ where: { key: 'payments' } });
+  const value = (setting?.value as Record<string, unknown> | undefined) ?? {};
+  const minutes = Number(value.pendingExpiryMinutes);
+  return Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : 60;
+}
 
 export default async function paymentsRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
@@ -232,6 +243,52 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
         });
       }
       return { ok: true, id: payment.id, status: 'refunded' };
+    },
+  );
+
+  // Elimina un pago pendiente (borrado "por fila" en el panel). Solo permite
+  // borrar transacciones en estado `pending`; el resto devuelve 400.
+  fastify.delete(
+    '/payments/:id',
+    {
+      schema: { tags: ['payments'], params: { type: 'object', properties: { id: { type: 'string' } } } },
+      preHandler: [fastify.authenticate, fastify.authorize('user.read')],
+    },
+    async (request) => {
+      const id = (request.params as { id: string }).id;
+      const payment = await fastify.prisma.payment.findUnique({ where: { id } });
+      if (!payment) throw new NotFoundError('Pago');
+      if (payment.status !== 'pending') {
+        throw new BadRequestError('Solo se pueden eliminar pagos pendientes');
+      }
+      await fastify.prisma.payment.delete({ where: { id } });
+      return { ok: true, id: payment.id };
+    },
+  );
+
+  // "Eliminar pendientes": borra todas las transacciones pendientes de una vez.
+  fastify.post(
+    '/payments/cancel-pending',
+    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.authorize('user.read')] },
+    async () => {
+      const result = await fastify.prisma.payment.deleteMany({ where: { status: 'pending' } });
+      return { ok: true, deleted: result.count ?? 0 };
+    },
+  );
+
+  // Auto-cancelación manual: borra los pagos pendientes más viejos que el
+  // umbral configurado en `payments.pendingExpiryMinutes` (default 60 minutos).
+  // Puede llamarse desde un cron externo; por simplicidad no hay job interno.
+  fastify.post(
+    '/payments/auto-cancel',
+    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.authorize('user.read')] },
+    async () => {
+      const expiryMinutes = await getPendingExpiryMinutes(fastify);
+      const cutoff = new Date(Date.now() - expiryMinutes * 60_000);
+      const result = await fastify.prisma.payment.deleteMany({
+        where: { status: 'pending', createdAt: { lt: cutoff } },
+      });
+      return { ok: true, deleted: result.count ?? 0, thresholdMinutes: expiryMinutes };
     },
   );
 }

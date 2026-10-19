@@ -151,7 +151,7 @@ export async function login(
 
 export async function registerUser(
   fastify: FastifyInstance,
-  input: { email: string; password: string; displayName?: string; username?: string; inviteToken?: string },
+  input: { email: string; password: string; displayName?: string; firstName?: string; lastName?: string; birthDate?: string; username?: string; inviteToken?: string },
 ): Promise<UserProfile> {
   const existing = await fastify.prisma.user.findUnique({ where: { email: input.email } });
   if (existing) throw new ConflictError('El correo ya está registrado');
@@ -177,7 +177,16 @@ export async function registerUser(
 
   const passwordHash = await bcrypt.hash(input.password, 10);
   const user = await fastify.prisma.user.create({
-    data: { email: input.email, username: input.username ?? null, passwordHash, displayName: input.displayName ?? null, active },
+    data: {
+      email: input.email,
+      username: input.username ?? null,
+      passwordHash,
+      displayName: input.displayName ?? null,
+      firstName: input.firstName ?? null,
+      lastName: input.lastName ?? null,
+      birthDate: input.birthDate ? new Date(input.birthDate) : null,
+      active,
+    },
   });
 
   const roleKey = invitedRole ?? 'user';

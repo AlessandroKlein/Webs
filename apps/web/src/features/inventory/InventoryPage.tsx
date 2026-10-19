@@ -44,6 +44,12 @@ interface AdjustResult {
 
 type View = 'list' | 'low';
 
+/** Extrae el talle del nombre de un ítem generado por ecommerce ("Título (S)"). */
+const sizeFromName = (name: string): string | null => {
+  const m = /\(([^)]+)\)\s*$/.exec(name);
+  return m?.[1] ?? null;
+};
+
 export function InventoryPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -258,6 +264,7 @@ export function InventoryPage() {
                     <th>{t('admin.inventory.minimum')}</th>
                     <th>{t('admin.inventory.unitPrice')}</th>
                     <th>{t('admin.inventory.category')}</th>
+                    <th>Producto / Talle</th>
                     <th>{t('common.actions')}</th>
                   </tr>
                 </thead>
@@ -271,6 +278,16 @@ export function InventoryPage() {
                       <td>{it.unitPrice}</td>
                       <td>{it.category ?? '—'}</td>
                       <td>
+                        {it.productId ? (
+                          <span>
+                            <code>{it.productId}</code>
+                            {sizeFromName(it.name) && <span className="muted"> · {sizeFromName(it.name)}</span>}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td>
                         <div className="row">
                           <Button variant="ghost" onClick={() => quickAdjust(it, -1)} title={t('admin.inventory.subtractOne')}>−1</Button>
                           <Button variant="ghost" onClick={() => quickAdjust(it, 1)} title={t('admin.inventory.addOne')}>+1</Button>
@@ -282,7 +299,7 @@ export function InventoryPage() {
                     </tr>
                   ))}
                   {itemList.length === 0 && (
-                    <tr><td colSpan={7}><p className="muted">{t('admin.inventory.noItems')}</p></td></tr>
+                    <tr><td colSpan={8}><p className="muted">{t('admin.inventory.noItems')}</p></td></tr>
                   )}
                 </tbody>
               </table>
@@ -320,6 +337,7 @@ export function InventoryPage() {
                   <th>{t('common.name')}</th>
                   <th>{t('admin.inventory.quantity')}</th>
                   <th>{t('admin.inventory.minimum')}</th>
+                  <th>Producto / Talle</th>
                 </tr>
               </thead>
               <tbody>
@@ -329,10 +347,20 @@ export function InventoryPage() {
                     <td>{it.name}</td>
                     <td style={{ color: 'var(--ws-danger)', fontWeight: 600 }}>{it.quantity}</td>
                     <td>{it.minQuantity}</td>
+                    <td>
+                      {it.productId ? (
+                        <span>
+                          <code>{it.productId}</code>
+                          {sizeFromName(it.name) && <span className="muted"> · {sizeFromName(it.name)}</span>}
+                        </span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {lowList.length === 0 && (
-                  <tr><td colSpan={4}><p className="muted">{t('admin.inventory.noLowStock')}</p></td></tr>
+                  <tr><td colSpan={5}><p className="muted">{t('admin.inventory.noLowStock')}</p></td></tr>
                 )}
               </tbody>
             </table>
