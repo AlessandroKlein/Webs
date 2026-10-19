@@ -3,6 +3,21 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.3.1] - 2026-10-19
+
+### Corregido (validado en Docker)
+
+- **Dockerfiles**: copiar `tsconfig.base.json`, `.npmrc` y `scripts/` al contexto
+  de build (antes faltaba `tsconfig.base.json` → build fallaba); OpenSSL para
+  Prisma en la API.
+- **Logger**: Fastify 5 exige opciones de pino (no una instancia); corregido
+  `createLogger` y quitado `disableRequestLogging` (deprecado).
+- **Instalación**: `setup-finish.mjs` ahora resuelve `@prisma/client`/`bcryptjs`
+  desde `apps/api` (pnpm no los eleva a la raíz).
+- **BullMQ**: conexión propia con `maxRetriesPerRequest: null` (antes crasheaba
+  al arrancar el worker).
+- **Versión del sistema** actualizada a `1.3.1`.
+
 ## [1.3.0] - 2026-10-19
 
 ### Añadido

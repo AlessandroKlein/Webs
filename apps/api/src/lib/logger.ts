@@ -1,11 +1,12 @@
-import { pino, type Logger } from 'pino';
+import { pino } from 'pino';
 
 /**
- * Logger estructurado (pino). Fastify lo reutiliza internamente, por lo que
- * todas las peticiones y logs de negocio comparten el mismo formato JSON.
+ * Configuración del logger estructurado (pino). Fastify 5 recibe estas
+ * opciones y crea la instancia internamente (no se pasa una instancia pino,
+ * porque Fastify 5 la rechaza con FST_ERR_LOG_INVALID_LOGGER_CONFIG).
  */
-export function createLogger(level = 'info'): Logger {
-  return pino({
+export function createLogger(level = 'info') {
+  return {
     level,
     base: { service: 'webs-api' },
     timestamp: pino.stdTimeFunctions.isoTime,
@@ -19,5 +20,5 @@ export function createLogger(level = 'info'): Logger {
       ],
       censor: '[REDACTED]',
     },
-  });
+  };
 }

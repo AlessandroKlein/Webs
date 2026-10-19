@@ -11,11 +11,16 @@
  *   - DATABASE_URL: URL de conexión.
  *   - DATA_DIR: directorio donde está `setup-payload.json`.
  */
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import { createRequire } from 'node:module';
 import { createCipheriv, createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+
+// Resuelve @prisma/client y bcryptjs desde apps/api (donde pnpm los enlaza),
+// porque este script vive en scripts/ y pnpm no los eleva a la raíz.
+const require = createRequire(new URL('../apps/api/package.json', import.meta.url));
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 

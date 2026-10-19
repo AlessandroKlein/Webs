@@ -12,6 +12,22 @@ export interface EnqueueOptions {
   attempts?: number;
 }
 
+/**
+ * BullMQ exige `maxRetriesPerRequest: null` para sus comandos bloqueantes, así
+ * que construye una conexión propia desde REDIS_URL en lugar de reutilizar la
+ * instancia compartida de `fastify.redis` (que usa maxRetriesPerRequest=3).
+ */
+function bullConnection(url?: string) {
+  if (!url) return undefined;
+  const u = new URL(url);
+  return {
+    host: u.hostname,
+    port: Number(u.port || 6379),
+    ...(u.password ? { password: decodeURIComponent(u.password) } : {}),
+    maxRetriesPerRequest: null,
+  };
+}
+
 export async function enqueueJob(
   fastify: FastifyInstance,
   queueName: string,
@@ -19,8 +35,9 @@ export async function enqueueJob(
   data: unknown,
   opts?: EnqueueOptions,
 ): Promise<void> {
-  if (!fastify.redis) return;
-  const queue = new Queue(queueName, { connection: fastify.redis as never });
+  const connection = bullConnection(fastify.config.REDIS_URL);
+  if (!connection) return;
+  const queue = new Queue(queueName, { connection });
   await queue.add(jobName, data, {
     delay: opts?.delay ?? 0,
     attempts: opts?.attempts ?? 3,
@@ -34,11 +51,12 @@ export function startWorker(
   queueName: string,
   handler: (data: unknown) => Promise<void>,
 ): void {
-  if (!fastify.redis) return;
+  const connection = bullConnection(fastify.config.REDIS_URL);
+  if (!connection) return;
   const worker = new Worker(
     queueName,
     async (job) => handler(job.data),
-    { connection: fastify.redis as never, concurrency: 5 },
+    { connection, concurrency: 5 },
   );
   worker.on('failed', (job, err) => fastify.log.warn({ err, jobId: job?.id }, `job '${queueName}' fallido`));
   fastify.addHook('onClose', async () => worker.close());

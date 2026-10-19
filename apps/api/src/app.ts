@@ -68,7 +68,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   const app = Fastify({
     logger: options.logger === false ? false : createLogger(env.LOG_LEVEL),
-    disableRequestLogging: false,
     trustProxy: true,
     ...(tls ? { https: tls } : {}),
   });
