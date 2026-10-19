@@ -61,6 +61,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | Landing pública en `/` + panel en `/admin` | ✅ | 1.6.0 |
 | Usuarios: buscador + campo username | ✅ | 1.7.0 |
 | Settings: zonas horarias + tamaños de logo | ✅ | 1.8.0 |
+| Mi cuenta: perfil, eliminar cuenta, 2FA SMS condicional | ✅ | 1.9.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
