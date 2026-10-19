@@ -44,6 +44,8 @@ import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { AuthConfigPage } from './features/auth-config/AuthConfigPage';
 import { PublicHome } from './features/public/PublicHome';
 import { PublicPage } from './features/public/PublicPage';
+import { BlogListPage } from './features/public/BlogListPage';
+import { ClassesPage } from './features/public/ClassesPage';
 import { SiteLayout } from './components/SiteLayout';
 import { SetupWizard } from './features/setup/SetupWizard';
 import { ErrorPage } from './pages/ErrorPage';
@@ -127,6 +129,8 @@ function MainApp() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/store" element={<SiteLayout><StorePage /></SiteLayout>} />
         <Route path="/" element={<PublicHome />} />
+        <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/clases" element={<ClassesPage />} />
         <Route path="/account" element={<RequireAuth><SiteLayout><AccountPage /></SiteLayout></RequireAuth>} />
 
         <Route

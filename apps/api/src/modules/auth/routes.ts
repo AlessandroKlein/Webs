@@ -159,7 +159,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
     },
   );
 
-  // Actualiza el perfil propio (nombre, username, locale, avatar).
+  // Actualiza el perfil propio (nombre, apellido, nacimiento, avatar, campos extra).
   fastify.patch(
     '/auth/me',
     {
@@ -169,18 +169,34 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
           type: 'object',
           properties: {
             displayName: { type: 'string', nullable: true },
+            firstName: { type: 'string', nullable: true },
+            lastName: { type: 'string', nullable: true },
+            birthDate: { type: 'string', nullable: true },
             username: { type: 'string', minLength: 3, nullable: true },
             locale: { type: 'string' },
             avatarUrl: { type: 'string', format: 'uri', nullable: true },
+            profile: { type: 'object', nullable: true },
           },
         },
       },
       preHandler: [fastify.authenticate],
     },
     async (request) => {
-      const body = request.body as { displayName?: string | null; username?: string | null; locale?: string; avatarUrl?: string | null };
+      const body = request.body as {
+        displayName?: string | null;
+        firstName?: string | null;
+        lastName?: string | null;
+        birthDate?: string | null;
+        username?: string | null;
+        locale?: string;
+        avatarUrl?: string | null;
+        profile?: Record<string, unknown> | null;
+      };
       const data: Record<string, unknown> = {};
       if (body.displayName !== undefined) data.displayName = body.displayName;
+      if (body.firstName !== undefined) data.firstName = body.firstName;
+      if (body.lastName !== undefined) data.lastName = body.lastName;
+      if (body.birthDate !== undefined) data.birthDate = body.birthDate ? new Date(body.birthDate) : null;
       if (body.username !== undefined) {
         if (body.username) {
           const existing = await fastify.prisma.user.findUnique({ where: { username: body.username } });
@@ -190,6 +206,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       }
       if (body.locale !== undefined) data.locale = body.locale;
       if (body.avatarUrl !== undefined) data.avatarUrl = body.avatarUrl;
+      if (body.profile !== undefined) data.profile = body.profile as never;
       await fastify.prisma.user.update({ where: { id: request.user.sub }, data });
       const profile = await findUserWithPermissions(fastify, request.user.sub);
       return { user: profile ? toPublicUser(profile) : null };

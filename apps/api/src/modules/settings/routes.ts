@@ -45,6 +45,13 @@ export default async function settingsRoutes(fastify: FastifyInstance): Promise<
     return { items: (menu?.items as Array<{ label: string; path: string }>) ?? [] };
   });
 
+  // Campos personalizados del perfil de usuario (definidos por el administrador).
+  fastify.get('/public/profile-fields', { schema: { tags: ['settings'] } }, async () => {
+    const s = await fastify.prisma.setting.findUnique({ where: { key: 'userProfile' } });
+    const value = (s?.value ?? {}) as { fields?: Array<{ key: string; label: string; type?: string; options?: string; required?: boolean }> };
+    return { fields: (value.fields ?? []).filter((f) => f.key && f.label) };
+  });
+
   fastify.get(
     '/settings',
     {

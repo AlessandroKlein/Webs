@@ -1,9 +1,9 @@
 import { Link } from 'react-router-dom';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { startRegistration } from '@simplewebauthn/browser';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { api, uploadFile } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import { useLocaleStore } from '../../lib/locale-store';
 import { Button } from '../../components/ui/Button';
@@ -19,13 +19,25 @@ interface MeResponse {
     id: string;
     email: string;
     displayName: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    birthDate: string | null;
     username: string | null;
     avatarUrl: string | null;
     locale: string;
     active: boolean;
+    profile: Record<string, unknown> | null;
   } | null;
   permissions: string[];
   twoFactorEnabled: boolean;
+}
+
+interface ProfileField {
+  key: string;
+  label: string;
+  type?: string;
+  options?: string;
+  required?: boolean;
 }
 
 interface Course {
@@ -45,7 +57,43 @@ interface Enrollment {
   createdAt: string;
 }
 
+interface Order {
+  id: string;
+  status: string;
+  total: number;
+  items: unknown[];
+  createdAt: string;
+}
+
+interface Booking {
+  id: string;
+  serviceId: string;
+  name: string;
+  date: string;
+  status: string;
+}
+
 const ACADEMIA = '/api/v1/blocks/academia';
+
+const ORDER_STATUS_ES: Record<string, string> = {
+  pending: 'Pendiente',
+  paid: 'Pagado',
+  preparing: 'En preparación',
+  processing: 'En proceso',
+  shipped: 'Enviado',
+  delivered: 'Entregado',
+  cancelled: 'Cancelado',
+};
+
+const ORDER_STATUS_COLOR: Record<string, string> = {
+  pending: 'var(--ws-warning)',
+  paid: 'var(--ws-success)',
+  preparing: 'var(--ws-primary)',
+  processing: 'var(--ws-primary)',
+  shipped: 'var(--ws-primary)',
+  delivered: 'var(--ws-success)',
+  cancelled: 'var(--ws-danger)',
+};
 
 type Tab = 'summary' | 'profile' | 'security' | 'password' | 'danger';
 
@@ -67,9 +115,13 @@ export function AccountPage() {
   const updateProfile = useMutation({
     mutationFn: (body: {
       displayName?: string | null;
+      firstName?: string | null;
+      lastName?: string | null;
+      birthDate?: string | null;
       username?: string | null;
       avatarUrl?: string | null;
       locale?: string;
+      profile?: Record<string, unknown>;
     }) => api.patch('/api/v1/auth/me', body),
     onSuccess: () => {
       setProfileSaved(true);
@@ -87,9 +139,30 @@ export function AccountPage() {
   const twilioInstalled = blocksData?.installed?.some((b) => b.blockId === 'twilio' && b.enabled);
   const academiaInstalled = blocksData?.installed?.some((b) => b.blockId === 'academia' && b.enabled);
 
+  const { data: profileFieldsData } = useQuery({
+    queryKey: ['profile-fields'],
+    queryFn: () => api.get<{ fields: ProfileField[] }>('/api/v1/public/profile-fields'),
+    retry: 0,
+  });
+  const customFields = profileFieldsData?.fields ?? [];
+
   const [tab, setTab] = useState<Tab>('summary');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string>(data?.user?.avatarUrl ?? '');
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
+
+  // Sincroniza avatar y campos personalizados cuando carga el perfil.
+  useEffect(() => {
+    setAvatarUrl(data?.user?.avatarUrl ?? '');
+    const initial: Record<string, string> = {};
+    const profile = data?.user?.profile ?? {};
+    for (const [k, v] of Object.entries(profile)) {
+      if (v !== null && v !== undefined) initial[k] = String(v);
+    }
+    setCustomValues(initial);
+  }, [data?.user?.id]);
 
   if (isLoading) return <Spinner />;
 
@@ -98,10 +171,29 @@ export function AccountPage() {
     setProfileSaved(false);
     const fd = new FormData(e.currentTarget as HTMLFormElement);
     const displayName = (fd.get('displayName') as string) || null;
+    const firstName = (fd.get('firstName') as string) || null;
+    const lastName = (fd.get('lastName') as string) || null;
+    const birthDate = (fd.get('birthDate') as string) || null;
     const username = (fd.get('username') as string) || null;
-    const avatarUrl = (fd.get('avatarUrl') as string) || null;
     const locale = (fd.get('locale') as string) || 'es';
-    updateProfile.mutate({ displayName, username, avatarUrl, locale });
+    const profile: Record<string, unknown> = {};
+    for (const f of customFields) {
+      const v = customValues[f.key];
+      if (v !== undefined && v !== '') profile[f.key] = v;
+    }
+    updateProfile.mutate({ displayName, firstName, lastName, birthDate, username, avatarUrl: avatarUrl || null, locale, profile });
+  };
+
+  const onAvatarUpload = async (file: File) => {
+    setAvatarUploading(true);
+    try {
+      const res = await uploadFile<{ url: string }>('/api/v1/media/upload', file);
+      setAvatarUrl(res.url);
+    } catch {
+      /* si no tiene permiso media.write, se cae al input de URL manual */
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   const tabLabel = (tab: Tab): string =>
@@ -116,22 +208,33 @@ export function AccountPage() {
             : t('admin.account.dangerZone');
 
   return (
-    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
-      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.account')}</h1>
-        {(['summary', 'profile', 'security', 'password', 'danger'] as const).map((tabKey) => (
-          <button
-            key={tabKey}
-            className={`nav-link ${tab === tabKey ? 'active' : ''}`}
-            style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
-            onClick={() => setTab(tabKey)}
-          >
-            {tabLabel(tabKey)}
-          </button>
-        ))}
-      </aside>
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
+      <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
+        <aside
+          className="stack"
+          style={{
+            width: 240,
+            flexShrink: 0,
+            background: 'var(--ws-surface)',
+            border: '1px solid var(--ws-border)',
+            borderRadius: 'var(--ws-radius-lg)',
+            padding: 'var(--ws-space-4)',
+          }}
+        >
+          <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.account')}</h1>
+          {(['summary', 'profile', 'security', 'password', 'danger'] as const).map((tabKey) => (
+            <button
+              key={tabKey}
+              className={`nav-link ${tab === tabKey ? 'active' : ''}`}
+              style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+              onClick={() => setTab(tabKey)}
+            >
+              {tabLabel(tabKey)}
+            </button>
+          ))}
+        </aside>
 
-      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+        <div className="stack" style={{ flex: 1, minWidth: 0 }}>
         {tab === 'summary' && (
           <SummaryView user={data?.user ?? null} academiaInstalled={!!academiaInstalled} onNavigate={setTab} />
         )}
@@ -183,10 +286,50 @@ export function AccountPage() {
             <Card>
               <h3>{t('admin.account.profileData')}</h3>
               <form className="stack" onSubmit={onProfile}>
+                <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-4)' }}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Avatar" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--ws-border)' }} />
+                  ) : (
+                    <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--ws-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', fontWeight: 700 }}>
+                      {(data?.user?.displayName ?? data?.user?.email ?? '?').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="stack" style={{ gap: 'var(--ws-space-2)', flex: 1, minWidth: 220 }}>
+                    <label className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Avatar</label>
+                    <div className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <label className="btn ghost" style={{ cursor: 'pointer', margin: 0 }}>
+                        {avatarUploading ? 'Subiendo…' : 'Subir imagen'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          disabled={avatarUploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) void onAvatarUpload(file);
+                          }}
+                        />
+                      </label>
+                      <input
+                        className="input"
+                        style={{ flex: 1, minWidth: 180 }}
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                        placeholder="https://… (o URL)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid-2" style={{ gap: 'var(--ws-space-3)' }}>
-                  <TextField label={t('admin.account.name')} name="displayName" defaultValue={data?.user?.displayName ?? ''} placeholder={t('admin.account.namePlaceholder')} />
-                  <TextField label={t('admin.account.username')} name="username" defaultValue={data?.user?.username ?? ''} placeholder={t('admin.account.usernamePlaceholder')} />
-                  <TextField label={t('admin.account.avatarUrl')} name="avatarUrl" defaultValue={data?.user?.avatarUrl ?? ''} placeholder="https://…" />
+                  <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} placeholder="Nombre visible" />
+                  <TextField label="Nombre (pila)" name="firstName" defaultValue={data?.user?.firstName ?? ''} placeholder="Juan" />
+                  <TextField label="Apellido" name="lastName" defaultValue={data?.user?.lastName ?? ''} placeholder="Pérez" />
+                  <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
+                  <div className="field">
+                    <label>Fecha de nacimiento</label>
+                    <input className="input" type="date" name="birthDate" defaultValue={data?.user?.birthDate ? data.user.birthDate.slice(0, 10) : ''} />
+                  </div>
                   <div className="field">
                     <label>{t('lang.label')}</label>
                     <select className="input" name="locale" defaultValue={data?.user?.locale ?? 'es'}>
@@ -200,6 +343,44 @@ export function AccountPage() {
                     </select>
                   </div>
                 </div>
+
+                {customFields.length > 0 && (
+                  <div style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)' }}>
+                    <h4 style={{ marginTop: 0 }}>Datos adicionales</h4>
+                    <div className="grid-2" style={{ gap: 'var(--ws-space-3)' }}>
+                      {customFields.map((f) => (
+                        <div className="field" key={f.key}>
+                          <label>
+                            {f.label}
+                            {f.required && <span style={{ color: 'var(--ws-danger)' }}> *</span>}
+                          </label>
+                          {f.type === 'select' ? (
+                            <select
+                              className="input"
+                              value={customValues[f.key] ?? ''}
+                              required={f.required}
+                              onChange={(e) => setCustomValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                            >
+                              <option value="">—</option>
+                              {(f.options ?? '').split(',').map((o) => o.trim()).filter(Boolean).map((o) => (
+                                <option key={o} value={o}>{o}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              className="input"
+                              type={f.type === 'date' ? 'date' : f.type === 'number' ? 'number' : 'text'}
+                              value={customValues[f.key] ?? ''}
+                              required={f.required}
+                              onChange={(e) => setCustomValues((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {profileSaved && (
                   <p className="muted" style={{ color: 'var(--ws-success, #16a34a)', margin: 0 }}>
                     <i className="bi bi-check-circle" /> {t('admin.account.profileSaved')}
@@ -249,6 +430,7 @@ export function AccountPage() {
             </ConfirmDialog>
           </Card>
         )}
+        </div>
       </div>
     </div>
   );
@@ -272,10 +454,20 @@ function SummaryView({
     queryFn: () => api.get<Enrollment[]>(`${ACADEMIA}/enrollments`),
     enabled: academiaInstalled,
   });
-  const { data: courses } = useQuery({
+  const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
     queryKey: ['academia-courses'],
     queryFn: () => api.get<Course[]>(`${ACADEMIA}/courses`),
-    enabled: academiaInstalled,
+    retry: 0,
+  });
+  const { data: orders, isLoading: ordersLoading, isError: ordersError } = useQuery({
+    queryKey: ['ecommerce-orders'],
+    queryFn: () => api.get<Order[]>('/api/v1/blocks/ecommerce/orders'),
+    retry: 0,
+  });
+  const { data: bookings, isLoading: bookingsLoading, isError: bookingsError } = useQuery({
+    queryKey: ['reservas-bookings'],
+    queryFn: () => api.get<Booking[]>('/api/v1/blocks/reservas/bookings'),
+    retry: 0,
   });
 
   const mine = (enrollments ?? []).filter((e) =>
@@ -342,6 +534,126 @@ function SummaryView({
             </Link>
           )}
         </div>
+      </Card>
+
+      <Card>
+        <h3 style={{ marginTop: 0 }}>Historial de compras</h3>
+        {ordersLoading ? (
+          <p className="muted">Cargando…</p>
+        ) : ordersError ? (
+          <p className="muted">No hay datos de compras disponibles.</p>
+        ) : (orders ?? []).length === 0 ? (
+          <p className="muted">Todavía no tenés pedidos.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Total</th>
+                <th>Ítems</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(orders ?? []).map((o) => (
+                <tr key={o.id}>
+                  <td>{new Date(o.createdAt).toLocaleDateString('es-AR')}</td>
+                  <td>
+                    <span
+                      className="badge"
+                      style={{
+                        background: ORDER_STATUS_COLOR[o.status] ?? 'var(--ws-surface-2)',
+                        color: ORDER_STATUS_COLOR[o.status] ? '#fff' : 'var(--ws-text-muted)',
+                      }}
+                    >
+                      {ORDER_STATUS_ES[o.status] ?? o.status}
+                    </span>
+                  </td>
+                  <td>${o.total}</td>
+                  <td>{o.items?.length ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      <Card>
+        <h3 style={{ marginTop: 0 }}>Mis reservas</h3>
+        {bookingsLoading ? (
+          <p className="muted">Cargando…</p>
+        ) : bookingsError ? (
+          <p className="muted">No hay datos de reservas disponibles.</p>
+        ) : (bookings ?? []).length === 0 ? (
+          <p className="muted">No tenés reservas.</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Nombre</th>
+                <th>Servicio</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(bookings ?? []).map((b) => (
+                <tr key={b.id}>
+                  <td>{new Date(b.date).toLocaleString('es-AR')}</td>
+                  <td>{b.name}</td>
+                  <td>
+                    <code>{b.serviceId}</code>
+                  </td>
+                  <td>
+                    <span
+                      className="badge"
+                      style={
+                        b.status === 'cancelled'
+                          ? { background: 'var(--ws-danger)', color: '#fff' }
+                          : { background: 'var(--ws-success)', color: '#fff' }
+                      }
+                    >
+                      {b.status === 'cancelled' ? 'Cancelada' : 'Confirmada'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
+      <Card>
+        <h3 style={{ marginTop: 0 }}>Mis cursos</h3>
+        {coursesLoading ? (
+          <p className="muted">Cargando…</p>
+        ) : coursesError ? (
+          <p className="muted">No hay datos de cursos disponibles.</p>
+        ) : (courses ?? []).length === 0 ? (
+          <p className="muted">Todavía no hay cursos.</p>
+        ) : (
+          <div className="stack">
+            {(courses ?? []).map((c) => (
+              <div key={c.id} style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)' }}>
+                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+                  <strong>{c.title}</strong>
+                  {c.level && <span className="badge">{c.level}</span>}
+                </div>
+                {c.description && (
+                  <p className="muted" style={{ margin: 'var(--ws-space-2) 0 0' }}>
+                    {c.description}
+                  </p>
+                )}
+                <span
+                  className="muted"
+                  style={{ fontSize: 'var(--ws-font-size-sm)', display: 'inline-block', marginTop: 'var(--ws-space-2)' }}
+                >
+                  {(Array.isArray(c.lessons) ? c.lessons : []).length} lecciones
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       <Card>

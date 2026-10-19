@@ -231,4 +231,32 @@ export function registerDefaultSections(): void {
     },
     defaults: { copyrightMode: 'range' },
   });
+
+  // Campos personalizados del perfil de usuario (los define el administrador;
+  // el usuario los completa en /account). Cada campo: key, label, type, required.
+  registerSettingSection({
+    key: 'userProfile',
+    group: 'general',
+    schema: {
+      type: 'object',
+      title: 'Campos del perfil de usuario',
+      properties: {
+        fields: {
+          type: 'array',
+          title: 'Campos personalizados',
+          items: {
+            type: 'object',
+            properties: {
+              key: { type: 'string', title: 'Clave (id)' },
+              label: { type: 'string', title: 'Etiqueta' },
+              type: { type: 'string', enum: ['text', 'date', 'number', 'select'], title: 'Tipo', default: 'text' },
+              options: { type: 'string', title: 'Opciones (separadas por coma, si es select)' },
+              required: { type: 'boolean', title: 'Obligatorio' },
+            },
+          },
+        },
+      },
+    },
+    defaults: { fields: [] },
+  });
 }

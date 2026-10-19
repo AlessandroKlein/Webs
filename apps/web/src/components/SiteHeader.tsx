@@ -76,6 +76,13 @@ export function SiteHeader() {
 
   const siteName = site?.name ?? 'Webs';
   const items = menuData?.items ?? [];
+  // Fallback: si el menú configurado está vacío, mostramos accesos directos a
+  // las páginas públicas principales para que siempre haya navegación.
+  const fallbackItems: MenuItem[] = [
+    { label: 'Blog', path: '/blog' },
+    { label: 'Clases', path: '/clases' },
+  ];
+  const navItems = items.length > 0 ? items : fallbackItems;
   const initial = (user?.displayName ?? user?.email ?? '?').charAt(0).toUpperCase();
 
   return (
@@ -91,7 +98,7 @@ export function SiteHeader() {
         </Link>
 
         <nav className={`site-nav ${menuOpen ? 'open' : ''}`}>
-          {items.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}

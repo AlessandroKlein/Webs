@@ -20,9 +20,13 @@ model User {
   username        String?   @unique
   passwordHash    String
   displayName     String?
+  firstName       String?
+  lastName        String?
+  birthDate       DateTime?
   avatarUrl       String?
   locale          String    @default("es")
   active          Boolean   @default(true)
+  profile         Json?
   emailVerifiedAt DateTime?
   twoFactorSecret String?
   twoFactorEnabled Boolean  @default(false)
@@ -176,11 +180,15 @@ model Expense {
 // ---------------------------------------------------------------------------
 
 model Product {
-  id       String  @id @default(uuid())
-  title    String
-  price    Int
-  stock    Int     @default(0)
-  category String?
+  id          String  @id @default(uuid())
+  title       String
+  description String?
+  price       Int
+  stock       Int     @default(0)
+  category    String?
+  imageUrl    String?
+  images      Json    @default("[]")
+  sizes       Json    @default("[]")
 
   @@map("products")
 }
@@ -326,6 +334,17 @@ model SocialPost {
 
   @@index([createdAt])
   @@map("social_posts")
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+  @@map("follows")
 }
 
 model Organization {

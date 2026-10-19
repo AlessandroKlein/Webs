@@ -18,6 +18,7 @@
     "title": "Configuración de la tienda",
     "properties": {
       "title": { "type": "string", "title": "Título", "default": "Tienda" },
+      "currency": { "type": "string", "title": "Moneda", "default": "ARS" },
       "catalog": {
         "type": "array",
         "title": "Catálogo",

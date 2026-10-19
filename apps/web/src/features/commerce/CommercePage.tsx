@@ -13,9 +13,13 @@ const EC_BASE = '/api/v1/blocks/ecommerce';
 interface Product {
   id: string;
   title: string;
+  description: string | null;
   price: number;
   stock: number;
   category: string | null;
+  imageUrl: string | null;
+  images: string[];
+  sizes: string[];
 }
 
 interface Order {
@@ -117,6 +121,10 @@ export function CommercePage() {
   const [pPrice, setPPrice] = useState('');
   const [pStock, setPStock] = useState('');
   const [pCategory, setPCategory] = useState('');
+  const [pDescription, setPDescription] = useState('');
+  const [pImageUrl, setPImageUrl] = useState('');
+  const [pImages, setPImages] = useState('');
+  const [pSizes, setPSizes] = useState('');
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
 
   const saveProduct = useMutation({
@@ -140,6 +148,10 @@ export function CommercePage() {
     setPPrice('');
     setPStock('');
     setPCategory('');
+    setPDescription('');
+    setPImageUrl('');
+    setPImages('');
+    setPSizes('');
   };
 
   const startEditProduct = (p: Product) => {
@@ -148,15 +160,28 @@ export function CommercePage() {
     setPPrice(String(p.price));
     setPStock(String(p.stock));
     setPCategory(p.category ?? '');
+    setPDescription(p.description ?? '');
+    setPImageUrl(p.imageUrl ?? '');
+    setPImages((p.images ?? []).join(', '));
+    setPSizes((p.sizes ?? []).join(', '));
     setProductFormOpen(true);
   };
 
   const submitProduct = () => {
+    const parseList = (s: string) =>
+      s
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean);
     const body: Record<string, unknown> = {
       title: pTitle.trim(),
       price: Number(pPrice),
       stock: Number(pStock),
       category: pCategory.trim() || undefined,
+      description: pDescription.trim() || undefined,
+      imageUrl: pImageUrl.trim() || undefined,
+      images: parseList(pImages),
+      sizes: parseList(pSizes),
     };
     saveProduct.mutate({ id: editingProduct?.id ?? null, body });
   };
@@ -318,6 +343,15 @@ export function CommercePage() {
                     <TextField label={t('admin.commerce.stock')} type="number" value={pStock} onChange={(e) => setPStock(e.target.value)} required />
                     <TextField label={t('admin.commerce.categoryOptional')} value={pCategory} onChange={(e) => setPCategory(e.target.value)} />
                   </div>
+                  <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <TextField label="URL de imagen" value={pImageUrl} onChange={(e) => setPImageUrl(e.target.value)} placeholder="https://…" />
+                    <TextField label="Imágenes (URLs separadas por coma)" value={pImages} onChange={(e) => setPImages(e.target.value)} placeholder="https://…, https://…" />
+                    <TextField label="Talles (separados por coma)" value={pSizes} onChange={(e) => setPSizes(e.target.value)} placeholder="S, M, L" />
+                  </div>
+                  <div className="field">
+                    <label>Descripción</label>
+                    <textarea className="input" value={pDescription} onChange={(e) => setPDescription(e.target.value)} />
+                  </div>
                   <div className="row">
                     <Button type="submit" disabled={saveProduct.isPending || !pTitle || !pPrice || !pStock}>
                       {editingProduct ? t('common.save') : t('common.create')}
@@ -341,6 +375,8 @@ export function CommercePage() {
                     <th>{t('admin.commerce.price')}</th>
                     <th>{t('admin.commerce.stock')}</th>
                     <th>{t('admin.commerce.category')}</th>
+                    <th>Imagen</th>
+                    <th>Talles</th>
                     <th>{t('common.actions')}</th>
                   </tr>
                 </thead>
@@ -351,6 +387,18 @@ export function CommercePage() {
                       <td>{p.price}</td>
                       <td>{p.stock}</td>
                       <td>{p.category ?? '—'}</td>
+                      <td>
+                        {p.imageUrl || (p.images ?? []).length > 0 ? (
+                          <img
+                            src={p.imageUrl ?? p.images[0]}
+                            alt={p.title}
+                            style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 'var(--ws-radius-md)' }}
+                          />
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td>{(p.sizes ?? []).length > 0 ? (p.sizes ?? []).join(', ') : '—'}</td>
                       <td>
                         <div className="row">
                           <Button variant="secondary" onClick={() => startEditProduct(p)}>
@@ -365,7 +413,7 @@ export function CommercePage() {
                   ))}
                   {(products ?? []).length === 0 && (
                     <tr>
-                      <td colSpan={5}>
+                      <td colSpan={7}>
                         <p className="muted">{t('admin.commerce.noProducts')}</p>
                       </td>
                     </tr>

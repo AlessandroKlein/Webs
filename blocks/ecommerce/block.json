@@ -45,7 +45,7 @@
       "shippingToken": { "type": "string", "title": "Token de acceso", "x-ui": { "widget": "password", "secret": true } },
       "shippingBaseUrl": { "type": "string", "title": "URL base del proveedor" },
       "shippingFlat": { "type": "number", "title": "Tarifa de envío fija", "default": 0 },
-      "products": { "type": "array", "title": "Productos", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "price": { "type": "number" }, "stock": { "type": "number" }, "category": { "type": "string" } } }, "default": [] }
+      "products": { "type": "array", "title": "Productos", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "description": { "type": "string" }, "price": { "type": "number" }, "stock": { "type": "number" }, "category": { "type": "string" }, "imageUrl": { "type": "string" }, "images": { "type": "array", "items": { "type": "string" } }, "sizes": { "type": "array", "items": { "type": "string" } } } }, "default": [] }
     }
   }
 }

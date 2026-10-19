@@ -18,6 +18,10 @@ const DEFAULT_SHIPPING_RATES = [
   { provider: 'dhl', baseCost: 3000, costPerKg: 300, days: 2 },
 ];
 
+/** Normaliza un campo JSON (`images`/`sizes`) a un array de strings. */
+const stringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+
 export default defineBlock(manifest, {
   register: async (fastify, config) => {
     const cfg = config as Record<string, unknown>;
@@ -58,30 +62,58 @@ export default defineBlock(manifest, {
     // ------------------------------------------------------------------
     fastify.get('/products', async () => products);
 
-    fastify.post('/products', async (request: unknown) => {
-      const { body } = request as { body?: { title?: string; price?: number; stock?: number; category?: string } };
+    fastify.post('/products', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { body } = request as {
+        body?: {
+          title?: string;
+          description?: string | null;
+          price?: number;
+          stock?: number;
+          category?: string | null;
+          imageUrl?: string | null;
+          images?: unknown;
+          sizes?: unknown;
+        };
+      };
       return db.product.create({
         data: {
           title: body?.title ?? '',
+          description: body?.description ?? null,
           price: Number(body?.price ?? 0),
           stock: Number(body?.stock ?? 0),
           category: body?.category ?? null,
+          imageUrl: body?.imageUrl ?? null,
+          images: stringArray(body?.images),
+          sizes: stringArray(body?.sizes),
         },
       });
     });
 
     fastify.get('/products/persisted', async () => db.product.findMany({ orderBy: { title: 'asc' } }));
 
-    fastify.patch('/products/:id', async (request: unknown) => {
+    fastify.patch('/products/:id', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params, body } = request as {
         params?: { id?: string };
-        body?: { title?: string; price?: number; stock?: number; category?: string | null };
+        body?: {
+          title?: string;
+          description?: string | null;
+          price?: number;
+          stock?: number;
+          category?: string | null;
+          imageUrl?: string | null;
+          images?: unknown;
+          sizes?: unknown;
+        };
       };
       const data: Record<string, unknown> = {};
       if (body?.title !== undefined) data.title = body.title;
+      if (body?.description !== undefined) data.description = body.description;
       if (body?.price !== undefined) data.price = Number(body.price);
       if (body?.stock !== undefined) data.stock = Number(body.stock);
       if (body?.category !== undefined) data.category = body.category;
+      if (body?.imageUrl !== undefined) data.imageUrl = body.imageUrl;
+      if (body?.images !== undefined) data.images = stringArray(body.images);
+      if (body?.sizes !== undefined) data.sizes = stringArray(body.sizes);
       return db.product.update({ where: { id: params?.id }, data });
     });
 
@@ -96,10 +128,16 @@ export default defineBlock(manifest, {
     fastify.get('/orders', async () => db.order.findMany({ orderBy: { createdAt: 'desc' } }));
 
     fastify.post('/orders', async (request: unknown) => {
-      const { body } = request as { body?: { items?: Array<{ id: string; qty: number }> } };
-      const items = (body?.items ?? []).map((i) => {
-        const p = products.find((x) => x.id === i.id);
-        return { id: i.id, title: p?.title ?? i.id, price: p?.price ?? 0, qty: i.qty };
+      const { body } = request as { body?: { items?: Array<{ id: string; qty?: number; size?: string | null }> } };
+      const requested = (Array.isArray(body?.items) ? body.items : []).filter((i) => typeof i?.id === 'string');
+      const persisted = await db.product.findMany({ where: { id: { in: requested.map((i) => i.id) } } });
+      const byId = new Map<string, { title: string; price: number }>(
+        persisted.map((p: { id: string; title: string; price: number }) => [p.id, p]),
+      );
+      const items = requested.map((i) => {
+        const p = byId.get(i.id);
+        const qty = Math.max(1, Number(i.qty ?? 1));
+        return { id: i.id, title: p?.title ?? i.id, price: p?.price ?? 0, qty, size: i.size ?? null };
       });
       const total = items.reduce((s, i) => s + i.price * i.qty, 0) + shippingFlat;
       return db.order.create({ data: { items, total, status: 'pending' } });

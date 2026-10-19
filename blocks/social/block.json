@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "block",
   "displayName": { "en": "Social Network", "es": "Red social" },
-  "description": { "en": "Mini social network (posts, media, likes).", "es": "Mini red social (publicaciones, multimedia, likes)." },
+  "description": { "en": "Social network (feed, posts, media, likes, follow).", "es": "Red social (feed, publicaciones, multimedia, likes, seguir)." },
   "author": "Webs",
   "license": "MIT",
   "entry": "./dist/server.js",

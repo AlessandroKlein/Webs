@@ -1,233 +1,249 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
-import { TextField } from '../../components/ui/TextField';
 
 const CHAT_BASE = '/api/v1/blocks/chat';
-const CHAT_IA_BASE = '/api/v1/blocks/chat-ia';
 
 interface ChatMessage {
   id: string;
   from: string;
-  to: string | null;
+  to: string;
   body: string;
   createdAt: string;
 }
 
-interface ChatConfig {
-  provider: string;
-  model: string;
-  available: string[];
+interface ChatUser {
+  id: string;
+  displayName: string | null;
+  username: string | null;
+  email: string;
 }
 
-interface ChatReply {
-  ok: boolean;
-  reply: string;
-  provider: string;
-  model: string;
-  room: string;
+interface Conversation {
+  userId: string;
+  name: string;
+  lastMessage: string;
+  updatedAt: string;
 }
 
-interface HistoryEntry {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
-type View = 'messages' | 'assistant';
+type View = 'conversations' | 'new';
 
 export function ChatPage() {
-  const { t } = useTranslation();
   const qc = useQueryClient();
-  const [view, setView] = useState<View>('messages');
+  const user = useAuthStore((s) => s.user);
+  const me = user?.id ?? 'anon';
 
-  const [room, setRoom] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [body, setBody] = useState('');
+  const [view, setView] = useState<View>('conversations');
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [draft, setDraft] = useState('');
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const [iaMessage, setIaMessage] = useState('');
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-
-  const { data: rooms } = useQuery({
-    queryKey: ['chat-rooms'],
-    queryFn: () => api.get<string[]>(`${CHAT_BASE}/rooms`),
+  const { data: users } = useQuery({
+    queryKey: ['chat-users'],
+    queryFn: () => api.get<ChatUser[]>(`${CHAT_BASE}/users`),
   });
 
-  const effectiveRoom = room || rooms?.[0] || '';
+  const { data: conversations } = useQuery({
+    queryKey: ['chat-conversations', me],
+    queryFn: () => api.get<Conversation[]>(`${CHAT_BASE}/conversations?userId=${encodeURIComponent(me)}`),
+    enabled: !!me,
+  });
 
   const { data: messages, isLoading } = useQuery({
-    queryKey: ['chat-messages', effectiveRoom],
-    queryFn: () => api.get<ChatMessage[]>(`${CHAT_BASE}/messages?room=${encodeURIComponent(effectiveRoom)}`),
-    enabled: effectiveRoom !== '',
-  });
-
-  const { data: config } = useQuery({
-    queryKey: ['chat-ia-config'],
-    queryFn: () => api.get<ChatConfig>(`${CHAT_IA_BASE}/config`),
-    enabled: view === 'assistant',
+    queryKey: ['chat-messages', me, activeId],
+    queryFn: () =>
+      api.get<ChatMessage[]>(
+        `${CHAT_BASE}/messages?from=${encodeURIComponent(me)}&to=${encodeURIComponent(activeId ?? '')}`,
+      ),
+    enabled: !!activeId,
   });
 
   const send = useMutation({
-    mutationFn: (payload: Record<string, unknown>) => api.post(`${CHAT_BASE}/messages`, payload),
+    mutationFn: (body: string) => api.post(`${CHAT_BASE}/messages`, { from: me, to: activeId, body }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['chat-messages'] });
-      setBody('');
+      qc.invalidateQueries({ queryKey: ['chat-conversations'] });
+      setDraft('');
     },
   });
 
-  const chat = useMutation({
-    mutationFn: (payload: { message: string; history?: HistoryEntry[] }) =>
-      api.post<ChatReply>(`${CHAT_IA_BASE}/chat`, payload),
-    onSuccess: (reply) => {
-      setHistory((prev) => [...prev, { role: 'assistant', content: reply.reply }]);
-      setIaMessage('');
-    },
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, [messages]);
+
+  const userList = users ?? [];
+  const nameById = new Map<string, string>(
+    userList.map((u) => [u.id, u.displayName ?? u.username ?? u.email]),
+  );
+  const activeName = activeId ? nameById.get(activeId) ?? activeId : null;
+  const conversationList = conversations ?? [];
+
+  const openChat = (id: string) => {
+    setActiveId(id);
+    setDraft('');
+    setView('conversations');
+  };
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const body = draft.trim();
+    if (!body || !activeId) return;
+    send.mutate(body);
+  };
+
+  const navBtn = (active: boolean) => ({
+    textAlign: 'left' as const,
+    background: active ? 'var(--ws-primary-soft)' : 'none',
+    color: active ? 'var(--ws-primary)' : 'var(--ws-text)',
+    border: 'none',
+    borderRadius: 'var(--ws-radius-md)',
+    padding: 'var(--ws-space-2) var(--ws-space-3)',
+    cursor: 'pointer',
+    width: '100%',
   });
-
-  const onSendMessage = (e: FormEvent) => {
-    e.preventDefault();
-    const payload: Record<string, unknown> = {
-      from: from.trim(),
-      to: to.trim() || undefined,
-      body: body.trim(),
-    };
-    send.mutate(payload);
-  };
-
-  const onSendAssistant = (e: FormEvent) => {
-    e.preventDefault();
-    const message = iaMessage.trim();
-    if (!message) return;
-    const nextHistory: HistoryEntry[] = [...history, { role: 'user', content: message }];
-    setHistory(nextHistory);
-    chat.mutate({ message, history: nextHistory.length ? nextHistory : undefined });
-  };
-
-  if (isLoading && view === 'messages') return <Spinner />;
-
-  const messageList = messages ?? [];
-  const roomList = rooms ?? [];
 
   return (
-    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
-      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.chat.title')}</h1>
-        <button
-          className={`nav-link ${view === 'messages' ? 'active' : ''}`}
-          style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
-          onClick={() => setView('messages')}
-        >
-          {t('admin.chat.messages')}
+    <div className="row" style={{ alignItems: 'stretch', gap: 'var(--ws-space-6)' }}>
+      <aside className="stack" style={{ minWidth: 240, maxWidth: 240, gap: 'var(--ws-space-1)' }}>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Mensajes</h1>
+        <button style={navBtn(view === 'conversations')} onClick={() => setView('conversations')}>
+          Conversaciones
         </button>
-        <button
-          className={`nav-link ${view === 'assistant' ? 'active' : ''}`}
-          style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
-          onClick={() => setView('assistant')}
-        >
-          {t('admin.chat.assistant')}
+        <button style={navBtn(view === 'new')} onClick={() => setView('new')}>
+          Nueva conversación
         </button>
+
+        <div className="stack" style={{ gap: 'var(--ws-space-1)', marginTop: 'var(--ws-space-3)' }}>
+          {view === 'conversations' &&
+            conversationList.map((c) => (
+              <button
+                key={c.userId}
+                onClick={() => openChat(c.userId)}
+                style={{
+                  textAlign: 'left',
+                  background: activeId === c.userId ? 'var(--ws-primary-soft)' : 'var(--ws-surface)',
+                  color: 'var(--ws-text)',
+                  border: '1px solid var(--ws-border)',
+                  borderRadius: 'var(--ws-radius-md)',
+                  padding: 'var(--ws-space-2) var(--ws-space-3)',
+                  cursor: 'pointer',
+                  width: '100%',
+                }}
+              >
+                <strong style={{ display: 'block' }}>{c.name}</strong>
+                <span style={{ color: 'var(--ws-text-muted)', fontSize: 'var(--ws-font-size-sm)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {c.lastMessage}
+                </span>
+              </button>
+            ))}
+          {view === 'conversations' && conversationList.length === 0 && (
+            <p style={{ color: 'var(--ws-text-muted)', margin: 0 }}>Aún no hay conversaciones.</p>
+          )}
+
+          {view === 'new' &&
+            userList
+              .filter((u) => u.id !== me)
+              .map((u) => {
+                const name = u.displayName ?? u.username ?? u.email;
+                return (
+                  <button
+                    key={u.id}
+                    onClick={() => openChat(u.id)}
+                    style={{
+                      textAlign: 'left',
+                      background: 'var(--ws-surface)',
+                      color: 'var(--ws-text)',
+                      border: '1px solid var(--ws-border)',
+                      borderRadius: 'var(--ws-radius-md)',
+                      padding: 'var(--ws-space-2) var(--ws-space-3)',
+                      cursor: 'pointer',
+                      width: '100%',
+                    }}
+                  >
+                    <strong style={{ display: 'block' }}>{name}</strong>
+                    <span style={{ color: 'var(--ws-text-muted)', fontSize: 'var(--ws-font-size-sm)' }}>@{u.username ?? u.email}</span>
+                  </button>
+                );
+              })}
+          {view === 'new' && userList.filter((u) => u.id !== me).length === 0 && (
+            <p style={{ color: 'var(--ws-text-muted)', margin: 0 }}>No hay usuarios disponibles.</p>
+          )}
+        </div>
       </aside>
 
-      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-        {view === 'messages' && (
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        {activeId ? (
           <>
-            <Card>
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-                <h3 style={{ margin: 0 }}>{t('admin.chat.messages')}</h3>
-                <div className="field">
-                  <label>{t('admin.chat.room')}</label>
-                  <select className="input" style={{ width: 'auto' }} value={effectiveRoom} onChange={(e) => setRoom(e.target.value)}>
-                    {roomList.map((r) => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                    {roomList.length === 0 && <option value="">{t('admin.chat.noRooms')}</option>}
-                  </select>
-                </div>
+            <Card style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: 0, overflow: 'hidden' }}>
+              <div
+                style={{
+                  padding: 'var(--ws-space-3) var(--ws-space-4)',
+                  borderBottom: '1px solid var(--ws-border)',
+                  fontWeight: 600,
+                }}
+              >
+                {activeName}
               </div>
 
-              <div className="stack" style={{ marginTop: 'var(--ws-space-3)' }}>
-                {messageList.map((m) => (
-                  <div key={m.id} style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
-                    <div className="row" style={{ justifyContent: 'space-between' }}>
-                      <strong>{m.from}</strong>
-                      <span className="muted">{new Date(m.createdAt).toLocaleString()}</span>
+              <div className="stack" style={{ flex: 1, overflowY: 'auto', padding: 'var(--ws-space-4)', gap: 'var(--ws-space-2)' }}>
+                {isLoading && <Spinner label="Cargando…" />}
+                {(messages ?? []).map((m) => {
+                  const isMine = m.from === me;
+                  return (
+                    <div
+                      key={m.id}
+                      style={{
+                        alignSelf: isMine ? 'flex-end' : 'flex-start',
+                        maxWidth: '75%',
+                        background: isMine ? 'var(--ws-primary)' : 'var(--ws-surface-2, var(--ws-surface))',
+                        color: isMine ? 'var(--ws-on-primary)' : 'var(--ws-text)',
+                        borderRadius: 'var(--ws-radius-lg)',
+                        padding: 'var(--ws-space-2) var(--ws-space-3)',
+                      }}
+                    >
+                      <span style={{ whiteSpace: 'pre-wrap', display: 'block' }}>{m.body}</span>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: 'var(--ws-font-size-sm)',
+                          opacity: 0.75,
+                          marginTop: 'var(--ws-space-1)',
+                        }}
+                      >
+                        {new Date(m.createdAt).toLocaleString()}
+                      </span>
                     </div>
-                    <p style={{ margin: 'var(--ws-space-1) 0 0' }}>{m.body}</p>
-                    {m.to && <span className="muted">→ {m.to}</span>}
-                  </div>
-                ))}
-                {messageList.length === 0 && <p className="muted">{t('admin.chat.noMessages')}</p>}
+                  );
+                })}
+                {(messages ?? []).length === 0 && !isLoading && (
+                  <p style={{ color: 'var(--ws-text-muted)', margin: 0 }}>Envía el primer mensaje.</p>
+                )}
+                <div ref={bottomRef} />
               </div>
             </Card>
 
-            <Card>
-              <h3 style={{ marginTop: 0 }}>{t('admin.chat.sendMessage')}</h3>
-              <form className="stack" onSubmit={onSendMessage}>
-                <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-                  <TextField label={t('admin.chat.from')} value={from} onChange={(e) => setFrom(e.target.value)} required />
-                  <TextField label={t('admin.chat.to')} value={to} onChange={(e) => setTo(e.target.value)} placeholder={t('admin.blog.optional')} />
-                </div>
-                <div className="field">
-                  <label>{t('admin.chat.message')}</label>
-                  <textarea className="input" rows={3} value={body} onChange={(e) => setBody(e.target.value)} required />
-                </div>
-                <div className="row">
-                  <Button type="submit" disabled={send.isPending}>{t('admin.chat.send')}</Button>
-                  {send.isSuccess && <span style={{ color: 'var(--ws-success)' }}>{t('admin.chat.sent')}</span>}
-                </div>
-                {send.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{send.error.message}</p>}
-              </form>
-            </Card>
-          </>
-        )}
-
-        {view === 'assistant' && (
-          <Card>
-            <h3 style={{ marginTop: 0 }}>{t('admin.chat.assistant')}</h3>
-            {config && (
-              <p className="muted" style={{ marginTop: 0 }}>
-                {t('admin.chat.provider')}: <code>{config.provider}</code> · {t('admin.chat.model')}: <code>{config.model}</code>
-              </p>
-            )}
-
-            <div className="stack" style={{ marginBottom: 'var(--ws-space-4)' }}>
-              {history.map((h, i) => (
-                <div
-                  key={i}
-                  className="card"
-                  style={{
-                    alignSelf: h.role === 'user' ? 'flex-end' : 'flex-start',
-                    maxWidth: '80%',
-                    background: h.role === 'user' ? 'var(--ws-primary)' : 'var(--ws-surface-2, var(--ws-surface))',
-                    color: h.role === 'user' ? '#fff' : 'inherit',
-                    padding: 'var(--ws-space-2) var(--ws-space-3)',
-                  }}
-                >
-                  <span className="muted" style={{ display: 'block', fontSize: '0.8em' }}>
-                    {h.role === 'user' ? t('admin.chat.you') : t('admin.chat.assistantRole')}
-                  </span>
-                  <span style={{ whiteSpace: 'pre-wrap' }}>{h.content}</span>
-                </div>
-              ))}
-              {history.length === 0 && <p className="muted">{t('admin.chat.startConversation')}</p>}
-            </div>
-
-            <form className="stack" onSubmit={onSendAssistant}>
-              <div className="field">
-                <label>{t('admin.chat.message')}</label>
-                <textarea className="input" rows={3} value={iaMessage} onChange={(e) => setIaMessage(e.target.value)} placeholder={t('admin.chat.askAssistant')} />
-              </div>
-              <div className="row">
-                <Button type="submit" disabled={chat.isPending || !iaMessage.trim()}>
-                  {chat.isPending ? t('admin.chat.thinking') : t('admin.chat.send')}
-                </Button>
-              </div>
-              {chat.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{chat.error.message}</p>}
+            <form
+              className="row"
+              onSubmit={onSubmit}
+              style={{ alignItems: 'center', gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-3)' }}
+            >
+              <input
+                className="input"
+                placeholder="Escribe un mensaje…"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <Button type="submit" disabled={send.isPending || !draft.trim()}>Enviar</Button>
             </form>
+          </>
+        ) : (
+          <Card style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <p style={{ color: 'var(--ws-text-muted)', margin: 0 }}>Selecciona una conversación para empezar.</p>
           </Card>
         )}
       </div>

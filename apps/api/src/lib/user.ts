@@ -6,9 +6,13 @@ export interface UserProfile {
   email: string;
   username: string | null;
   displayName: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  birthDate: Date | null;
   avatarUrl: string | null;
   locale: string;
   active: boolean;
+  profile: Record<string, unknown> | null;
   permissions: string[];
 }
 
@@ -39,9 +43,13 @@ export async function findUserWithPermissions(
     email: user.email,
     username: user.username,
     displayName: user.displayName,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    birthDate: user.birthDate,
     avatarUrl: user.avatarUrl,
     locale: user.locale,
     active: user.active,
+    profile: (user.profile as Record<string, unknown> | null) ?? null,
     permissions,
   };
 }
@@ -53,8 +61,12 @@ export function toPublicUser(profile: UserProfile) {
     email: profile.email,
     username: profile.username,
     displayName: profile.displayName,
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    birthDate: profile.birthDate,
     avatarUrl: profile.avatarUrl,
     locale: profile.locale,
     active: profile.active,
+    profile: profile.profile,
   };
 }
