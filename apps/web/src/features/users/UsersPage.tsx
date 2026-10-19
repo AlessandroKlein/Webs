@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import type { Page } from '@webs/core';
 
 interface UserRow {
@@ -90,6 +91,7 @@ export function UsersPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('user');
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<UserRow | null>(null);
   const invite = useMutation({
     mutationFn: (body: { email: string; role: string }) => api.post<{ inviteUrl: string }>('/api/v1/users/invite', body),
     onSuccess: (r) => {
@@ -232,9 +234,7 @@ export function UsersPage() {
                     </Button>
                     <Button
                       variant="ghost"
-                      onClick={() => {
-                        if (window.confirm(`¿Eliminar el usuario "${u.email}"?`)) remove.mutate(u.id);
-                      }}
+                      onClick={() => setConfirmDelete(u)}
                     >
                       {t('common.delete')}
                     </Button>
@@ -245,6 +245,17 @@ export function UsersPage() {
           </tbody>
         </table>
       </Card>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Eliminar usuario"
+        confirmLabel="Eliminar"
+        danger
+        onConfirm={() => { if (confirmDelete) remove.mutate(confirmDelete.id); setConfirmDelete(null); }}
+        onCancel={() => setConfirmDelete(null)}
+      >
+        ¿Eliminar el usuario <strong>{confirmDelete?.email}</strong>? Esta acción es irreversible.
+      </ConfirmDialog>
     </div>
   );
 }

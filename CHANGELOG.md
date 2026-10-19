@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.27.0] - 2026-10-19
+
+### Añadido
+
+- **Modales de confirmación** para eliminar usuarios y roles (reemplazan
+  `window.confirm`; con estilo del design system).
+
 ## [1.26.0] - 2026-10-19
 
 ### Añadido
