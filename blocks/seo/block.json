@@ -1,0 +1,20 @@
+{
+  "name": "@webs/block-seo",
+  "id": "seo",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "SEO", "es": "SEO" },
+  "description": { "en": "Sitemap, robots.txt and meta tags.", "es": "Sitemap, robots.txt y etiquetas meta." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "apiVersion": "1.0.0",
+  "settings": {
+    "type": "object",
+    "title": "SEO",
+    "properties": {
+      "siteUrl": { "type": "string", "title": "URL del sitio" },
+      "metaDescription": { "type": "string", "title": "Descripción meta por defecto" }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@webs/block-analytics",
+  "id": "analytics",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Analytics", "es": "Analítica" },
+  "description": { "en": "Page view tracking and metrics.", "es": "Seguimiento de visitas y métricas." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["footer"],
+  "settings": {
+    "type": "object",
+    "title": "Analítica",
+    "properties": {
+      "enabled": { "type": "boolean", "title": "Registrar visitas", "default": true }
+    }
+  }
+}

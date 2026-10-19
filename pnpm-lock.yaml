@@ -248,7 +248,51 @@ importers:
         specifier: ^6.0.0
         version: 6.4.4(@types/node@22.20.5)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.15)(yaml@2.9.1)
 
+  blocks/analytics:
+    dependencies:
+      '@webs/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@webs/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      eslint:
+        specifier: ^9.13.0
+        version: 9.39.5(jiti@2.7.0)
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.3
+      tsup:
+        specifier: ^8.3.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.30)(tsx@4.23.15)(typescript@5.9.3)(yaml@2.9.1)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   blocks/carrito:
+    dependencies:
+      '@webs/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@webs/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      eslint:
+        specifier: ^9.13.0
+        version: 9.39.5(jiti@2.7.0)
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.3
+      tsup:
+        specifier: ^8.3.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.30)(tsx@4.23.15)(typescript@5.9.3)(yaml@2.9.1)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  blocks/comments:
     dependencies:
       '@webs/plugin-sdk':
         specifier: workspace:*
@@ -337,6 +381,28 @@ importers:
         version: 5.9.3
 
   blocks/mapa:
+    dependencies:
+      '@webs/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@webs/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      eslint:
+        specifier: ^9.13.0
+        version: 9.39.5(jiti@2.7.0)
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.3
+      tsup:
+        specifier: ^8.3.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.30)(tsx@4.23.15)(typescript@5.9.3)(yaml@2.9.1)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  blocks/marketing:
     dependencies:
       '@webs/plugin-sdk':
         specifier: workspace:*
@@ -490,6 +556,50 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
+  blocks/search:
+    dependencies:
+      '@webs/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@webs/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      eslint:
+        specifier: ^9.13.0
+        version: 9.39.5(jiti@2.7.0)
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.3
+      tsup:
+        specifier: ^8.3.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.30)(tsx@4.23.15)(typescript@5.9.3)(yaml@2.9.1)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  blocks/seo:
+    dependencies:
+      '@webs/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@webs/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      eslint:
+        specifier: ^9.13.0
+        version: 9.39.5(jiti@2.7.0)
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.3
+      tsup:
+        specifier: ^8.3.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.30)(tsx@4.23.15)(typescript@5.9.3)(yaml@2.9.1)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   blocks/storage-s3:
     dependencies:
       '@aws-sdk/client-s3':
@@ -516,6 +626,28 @@ importers:
         version: 5.9.3
 
   blocks/stripe:
+    dependencies:
+      '@webs/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
+    devDependencies:
+      '@webs/config':
+        specifier: workspace:*
+        version: link:../../packages/config
+      eslint:
+        specifier: ^9.13.0
+        version: 9.39.5(jiti@2.7.0)
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.1.3
+      tsup:
+        specifier: ^8.3.0
+        version: 8.5.1(jiti@2.7.0)(postcss@8.5.30)(tsx@4.23.15)(typescript@5.9.3)(yaml@2.9.1)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
+  blocks/support:
     dependencies:
       '@webs/plugin-sdk':
         specifier: workspace:*

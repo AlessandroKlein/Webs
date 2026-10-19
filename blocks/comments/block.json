@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-comments",
+  "id": "comments",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Comments & Ratings", "es": "Comentarios y valoraciones" },
+  "description": { "en": "Star ratings and reviews.", "es": "Valoraciones con estrellas y reseñas." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Comentarios", "properties": { "enabled": { "type": "boolean", "default": true } } }
+}

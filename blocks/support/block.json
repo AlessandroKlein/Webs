@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-support",
+  "id": "support",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Support / Live Chat", "es": "Soporte / Chat en vivo" },
+  "description": { "en": "Floating chat widget and tickets.", "es": "Widget flotante de chat y tickets." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["footer"],
+  "settings": { "type": "object", "title": "Soporte", "properties": { "enabled": { "type": "boolean", "default": true } } }
+}

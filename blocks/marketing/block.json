@@ -1,0 +1,24 @@
+{
+  "name": "@webs/block-marketing",
+  "id": "marketing",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Marketing", "es": "Marketing" },
+  "description": { "en": "Discount coupons and promotions.", "es": "Cupones de descuento y promociones." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "apiVersion": "1.0.0",
+  "settings": {
+    "type": "object",
+    "title": "Marketing",
+    "properties": {
+      "coupons": {
+        "type": "array",
+        "title": "Cupones",
+        "items": { "type": "object", "properties": { "code": { "type": "string" }, "percent": { "type": "number" } } },
+        "default": []
+      }
+    }
+  }
+}

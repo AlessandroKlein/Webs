@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.39.0] - 2026-10-18
+
+### Añadido
+
+- **Módulos opcionales (bloques)**: SEO (sitemap.xml/robots.txt/meta), Analítica
+  (visitas/métricas), Marketing (cupones), Comentarios/valoraciones, Búsqueda
+  (fuzzy con Levenshtein) y Soporte/chat.
+
 ## [0.38.0] - 2026-10-18
 
 ### Añadido
