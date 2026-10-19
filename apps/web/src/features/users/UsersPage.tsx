@@ -22,23 +22,26 @@ export function UsersPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
 
+  const [search, setSearch] = useState('');
   const { data, isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => api.get<Page<UserRow>>('/api/v1/users'),
+    queryKey: ['users', search],
+    queryFn: () => api.get<Page<UserRow>>(`/api/v1/users${search ? `?q=${encodeURIComponent(search)}` : ''}`),
   });
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [username, setUsername] = useState('');
 
   const create = useMutation({
-    mutationFn: (body: { email: string; password: string; displayName?: string }) =>
+    mutationFn: (body: { email: string; password: string; displayName?: string; username?: string }) =>
       api.post('/api/v1/users', body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['users'] });
       setEmail('');
       setPassword('');
       setDisplayName('');
+      setUsername('');
     },
   });
 
@@ -46,7 +49,7 @@ export function UsersPage() {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    create.mutate({ email, password, displayName });
+    create.mutate({ email, password, displayName, username: username || undefined });
   };
 
   return (
@@ -57,6 +60,7 @@ export function UsersPage() {
         <h3>{t('common.create')}</h3>
         <form className="row" onSubmit={onSubmit} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <TextField label={t('auth.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <TextField label="Nombre de usuario" value={username} onChange={(e) => setUsername(e.target.value)} />
           <TextField label={t('auth.password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           <TextField label="Nombre" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           <Button type="submit" disabled={create.isPending}>
@@ -66,6 +70,7 @@ export function UsersPage() {
       </Card>
 
       <Card>
+        <TextField label="Buscar" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Por correo o nombre…" />
         <table className="table">
           <thead>
             <tr>

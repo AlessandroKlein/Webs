@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.7.0] - 2026-10-19
+
+### Añadido
+
+- **Usuarios**: buscador (`?q=` en `/api/v1/users` + campo en la UI) y campo
+  `username` en el alta/edición de usuarios (único, con validación de duplicados).
+
 ## [1.6.0] - 2026-10-19
 
 ### Añadido

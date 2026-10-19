@@ -42,6 +42,7 @@ export async function createUser(
     email: string;
     password: string;
     displayName?: string;
+    username?: string;
     locale?: string;
     roles?: string[];
   },
@@ -49,10 +50,16 @@ export async function createUser(
   const existing = await fastify.prisma.user.findUnique({ where: { email: input.email } });
   if (existing) throw new ConflictError('El correo ya está registrado');
 
+  if (input.username) {
+    const byUsername = await fastify.prisma.user.findUnique({ where: { username: input.username } });
+    if (byUsername) throw new ConflictError('El nombre de usuario ya está en uso');
+  }
+
   const passwordHash = await bcrypt.hash(input.password, 10);
   const user = await fastify.prisma.user.create({
     data: {
       email: input.email,
+      username: input.username ?? null,
       passwordHash,
       displayName: input.displayName ?? null,
       locale: input.locale ?? 'es',
@@ -73,6 +80,7 @@ export async function updateUser(
     email?: string;
     password?: string;
     displayName?: string | null;
+    username?: string | null;
     locale?: string;
     active?: boolean;
     roles?: string[];
@@ -86,6 +94,13 @@ export async function updateUser(
     const existing = await fastify.prisma.user.findUnique({ where: { email: input.email } });
     if (existing) throw new ConflictError('El correo ya está registrado');
     data.email = input.email;
+  }
+  if (input.username !== undefined && input.username !== user.username) {
+    if (input.username) {
+      const byUsername = await fastify.prisma.user.findUnique({ where: { username: input.username } });
+      if (byUsername) throw new ConflictError('El nombre de usuario ya está en uso');
+    }
+    data.username = input.username;
   }
   if (input.password) data.passwordHash = await bcrypt.hash(input.password, 10);
   if (input.displayName !== undefined) data.displayName = input.displayName;
