@@ -104,7 +104,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   // Modo mantenimiento: bloquea rutas públicas salvo whitelist / autenticadas.
   await app.addHook('onRequest', async (request, reply) => {
     try {
-      const section = (await getSectionValue(app, 'site')) as { value?: Record<string, unknown> };
+      const section = (await getSectionValue(app, 'maintenance')) as { value?: Record<string, unknown> };
       if (!section.value?.maintenanceMode) return;
     } catch {
       return;

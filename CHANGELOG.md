@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.12.0] - 2026-10-19
+
+### Añadido
+
+- **Settings en subcategorías**: se dividió la sección "Sitio" en `site`
+  (identidad), `branding` (logos), `localization` (idioma/zona horaria) y
+  `maintenance` (modo mantenimiento), cada una con su propio guardado.
+
 ## [1.11.0] - 2026-10-19
 
 ### Añadido

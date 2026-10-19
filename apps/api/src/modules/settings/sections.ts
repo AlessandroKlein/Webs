@@ -12,14 +12,38 @@ export function registerDefaultSections(): void {
     group: 'general',
     schema: {
       type: 'object',
-      title: 'Sitio',
+      title: 'Sitio (identidad)',
       properties: {
         name: { type: 'string', title: 'Nombre del sitio' },
         tagline: { type: 'string', title: 'Lema / descripción corta' },
+      },
+    },
+    defaults: { name: 'Webs', tagline: '' },
+  });
+
+  registerSettingSection({
+    key: 'branding',
+    group: 'general',
+    schema: {
+      type: 'object',
+      title: 'Imágenes y logo',
+      properties: {
         logoUrl: { type: 'string', format: 'uri', title: 'URL del logo (claro)', description: 'Recomendado: 512×128 px, PNG/SVG' },
         logoDarkUrl: { type: 'string', format: 'uri', title: 'URL del logo (oscuro)', description: 'Recomendado: 512×128 px, PNG/SVG' },
         iconUrl: { type: 'string', format: 'uri', title: 'URL del icono', description: 'Recomendado: 512×512 px (app/PWA)' },
         faviconUrl: { type: 'string', format: 'uri', title: 'URL del favicon', description: 'Recomendado: 32×32 o 192×192 px' },
+      },
+    },
+    defaults: { logoUrl: '', logoDarkUrl: '', iconUrl: '', faviconUrl: '' },
+  });
+
+  registerSettingSection({
+    key: 'localization',
+    group: 'general',
+    schema: {
+      type: 'object',
+      title: 'Idioma y región',
+      properties: {
         defaultLocale: { type: 'string', enum: ['es', 'en', 'pt'], title: 'Idioma por defecto' },
         timezone: {
           type: 'string',
@@ -38,7 +62,6 @@ export function registerDefaultSections(): void {
             'Pacific/Auckland', 'Pacific/Honolulu', 'UTC',
           ],
         },
-        maintenanceMode: { type: 'boolean', title: 'Modo mantenimiento', default: false },
         languages: {
           type: 'array',
           title: 'Idiomas habilitados',
@@ -46,7 +69,20 @@ export function registerDefaultSections(): void {
         },
       },
     },
-    defaults: { name: 'Webs', tagline: '', defaultLocale: 'es', timezone: 'America/Argentina/Buenos_Aires', maintenanceMode: false, languages: ['es'] },
+    defaults: { defaultLocale: 'es', timezone: 'America/Argentina/Buenos_Aires', languages: ['es'] },
+  });
+
+  registerSettingSection({
+    key: 'maintenance',
+    group: 'general',
+    schema: {
+      type: 'object',
+      title: 'Mantenimiento',
+      properties: {
+        maintenanceMode: { type: 'boolean', title: 'Modo mantenimiento', default: false },
+      },
+    },
+    defaults: { maintenanceMode: false },
   });
 
   registerSettingSection({

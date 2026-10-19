@@ -14,7 +14,7 @@ export type I18nResources = Record<string, LocaleResources>;
 
 /** Idiomas habilitados del sitio (selección del administrador). */
 export async function getEnabledLocales(fastify: FastifyInstance): Promise<string[]> {
-  const site = await fastify.prisma.setting.findUnique({ where: { key: 'site' } });
+  const site = await fastify.prisma.setting.findUnique({ where: { key: 'localization' } });
   const s = (site?.value ?? {}) as { languages?: string[]; defaultLocale?: string };
   const languages = Array.isArray(s.languages) ? s.languages.filter(Boolean) : [];
   if (languages.length === 0) return ['es'];
@@ -23,7 +23,7 @@ export async function getEnabledLocales(fastify: FastifyInstance): Promise<strin
 
 /** Idioma por defecto del sitio. */
 export async function getDefaultLocale(fastify: FastifyInstance): Promise<string> {
-  const site = await fastify.prisma.setting.findUnique({ where: { key: 'site' } });
+  const site = await fastify.prisma.setting.findUnique({ where: { key: 'localization' } });
   const s = (site?.value ?? {}) as { defaultLocale?: string };
   return s.defaultLocale ?? 'es';
 }
