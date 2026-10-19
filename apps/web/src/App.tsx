@@ -29,6 +29,7 @@ import { TranslationsPage } from './features/translations/TranslationsPage';
 import { AuditPage } from './features/audit/AuditPage';
 import { ApiTokensPage } from './features/api-tokens/ApiTokensPage';
 import { AccountPage } from './features/account/AccountPage';
+import { PagesPage } from './features/pages/PagesPage';
 import { PublicHome } from './features/public/PublicHome';
 import { SetupWizard } from './features/setup/SetupWizard';
 
@@ -122,6 +123,7 @@ function MainApp() {
         >
           <Route index element={<DashboardPage />} />
           <Route path="content" element={<ContentPage />} />
+          <Route path="pages" element={<PagesPage />} />
           <Route path="email" element={<EmailPage />} />
           <Route path="blocks" element={<BlocksPage />} />
           <Route path="blocks/:blockId" element={<BlockConfigPage />} />

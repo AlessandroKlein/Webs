@@ -415,6 +415,19 @@ model Invite {
   @@map("invites")
 }
 
+model Page {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  layout      Json     @default("[]")
+  redirectUrl String?
+  isHome      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("pages")
+}
+
 // ---------------------------------------------------------------------------
 // Configuración, bloques y colocaciones
 // ---------------------------------------------------------------------------

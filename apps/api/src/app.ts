@@ -32,6 +32,7 @@ import mediaRoutes from './modules/media/routes';
 import notificationsRoutes from './modules/notifications/routes';
 import expensesRoutes from './modules/expenses';
 import systemRoutes from './modules/system';
+import pagesRoutes from './modules/pages/routes';
 import authRoutes from './modules/auth';
 import passkeyRoutes from './modules/auth/passkeys';
 import usersRoutes from './modules/users';
@@ -133,6 +134,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(notificationsRoutes, { prefix: API_PREFIX });
   await app.register(expensesRoutes, { prefix: API_PREFIX });
   await app.register(systemRoutes, { prefix: API_PREFIX });
+  await app.register(pagesRoutes, { prefix: API_PREFIX });
   await app.register(authRoutes, { prefix: API_PREFIX });
   await app.register(passkeyRoutes, { prefix: API_PREFIX });
   await app.register(usersRoutes, { prefix: API_PREFIX });

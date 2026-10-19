@@ -20,6 +20,7 @@ export function AdminLayout() {
   const nav = [
     { to: '/admin', label: t('nav.dashboard'), end: true, perm: null as string | null },
     { to: '/admin/content', label: t('nav.content'), perm: 'content.read' },
+    { to: '/admin/pages', label: 'Páginas', perm: 'content.read' },
     { to: '/admin/email', label: t('nav.email'), perm: 'email.read' },
     { to: '/admin/blocks', label: t('nav.blocks'), perm: 'block.read' },
     { to: '/admin/templates', label: t('nav.templates'), perm: 'setting.write' },

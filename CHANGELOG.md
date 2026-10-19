@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.13.0] - 2026-10-19
+
+### Añadido
+
+- **Constructor de páginas**: modelo `Page` + CRUD (`/api/v1/pages`) + lectura
+  pública (`/api/v1/public/page/:slug`). La **página de inicio** se compone de
+  secciones con bloques y tamaño (full/half/third) o redirige a una URL externa.
+  Panel "Páginas" en el admin y render de la home pública según el layout.
+
 ## [1.12.0] - 2026-10-19
 
 ### Añadido

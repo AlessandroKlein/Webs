@@ -75,3 +75,8 @@ function BlockRenderer({
 
   return <div ref={ref} />;
 }
+
+/** Renderiza un bloque por su id (para el constructor de páginas). */
+export function BlockById({ blockId, config = {} }: { blockId: string; config?: Record<string, unknown> }) {
+  return <BlockRenderer blockId={blockId} slot="page" config={config} />;
+}
