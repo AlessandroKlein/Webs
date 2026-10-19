@@ -66,6 +66,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | Invitaciones de un solo uso + registro con aprobación | ✅ | 1.11.0 |
 | Settings en subcategorías (site/branding/localization/maintenance) | ✅ | 1.12.0 |
 | Constructor de páginas (layout de bloques + redirect) | ✅ | 1.13.0 |
+| Estilos de checkboxes/radios | ✅ | 1.14.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
