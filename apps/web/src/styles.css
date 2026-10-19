@@ -231,28 +231,76 @@ input[type='radio'] {
   font-size: var(--ws-font-size-sm);
 }
 
-/* Editor WYSIWYG (Quill, tema snow) adaptado a los tokens */
-.wysiwyg .ql-toolbar {
+/* Editor WYSIWYG (Tiptap) adaptado a los tokens */
+.wysiwyg {
   border: 1px solid var(--ws-border);
-  border-radius: var(--ws-radius-md) var(--ws-radius-md) 0 0;
+  border-radius: var(--ws-radius-md);
+  overflow: hidden;
+  background: var(--ws-surface);
+}
+.wysiwyg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ws-space-1);
+  padding: var(--ws-space-2);
+  border-bottom: 1px solid var(--ws-border);
   background: var(--ws-surface-2);
 }
-.wysiwyg .ql-container {
-  border: 1px solid var(--ws-border);
-  border-top: 0;
-  border-radius: 0 0 var(--ws-radius-md) var(--ws-radius-md);
-  background: var(--ws-surface);
+.wysiwyg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 var(--ws-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--ws-radius-sm);
+  background: transparent;
   color: var(--ws-text);
+  cursor: pointer;
+  font-size: var(--ws-font-size-sm);
+}
+.wysiwyg-btn:hover { background: var(--ws-surface); }
+.wysiwyg-btn.active {
+  background: var(--ws-primary-soft);
+  color: var(--ws-primary);
+}
+.wysiwyg-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--ws-border);
+  margin: 0 var(--ws-space-1);
+}
+.wysiwyg-content {
   min-height: 220px;
+  padding: var(--ws-space-3) var(--ws-space-4);
+}
+.wysiwyg-content .ProseMirror {
+  min-height: 200px;
+  outline: none;
+  color: var(--ws-text);
   font-family: var(--ws-font-sans);
 }
-.wysiwyg .ql-editor { min-height: 200px; }
-.wysiwyg .ql-snow .ql-stroke { stroke: var(--ws-text-muted); }
-.wysiwyg .ql-snow .ql-fill { fill: var(--ws-text-muted); }
-.wysiwyg .ql-snow.ql-toolbar button:hover,
-.wysiwyg .ql-snow.ql-toolbar button.ql-active { color: var(--ws-primary); }
-.wysiwyg .ql-snow.ql-toolbar button:hover .ql-stroke,
-.wysiwyg .ql-snow.ql-toolbar button.ql-active .ql-stroke { stroke: var(--ws-primary); }
+.wysiwyg-content .ProseMirror p { margin: 0 0 var(--ws-space-2); }
+.wysiwyg-content .ProseMirror blockquote {
+  border-left: 3px solid var(--ws-border);
+  padding-left: var(--ws-space-3);
+  color: var(--ws-text-muted);
+  margin: var(--ws-space-2) 0;
+}
+.wysiwyg-content .ProseMirror a { color: var(--ws-primary); }
+.wysiwyg-content .ProseMirror img { max-width: 100%; height: auto; }
+.wysiwyg-content .ProseMirror pre,
+.wysiwyg-content .ProseMirror code {
+  background: var(--ws-surface-2);
+  border-radius: var(--ws-radius-sm);
+}
+.wysiwyg-content .ProseMirror pre {
+  padding: var(--ws-space-2);
+  overflow: auto;
+}
+.wysiwyg-content .ProseMirror code { padding: 0 var(--ws-space-1); }
 
 /* Grilla de 3 columnas */
 .grid-3 {

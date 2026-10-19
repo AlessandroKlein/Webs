@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
 import { api, downloadFile } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -44,45 +43,63 @@ interface EmailEvent {
   label: string;
 }
 
-type Tab = 'templates' | 'campaigns' | 'automations';
+type View = 'templates' | 'new-template' | 'campaigns' | 'automations';
 
 export function EmailPage() {
-  const [tab, setTab] = useState<Tab>('templates');
+  const [view, setView] = useState<View>('templates');
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const { data: variables } = useQuery({
     queryKey: ['email-variables'],
     queryFn: () => api.get<Array<{ key: string; description: string }>>('/api/v1/email/variables'),
   });
 
+  const openNewTemplate = () => {
+    setEditingTemplate(null);
+    setView('new-template');
+  };
+
+  const openEditTemplate = (template: EmailTemplate) => {
+    setEditingTemplate(template);
+    setView('new-template');
+  };
+
+  const closeEditor = () => {
+    setEditingTemplate(null);
+    setView('templates');
+  };
+
   return (
-    <div className="stack">
-      <h1>Correos</h1>
-      <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
-        <Button variant={tab === 'templates' ? 'primary' : 'ghost'} onClick={() => setTab('templates')}>
-          Plantillas
-        </Button>
-        <Button variant={tab === 'campaigns' ? 'primary' : 'ghost'} onClick={() => setTab('campaigns')}>
-          Campañas
-        </Button>
-        <Button variant={tab === 'automations' ? 'primary' : 'ghost'} onClick={() => setTab('automations')}>
-          Automatizaciones
-        </Button>
+    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
+      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Correos</h1>
+        <button className={`nav-link ${view === 'templates' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('templates')}>Plantillas</button>
+        <button className={`nav-link ${view === 'new-template' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={openNewTemplate}>Nueva plantilla</button>
+        <button className={`nav-link ${view === 'campaigns' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('campaigns')}>Campañas</button>
+        <button className={`nav-link ${view === 'automations' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('automations')}>Automatizaciones</button>
+      </aside>
+
+      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+        {view === 'new-template' && (
+          <Card>
+            <h3>Variables disponibles en plantillas</h3>
+            <p className="muted">Usá estas variables dentro del asunto o cuerpo (ej. {'{{ user.name }}'}):</p>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+              {(variables ?? []).map((v) => (
+                <code key={v.key} title={v.description} style={{ background: 'var(--ws-surface-2)', padding: 'var(--ws-space-1) var(--ws-space-2)', borderRadius: 'var(--ws-radius-sm)' }}>
+                  {'{{ ' + v.key + ' }}'}
+                </code>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        {view === 'templates' && <TemplatesListPanel onEdit={openEditTemplate} onNew={openNewTemplate} />}
+        {view === 'new-template' && (
+          <TemplateEditorPanel key={editingTemplate?.id ?? 'new'} template={editingTemplate} onDone={closeEditor} />
+        )}
+        {view === 'campaigns' && <CampaignsPanel />}
+        {view === 'automations' && <AutomationsPanel />}
       </div>
-
-      <Card>
-        <h3>Variables disponibles en plantillas</h3>
-        <p className="muted">Usá estas variables dentro del asunto o cuerpo (ej. {'{{ user.name }}'}):</p>
-        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-          {(variables ?? []).map((v) => (
-            <code key={v.key} title={v.description} style={{ background: 'var(--ws-surface-2)', padding: 'var(--ws-space-1) var(--ws-space-2)', borderRadius: 'var(--ws-radius-sm)' }}>
-              {'{{ ' + v.key + ' }}'}
-            </code>
-          ))}
-        </div>
-      </Card>
-
-      {tab === 'templates' && <TemplatesPanel />}
-      {tab === 'campaigns' && <CampaignsPanel />}
-      {tab === 'automations' && <AutomationsPanel />}
     </div>
   );
 }
@@ -91,32 +108,17 @@ export function EmailPage() {
 // Plantillas
 // ---------------------------------------------------------------------------
 
-function TemplatesPanel() {
+function TemplatesListPanel({
+  onEdit,
+  onNew,
+}: {
+  onEdit: (template: EmailTemplate) => void;
+  onNew: () => void;
+}) {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['email-templates'],
     queryFn: () => api.get<EmailTemplate[]>('/api/v1/email/templates'),
-  });
-
-  const [editing, setEditing] = useState<EmailTemplate | null>(null);
-  const [name, setName] = useState('');
-  const [key, setKey] = useState('');
-  const [subject, setSubject] = useState('');
-  const [bodyMode, setBodyMode] = useState<'wysiwyg' | 'html'>('wysiwyg');
-  const [body, setBody] = useState('');
-  const [variables, setVariables] = useState('');
-
-  const save = useMutation({
-    mutationFn: () => {
-      const payload = { name, key, subject, bodyMode, body, variables: variables.split(',').map((s) => s.trim()).filter(Boolean) };
-      return editing
-        ? api.patch(`/api/v1/email/templates/${editing.id}`, payload)
-        : api.post('/api/v1/email/templates', payload);
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['email-templates'] });
-      resetForm();
-    },
   });
 
   const remove = useMutation({
@@ -124,89 +126,99 @@ function TemplatesPanel() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['email-templates'] }),
   });
 
-  function resetForm() {
-    setEditing(null);
-    setName('');
-    setKey('');
-    setSubject('');
-    setBodyMode('wysiwyg');
-    setBody('');
-    setVariables('');
-  }
-
-  function load(t: EmailTemplate) {
-    setEditing(t);
-    setName(t.name);
-    setKey(t.key);
-    setSubject(t.subject);
-    setBodyMode(t.bodyMode === 'html' ? 'html' : 'wysiwyg');
-    setBody(t.body);
-    setVariables((t.variables ?? []).join(', '));
-  }
-
   if (isLoading) return <Spinner />;
 
   return (
-    <div className="grid-2" style={{ alignItems: 'start' }}>
-      <Card>
-        <h3>{editing ? 'Editar plantilla' : 'Nueva plantilla'}</h3>
-        <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
-        <TextField label="Clave (única)" value={key} onChange={(e) => setKey(e.target.value)} placeholder="bienvenida" />
-        <TextField label="Asunto" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Bienvenido, {{ user.name }}" />
-        <TextField label="Variables (separadas por coma)" value={variables} onChange={(e) => setVariables(e.target.value)} placeholder="site.name, user.name, user.email" />
-
-        <div className="field">
-          <label>Modo de edición</label>
-          <select className="input" value={bodyMode} onChange={(e) => setBodyMode(e.target.value as 'wysiwyg' | 'html')}>
-            <option value="wysiwyg">Editor visual (WYSIWYG)</option>
-            <option value="html">HTML crudo</option>
-          </select>
-        </div>
-
-        <label className="muted" style={{ display: 'block', margin: 'var(--ws-space-2) 0' }}>
-          Contenido del correo
-        </label>
-        {bodyMode === 'wysiwyg' ? (
-          <RichTextEditor value={body} onChange={setBody} />
-        ) : (
-          <textarea className="input" rows={12} value={body} onChange={(e) => setBody(e.target.value)} placeholder="<h1>Hola</h1>" />
-        )}
-
-        <div className="row" style={{ marginTop: 'var(--ws-space-3)' }}>
-          <Button onClick={() => save.mutate()} disabled={save.isPending}>
-            {editing ? 'Guardar' : 'Crear'}
-          </Button>
-          {editing && (
-            <Button variant="ghost" onClick={resetForm}>
-              Cancelar
-            </Button>
-          )}
-        </div>
-      </Card>
-
-      <Card>
+    <Card>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <h3>Plantillas</h3>
-        <div className="stack">
-          {(data ?? []).map((t) => (
-            <div key={t.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
-              <div>
-                <strong>{t.name}</strong>
-                <span className="muted"> · {t.bodyMode}</span>
-              </div>
-              <div className="row">
-                <Button variant="secondary" onClick={() => load(t)}>
-                  Editar
-                </Button>
-                <Button variant="ghost" onClick={() => remove.mutate(t.id)}>
-                  Eliminar
-                </Button>
-              </div>
+        <Button onClick={onNew}>Nueva plantilla</Button>
+      </div>
+      <div className="stack">
+        {(data ?? []).map((t) => (
+          <div key={t.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
+            <div>
+              <strong>{t.name}</strong>
+              <span className="muted"> · {t.bodyMode}</span>
             </div>
-          ))}
-          {(data ?? []).length === 0 && <p className="muted">No hay plantillas.</p>}
-        </div>
-      </Card>
-    </div>
+            <div className="row">
+              <Button variant="secondary" onClick={() => onEdit(t)}>
+                Editar
+              </Button>
+              <Button variant="ghost" onClick={() => remove.mutate(t.id)}>
+                Eliminar
+              </Button>
+            </div>
+          </div>
+        ))}
+        {(data ?? []).length === 0 && <p className="muted">No hay plantillas.</p>}
+      </div>
+    </Card>
+  );
+}
+
+function TemplateEditorPanel({
+  template,
+  onDone,
+}: {
+  template: EmailTemplate | null;
+  onDone: () => void;
+}) {
+  const qc = useQueryClient();
+  const [name, setName] = useState(template?.name ?? '');
+  const [key, setKey] = useState(template?.key ?? '');
+  const [subject, setSubject] = useState(template?.subject ?? '');
+  const [bodyMode, setBodyMode] = useState<'wysiwyg' | 'html'>(template?.bodyMode === 'html' ? 'html' : 'wysiwyg');
+  const [body, setBody] = useState(template?.body ?? '');
+  const [variables, setVariables] = useState((template?.variables ?? []).join(', '));
+
+  const save = useMutation({
+    mutationFn: () => {
+      const payload = { name, key, subject, bodyMode, body, variables: variables.split(',').map((s) => s.trim()).filter(Boolean) };
+      return template
+        ? api.patch(`/api/v1/email/templates/${template.id}`, payload)
+        : api.post('/api/v1/email/templates', payload);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['email-templates'] });
+      onDone();
+    },
+  });
+
+  return (
+    <Card>
+      <h3>{template ? 'Editar plantilla' : 'Nueva plantilla'}</h3>
+      <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
+      <TextField label="Clave (única)" value={key} onChange={(e) => setKey(e.target.value)} placeholder="bienvenida" />
+      <TextField label="Asunto" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Bienvenido, {{ user.name }}" />
+      <TextField label="Variables (separadas por coma)" value={variables} onChange={(e) => setVariables(e.target.value)} placeholder="site.name, user.name, user.email" />
+
+      <div className="field">
+        <label>Modo de edición</label>
+        <select className="input" value={bodyMode} onChange={(e) => setBodyMode(e.target.value as 'wysiwyg' | 'html')}>
+          <option value="wysiwyg">Editor visual (WYSIWYG)</option>
+          <option value="html">HTML crudo</option>
+        </select>
+      </div>
+
+      <label className="muted" style={{ display: 'block', margin: 'var(--ws-space-2) 0' }}>
+        Contenido del correo
+      </label>
+      {bodyMode === 'wysiwyg' ? (
+        <RichTextEditor value={body} onChange={setBody} />
+      ) : (
+        <textarea className="input" rows={12} value={body} onChange={(e) => setBody(e.target.value)} placeholder="<h1>Hola</h1>" />
+      )}
+
+      <div className="row" style={{ marginTop: 'var(--ws-space-3)' }}>
+        <Button onClick={() => save.mutate()} disabled={save.isPending}>
+          {template ? 'Guardar' : 'Crear'}
+        </Button>
+        <Button variant="ghost" onClick={onDone}>
+          Cancelar
+        </Button>
+      </div>
+    </Card>
   );
 }
 

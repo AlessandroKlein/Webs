@@ -37,6 +37,7 @@ export function UsersPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
 
+  const [view, setView] = useState<'list' | 'create' | 'invite'>('list');
   const [search, setSearch] = useState('');
   const { data, isLoading } = useQuery({
     queryKey: ['users', search],
@@ -132,130 +133,145 @@ export function UsersPage() {
   };
 
   return (
-    <div className="stack">
-      <h1>{t('nav.users')}</h1>
+    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
+      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.users')}</h1>
+        <button className={`nav-link ${view === 'list' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('list')}>Listado</button>
+        <button className={`nav-link ${view === 'create' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('create')}>Crear usuario</button>
+        <button className={`nav-link ${view === 'invite' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('invite')}>Invitar</button>
+      </aside>
 
-      <Card>
-        <h3>{t('common.create')}</h3>
-        <form className="row" onSubmit={onSubmit} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <TextField label={t('auth.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <TextField label="Nombre de usuario" value={username} onChange={(e) => setUsername(e.target.value)} />
-          <TextField label={t('auth.password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          <TextField label="Nombre" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          <Button type="submit" disabled={create.isPending}>
-            {t('common.create')}
-          </Button>
-        </form>
-      </Card>
+      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+        {view === 'list' && (
+          <>
+            <Card>
+              <TextField label="Buscar" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Por correo o nombre…" />
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t('auth.email')}</th>
+                    <th>Nombre</th>
+                    <th>Roles</th>
+                    <th>Estado</th>
+                    <th>{t('common.actions')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data?.items ?? []).map((u) => (
+                    <tr key={u.id}>
+                      <td>{u.email}</td>
+                      <td>{u.displayName ?? '—'}</td>
+                      <td>{u.roles.join(', ')}</td>
+                      <td>{u.active ? t('common.enabled') : t('common.disabled')}</td>
+                      <td>
+                        <div className="row">
+                          <Button variant="secondary" onClick={() => startEdit(u)}>
+                            {t('common.edit')}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            onClick={() => setConfirmDelete(u)}
+                          >
+                            {t('common.delete')}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
 
-      <Card>
-        <h3>Invitar usuario (link de un solo uso)</h3>
-        <form className="row" onSubmit={(e) => { e.preventDefault(); if (inviteEmail) invite.mutate({ email: inviteEmail, role: inviteRole }); }} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <TextField label="Email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
-          <select className="input" style={{ width: 'auto' }} value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
-            {roles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
-          </select>
-          <Button type="submit" disabled={invite.isPending}>Generar link</Button>
-        </form>
-        {inviteUrl && (
-          <p className="muted" style={{ wordBreak: 'break-all', marginTop: 'var(--ws-space-2)' }}>
-            Link: <code>{window.location.origin}{inviteUrl}</code>
-          </p>
-        )}
-      </Card>
+            {editing && (
+              <Card>
+                <h3>
+                  {t('common.edit')}: {editing.email}
+                </h3>
+                <form className="stack" onSubmit={onSubmitEdit}>
+                  <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <TextField label="Nombre" value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
+                    <TextField label="Nombre de usuario" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
+                    <TextField label="Locale" value={editLocale} onChange={(e) => setEditLocale(e.target.value)} placeholder="es" />
+                    <label className="row" style={{ gap: 8 }}>
+                      <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} />
+                      Activo
+                    </label>
+                  </div>
 
-      {editing && (
-        <Card>
-          <h3>
-            {t('common.edit')}: {editing.email}
-          </h3>
-          <form className="stack" onSubmit={onSubmitEdit}>
-            <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <TextField label="Nombre" value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
-              <TextField label="Nombre de usuario" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
-              <TextField label="Locale" value={editLocale} onChange={(e) => setEditLocale(e.target.value)} placeholder="es" />
-              <label className="row" style={{ gap: 8 }}>
-                <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} />
-                Activo
-              </label>
-            </div>
+                  <div>
+                    <strong>Roles</strong>
+                    <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+                      {roles.map((r) => (
+                        <label key={r.id} className="row" style={{ gap: 6 }}>
+                          <input
+                            type="checkbox"
+                            checked={editRoles.includes(r.key)}
+                            onChange={() => setEditRoles(toggle(editRoles, r.key))}
+                          />
+                          {r.name} <span className="muted">({r.key})</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
 
-            <div>
-              <strong>Roles</strong>
-              <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-                {roles.map((r) => (
-                  <label key={r.id} className="row" style={{ gap: 6 }}>
-                    <input
-                      type="checkbox"
-                      checked={editRoles.includes(r.key)}
-                      onChange={() => setEditRoles(toggle(editRoles, r.key))}
-                    />
-                    {r.name} <span className="muted">({r.key})</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="row">
-              <Button type="submit" disabled={update.isPending}>
-                {t('common.save')}
-              </Button>
-              <Button variant="ghost" onClick={() => setEditing(null)}>
-                {t('common.cancel')}
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      <Card>
-        <TextField label="Buscar" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Por correo o nombre…" />
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t('auth.email')}</th>
-              <th>Nombre</th>
-              <th>Roles</th>
-              <th>Estado</th>
-              <th>{t('common.actions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(data?.items ?? []).map((u) => (
-              <tr key={u.id}>
-                <td>{u.email}</td>
-                <td>{u.displayName ?? '—'}</td>
-                <td>{u.roles.join(', ')}</td>
-                <td>{u.active ? t('common.enabled') : t('common.disabled')}</td>
-                <td>
                   <div className="row">
-                    <Button variant="secondary" onClick={() => startEdit(u)}>
-                      {t('common.edit')}
+                    <Button type="submit" disabled={update.isPending}>
+                      {t('common.save')}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setConfirmDelete(u)}
-                    >
-                      {t('common.delete')}
+                    <Button variant="ghost" onClick={() => setEditing(null)}>
+                      {t('common.cancel')}
                     </Button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+                </form>
+              </Card>
+            )}
 
-      <ConfirmDialog
-        open={confirmDelete !== null}
-        title="Eliminar usuario"
-        confirmLabel="Eliminar"
-        danger
-        onConfirm={() => { if (confirmDelete) remove.mutate(confirmDelete.id); setConfirmDelete(null); }}
-        onCancel={() => setConfirmDelete(null)}
-      >
-        ¿Eliminar el usuario <strong>{confirmDelete?.email}</strong>? Esta acción es irreversible.
-      </ConfirmDialog>
+            <ConfirmDialog
+              open={confirmDelete !== null}
+              title="Eliminar usuario"
+              confirmLabel="Eliminar"
+              danger
+              onConfirm={() => { if (confirmDelete) remove.mutate(confirmDelete.id); setConfirmDelete(null); }}
+              onCancel={() => setConfirmDelete(null)}
+            >
+              ¿Eliminar el usuario <strong>{confirmDelete?.email}</strong>? Esta acción es irreversible.
+            </ConfirmDialog>
+          </>
+        )}
+
+        {view === 'create' && (
+          <Card>
+            <h3>Crear usuario</h3>
+            <form className="row" onSubmit={onSubmit} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <TextField label={t('auth.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <TextField label="Nombre de usuario" value={username} onChange={(e) => setUsername(e.target.value)} />
+              <TextField label={t('auth.password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <TextField label="Nombre" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              <Button type="submit" disabled={create.isPending}>
+                {t('common.create')}
+              </Button>
+            </form>
+          </Card>
+        )}
+
+        {view === 'invite' && (
+          <Card>
+            <h3>Invitar usuario (link de un solo uso)</h3>
+            <form className="row" onSubmit={(e) => { e.preventDefault(); if (inviteEmail) invite.mutate({ email: inviteEmail, role: inviteRole }); }} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <TextField label="Email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
+              <select className="input" style={{ width: 'auto' }} value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+                {roles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
+              </select>
+              <Button type="submit" disabled={invite.isPending}>Generar link</Button>
+            </form>
+            {inviteUrl && (
+              <p className="muted" style={{ wordBreak: 'break-all', marginTop: 'var(--ws-space-2)' }}>
+                Link: <code>{window.location.origin}{inviteUrl}</code>
+              </p>
+            )}
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

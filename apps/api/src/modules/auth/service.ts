@@ -333,3 +333,23 @@ export async function resetPassword(
     });
   }
 }
+
+/** Cambia la contraseña del usuario autenticado verificando la actual. */
+export async function changePassword(
+  fastify: FastifyInstance,
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const user = await fastify.prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new UnauthorizedError('Usuario no encontrado');
+  const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!valid) throw new UnauthorizedError('La contraseña actual no es correcta');
+  if (newPassword.length < 8) throw new BadRequestError('La nueva contraseña debe tener al menos 8 caracteres');
+
+  const passwordHash = await bcrypt.hash(newPassword, 10);
+  await fastify.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+  void emitEvent(fastify, 'user.password_changed', {
+    user: { id: user.id, email: user.email, name: user.displayName ?? undefined },
+  });
+}

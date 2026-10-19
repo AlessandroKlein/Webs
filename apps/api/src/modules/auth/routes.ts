@@ -5,6 +5,7 @@ import { audit } from '../../lib/audit';
 import { ipLimiter } from '../../lib/rate-limiter';
 import { emitEvent } from '../email/events';
 import {
+  changePassword,
   createSession,
   forgotPassword,
   login,
@@ -192,6 +193,31 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       await fastify.prisma.user.update({ where: { id: request.user.sub }, data });
       const profile = await findUserWithPermissions(fastify, request.user.sub);
       return { user: profile ? toPublicUser(profile) : null };
+    },
+  );
+
+  // Cambia la contraseña del usuario autenticado (verifica la actual).
+  fastify.post(
+    '/auth/change-password',
+    {
+      schema: {
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          required: ['currentPassword', 'password'],
+          properties: {
+            currentPassword: { type: 'string' },
+            password: { type: 'string', minLength: 8 },
+          },
+        },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    async (request) => {
+      const { currentPassword, password } = request.body as { currentPassword: string; password: string };
+      await changePassword(fastify, request.user.sub, currentPassword, password);
+      audit(fastify, request, { actorId: request.user.sub, action: 'auth.change_password' });
+      return { ok: true };
     },
   );
 

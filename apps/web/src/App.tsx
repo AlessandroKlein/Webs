@@ -32,6 +32,7 @@ import { AccountPage } from './features/account/AccountPage';
 import { PagesPage } from './features/pages/PagesPage';
 import { PublicHome } from './features/public/PublicHome';
 import { SetupWizard } from './features/setup/SetupWizard';
+import { ErrorPage } from './pages/ErrorPage';
 
 interface SetupStatus {
   installed: boolean;
@@ -139,7 +140,7 @@ function MainApp() {
           <Route path="api-tokens" element={<ApiTokensPage />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<ErrorPage />} />
       </Routes>
     </BrowserRouter>
   );

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { startRegistration } from '@simplewebauthn/browser';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
+import { useLocaleStore } from '../../lib/locale-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
@@ -11,14 +12,26 @@ import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 interface MeResponse {
-  user: { id: string; email: string; displayName: string | null; username: string | null } | null;
+  user: {
+    id: string;
+    email: string;
+    displayName: string | null;
+    username: string | null;
+    avatarUrl: string | null;
+    locale: string;
+    active: boolean;
+  } | null;
   permissions: string[];
   twoFactorEnabled: boolean;
 }
 
+type Tab = 'profile' | 'security' | 'password' | 'danger';
+
 export function AccountPage() {
   const qc = useQueryClient();
   const logout = useAuthStore((s) => s.logout);
+  const catalog = useLocaleStore((s) => s.catalog);
+  const enabledLocales = useLocaleStore((s) => s.enabled);
   const { data, isLoading } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.get<MeResponse>('/api/v1/auth/me'),
@@ -29,7 +42,12 @@ export function AccountPage() {
   });
 
   const updateProfile = useMutation({
-    mutationFn: (body: { displayName?: string | null; username?: string | null }) => api.patch('/api/v1/auth/me', body),
+    mutationFn: (body: {
+      displayName?: string | null;
+      username?: string | null;
+      avatarUrl?: string | null;
+      locale?: string;
+    }) => api.patch('/api/v1/auth/me', body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
   });
   const deleteAccount = useMutation({
@@ -42,7 +60,7 @@ export function AccountPage() {
 
   const twilioInstalled = blocksData?.installed?.some((b) => b.blockId === 'twilio' && b.enabled);
 
-  const [tab, setTab] = useState<'profile' | 'security' | 'danger'>('profile');
+  const [tab, setTab] = useState<Tab>('profile');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (isLoading) return <Spinner />;
@@ -52,69 +70,141 @@ export function AccountPage() {
     const fd = new FormData(e.currentTarget as HTMLFormElement);
     const displayName = (fd.get('displayName') as string) || null;
     const username = (fd.get('username') as string) || null;
-    updateProfile.mutate({ displayName, username });
+    const avatarUrl = (fd.get('avatarUrl') as string) || null;
+    const locale = (fd.get('locale') as string) || 'es';
+    updateProfile.mutate({ displayName, username, avatarUrl, locale });
+  };
+
+  const tabLabel = (t: Tab): string =>
+    t === 'profile' ? 'Perfil' : t === 'security' ? 'Seguridad' : t === 'password' ? 'Cambiar contraseña' : 'Zona de peligro';
+
+  return (
+    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
+      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Mi cuenta</h1>
+        {(['profile', 'security', 'password', 'danger'] as const).map((t) => (
+          <button
+            key={t}
+            className={`nav-link ${tab === t ? 'active' : ''}`}
+            style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={() => setTab(t)}
+          >
+            {tabLabel(t)}
+          </button>
+        ))}
+      </aside>
+
+      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+        {tab === 'profile' && (
+          <Card>
+            <h3>Perfil</h3>
+            <p>
+              <strong>{data?.user?.email}</strong>
+              {data?.user?.displayName ? ` — ${data.user.displayName}` : ''}
+            </p>
+            <form className="row" onSubmit={onProfile} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} />
+              <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
+              <TextField label="Avatar URL" name="avatarUrl" defaultValue={data?.user?.avatarUrl ?? ''} placeholder="https://…" />
+              <div className="field">
+                <label>Idioma</label>
+                <select className="input" name="locale" defaultValue={data?.user?.locale ?? 'es'}>
+                  {catalog
+                    .filter((l) => enabledLocales.includes(l.code))
+                    .map((l) => (
+                      <option key={l.code} value={l.code}>
+                        {l.nativeLabel}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <Button type="submit" disabled={updateProfile.isPending}>Guardar perfil</Button>
+            </form>
+          </Card>
+        )}
+
+        {tab === 'security' && (
+          <>
+            <TwoFactorCard enabled={data?.twoFactorEnabled ?? false} onChanged={() => qc.invalidateQueries({ queryKey: ['me'] })} />
+            {twilioInstalled && <SmsTwoFactorCard />}
+            <PasskeysCard />
+          </>
+        )}
+
+        {tab === 'password' && <ChangePasswordCard />}
+
+        {tab === 'danger' && (
+          <Card>
+            <h3>Zona de peligro</h3>
+            <p className="muted">Eliminar tu cuenta es irreversible.</p>
+            <Button
+              variant="ghost"
+              style={{ color: 'var(--ws-danger)' }}
+              disabled={deleteAccount.isPending}
+              onClick={() => setConfirmDelete(true)}
+            >
+              Eliminar cuenta
+            </Button>
+            <ConfirmDialog
+              open={confirmDelete}
+              title="Eliminar cuenta"
+              confirmLabel="Eliminar definitivamente"
+              danger
+              onConfirm={() => { setConfirmDelete(false); deleteAccount.mutate(); }}
+              onCancel={() => setConfirmDelete(false)}
+            >
+              ¿Seguro que querés eliminar tu cuenta? Esta acción es irreversible y no se puede deshacer.
+            </ConfirmDialog>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ChangePasswordCard() {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const change = useMutation({
+    mutationFn: () => api.post('/api/v1/auth/change-password', { currentPassword, password }),
+    onSuccess: () => {
+      setMsg('Contraseña actualizada ✓');
+      setCurrentPassword('');
+      setPassword('');
+      setConfirm('');
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'Error al cambiar la contraseña'),
+  });
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMsg(null);
+    if (password !== confirm) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    change.mutate();
   };
 
   return (
-    <div className="stack">
-      <h1>Mi cuenta</h1>
-
-      <div className="row" style={{ gap: 4, borderBottom: '1px solid var(--ws-border)', paddingBottom: 'var(--ws-space-2)' }}>
-        {(['profile', 'security', 'danger'] as const).map((t) => (
-          <Button key={t} variant={tab === t ? 'secondary' : 'ghost'} onClick={() => setTab(t)}>
-            {t === 'profile' ? 'Perfil' : t === 'security' ? 'Seguridad' : 'Zona de peligro'}
-          </Button>
-        ))}
-      </div>
-
-      {tab === 'profile' && (
-        <Card>
-          <h3>Perfil</h3>
-          <p>
-            <strong>{data?.user?.email}</strong>
-            {data?.user?.displayName ? ` — ${data.user.displayName}` : ''}
-          </p>
-          <form className="row" onSubmit={onProfile} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} />
-            <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
-            <Button type="submit" disabled={updateProfile.isPending}>Guardar perfil</Button>
-          </form>
-        </Card>
-      )}
-
-      {tab === 'security' && (
-        <>
-          <TwoFactorCard enabled={data?.twoFactorEnabled ?? false} onChanged={() => qc.invalidateQueries({ queryKey: ['me'] })} />
-          {twilioInstalled && <SmsTwoFactorCard />}
-          <PasskeysCard />
-        </>
-      )}
-
-      {tab === 'danger' && (
-        <Card>
-          <h3>Zona de peligro</h3>
-          <p className="muted">Eliminar tu cuenta es irreversible.</p>
-          <Button
-            variant="ghost"
-            style={{ color: 'var(--ws-danger)' }}
-            disabled={deleteAccount.isPending}
-            onClick={() => setConfirmDelete(true)}
-          >
-            Eliminar cuenta
-          </Button>
-          <ConfirmDialog
-            open={confirmDelete}
-            title="Eliminar cuenta"
-            confirmLabel="Eliminar definitivamente"
-            danger
-            onConfirm={() => { setConfirmDelete(false); deleteAccount.mutate(); }}
-            onCancel={() => setConfirmDelete(false)}
-          >
-            ¿Seguro que querés eliminar tu cuenta? Esta acción es irreversible y no se puede deshacer.
-          </ConfirmDialog>
-        </Card>
-      )}
-    </div>
+    <Card>
+      <h3>Cambiar contraseña</h3>
+      <form className="stack" onSubmit={submit}>
+        <TextField label="Contraseña actual" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+        <TextField label="Nueva contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <TextField label="Confirmar nueva contraseña" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+        {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
+        {msg && <p style={{ color: 'var(--ws-success, #16a34a)' }}>{msg}</p>}
+        <div className="row">
+          <Button type="submit" disabled={change.isPending}>Guardar contraseña</Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 

@@ -19,12 +19,33 @@ export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
 
   const { data: blocksData } = useQuery({
     queryKey: ['blocks'],
     queryFn: () => api.get<{ installed: Array<{ blockId: string; name: string; enabled: boolean }> }>('/api/v1/blocks'),
   });
   const installedBlocks = (blocksData?.installed ?? []).filter((b) => b.enabled);
+
+  const { data: catalogData } = useQuery({
+    queryKey: ['blocks-catalog'],
+    queryFn: () =>
+      api.get<{ local: Array<{ id: string; category?: string }>; remote: Array<{ id: string; category?: string }> }>(
+        '/api/v1/blocks/catalog',
+      ),
+  });
+
+  const categoryMap = new Map<string, string>();
+  for (const item of [...(catalogData?.local ?? []), ...(catalogData?.remote ?? [])]) {
+    if (item.category) categoryMap.set(item.id, item.category);
+  }
+  const groupedBlocks = installedBlocks.reduce<Record<string, Array<{ blockId: string; name: string }>>>((acc, b) => {
+    const cat = categoryMap.get(b.blockId) ?? 'Otros';
+    (acc[cat] ??= []).push({ blockId: b.blockId, name: b.name });
+    return acc;
+  }, {});
+  const toggleCategory = (cat: string) =>
+    setOpenCategories((c) => ({ ...c, [cat]: !(c[cat] ?? true) }));
 
   const { data: inbox } = useQuery({
     queryKey: ['notifications-inbox'],
@@ -69,16 +90,40 @@ export function AdminLayout() {
           {installedBlocks.length > 0 && !collapsed && (
             <>
               <div className="muted" style={{ fontSize: 'var(--ws-font-size-sm)', marginTop: 'var(--ws-space-3)', paddingInline: 'var(--ws-space-3)' }}>Bloques instalados</div>
-              {installedBlocks.map((b) => (
-                <NavLink
-                  key={b.blockId}
-                  to={`/admin/blocks/${b.blockId}`}
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                  style={{ paddingLeft: 'var(--ws-space-6)' }}
-                >
-                  {b.name}
-                </NavLink>
-              ))}
+              {Object.entries(groupedBlocks)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([category, blocks]) => {
+                  const isOpen = openCategories[category] ?? true;
+                  return (
+                    <div key={category}>
+                      <button
+                        type="button"
+                        className="nav-link"
+                        style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'capitalize' }}
+                        onClick={() => toggleCategory(category)}
+                        title={category}
+                      >
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                          <i className={`bi bi-chevron-${isOpen ? 'down' : 'right'}`} style={{ fontSize: '0.8em' }} />
+                          {category}
+                        </span>
+                      </button>
+                      {isOpen &&
+                        [...blocks]
+                          .sort((a, b) => a.name.localeCompare(b.name))
+                          .map((b) => (
+                            <NavLink
+                              key={b.blockId}
+                              to={`/admin/blocks/${b.blockId}`}
+                              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                              style={{ paddingLeft: 'var(--ws-space-7)' }}
+                            >
+                              {b.name}
+                            </NavLink>
+                          ))}
+                    </div>
+                  );
+                })}
             </>
           )}
         </nav>
