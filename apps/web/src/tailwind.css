@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/*
+ * Base TailwindCSS personalizada sobre los tokens de Webs (`--ws-*`).
+ * Mapea los tokens al tema de Tailwind para que utilidades como `bg-primary`,
+ * `text-muted`, `rounded-lg`, `shadow-md`, `border-border`, etc. estén
+ * disponibles y sigan el tema claro/oscuro automáticamente.
+ */
+@theme {
+  --color-primary: var(--ws-primary);
+  --color-primary-hover: var(--ws-primary-hover);
+  --color-primary-soft: var(--ws-primary-soft);
+  --color-on-primary: var(--ws-on-primary);
+  --color-bg: var(--ws-bg);
+  --color-surface: var(--ws-surface);
+  --color-surface-2: var(--ws-surface-2);
+  --color-surface-3: var(--ws-surface-3);
+  --color-text: var(--ws-text);
+  --color-muted: var(--ws-text-muted);
+  --color-subtle: var(--ws-text-subtle);
+  --color-border: var(--ws-border);
+  --color-border-strong: var(--ws-border-strong);
+  --color-success: var(--ws-success);
+  --color-warning: var(--ws-warning);
+  --color-danger: var(--ws-danger);
+  --color-info: var(--ws-info);
+
+  --radius-sm: var(--ws-radius-sm);
+  --radius-md: var(--ws-radius-md);
+  --radius-lg: var(--ws-radius-lg);
+
+  --font-sans: var(--ws-font-sans);
+  --font-mono: var(--ws-font-mono);
+
+  --shadow-sm: var(--ws-shadow-sm);
+  --shadow-md: var(--ws-shadow-md);
+  --shadow-lg: var(--ws-shadow-lg);
+}

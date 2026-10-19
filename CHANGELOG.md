@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [0.36.0] - 2026-10-18
+
+### Añadido
+
+- **TailwindCSS v4 como base** (descargado/bundled) mapeado a los tokens `--ws-*`:
+  utilidades (`bg-primary`, `text-muted`, `rounded-lg`, `shadow-md`, responsive
+  `md:`/`lg:`, …) disponibles y con soporte de tema claro/oscuro. Se mantienen los
+  componentes propios y Bootstrap Icons encima.
+
 ## [0.35.0] - 2026-10-18
 
 ### Añadido
