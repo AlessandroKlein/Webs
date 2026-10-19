@@ -18,12 +18,20 @@ export function AdminLayout() {
   const enabledLocales = useLocaleStore((s) => s.enabled);
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
 
   const { data: blocksData } = useQuery({
     queryKey: ['blocks'],
     queryFn: () => api.get<{ installed: Array<{ blockId: string; name: string; enabled: boolean }> }>('/api/v1/blocks'),
   });
   const installedBlocks = (blocksData?.installed ?? []).filter((b) => b.enabled);
+
+  const { data: inbox } = useQuery({
+    queryKey: ['notifications-inbox'],
+    queryFn: () => api.get<Array<{ id: string; title: string; body: string; read: boolean }>>('/api/v1/notifications/inbox'),
+    refetchInterval: 30_000,
+  });
+  const unread = (inbox ?? []).filter((n) => !n.read).length;
 
   const nav = [
     { to: '/admin', label: t('nav.dashboard'), end: true, perm: null as string | null },
@@ -111,6 +119,23 @@ export function AdminLayout() {
           </div>
 
           <div className="row">
+            <div className="user-menu-wrap">
+              <button className="btn ghost" onClick={() => setBellOpen((o) => !o)} title="Notificaciones" aria-label="Notificaciones">
+                <i className="bi bi-bell" />
+                {unread > 0 && <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-danger)', color: '#fff' }}>{unread}</span>}
+              </button>
+              {bellOpen && (
+                <div className="dropdown">
+                  {(inbox ?? []).slice(0, 20).map((n) => (
+                    <div key={n.id} style={{ padding: 'var(--ws-space-2)', borderBottom: '1px solid var(--ws-border)' }}>
+                      <strong style={{ fontWeight: n.read ? 400 : 600 }}>{n.title}</strong>
+                      <p className="muted" style={{ margin: 0 }}>{n.body}</p>
+                    </div>
+                  ))}
+                  {(inbox ?? []).length === 0 && <p className="muted" style={{ padding: 'var(--ws-space-2)' }}>Sin notificaciones</p>}
+                </div>
+              )}
+            </div>
             <Link to="/" className="btn ghost" title="Ver sitio" aria-label="Ver sitio">
               <i className="bi bi-box-arrow-up-right" /> <span>Ver sitio</span>
             </Link>

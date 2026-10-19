@@ -11,6 +11,34 @@ const sendSchema = z.object({
 });
 
 export default async function notificationsRoutes(fastify: FastifyInstance): Promise<void> {
+  // Bandeja de notificaciones en-app (global, usa el modelo `notification`).
+  fastify.get(
+    '/notifications/inbox',
+    { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate] },
+    async () => fastify.prisma.notification.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
+  );
+
+  fastify.post(
+    '/notifications/inbox',
+    { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate, fastify.authorize('setting.write')] },
+    async (request, reply) => {
+      const body = request.body as { title?: string; body?: string; userId?: string };
+      const n = await fastify.prisma.notification.create({
+        data: { title: body?.title ?? '', body: body?.body ?? '', userId: body?.userId ?? null },
+      });
+      return reply.status(201).send(n);
+    },
+  );
+
+  fastify.patch(
+    '/notifications/inbox/:id',
+    { schema: { tags: ['notifications'], params: { type: 'object', properties: { id: { type: 'string' } } } }, preHandler: [fastify.authenticate] },
+    async (request) => {
+      const id = (request.params as { id: string }).id;
+      return fastify.prisma.notification.update({ where: { id }, data: { read: true } });
+    },
+  );
+
   fastify.get(
     '/notifications/providers',
     { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate] },
