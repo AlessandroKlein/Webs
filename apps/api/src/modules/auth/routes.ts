@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { REFRESH_TOKEN_COOKIE, UnauthorizedError } from '@webs/core';
+import { REFRESH_TOKEN_COOKIE, ConflictError, UnauthorizedError } from '@webs/core';
 import { findUserWithPermissions, toPublicUser } from '../../lib/user';
 import { audit } from '../../lib/audit';
 import { ipLimiter } from '../../lib/rate-limiter';
@@ -155,6 +155,54 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
         permissions: profile.permissions,
         twoFactorEnabled: user?.twoFactorEnabled ?? false,
       };
+    },
+  );
+
+  // Actualiza el perfil propio (nombre, username, locale, avatar).
+  fastify.patch(
+    '/auth/me',
+    {
+      schema: {
+        tags: ['auth'],
+        body: {
+          type: 'object',
+          properties: {
+            displayName: { type: 'string', nullable: true },
+            username: { type: 'string', minLength: 3, nullable: true },
+            locale: { type: 'string' },
+            avatarUrl: { type: 'string', format: 'uri', nullable: true },
+          },
+        },
+      },
+      preHandler: [fastify.authenticate],
+    },
+    async (request) => {
+      const body = request.body as { displayName?: string | null; username?: string | null; locale?: string; avatarUrl?: string | null };
+      const data: Record<string, unknown> = {};
+      if (body.displayName !== undefined) data.displayName = body.displayName;
+      if (body.username !== undefined) {
+        if (body.username) {
+          const existing = await fastify.prisma.user.findUnique({ where: { username: body.username } });
+          if (existing && existing.id !== request.user.sub) throw new ConflictError('El nombre de usuario ya está en uso');
+        }
+        data.username = body.username;
+      }
+      if (body.locale !== undefined) data.locale = body.locale;
+      if (body.avatarUrl !== undefined) data.avatarUrl = body.avatarUrl;
+      await fastify.prisma.user.update({ where: { id: request.user.sub }, data });
+      const profile = await findUserWithPermissions(fastify, request.user.sub);
+      return { user: profile ? toPublicUser(profile) : null };
+    },
+  );
+
+  // Elimina la propia cuenta (cascade borra sesiones/roles/tokens/passkeys).
+  fastify.delete(
+    '/auth/me',
+    { schema: { tags: ['auth'] }, preHandler: [fastify.authenticate] },
+    async (request, reply) => {
+      await fastify.prisma.user.delete({ where: { id: request.user.sub } });
+      reply.clearCookie(REFRESH_TOKEN_COOKIE, { path: '/' });
+      return { ok: true };
     },
   );
 

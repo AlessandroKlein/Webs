@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { startRegistration } from '@simplewebauthn/browser';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
@@ -9,31 +10,82 @@ import { QrCode } from '../../components/ui/QrCode';
 import { Spinner } from '../../components/ui/Spinner';
 
 interface MeResponse {
-  user: { id: string; email: string; displayName: string | null } | null;
+  user: { id: string; email: string; displayName: string | null; username: string | null } | null;
   permissions: string[];
   twoFactorEnabled: boolean;
 }
 
 export function AccountPage() {
   const qc = useQueryClient();
+  const logout = useAuthStore((s) => s.logout);
   const { data, isLoading } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.get<MeResponse>('/api/v1/auth/me'),
   });
+  const { data: blocksData } = useQuery({
+    queryKey: ['blocks'],
+    queryFn: () => api.get<{ installed: Array<{ blockId: string; enabled: boolean }> }>('/api/v1/blocks'),
+  });
+
+  const updateProfile = useMutation({
+    mutationFn: (body: { displayName?: string | null; username?: string | null }) => api.patch('/api/v1/auth/me', body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+  });
+  const deleteAccount = useMutation({
+    mutationFn: () => api.del('/api/v1/auth/me'),
+    onSuccess: async () => {
+      await logout();
+      window.location.href = '/';
+    },
+  });
+
+  const twilioInstalled = blocksData?.installed?.some((b) => b.blockId === 'twilio' && b.enabled);
 
   if (isLoading) return <Spinner />;
+
+  const onProfile = (e: FormEvent) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget as HTMLFormElement);
+    const displayName = (fd.get('displayName') as string) || null;
+    const username = (fd.get('username') as string) || null;
+    updateProfile.mutate({ displayName, username });
+  };
+
   return (
     <div className="stack">
       <h1>Mi cuenta</h1>
+
       <Card>
+        <h3>Perfil</h3>
         <p>
           <strong>{data?.user?.email}</strong>
           {data?.user?.displayName ? ` — ${data.user.displayName}` : ''}
         </p>
+        <form className="row" onSubmit={onProfile} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} />
+          <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
+          <Button type="submit" disabled={updateProfile.isPending}>Guardar perfil</Button>
+        </form>
       </Card>
+
       <TwoFactorCard enabled={data?.twoFactorEnabled ?? false} onChanged={() => qc.invalidateQueries({ queryKey: ['me'] })} />
-      <SmsTwoFactorCard />
+      {twilioInstalled && <SmsTwoFactorCard />}
       <PasskeysCard />
+
+      <Card>
+        <h3>Zona de peligro</h3>
+        <p className="muted">Eliminar tu cuenta es irreversible.</p>
+        <Button
+          variant="ghost"
+          style={{ color: 'var(--ws-danger)' }}
+          disabled={deleteAccount.isPending}
+          onClick={() => {
+            if (window.confirm('¿Eliminar tu cuenta? Esta acción es irreversible.')) deleteAccount.mutate();
+          }}
+        >
+          Eliminar cuenta
+        </Button>
+      </Card>
     </div>
   );
 }

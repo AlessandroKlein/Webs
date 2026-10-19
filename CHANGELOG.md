@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.9.0] - 2026-10-19
+
+### Añadido
+
+- **Mi cuenta**: edición de perfil (`PATCH /auth/me`: nombre, username, locale,
+  avatar), **eliminar cuenta** (`DELETE /auth/me` con cascade) y **2FA por SMS
+  solo visible si el bloque `twilio` está instalado y habilitado**.
+
 ## [1.8.0] - 2026-10-19
 
 ### Añadido
