@@ -12,6 +12,9 @@ interface Metrics {
   media: number;
   blocks: number;
   activeSessions: number;
+  payments: number;
+  roles: number;
+  pages: number;
   email: { campaigns: number; automations: number; sent: number; opens: number; clicks: number };
 }
 
@@ -65,6 +68,9 @@ export function DashboardPage() {
               <Stat label="Medios" value={data.media} />
               <Stat label="Bloques instalados" value={data.blocks} />
               <Stat label="Sesiones activas" value={data.activeSessions} />
+              <Stat label="Pagos" value={data.payments} />
+              <Stat label="Roles" value={data.roles} />
+              <Stat label="Páginas" value={data.pages} />
               <Stat label="Campañas" value={data.email.campaigns} />
               <Stat label="Correos enviados" value={data.email.sent} />
               <Stat label="Aperturas" value={data.email.opens} />

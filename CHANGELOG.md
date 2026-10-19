@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.28.0] - 2026-10-19
+
+### Corregido
+
+- **Dashboard**: "Sesiones activas" ahora cuenta solo sesiones vigentes (no
+  revocadas ni expiradas), y se agregaron métricas de pagos, roles y páginas.
+
 ## [1.27.0] - 2026-10-19
 
 ### Añadido

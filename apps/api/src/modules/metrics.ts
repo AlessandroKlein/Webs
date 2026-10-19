@@ -5,14 +5,18 @@ export default async function metricsRoutes(fastify: FastifyInstance): Promise<v
     '/admin/metrics',
     { schema: { tags: ['metrics'] }, preHandler: [fastify.authenticate] },
     async () => {
-      const [users, content, media, campaigns, automations, blocks, sessions] = await Promise.all([
+      const now = new Date();
+      const [users, content, media, campaigns, automations, blocks, sessions, payments, roles, pages] = await Promise.all([
         fastify.prisma.user.count(),
         fastify.prisma.content.count(),
         fastify.prisma.media.count(),
         fastify.prisma.emailCampaign.count(),
         fastify.prisma.emailAutomation.count(),
         fastify.prisma.blockInstallation.count(),
-        fastify.prisma.session.count(),
+        fastify.prisma.session.count({ where: { revokedAt: null, expiresAt: { gt: now } } }),
+        fastify.prisma.payment.count(),
+        fastify.prisma.role.count(),
+        fastify.prisma.page.count(),
       ]);
 
       const messages = await fastify.prisma.emailMessage.aggregate({
@@ -27,6 +31,9 @@ export default async function metricsRoutes(fastify: FastifyInstance): Promise<v
         media,
         blocks,
         activeSessions: sessions,
+        payments,
+        roles,
+        pages,
         email: {
           campaigns,
           automations,
