@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 interface TranslationRow {
   id: string;
@@ -35,6 +36,7 @@ export function TranslationsPage() {
   const [form, setForm] = useState<TranslationForm>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<TranslationRow | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['translations', filters],
@@ -219,9 +221,7 @@ export function TranslationsPage() {
                     </Button>
                     <Button
                       variant="ghost"
-                      onClick={() => {
-                        if (window.confirm(`¿Eliminar la traducción "${tr.key}"?`)) remove.mutate(tr.id);
-                      }}
+                      onClick={() => setConfirmDelete(tr)}
                     >
                       Eliminar
                     </Button>
@@ -233,6 +233,17 @@ export function TranslationsPage() {
         </table>
         {items.length === 0 && <p className="muted">No hay traducciones.</p>}
       </Card>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Eliminar traducción"
+        confirmLabel="Eliminar"
+        danger
+        onConfirm={() => { if (confirmDelete) remove.mutate(confirmDelete.id); setConfirmDelete(null); }}
+        onCancel={() => setConfirmDelete(null)}
+      >
+        ¿Eliminar la traducción <strong>{confirmDelete?.key}</strong> ({confirmDelete?.locale})?
+      </ConfirmDialog>
     </div>
   );
 }

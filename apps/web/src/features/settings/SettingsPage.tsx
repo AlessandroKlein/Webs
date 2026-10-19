@@ -7,6 +7,7 @@ import { SchemaForm } from '../../components/ui/SchemaForm';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
+import { PromptDialog } from '../../components/ui/PromptDialog';
 
 interface SettingsSection {
   key: string;
@@ -81,10 +82,9 @@ function SettingsSectionCard({
   const [value, setValue] = useState<Record<string, unknown>>(section.value);
   const [saved, setSaved] = useState(false);
   const [smtpMsg, setSmtpMsg] = useState<string | null>(null);
+  const [smtpTo, setSmtpTo] = useState<string | null>(null);
 
-  const testSmtp = async () => {
-    const to = window.prompt('Enviar correo de prueba a:', value.from as string ?? '');
-    if (!to) return;
+  const testSmtp = async (to: string) => {
     try {
       const r = await api.post<{ ok: boolean; message: string }>('/api/v1/settings/test-smtp', { to });
       setSmtpMsg(r.message);
@@ -99,7 +99,7 @@ function SettingsSectionCard({
       <SchemaForm schema={section.schema} value={value} onChange={setValue} />
       <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
         {section.key === 'smtp' && (
-          <Button variant="secondary" onClick={() => void testSmtp()}>Test SMTP</Button>
+          <Button variant="secondary" onClick={() => setSmtpTo(value.from as string ?? '')}>Test SMTP</Button>
         )}
         {smtpMsg && <span className="muted" style={{ marginRight: 'auto' }}>{smtpMsg}</span>}
         {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>Guardado ✓</span>}
@@ -114,6 +114,15 @@ function SettingsSectionCard({
           {t('common.save')}
         </Button>
       </div>
+      <PromptDialog
+        open={smtpTo !== null}
+        title="Test SMTP"
+        label="Enviar correo de prueba a:"
+        defaultValue={smtpTo ?? ''}
+        confirmLabel="Enviar"
+        onConfirm={(to) => { setSmtpTo(null); if (to) void testSmtp(to); }}
+        onCancel={() => setSmtpTo(null)}
+      />
     </Card>
   );
 }

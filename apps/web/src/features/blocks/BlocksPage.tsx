@@ -85,13 +85,16 @@ export function BlocksPage() {
   const [chosen, setChosen] = useState<Record<string, string[]>>({});
   const [jsonInput, setJsonInput] = useState('');
   const [tab, setTab] = useState<'installed' | 'catalog' | 'import'>('installed');
+  const [importError, setImportError] = useState<string | null>(null);
 
   const importJson = () => {
     try {
       const list = JSON.parse(jsonInput) as Array<{ id: string; url?: string; source?: 'git' | 'npm' }>;
+      if (!Array.isArray(list)) throw new Error('array');
+      setImportError(null);
       list.forEach((b) => install.mutate({ id: b.id, url: b.url, source: b.source }));
     } catch {
-      window.alert('JSON inválido. Esperado: [{ "id": "...", "url": "...", "source": "git" }]');
+      setImportError('JSON inválido. Esperado: [{"id":"...","url":"...","source":"git"}]');
     }
   };
   const uninstall = useMutation({
@@ -194,6 +197,7 @@ export function BlocksPage() {
         <p className="muted">Pegá una lista de bloques para instalar (formato JSON):</p>
         <textarea className="input" rows={3} value={jsonInput} onChange={(e) => setJsonInput(e.target.value)} placeholder={'[{"id":"mi-bloque","url":"https://github.com/usuario/repo.git","source":"git"}]'} />
         <Button variant="secondary" onClick={importJson}>Importar</Button>
+        {importError && <p style={{ color: 'var(--ws-danger)' }}>{importError}</p>}
       </Card>
       )}
 

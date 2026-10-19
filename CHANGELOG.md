@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.30.0] - 2026-10-19
+
+### Añadido
+
+- **Modales**: `PromptDialog` (entrada de texto) y `ConfirmDialog` para eliminar
+  traducción; reemplazados `window.prompt`/`window.alert` en Test SMTP e import
+  JSON (ahora con mensaje inline).
+
 ## [1.29.0] - 2026-10-19
 
 ### Añadido
