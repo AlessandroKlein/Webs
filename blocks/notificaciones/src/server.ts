@@ -20,6 +20,9 @@ export default defineBlock(manifest, {
   register: async (fastify, config) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const providers = (Array.isArray(config.providers) ? config.providers : []) as Provider[];
+    const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
+      req: unknown,
+    ) => Promise<void>;
 
     fastify.get('/inbox', async (request: unknown) => {
       const { query } = request as { query?: { userId?: string } };
@@ -27,7 +30,7 @@ export default defineBlock(manifest, {
       return db.notification.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100 });
     });
 
-    fastify.post('/send', async (request: unknown) => {
+    fastify.post('/send', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as { body?: { userId?: string; title?: string; body?: string } };
       const title = (body?.title ?? '').trim();
       const message = body?.body ?? '';
@@ -45,7 +48,7 @@ export default defineBlock(manifest, {
       return { ok: true, notification };
     });
 
-    fastify.patch('/read/:id', async (request: unknown) => {
+    fastify.patch('/read/:id', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params } = request as { params?: { id?: string } };
       if (!params?.id) return { ok: false, error: 'id es requerido' };
       const notification = await db.notification.update({
@@ -55,14 +58,14 @@ export default defineBlock(manifest, {
       return { ok: true, notification };
     });
 
-    fastify.patch('/read-all', async (request: unknown) => {
+    fastify.patch('/read-all', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as { body?: { userId?: string } };
       const where = body?.userId ? { userId: body.userId, read: false } : { read: false };
       const result = await db.notification.updateMany({ where, data: { read: true } });
       return { ok: true, updated: result.count ?? 0 };
     });
 
-    fastify.delete('/:id', async (request: unknown) => {
+    fastify.delete('/:id', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params } = request as { params?: { id?: string } };
       if (!params?.id) return { ok: false, error: 'id es requerido' };
       await db.notification.delete({ where: { id: params.id } });

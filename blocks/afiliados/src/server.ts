@@ -19,12 +19,17 @@ export default defineBlock(manifest, {
   register: async (fastify, config) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const defaultCommission = Number((config as Record<string, unknown>).defaultCommission ?? 0) || 0;
+    const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
+      req: unknown,
+    ) => Promise<void>;
 
     const genCode = () => crypto.randomUUID().slice(0, 8);
 
-    fastify.get('/affiliates', async () => db.affiliate.findMany({ orderBy: { createdAt: 'desc' } }));
+    fastify.get('/affiliates', { preHandler: [authenticate] }, async () =>
+      db.affiliate.findMany({ orderBy: { createdAt: 'desc' } }),
+    );
 
-    fastify.post('/affiliates', async (request: unknown) => {
+    fastify.post('/affiliates', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as { body?: { userId?: string; code?: string; commission?: number } };
       const userId = body?.userId ?? '';
       if (!userId) return { ok: false, error: 'userId es requerido' };
@@ -34,7 +39,7 @@ export default defineBlock(manifest, {
       return { ok: true, affiliate };
     });
 
-    fastify.patch('/affiliates/:id', async (request: unknown) => {
+    fastify.patch('/affiliates/:id', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params, body } = request as {
         params?: { id?: string };
         body?: { code?: string; commission?: number; userId?: string };
@@ -48,16 +53,18 @@ export default defineBlock(manifest, {
       return { ok: true, affiliate };
     });
 
-    fastify.delete('/affiliates/:id', async (request: unknown) => {
+    fastify.delete('/affiliates/:id', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params } = request as { params?: { id?: string } };
       if (!params?.id) return { ok: false, error: 'id es requerido' };
       await db.affiliate.delete({ where: { id: params.id } });
       return { ok: true };
     });
 
-    fastify.get('/referrals', async () => db.referral.findMany({ orderBy: { createdAt: 'desc' } }));
+    fastify.get('/referrals', { preHandler: [authenticate] }, async () =>
+      db.referral.findMany({ orderBy: { createdAt: 'desc' } }),
+    );
 
-    fastify.post('/referrals', async (request: unknown) => {
+    fastify.post('/referrals', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as { body?: { affiliateId?: string; email?: string } };
       const affiliateId = body?.affiliateId ?? '';
       if (!affiliateId) return { ok: false, error: 'affiliateId es requerido' };
@@ -67,7 +74,7 @@ export default defineBlock(manifest, {
       return { ok: true, referral };
     });
 
-    fastify.patch('/referrals/:id', async (request: unknown) => {
+    fastify.patch('/referrals/:id', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params, body } = request as { params?: { id?: string }; body?: { status?: string } };
       if (!params?.id) return { ok: false, error: 'id es requerido' };
       const referral = await db.referral.update({

@@ -28,6 +28,9 @@ export default defineBlock(manifest, {
     const ollamaUrl = String(config.ollamaUrl ?? 'http://localhost:11434');
     const room = String(config.room ?? 'general');
     const systemPrompt = String(config.systemPrompt ?? DEFAULT_SYSTEM);
+    const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
+      req: unknown,
+    ) => Promise<void>;
 
     fastify.get('/config', async () => ({
       provider,
@@ -35,7 +38,7 @@ export default defineBlock(manifest, {
       available: AVAILABLE,
     }));
 
-    fastify.post('/chat', async (request: unknown) => {
+    fastify.post('/chat', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as {
         body?: { message?: string; history?: ChatMessageInput[] };
       };
