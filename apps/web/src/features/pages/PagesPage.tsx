@@ -15,11 +15,17 @@ interface Page {
   isHome: boolean;
 }
 
+type Size = 'full' | 'half' | 'third';
+
 export function PagesPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['pages'],
     queryFn: () => api.get<Page[]>('/api/v1/pages'),
+  });
+  const { data: blocksData } = useQuery({
+    queryKey: ['blocks'],
+    queryFn: () => api.get<{ installed: Array<{ blockId: string; name: string }> }>('/api/v1/blocks'),
   });
 
   const create = useMutation({
@@ -36,24 +42,25 @@ export function PagesPage() {
   const [title, setTitle] = useState('');
   const [redirectUrl, setRedirectUrl] = useState('');
   const [isHome, setIsHome] = useState(false);
-  const [layout, setLayout] = useState('[]');
+  const [sections, setSections] = useState<Array<{ blocks: string[]; size: Size }>>([]);
+
+  const installedBlocks = (blocksData?.installed ?? []).map((b) => b.blockId);
+
+  const addSection = () => setSections((s) => [...s, { blocks: [], size: 'full' }]);
+  const removeSection = (i: number) => setSections((s) => s.filter((_, idx) => idx !== i));
+  const setSize = (i: number, size: Size) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, size } : sec)));
+  const addBlock = (i: number, blockId: string) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: [...sec.blocks, blockId] } : sec)));
+  const removeBlock = (i: number, blockId: string) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: sec.blocks.filter((b) => b !== blockId) } : sec)));
 
   if (isLoading) return <Spinner />;
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    let parsed: unknown = [];
-    try {
-      parsed = JSON.parse(layout || '[]');
-    } catch {
-      window.alert('El layout debe ser JSON válido');
-      return;
-    }
-    create.mutate({ slug, title, layout: parsed, redirectUrl: redirectUrl || null, isHome });
+    create.mutate({ slug, title, layout: sections, redirectUrl: redirectUrl || null, isHome });
     setSlug('');
     setTitle('');
     setRedirectUrl('');
-    setLayout('[]');
+    setSections([]);
     setIsHome(false);
   };
 
@@ -72,10 +79,53 @@ export function PagesPage() {
           </label>
           <Button type="submit" disabled={create.isPending}>Crear</Button>
         </form>
-        <TextField label="Layout (JSON: secciones con bloques y tamaño)" value={layout} onChange={(e) => setLayout(e.target.value)} />
-        <p className="muted">
-          Ejemplo de layout (JSON): una sección "full" con blog y una "half" con ecommerce y social.
-        </p>
+
+        <hr style={{ border: 'none', borderTop: '1px solid var(--ws-border)', margin: 'var(--ws-space-4) 0' }} />
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0 }}>Secciones (bloques + tamaño)</h3>
+          <Button variant="secondary" onClick={addSection}>+ Agregar sección</Button>
+        </div>
+
+        <div className="stack" style={{ marginTop: 'var(--ws-space-3)' }}>
+          {sections.map((sec, i) => (
+            <div key={i} style={{ border: '1px solid var(--ws-border)', borderRadius: 'var(--ws-radius-md)', padding: 'var(--ws-space-3)' }}>
+              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 'var(--ws-space-2)' }}>
+                <strong>Sección {i + 1}</strong>
+                <Button variant="ghost" onClick={() => removeSection(i)}>✕</Button>
+              </div>
+              <div className="row" style={{ marginBottom: 'var(--ws-space-2)' }}>
+                {(['full', 'half', 'third'] as Size[]).map((size) => (
+                  <Button key={size} variant={sec.size === size ? 'secondary' : 'ghost'} onClick={() => setSize(i, size)}>
+                    {size === 'full' ? 'Completo' : size === 'half' ? 'Mitad' : 'Tercio'}
+                  </Button>
+                ))}
+              </div>
+              <div className="row" style={{ flexWrap: 'wrap' }}>
+                <select
+                  className="input"
+                  style={{ width: 'auto' }}
+                  value=""
+                  onChange={(e) => {
+                    if (e.target.value) addBlock(i, e.target.value);
+                    e.target.value = '';
+                  }}
+                >
+                  <option value="">+ Agregar bloque…</option>
+                  {installedBlocks.map((b) => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+                {sec.blocks.map((b) => (
+                  <span key={b} className="badge" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                    {b}
+                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }} onClick={() => removeBlock(i, b)}>✕</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+          {sections.length === 0 && <p className="muted">Sin secciones. Agregá una o dejá la redirección para una página externa.</p>}
+        </div>
       </Card>
 
       <Card>
@@ -91,7 +141,7 @@ export function PagesPage() {
               <Button variant="ghost" onClick={() => remove.mutate(p.id)}>Eliminar</Button>
             </div>
           ))}
-          {(data ?? []).length === 0 && <p className="muted">No hay páginas. Creá la primera (marcala como inicio).</p>}
+          {(data ?? []).length === 0 && <p className="muted">No hay páginas.</p>}
         </div>
       </Card>
     </div>

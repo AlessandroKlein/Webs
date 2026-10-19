@@ -41,6 +41,8 @@ export function AccountPage() {
 
   const twilioInstalled = blocksData?.installed?.some((b) => b.blockId === 'twilio' && b.enabled);
 
+  const [tab, setTab] = useState<'profile' | 'security' | 'danger'>('profile');
+
   if (isLoading) return <Spinner />;
 
   const onProfile = (e: FormEvent) => {
@@ -55,37 +57,53 @@ export function AccountPage() {
     <div className="stack">
       <h1>Mi cuenta</h1>
 
-      <Card>
-        <h3>Perfil</h3>
-        <p>
-          <strong>{data?.user?.email}</strong>
-          {data?.user?.displayName ? ` — ${data.user.displayName}` : ''}
-        </p>
-        <form className="row" onSubmit={onProfile} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} />
-          <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
-          <Button type="submit" disabled={updateProfile.isPending}>Guardar perfil</Button>
-        </form>
-      </Card>
+      <div className="row" style={{ gap: 4, borderBottom: '1px solid var(--ws-border)', paddingBottom: 'var(--ws-space-2)' }}>
+        {(['profile', 'security', 'danger'] as const).map((t) => (
+          <Button key={t} variant={tab === t ? 'secondary' : 'ghost'} onClick={() => setTab(t)}>
+            {t === 'profile' ? 'Perfil' : t === 'security' ? 'Seguridad' : 'Zona de peligro'}
+          </Button>
+        ))}
+      </div>
 
-      <TwoFactorCard enabled={data?.twoFactorEnabled ?? false} onChanged={() => qc.invalidateQueries({ queryKey: ['me'] })} />
-      {twilioInstalled && <SmsTwoFactorCard />}
-      <PasskeysCard />
+      {tab === 'profile' && (
+        <Card>
+          <h3>Perfil</h3>
+          <p>
+            <strong>{data?.user?.email}</strong>
+            {data?.user?.displayName ? ` — ${data.user.displayName}` : ''}
+          </p>
+          <form className="row" onSubmit={onProfile} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} />
+            <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
+            <Button type="submit" disabled={updateProfile.isPending}>Guardar perfil</Button>
+          </form>
+        </Card>
+      )}
 
-      <Card>
-        <h3>Zona de peligro</h3>
-        <p className="muted">Eliminar tu cuenta es irreversible.</p>
-        <Button
-          variant="ghost"
-          style={{ color: 'var(--ws-danger)' }}
-          disabled={deleteAccount.isPending}
-          onClick={() => {
-            if (window.confirm('¿Eliminar tu cuenta? Esta acción es irreversible.')) deleteAccount.mutate();
-          }}
-        >
-          Eliminar cuenta
-        </Button>
-      </Card>
+      {tab === 'security' && (
+        <>
+          <TwoFactorCard enabled={data?.twoFactorEnabled ?? false} onChanged={() => qc.invalidateQueries({ queryKey: ['me'] })} />
+          {twilioInstalled && <SmsTwoFactorCard />}
+          <PasskeysCard />
+        </>
+      )}
+
+      {tab === 'danger' && (
+        <Card>
+          <h3>Zona de peligro</h3>
+          <p className="muted">Eliminar tu cuenta es irreversible.</p>
+          <Button
+            variant="ghost"
+            style={{ color: 'var(--ws-danger)' }}
+            disabled={deleteAccount.isPending}
+            onClick={() => {
+              if (window.confirm('¿Eliminar tu cuenta? Esta acción es irreversible.')) deleteAccount.mutate();
+            }}
+          >
+            Eliminar cuenta
+          </Button>
+        </Card>
+      )}
     </div>
   );
 }

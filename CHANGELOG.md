@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.15.0] - 2026-10-19
+
+### Añadido
+
+- **Editor visual de páginas**: agregar/eliminar secciones, elegir bloque por
+  menú y tamaño (completo/mitad/tercio) con botones (reemplaza el JSON).
+- **"Mi cuenta" en pestañas**: Perfil / Seguridad / Zona de peligro.
+- **Subida de imágenes para logos**: widget `image` en branding (subir → URL)
+  vía `POST /media/upload`.
+
 ## [1.14.0] - 2026-10-19
 
 ### Añadido

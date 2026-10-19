@@ -1,4 +1,5 @@
 import type { JsonSchema } from '@webs/plugin-sdk';
+import { uploadFile } from '../../lib/api';
 
 /**
  * Formulario auto-generado a partir de un JSON Schema. Es la pieza que permite
@@ -134,6 +135,41 @@ function SchemaField({
           value={String(value ?? '')}
           onChange={(e) => onChange(e.target.value)}
         />
+      </div>
+    );
+  }
+
+  if (widget === 'image') {
+    return (
+      <div className="field">
+        <label>{label}</label>
+        <div className="row" style={{ alignItems: 'center' }}>
+          <input
+            className="input"
+            type="url"
+            value={value === undefined ? '' : String(value)}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="https://…"
+          />
+          <label className="btn secondary" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            Subir imagen
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                try {
+                  const r = await uploadFile<{ url: string }>('/api/v1/media/upload', file);
+                  onChange(r.url);
+                } catch {
+                  /* noop */
+                }
+              }}
+            />
+          </label>
+        </div>
       </div>
     );
   }

@@ -94,6 +94,24 @@ export const api = {
   },
 };
 
+/** Sube un archivo (multipart) autenticado. */
+export async function uploadFile<T>(path: string, file: File): Promise<T> {
+  const token = getAccessToken();
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    body: fd,
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: ApiErrorBody } | null;
+    throw new ApiClientError(res.status, body?.error, body ?? undefined);
+  }
+  return (await res.json()) as T;
+}
+
 /** Descarga un archivo (CSV, etc.) autenticado, disparando la descarga del navegador. */
 export async function downloadFile(path: string, filename: string): Promise<void> {
   const token = getAccessToken();
