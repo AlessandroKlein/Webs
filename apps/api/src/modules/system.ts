@@ -8,7 +8,7 @@ import { readState } from '../lib/state';
 const execFileAsync = promisify(execFile);
 
 /** Versión del sistema (se actualiza en cada release). */
-export const SYSTEM_VERSION = '1.15.0';
+export const SYSTEM_VERSION = '1.16.0';
 
 export default async function systemRoutes(fastify: FastifyInstance): Promise<void> {
   // Versión actual + última disponible (desde GitHub Releases).
