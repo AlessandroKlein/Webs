@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -32,6 +33,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export function InvoicesPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState('');
 
@@ -79,11 +81,11 @@ export function InvoicesPage() {
 
   return (
     <div className="stack">
-      <h1>Facturación</h1>
-      <p className="muted">Emisión y gestión de facturas. El número se genera automáticamente al crearla.</p>
+      <h1>{t('admin.invoices.title')}</h1>
+      <p className="muted">{t('admin.invoices.subtitle')}</p>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Nueva factura</h3>
+        <h3 style={{ marginTop: 0 }}>{t('admin.invoices.newInvoice')}</h3>
         <form
           className="stack"
           onSubmit={(e) => {
@@ -92,15 +94,15 @@ export function InvoicesPage() {
           }}
         >
           <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <TextField label="Cliente (opcional)" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
-            <TextField label="CUIT / Tax ID (opcional)" value={customerTaxId} onChange={(e) => setCustomerTaxId(e.target.value)} />
-            <TextField label="Condición IVA (opcional)" value={vatCondition} onChange={(e) => setVatCondition(e.target.value)} placeholder="responsable inscripto…" />
-            <TextField label="Monto" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-            <TextField label="Tipo (opcional)" value={type} onChange={(e) => setType(e.target.value)} placeholder="A, B, C…" />
+            <TextField label={t('admin.invoices.customerOptional')} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
+            <TextField label={t('admin.invoices.taxIdOptional')} value={customerTaxId} onChange={(e) => setCustomerTaxId(e.target.value)} />
+            <TextField label={t('admin.invoices.vatConditionOptional')} value={vatCondition} onChange={(e) => setVatCondition(e.target.value)} placeholder="responsable inscripto…" />
+            <TextField label={t('admin.invoices.amount')} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required />
+            <TextField label={t('admin.invoices.typeOptional')} value={type} onChange={(e) => setType(e.target.value)} placeholder="A, B, C…" />
           </div>
           <div className="row">
             <Button type="submit" disabled={createInvoice.isPending || !amount}>
-              Crear factura
+              {t('admin.invoices.createInvoice')}
             </Button>
             {createInvoice.error && <span style={{ color: 'var(--ws-danger)' }}>{createInvoice.error.message}</span>}
           </div>
@@ -109,8 +111,8 @@ export function InvoicesPage() {
 
       <Card>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <h3 style={{ margin: 0 }}>Facturas</h3>
-          <TextField label="Filtrar por estado" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} placeholder="issued, paid…" />
+          <h3 style={{ margin: 0 }}>{t('admin.invoices.invoices')}</h3>
+          <TextField label={t('admin.invoices.filterByStatus')} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} placeholder="issued, paid…" />
         </div>
         {isLoading ? (
           <Spinner />
@@ -118,12 +120,12 @@ export function InvoicesPage() {
           <table className="table">
             <thead>
               <tr>
-                <th>Número</th>
-                <th>Cliente</th>
-                <th>Monto</th>
-                <th>Estado</th>
-                <th>CAE</th>
-                <th>Acciones</th>
+                <th>{t('admin.invoices.number')}</th>
+                <th>{t('admin.invoices.customer')}</th>
+                <th>{t('admin.invoices.amount')}</th>
+                <th>{t('common.status')}</th>
+                <th>{t('admin.invoices.cae')}</th>
+                <th>{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -149,11 +151,11 @@ export function InvoicesPage() {
                       <div className="row">
                         {!inv.cae && (
                           <Button variant="secondary" onClick={() => issueInvoice.mutate(inv.id)} disabled={issueInvoice.isPending}>
-                            Emitir
+                            {t('admin.invoices.issue')}
                           </Button>
                         )}
                         <Button variant="ghost" onClick={() => setConfirmInvoice(inv)}>
-                          Eliminar
+                          {t('common.delete')}
                         </Button>
                       </div>
                     </td>
@@ -163,7 +165,7 @@ export function InvoicesPage() {
               {(invoices ?? []).length === 0 && (
                 <tr>
                   <td colSpan={6}>
-                    <p className="muted">No hay facturas.</p>
+                    <p className="muted">{t('admin.invoices.noInvoices')}</p>
                   </td>
                 </tr>
               )}
@@ -174,8 +176,8 @@ export function InvoicesPage() {
 
       <ConfirmDialog
         open={confirmInvoice !== null}
-        title="Eliminar factura"
-        confirmLabel="Eliminar"
+        title={t('admin.invoices.deleteInvoice')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => {
           if (confirmInvoice) deleteInvoice.mutate(confirmInvoice.id);
@@ -183,7 +185,7 @@ export function InvoicesPage() {
         }}
         onCancel={() => setConfirmInvoice(null)}
       >
-        ¿Eliminar la factura <strong>{confirmInvoice?.number}</strong>?
+        {t('admin.invoices.deleteConfirm', { number: confirmInvoice?.number })}
       </ConfirmDialog>
     </div>
   );

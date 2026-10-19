@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1220" />
+    <meta name="description" content="Asistencia por QR del gimnasio — plataforma Webs" />
+    <title>Webs Asistencia</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <h1>Webs Asistencia</h1>
+            <p class="subtitle">Registro por QR del gimnasio</p>
+          </div>
+        </div>
+        <button id="install-hint" class="badge" hidden>Instalar</button>
+      </header>
+
+      <section class="card">
+        <label for="token">Access token</label>
+        <div class="field-row">
+          <input id="token" type="password" autocomplete="off" placeholder="Pegá tu access token" />
+          <button id="toggle-token" type="button" class="ghost">Ver</button>
+        </div>
+        <p class="hint">Se envía como <code>Authorization: Bearer</code>.</p>
+      </section>
+
+      <section class="card">
+        <label for="qrcode">Código QR</label>
+        <div class="field-row">
+          <input id="qrcode" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Escaneá o pegá el qrcode" />
+          <button id="scan" type="button" class="primary">Registrar</button>
+        </div>
+        <p class="hint">Un lector «keyboard wedge» escribe el código y envía Enter: se registra solo.</p>
+      </section>
+
+      <section id="result" class="card" hidden></section>
+
+      <section class="card">
+        <details>
+          <summary>Ajustes</summary>
+          <label for="api-base">Servidor API (opcional)</label>
+          <input id="api-base" type="url" placeholder="https://api.tudominio.com (vacío = mismo origen)" />
+          <p class="hint">Dejalo vacío si la PWA se sirve en el mismo dominio que la API.</p>
+        </details>
+      </section>
+
+      <section class="card">
+        <div class="log-head">
+          <h2>Últimos registros</h2>
+          <button id="clear-log" type="button" class="ghost">Borrar</button>
+        </div>
+        <ul id="log" class="log"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

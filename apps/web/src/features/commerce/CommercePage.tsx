@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -82,6 +83,7 @@ function OrderStatusEditor({
   onUpdate: (id: string, status: string) => void;
 }) {
   const [status, setStatus] = useState(order.status);
+  const { t } = useTranslation();
   return (
     <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
       <select className="input" style={{ width: 'auto' }} value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -92,13 +94,14 @@ function OrderStatusEditor({
         ))}
       </select>
       <Button variant="secondary" onClick={() => onUpdate(order.id, status)} disabled={busy || status === order.status}>
-        Guardar
+        {t('common.save')}
       </Button>
     </div>
   );
 }
 
 export function CommercePage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [view, setView] = useState<View>('products');
 
@@ -264,13 +267,13 @@ export function CommercePage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Comercio</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.commerce.title')}</h1>
         {(
           [
-            ['products', 'Productos'],
-            ['orders', 'Pedidos'],
-            ['shipments', 'Envíos'],
-            ['coupons', 'Cupones'],
+            ['products', t('admin.commerce.products')],
+            ['orders', t('admin.commerce.orders')],
+            ['shipments', t('admin.commerce.shipments')],
+            ['coupons', t('admin.commerce.coupons')],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -288,20 +291,20 @@ export function CommercePage() {
         {view === 'products' && (
           <Card>
             <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <h3 style={{ margin: 0 }}>Productos</h3>
+              <h3 style={{ margin: 0 }}>{t('admin.commerce.products')}</h3>
               <Button
                 onClick={() => {
                   resetProduct();
                   setProductFormOpen(true);
                 }}
               >
-                Nuevo producto
+                {t('admin.commerce.newProduct')}
               </Button>
             </div>
 
             {productFormOpen && (
               <Card style={{ marginTop: 'var(--ws-space-4)' }}>
-                <h3>{editingProduct ? 'Editar producto' : 'Nuevo producto'}</h3>
+                <h3>{editingProduct ? t('admin.commerce.editProduct') : t('admin.commerce.newProduct')}</h3>
                 <form
                   className="stack"
                   onSubmit={(e) => {
@@ -310,17 +313,17 @@ export function CommercePage() {
                   }}
                 >
                   <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <TextField label="Título" value={pTitle} onChange={(e) => setPTitle(e.target.value)} required />
-                    <TextField label="Precio" type="number" value={pPrice} onChange={(e) => setPPrice(e.target.value)} required />
-                    <TextField label="Stock" type="number" value={pStock} onChange={(e) => setPStock(e.target.value)} required />
-                    <TextField label="Categoría (opcional)" value={pCategory} onChange={(e) => setPCategory(e.target.value)} />
+                    <TextField label={t('admin.commerce.titleCol')} value={pTitle} onChange={(e) => setPTitle(e.target.value)} required />
+                    <TextField label={t('admin.commerce.price')} type="number" value={pPrice} onChange={(e) => setPPrice(e.target.value)} required />
+                    <TextField label={t('admin.commerce.stock')} type="number" value={pStock} onChange={(e) => setPStock(e.target.value)} required />
+                    <TextField label={t('admin.commerce.categoryOptional')} value={pCategory} onChange={(e) => setPCategory(e.target.value)} />
                   </div>
                   <div className="row">
                     <Button type="submit" disabled={saveProduct.isPending || !pTitle || !pPrice || !pStock}>
-                      {editingProduct ? 'Guardar' : 'Crear'}
+                      {editingProduct ? t('common.save') : t('common.create')}
                     </Button>
                     <Button variant="ghost" onClick={resetProduct}>
-                      Cancelar
+                      {t('common.cancel')}
                     </Button>
                     {saveProduct.error && <span style={{ color: 'var(--ws-danger)' }}>{saveProduct.error.message}</span>}
                   </div>
@@ -334,11 +337,11 @@ export function CommercePage() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Título</th>
-                    <th>Precio</th>
-                    <th>Stock</th>
-                    <th>Categoría</th>
-                    <th>Acciones</th>
+                    <th>{t('admin.commerce.titleCol')}</th>
+                    <th>{t('admin.commerce.price')}</th>
+                    <th>{t('admin.commerce.stock')}</th>
+                    <th>{t('admin.commerce.category')}</th>
+                    <th>{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -351,10 +354,10 @@ export function CommercePage() {
                       <td>
                         <div className="row">
                           <Button variant="secondary" onClick={() => startEditProduct(p)}>
-                            Editar
+                            {t('common.edit')}
                           </Button>
                           <Button variant="ghost" onClick={() => setConfirmProduct(p)}>
-                            Eliminar
+                            {t('common.delete')}
                           </Button>
                         </div>
                       </td>
@@ -363,7 +366,7 @@ export function CommercePage() {
                   {(products ?? []).length === 0 && (
                     <tr>
                       <td colSpan={5}>
-                        <p className="muted">No hay productos.</p>
+                        <p className="muted">{t('admin.commerce.noProducts')}</p>
                       </td>
                     </tr>
                   )}
@@ -375,19 +378,19 @@ export function CommercePage() {
 
         {view === 'orders' && (
           <Card>
-            <h3 style={{ marginTop: 0 }}>Pedidos</h3>
+            <h3 style={{ marginTop: 0 }}>{t('admin.commerce.orders')}</h3>
             {ordersLoading ? (
               <Spinner />
             ) : (
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Pedido</th>
-                    <th>Estado</th>
-                    <th>Total</th>
-                    <th>Ítems</th>
-                    <th>Creado</th>
-                    <th>Cambiar estado</th>
+                    <th>{t('admin.commerce.order')}</th>
+                    <th>{t('common.status')}</th>
+                    <th>{t('admin.commerce.total')}</th>
+                    <th>{t('admin.commerce.items')}</th>
+                    <th>{t('admin.commerce.created')}</th>
+                    <th>{t('admin.commerce.changeStatus')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -414,7 +417,7 @@ export function CommercePage() {
                   {(orders ?? []).length === 0 && (
                     <tr>
                       <td colSpan={6}>
-                        <p className="muted">No hay pedidos.</p>
+                        <p className="muted">{t('admin.commerce.noOrders')}</p>
                       </td>
                     </tr>
                   )}
@@ -427,7 +430,7 @@ export function CommercePage() {
         {view === 'shipments' && (
           <>
             <Card>
-              <h3 style={{ marginTop: 0 }}>Nuevo envío</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.commerce.newShipment')}</h3>
               <form
                 className="stack"
                 onSubmit={(e) => {
@@ -436,13 +439,13 @@ export function CommercePage() {
                 }}
               >
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <TextField label="ID del pedido" value={shipOrderId} onChange={(e) => setShipOrderId(e.target.value)} required />
-                  <TextField label="Proveedor" value={shipProvider} onChange={(e) => setShipProvider(e.target.value)} required />
-                  <TextField label="Nº de tracking (opcional)" value={shipTracking} onChange={(e) => setShipTracking(e.target.value)} />
+                  <TextField label={t('admin.commerce.orderId')} value={shipOrderId} onChange={(e) => setShipOrderId(e.target.value)} required />
+                  <TextField label={t('admin.commerce.provider')} value={shipProvider} onChange={(e) => setShipProvider(e.target.value)} required />
+                  <TextField label={t('admin.commerce.trackingOptional')} value={shipTracking} onChange={(e) => setShipTracking(e.target.value)} />
                 </div>
                 <div className="row">
                   <Button type="submit" disabled={createShipment.isPending || !shipOrderId || !shipProvider}>
-                    Crear envío
+                    {t('admin.commerce.createShipment')}
                   </Button>
                   {createShipment.error && <span style={{ color: 'var(--ws-danger)' }}>{createShipment.error.message}</span>}
                 </div>
@@ -450,19 +453,19 @@ export function CommercePage() {
             </Card>
 
             <Card>
-              <h3 style={{ marginTop: 0 }}>Envíos</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.commerce.shipments')}</h3>
               {shipmentsLoading ? (
                 <Spinner />
               ) : (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Pedido</th>
-                      <th>Proveedor</th>
-                      <th>Tracking</th>
-                      <th>Estado</th>
-                      <th>Costo</th>
-                      <th>Acciones</th>
+                      <th>{t('admin.commerce.order')}</th>
+                      <th>{t('admin.commerce.provider')}</th>
+                      <th>{t('admin.commerce.tracking')}</th>
+                      <th>{t('common.status')}</th>
+                      <th>{t('admin.commerce.cost')}</th>
+                      <th>{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -486,7 +489,7 @@ export function CommercePage() {
                               setTrackingStatus(s.status);
                             }}
                           >
-                            Tracking
+                            {t('admin.commerce.tracking')}
                           </Button>
                         </td>
                       </tr>
@@ -494,7 +497,7 @@ export function CommercePage() {
                     {(shipments ?? []).length === 0 && (
                       <tr>
                         <td colSpan={6}>
-                          <p className="muted">No hay envíos.</p>
+                          <p className="muted">{t('admin.commerce.noShipments')}</p>
                         </td>
                       </tr>
                     )}
@@ -505,7 +508,7 @@ export function CommercePage() {
 
             {trackingShipment && (
               <Card>
-                <h3 style={{ marginTop: 0 }}>Actualizar tracking · pedido {trackingShipment.orderId}</h3>
+                <h3 style={{ marginTop: 0 }}>{t('admin.commerce.updateTracking', { orderId: trackingShipment.orderId })}</h3>
                 <form
                   className="stack"
                   onSubmit={(e) => {
@@ -520,15 +523,15 @@ export function CommercePage() {
                   }}
                 >
                   <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <TextField label="Nº de tracking" value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} />
-                    <TextField label="Estado" value={trackingStatus} onChange={(e) => setTrackingStatus(e.target.value)} />
+                    <TextField label={t('admin.commerce.trackingNumber')} value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} />
+                    <TextField label={t('common.status')} value={trackingStatus} onChange={(e) => setTrackingStatus(e.target.value)} />
                   </div>
                   <div className="row">
                     <Button type="submit" disabled={updateShipment.isPending}>
-                      Guardar
+                      {t('common.save')}
                     </Button>
                     <Button variant="ghost" onClick={() => setTrackingShipment(null)}>
-                      Cancelar
+                      {t('common.cancel')}
                     </Button>
                     {updateShipment.error && <span style={{ color: 'var(--ws-danger)' }}>{updateShipment.error.message}</span>}
                   </div>
@@ -541,7 +544,7 @@ export function CommercePage() {
         {view === 'coupons' && (
           <>
             <Card>
-              <h3 style={{ marginTop: 0 }}>Nuevo cupón</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.commerce.newCoupon')}</h3>
               <form
                 className="stack"
                 onSubmit={(e) => {
@@ -550,13 +553,13 @@ export function CommercePage() {
                 }}
               >
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <TextField label="Código" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} required />
-                  <TextField label="Descuento (%)" type="number" value={couponDiscount} onChange={(e) => setCouponDiscount(e.target.value)} required />
-                  <TextField label="Válido hasta (opcional)" type="datetime-local" value={couponValidUntil} onChange={(e) => setCouponValidUntil(e.target.value)} />
+                  <TextField label={t('admin.commerce.code')} value={couponCode} onChange={(e) => setCouponCode(e.target.value)} required />
+                  <TextField label={t('admin.commerce.discount')} type="number" value={couponDiscount} onChange={(e) => setCouponDiscount(e.target.value)} required />
+                  <TextField label={t('admin.commerce.validUntilOptional')} type="datetime-local" value={couponValidUntil} onChange={(e) => setCouponValidUntil(e.target.value)} />
                 </div>
                 <div className="row">
                   <Button type="submit" disabled={createCoupon.isPending || !couponCode || !couponDiscount}>
-                    Crear cupón
+                    {t('admin.commerce.createCoupon')}
                   </Button>
                   {createCoupon.error && <span style={{ color: 'var(--ws-danger)' }}>{createCoupon.error.message}</span>}
                 </div>
@@ -564,18 +567,18 @@ export function CommercePage() {
             </Card>
 
             <Card>
-              <h3 style={{ marginTop: 0 }}>Cupones</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.commerce.coupons')}</h3>
               {couponsLoading ? (
                 <Spinner />
               ) : (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Código</th>
-                      <th>Descuento</th>
-                      <th>Válido hasta</th>
-                      <th>Activo</th>
-                      <th>Acciones</th>
+                      <th>{t('admin.commerce.code')}</th>
+                      <th>{t('admin.commerce.discount')}</th>
+                      <th>{t('admin.commerce.validUntil')}</th>
+                      <th>{t('common.active')}</th>
+                      <th>{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -594,12 +597,12 @@ export function CommercePage() {
                               color: c.active ? '#fff' : 'var(--ws-text-muted)',
                             }}
                           >
-                            {c.active ? 'Activo' : 'Inactivo'}
+                            {c.active ? t('common.active') : t('common.inactive')}
                           </span>
                         </td>
                         <td>
                           <Button variant="ghost" onClick={() => setConfirmCoupon(c)}>
-                            Eliminar
+                            {t('common.delete')}
                           </Button>
                         </td>
                       </tr>
@@ -607,7 +610,7 @@ export function CommercePage() {
                     {(coupons ?? []).length === 0 && (
                       <tr>
                         <td colSpan={5}>
-                          <p className="muted">No hay cupones.</p>
+                          <p className="muted">{t('admin.commerce.noCoupons')}</p>
                         </td>
                       </tr>
                     )}
@@ -617,7 +620,7 @@ export function CommercePage() {
             </Card>
 
             <Card>
-              <h3 style={{ marginTop: 0 }}>Cotizador de envío</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.commerce.shippingQuote')}</h3>
               <form
                 className="stack"
                 onSubmit={(e) => {
@@ -626,18 +629,18 @@ export function CommercePage() {
                 }}
               >
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <TextField label="Proveedor" value={quoteProvider} onChange={(e) => setQuoteProvider(e.target.value)} required />
-                  <TextField label="Peso" type="number" value={quoteWeight} onChange={(e) => setQuoteWeight(e.target.value)} required />
+                  <TextField label={t('admin.commerce.provider')} value={quoteProvider} onChange={(e) => setQuoteProvider(e.target.value)} required />
+                  <TextField label={t('admin.commerce.weight')} type="number" value={quoteWeight} onChange={(e) => setQuoteWeight(e.target.value)} required />
                 </div>
                 <div className="row">
                   <Button type="submit" disabled={quote.isPending || !quoteProvider || !quoteWeight}>
-                    Cotizar
+                    {t('admin.commerce.quote')}
                   </Button>
                 </div>
                 {quoteError && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{quoteError}</p>}
                 {quoteResult && (
                   <p style={{ margin: 0 }}>
-                    <strong>{quoteResult.provider}</strong>: ${quoteResult.cost} · {quoteResult.days} días
+                    <strong>{quoteResult.provider}</strong>: ${quoteResult.cost} · {quoteResult.days} {t('admin.commerce.days')}
                   </p>
                 )}
               </form>
@@ -647,8 +650,8 @@ export function CommercePage() {
 
         <ConfirmDialog
           open={confirmProduct !== null}
-          title="Eliminar producto"
-          confirmLabel="Eliminar"
+          title={t('admin.commerce.deleteProduct')}
+          confirmLabel={t('common.delete')}
           danger
           onConfirm={() => {
             if (confirmProduct) deleteProduct.mutate(confirmProduct.id);
@@ -656,13 +659,13 @@ export function CommercePage() {
           }}
           onCancel={() => setConfirmProduct(null)}
         >
-          ¿Eliminar el producto <strong>{confirmProduct?.title}</strong>?
+          {t('admin.commerce.deleteProductConfirm', { title: confirmProduct?.title })}
         </ConfirmDialog>
 
         <ConfirmDialog
           open={confirmCoupon !== null}
-          title="Eliminar cupón"
-          confirmLabel="Eliminar"
+          title={t('admin.commerce.deleteCoupon')}
+          confirmLabel={t('common.delete')}
           danger
           onConfirm={() => {
             if (confirmCoupon) deleteCoupon.mutate(confirmCoupon.id);
@@ -670,7 +673,7 @@ export function CommercePage() {
           }}
           onCancel={() => setConfirmCoupon(null)}
         >
-          ¿Eliminar el cupón <strong>{confirmCoupon?.code}</strong>?
+          {t('admin.commerce.deleteCouponConfirm', { code: confirmCoupon?.code })}
         </ConfirmDialog>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -39,6 +40,7 @@ interface HistoryEntry {
 type View = 'messages' | 'assistant';
 
 export function ChatPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [view, setView] = useState<View>('messages');
 
@@ -113,20 +115,20 @@ export function ChatPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Chat</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.chat.title')}</h1>
         <button
           className={`nav-link ${view === 'messages' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('messages')}
         >
-          Mensajes
+          {t('admin.chat.messages')}
         </button>
         <button
           className={`nav-link ${view === 'assistant' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('assistant')}
         >
-          Asistente IA
+          {t('admin.chat.assistant')}
         </button>
       </aside>
 
@@ -135,14 +137,14 @@ export function ChatPage() {
           <>
             <Card>
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-                <h3 style={{ margin: 0 }}>Mensajes</h3>
+                <h3 style={{ margin: 0 }}>{t('admin.chat.messages')}</h3>
                 <div className="field">
-                  <label>Sala</label>
+                  <label>{t('admin.chat.room')}</label>
                   <select className="input" style={{ width: 'auto' }} value={effectiveRoom} onChange={(e) => setRoom(e.target.value)}>
                     {roomList.map((r) => (
                       <option key={r} value={r}>{r}</option>
                     ))}
-                    {roomList.length === 0 && <option value="">Sin salas</option>}
+                    {roomList.length === 0 && <option value="">{t('admin.chat.noRooms')}</option>}
                   </select>
                 </div>
               </div>
@@ -158,24 +160,24 @@ export function ChatPage() {
                     {m.to && <span className="muted">→ {m.to}</span>}
                   </div>
                 ))}
-                {messageList.length === 0 && <p className="muted">No hay mensajes en esta sala.</p>}
+                {messageList.length === 0 && <p className="muted">{t('admin.chat.noMessages')}</p>}
               </div>
             </Card>
 
             <Card>
-              <h3 style={{ marginTop: 0 }}>Enviar mensaje</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.chat.sendMessage')}</h3>
               <form className="stack" onSubmit={onSendMessage}>
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-                  <TextField label="De" value={from} onChange={(e) => setFrom(e.target.value)} required />
-                  <TextField label="Para" value={to} onChange={(e) => setTo(e.target.value)} placeholder="Opcional" />
+                  <TextField label={t('admin.chat.from')} value={from} onChange={(e) => setFrom(e.target.value)} required />
+                  <TextField label={t('admin.chat.to')} value={to} onChange={(e) => setTo(e.target.value)} placeholder={t('admin.blog.optional')} />
                 </div>
                 <div className="field">
-                  <label>Mensaje</label>
+                  <label>{t('admin.chat.message')}</label>
                   <textarea className="input" rows={3} value={body} onChange={(e) => setBody(e.target.value)} required />
                 </div>
                 <div className="row">
-                  <Button type="submit" disabled={send.isPending}>Enviar</Button>
-                  {send.isSuccess && <span style={{ color: 'var(--ws-success)' }}>Enviado ✓</span>}
+                  <Button type="submit" disabled={send.isPending}>{t('admin.chat.send')}</Button>
+                  {send.isSuccess && <span style={{ color: 'var(--ws-success)' }}>{t('admin.chat.sent')}</span>}
                 </div>
                 {send.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{send.error.message}</p>}
               </form>
@@ -185,10 +187,10 @@ export function ChatPage() {
 
         {view === 'assistant' && (
           <Card>
-            <h3 style={{ marginTop: 0 }}>Asistente IA</h3>
+            <h3 style={{ marginTop: 0 }}>{t('admin.chat.assistant')}</h3>
             {config && (
               <p className="muted" style={{ marginTop: 0 }}>
-                Proveedor: <code>{config.provider}</code> · Modelo: <code>{config.model}</code>
+                {t('admin.chat.provider')}: <code>{config.provider}</code> · {t('admin.chat.model')}: <code>{config.model}</code>
               </p>
             )}
 
@@ -206,22 +208,22 @@ export function ChatPage() {
                   }}
                 >
                   <span className="muted" style={{ display: 'block', fontSize: '0.8em' }}>
-                    {h.role === 'user' ? 'Tú' : 'Asistente'}
+                    {h.role === 'user' ? t('admin.chat.you') : t('admin.chat.assistantRole')}
                   </span>
                   <span style={{ whiteSpace: 'pre-wrap' }}>{h.content}</span>
                 </div>
               ))}
-              {history.length === 0 && <p className="muted">Escribí un mensaje para empezar la conversación.</p>}
+              {history.length === 0 && <p className="muted">{t('admin.chat.startConversation')}</p>}
             </div>
 
             <form className="stack" onSubmit={onSendAssistant}>
               <div className="field">
-                <label>Mensaje</label>
-                <textarea className="input" rows={3} value={iaMessage} onChange={(e) => setIaMessage(e.target.value)} placeholder="Preguntale algo al asistente…" />
+                <label>{t('admin.chat.message')}</label>
+                <textarea className="input" rows={3} value={iaMessage} onChange={(e) => setIaMessage(e.target.value)} placeholder={t('admin.chat.askAssistant')} />
               </div>
               <div className="row">
                 <Button type="submit" disabled={chat.isPending || !iaMessage.trim()}>
-                  {chat.isPending ? 'Pensando…' : 'Enviar'}
+                  {chat.isPending ? t('admin.chat.thinking') : t('admin.chat.send')}
                 </Button>
               </div>
               {chat.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{chat.error.message}</p>}

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -76,10 +77,10 @@ function statusColor(status: string): string {
   return 'var(--ws-text-muted)';
 }
 
-const yesNo = (v: boolean) => (v ? 'Sí' : 'No');
 const formatDate = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString('es') : '—');
 
 export function OrganizationsPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [view, setView] = useState<View>('organizations');
 
@@ -117,11 +118,11 @@ export function OrganizationsPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Organizaciones</h1>
-        <button className={`nav-link ${view === 'organizations' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('organizations')}>Organizaciones</button>
-        <button className={`nav-link ${view === 'plans' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('plans')}>Planes</button>
-        <button className={`nav-link ${view === 'memberships' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('memberships')}>Membresías</button>
-        <button className={`nav-link ${view === 'attendance' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('attendance')}>Asistencia</button>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.organizations.title')}</h1>
+        <button className={`nav-link ${view === 'organizations' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('organizations')}>{t('admin.organizations.organizations')}</button>
+        <button className={`nav-link ${view === 'plans' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('plans')}>{t('admin.organizations.plans')}</button>
+        <button className={`nav-link ${view === 'memberships' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('memberships')}>{t('admin.organizations.memberships')}</button>
+        <button className={`nav-link ${view === 'attendance' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('attendance')}>{t('admin.organizations.attendance')}</button>
       </aside>
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
@@ -139,6 +140,7 @@ export function OrganizationsPage() {
 }
 
 function OrganizationsView({ organizations }: { organizations: Organization[] }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Organization | null>(null);
@@ -219,30 +221,30 @@ function OrganizationsView({ organizations }: { organizations: Organization[] })
     <>
       <Card>
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>Organizaciones</h3>
-          <Button onClick={startCreate}>Nueva organización</Button>
+          <h3 style={{ margin: 0 }}>{t('admin.organizations.organizations')}</h3>
+          <Button onClick={startCreate}>{t('admin.organizations.newOrganization')}</Button>
         </div>
 
         {formOpen && (
           <Card style={{ marginTop: 'var(--ws-space-4)' }}>
-            <h3>{editing ? 'Editar organización' : 'Nueva organización'}</h3>
+            <h3>{editing ? t('admin.organizations.editOrganization') : t('admin.organizations.newOrganization')}</h3>
             <form className="stack" onSubmit={onSubmit}>
               <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} required />
-                <TextField label="Slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="mi-org" />
-                <TextField label="Plan" value={plan} onChange={(e) => setPlan(e.target.value)} placeholder="Opcional" />
-                <TextField label="Logo URL" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://…" />
+                <TextField label={t('common.name')} value={name} onChange={(e) => setName(e.target.value)} required />
+                <TextField label={t('admin.organizations.slug')} value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="mi-org" />
+                <TextField label={t('admin.organizations.plan')} value={plan} onChange={(e) => setPlan(e.target.value)} placeholder={t('admin.blog.optional')} />
+                <TextField label={t('admin.organizations.logoUrl')} value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} placeholder="https://…" />
                 <label className="row" style={{ gap: 6 }}>
-                  <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Activa
+                  <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> {t('admin.organizations.activeF')}
                 </label>
                 <label className="row" style={{ gap: 6 }}>
-                  <input type="checkbox" checked={shareInventory} onChange={(e) => setShareInventory(e.target.checked)} /> Compartir inventario
+                  <input type="checkbox" checked={shareInventory} onChange={(e) => setShareInventory(e.target.checked)} /> {t('admin.organizations.shareInventory')}
                 </label>
               </div>
               <div className="row">
-                <Button type="submit" disabled={busy}>{editing ? 'Guardar' : 'Crear'}</Button>
-                <Button variant="ghost" onClick={reset}>Cancelar</Button>
-                {(create.isSuccess || update.isSuccess) && <span style={{ color: 'var(--ws-success)' }}>Guardado ✓</span>}
+                <Button type="submit" disabled={busy}>{editing ? t('common.save') : t('common.create')}</Button>
+                <Button variant="ghost" onClick={reset}>{t('common.cancel')}</Button>
+                {(create.isSuccess || update.isSuccess) && <span style={{ color: 'var(--ws-success)' }}>{t('common.saved')}</span>}
               </div>
               {create.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{create.error.message}</p>}
               {update.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{update.error.message}</p>}
@@ -253,13 +255,13 @@ function OrganizationsView({ organizations }: { organizations: Organization[] })
         <table className="table">
           <thead>
             <tr>
-              <th>Nombre</th>
-              <th>Slug</th>
-              <th>Plan</th>
-              <th>Compartir inventario</th>
-              <th>Activa</th>
-              <th>Miembros</th>
-              <th>Acciones</th>
+              <th>{t('common.name')}</th>
+              <th>{t('admin.organizations.slug')}</th>
+              <th>{t('admin.organizations.plan')}</th>
+              <th>{t('admin.organizations.shareInventory')}</th>
+              <th>{t('admin.organizations.activeF')}</th>
+              <th>{t('admin.organizations.members')}</th>
+              <th>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -268,19 +270,19 @@ function OrganizationsView({ organizations }: { organizations: Organization[] })
                 <td>{o.name}</td>
                 <td><code>{o.slug}</code></td>
                 <td>{o.plan ?? '—'}</td>
-                <td>{yesNo(o.shareInventory)}</td>
-                <td>{yesNo(o.active)}</td>
+                <td>{o.shareInventory ? t('common.yes') : t('common.no')}</td>
+                <td>{o.active ? t('common.yes') : t('common.no')}</td>
                 <td>{o.memberCount}</td>
                 <td>
                   <div className="row">
-                    <Button variant="secondary" onClick={() => startEdit(o)}>Editar</Button>
-                    <Button variant="ghost" onClick={() => setConfirmDelete(o)}>Eliminar</Button>
+                    <Button variant="secondary" onClick={() => startEdit(o)}>{t('common.edit')}</Button>
+                    <Button variant="ghost" onClick={() => setConfirmDelete(o)}>{t('common.delete')}</Button>
                   </div>
                 </td>
               </tr>
             ))}
             {organizations.length === 0 && (
-              <tr><td colSpan={7}><p className="muted">No hay organizaciones.</p></td></tr>
+              <tr><td colSpan={7}><p className="muted">{t('admin.organizations.noOrganizations')}</p></td></tr>
             )}
           </tbody>
         </table>
@@ -288,19 +290,20 @@ function OrganizationsView({ organizations }: { organizations: Organization[] })
 
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="Eliminar organización"
-        confirmLabel="Eliminar"
+        title={t('admin.organizations.deleteOrganization')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => { if (confirmDelete) remove.mutate(confirmDelete.id); setConfirmDelete(null); }}
         onCancel={() => setConfirmDelete(null)}
       >
-        ¿Eliminar la organización <strong>{confirmDelete?.name}</strong>? Esta acción es irreversible.
+        {t('admin.organizations.deleteOrganizationConfirm', { name: confirmDelete?.name })}
       </ConfirmDialog>
     </>
   );
 }
 
 function PlansView({ plans }: { plans: Plan[] }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Plan | null>(null);
@@ -377,27 +380,27 @@ function PlansView({ plans }: { plans: Plan[] }) {
     <>
       <Card>
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>Planes</h3>
-          <Button onClick={startCreate}>Nuevo plan</Button>
+          <h3 style={{ margin: 0 }}>{t('admin.organizations.plans')}</h3>
+          <Button onClick={startCreate}>{t('admin.organizations.newPlan')}</Button>
         </div>
 
         {formOpen && (
           <Card style={{ marginTop: 'var(--ws-space-4)' }}>
-            <h3>{editing ? 'Editar plan' : 'Nuevo plan'}</h3>
+            <h3>{editing ? t('admin.organizations.editPlan') : t('admin.organizations.newPlan')}</h3>
             <form className="stack" onSubmit={onSubmit}>
               <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} required />
-                <TextField label="Precio" type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
-                <TextField label="Duración (días)" type="number" value={durationDays} onChange={(e) => setDurationDays(e.target.value)} required />
-                <TextField label="Características (separadas por coma)" value={features} onChange={(e) => setFeatures(e.target.value)} />
+                <TextField label={t('common.name')} value={name} onChange={(e) => setName(e.target.value)} required />
+                <TextField label={t('admin.organizations.price')} type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
+                <TextField label={t('admin.organizations.durationDays')} type="number" value={durationDays} onChange={(e) => setDurationDays(e.target.value)} required />
+                <TextField label={t('admin.organizations.features')} value={features} onChange={(e) => setFeatures(e.target.value)} />
                 <label className="row" style={{ gap: 6 }}>
-                  <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> Activo
+                  <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> {t('admin.organizations.activeM')}
                 </label>
               </div>
               <div className="row">
-                <Button type="submit" disabled={busy}>{editing ? 'Guardar' : 'Crear'}</Button>
-                <Button variant="ghost" onClick={reset}>Cancelar</Button>
-                {(create.isSuccess || update.isSuccess) && <span style={{ color: 'var(--ws-success)' }}>Guardado ✓</span>}
+                <Button type="submit" disabled={busy}>{editing ? t('common.save') : t('common.create')}</Button>
+                <Button variant="ghost" onClick={reset}>{t('common.cancel')}</Button>
+                {(create.isSuccess || update.isSuccess) && <span style={{ color: 'var(--ws-success)' }}>{t('common.saved')}</span>}
               </div>
               {create.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{create.error.message}</p>}
               {update.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{update.error.message}</p>}
@@ -408,11 +411,11 @@ function PlansView({ plans }: { plans: Plan[] }) {
         <table className="table">
           <thead>
             <tr>
-              <th>Nombre</th>
-              <th>Precio</th>
-              <th>Duración (días)</th>
-              <th>Activo</th>
-              <th>Acciones</th>
+              <th>{t('common.name')}</th>
+              <th>{t('admin.organizations.price')}</th>
+              <th>{t('admin.organizations.durationDays')}</th>
+              <th>{t('admin.organizations.activeM')}</th>
+              <th>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -421,17 +424,17 @@ function PlansView({ plans }: { plans: Plan[] }) {
                 <td>{p.name}</td>
                 <td>{p.price}</td>
                 <td>{p.durationDays}</td>
-                <td>{yesNo(p.active)}</td>
+                <td>{p.active ? t('common.yes') : t('common.no')}</td>
                 <td>
                   <div className="row">
-                    <Button variant="secondary" onClick={() => startEdit(p)}>Editar</Button>
-                    <Button variant="ghost" onClick={() => setConfirmDelete(p)}>Eliminar</Button>
+                    <Button variant="secondary" onClick={() => startEdit(p)}>{t('common.edit')}</Button>
+                    <Button variant="ghost" onClick={() => setConfirmDelete(p)}>{t('common.delete')}</Button>
                   </div>
                 </td>
               </tr>
             ))}
             {plans.length === 0 && (
-              <tr><td colSpan={5}><p className="muted">No hay planes.</p></td></tr>
+              <tr><td colSpan={5}><p className="muted">{t('admin.organizations.noPlans')}</p></td></tr>
             )}
           </tbody>
         </table>
@@ -439,13 +442,13 @@ function PlansView({ plans }: { plans: Plan[] }) {
 
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="Eliminar plan"
-        confirmLabel="Eliminar"
+        title={t('admin.organizations.deletePlan')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => { if (confirmDelete) remove.mutate(confirmDelete.id); setConfirmDelete(null); }}
         onCancel={() => setConfirmDelete(null)}
       >
-        ¿Eliminar el plan <strong>{confirmDelete?.name}</strong>? Esta acción es irreversible.
+        {t('admin.organizations.deletePlanConfirm', { name: confirmDelete?.name })}
       </ConfirmDialog>
     </>
   );
@@ -462,6 +465,7 @@ function MembershipsView({
   memberships: Membership[];
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [filterOrg, setFilterOrg] = useState('');
   const [formOpen, setFormOpen] = useState(false);
@@ -517,15 +521,15 @@ function MembershipsView({
     <>
       <Card>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <h3 style={{ margin: 0 }}>Membresías</h3>
-          <Button onClick={() => setFormOpen((v) => !v)}>Crear membresía</Button>
+          <h3 style={{ margin: 0 }}>{t('admin.organizations.memberships')}</h3>
+          <Button onClick={() => setFormOpen((v) => !v)}>{t('admin.organizations.createMembership')}</Button>
         </div>
 
         <div className="row" style={{ alignItems: 'flex-end', marginTop: 'var(--ws-space-3)' }}>
           <div className="field">
-            <label>Filtrar por organización</label>
+            <label>{t('admin.organizations.filterByOrganization')}</label>
             <select className="input" style={{ width: 'auto' }} value={filterOrg} onChange={(e) => setFilterOrg(e.target.value)}>
-              <option value="">Todas</option>
+              <option value="">{t('admin.organizations.all')}</option>
               {organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
           </div>
@@ -533,45 +537,45 @@ function MembershipsView({
 
         {formOpen && (
           <Card style={{ marginTop: 'var(--ws-space-4)' }}>
-            <h3>Crear membresía</h3>
+            <h3>{t('admin.organizations.createMembership')}</h3>
             <form className="stack" onSubmit={onSubmit}>
               <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 <div className="field">
-                  <label>Organización</label>
+                  <label>{t('admin.organizations.organization')}</label>
                   <select className="input" style={{ width: 'auto' }} value={organizationId} onChange={(e) => setOrganizationId(e.target.value)} required>
-                    <option value="">Seleccionar…</option>
+                    <option value="">{t('admin.organizations.select')}</option>
                     {organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
                   </select>
                 </div>
-                <TextField label="Usuario (userId)" value={userId} onChange={(e) => setUserId(e.target.value)} required />
+                <TextField label={t('admin.organizations.user')} value={userId} onChange={(e) => setUserId(e.target.value)} required />
                 <div className="field">
-                  <label>Plan</label>
+                  <label>{t('admin.organizations.plan')}</label>
                   <select className="input" style={{ width: 'auto' }} value={plan} onChange={(e) => setPlan(e.target.value)}>
-                    <option value="">Sin plan</option>
+                    <option value="">{t('admin.organizations.noPlan')}</option>
                     {plans.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
                   </select>
                 </div>
                 <div className="field">
-                  <label>Rol</label>
+                  <label>{t('common.role')}</label>
                   <select className="input" style={{ width: 'auto' }} value={role} onChange={(e) => setRole(e.target.value)}>
-                    <option value="member">Miembro</option>
-                    <option value="admin">Administrador</option>
-                    <option value="owner">Dueño</option>
+                    <option value="member">{t('admin.organizations.member')}</option>
+                    <option value="admin">{t('admin.organizations.administrator')}</option>
+                    <option value="owner">{t('admin.organizations.owner')}</option>
                   </select>
                 </div>
                 <div className="field">
-                  <label>Estado</label>
+                  <label>{t('common.status')}</label>
                   <select className="input" style={{ width: 'auto' }} value={status} onChange={(e) => setStatus(e.target.value)}>
-                    <option value="active">Activa</option>
-                    <option value="paused">Pausada</option>
-                    <option value="expired">Vencida</option>
+                    <option value="active">{t('admin.organizations.activeF')}</option>
+                    <option value="paused">{t('admin.organizations.paused')}</option>
+                    <option value="expired">{t('admin.organizations.expired')}</option>
                   </select>
                 </div>
-                <TextField label="Vencimiento (YYYY-MM-DD)" value={endDate} onChange={(e) => setEndDate(e.target.value)} placeholder="Opcional" />
+                <TextField label={t('admin.organizations.expiry')} value={endDate} onChange={(e) => setEndDate(e.target.value)} placeholder={t('admin.blog.optional')} />
               </div>
               <div className="row">
-                <Button type="submit" disabled={create.isPending}>Crear</Button>
-                <Button variant="ghost" onClick={() => setFormOpen(false)}>Cancelar</Button>
+                <Button type="submit" disabled={create.isPending}>{t('common.create')}</Button>
+                <Button variant="ghost" onClick={() => setFormOpen(false)}>{t('common.cancel')}</Button>
               </div>
               {create.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{create.error.message}</p>}
             </form>
@@ -584,12 +588,12 @@ function MembershipsView({
           <table className="table">
             <thead>
               <tr>
-                <th>Usuario</th>
-                <th>Organización</th>
-                <th>Plan</th>
-                <th>Estado</th>
-                <th>Vencimiento</th>
-                <th>Acciones</th>
+                <th>{t('common.user')}</th>
+                <th>{t('admin.organizations.organization')}</th>
+                <th>{t('admin.organizations.plan')}</th>
+                <th>{t('common.status')}</th>
+                <th>{t('admin.organizations.expiration')}</th>
+                <th>{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -605,14 +609,14 @@ function MembershipsView({
                   <td>
                     <div className="row">
                       <Button variant="secondary" onClick={() => setQrMembership(m)}>QR</Button>
-                      <Button variant="secondary" onClick={() => renew.mutate(m.id)} disabled={renew.isPending}>Renovar</Button>
-                      <Button variant="ghost" onClick={() => setConfirmDelete(m)}>Eliminar</Button>
+                      <Button variant="secondary" onClick={() => renew.mutate(m.id)} disabled={renew.isPending}>{t('admin.organizations.renew')}</Button>
+                      <Button variant="ghost" onClick={() => setConfirmDelete(m)}>{t('common.delete')}</Button>
                     </div>
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={6}><p className="muted">No hay membresías.</p></td></tr>
+                <tr><td colSpan={6}><p className="muted">{t('admin.organizations.noMemberships')}</p></td></tr>
               )}
             </tbody>
           </table>
@@ -629,7 +633,7 @@ function MembershipsView({
               <h3 style={{ marginTop: 0 }}>QR · {qrMembership.userName || qrMembership.userId}</h3>
               <QrCode value={qrMembership.qrcode} />
               <div className="row" style={{ justifyContent: 'center', marginTop: 'var(--ws-space-3)' }}>
-                <Button variant="ghost" onClick={() => setQrMembership(null)}>Cerrar</Button>
+                <Button variant="ghost" onClick={() => setQrMembership(null)}>{t('common.close')}</Button>
               </div>
             </Card>
           </div>
@@ -638,13 +642,13 @@ function MembershipsView({
 
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="Eliminar membresía"
-        confirmLabel="Eliminar"
+        title={t('admin.organizations.deleteMembership')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => { if (confirmDelete) remove.mutate(confirmDelete.id); setConfirmDelete(null); }}
         onCancel={() => setConfirmDelete(null)}
       >
-        ¿Eliminar la membresía de <strong>{confirmDelete?.userName ?? confirmDelete?.userId}</strong>? Esta acción es irreversible.
+        {t('admin.organizations.deleteMembershipConfirm', { name: confirmDelete?.userName ?? confirmDelete?.userId })}
       </ConfirmDialog>
     </>
   );
@@ -663,6 +667,7 @@ function AttendanceView({
   setStatsDays: (n: number) => void;
   loading: boolean;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [qrcode, setQrcode] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -694,21 +699,21 @@ function AttendanceView({
   return (
     <>
       <Card>
-        <h3>Registrar asistencia</h3>
+        <h3>{t('admin.organizations.registerAttendance')}</h3>
         <form className="row" onSubmit={onSubmit} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <TextField label="Código QR" value={qrcode} onChange={(e) => setQrcode(e.target.value)} placeholder="UUID del QR" style={{ flex: 1, minWidth: 240 }} />
-          <Button type="submit" disabled={scan.isPending}>Registrar</Button>
+          <TextField label={t('admin.organizations.qrCode')} value={qrcode} onChange={(e) => setQrcode(e.target.value)} placeholder="UUID del QR" style={{ flex: 1, minWidth: 240 }} />
+          <Button type="submit" disabled={scan.isPending}>{t('admin.organizations.register')}</Button>
         </form>
         {result?.ok && <p style={{ color: 'var(--ws-success)' }}>✓ {orgName} - {userName}</p>}
-        {result && !result.ok && <p style={{ color: 'var(--ws-danger)' }}>{result.error ?? 'No se pudo registrar la asistencia.'}</p>}
+        {result && !result.ok && <p style={{ color: 'var(--ws-danger)' }}>{result.error ?? t('admin.organizations.registerFailed')}</p>}
         {scan.error && <p style={{ color: 'var(--ws-danger)' }}>{scan.error.message}</p>}
       </Card>
 
       <Card>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <h3 style={{ margin: 0 }}>Resumen</h3>
+          <h3 style={{ margin: 0 }}>{t('admin.organizations.summary')}</h3>
           <div className="field">
-            <label>Últimos N días</label>
+            <label>{t('admin.organizations.lastDays')}</label>
             <select className="input" style={{ width: 'auto' }} value={statsDays} onChange={(e) => setStatsDays(Number(e.target.value))}>
               <option value={7}>7</option>
               <option value={30}>30</option>
@@ -717,21 +722,21 @@ function AttendanceView({
           </div>
         </div>
         <p style={{ fontSize: 'var(--ws-font-size-lg)', margin: 'var(--ws-space-2) 0 0' }}>
-          <strong>{stats?.total ?? 0}</strong> <span className="muted">asistencias en {statsDays} días</span>
+          <strong>{stats?.total ?? 0}</strong> <span className="muted">{t('admin.organizations.attendancesInDays', { days: statsDays })}</span>
         </p>
       </Card>
 
       <Card>
-        <h3>Últimos registros</h3>
+        <h3>{t('admin.organizations.latestRecords')}</h3>
         {loading ? (
           <Spinner />
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Fecha / hora</th>
-                <th>Usuario</th>
-                <th>Método</th>
+                <th>{t('admin.organizations.dateTime')}</th>
+                <th>{t('common.user')}</th>
+                <th>{t('admin.organizations.method')}</th>
               </tr>
             </thead>
             <tbody>
@@ -743,7 +748,7 @@ function AttendanceView({
                 </tr>
               ))}
               {attendance.length === 0 && (
-                <tr><td colSpan={3}><p className="muted">No hay registros de asistencia.</p></td></tr>
+                <tr><td colSpan={3}><p className="muted">{t('admin.organizations.noAttendance')}</p></td></tr>
               )}
             </tbody>
           </table>

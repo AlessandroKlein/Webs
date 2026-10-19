@@ -19,6 +19,10 @@
       "enabled": { "type": "boolean", "title": "Registrar visitas", "default": true },
       "provider": { "type": "string", "title": "Proveedor", "enum": ["internal", "google-analytics", "plausible", "matomo"], "default": "internal" },
       "trackingId": { "type": "string", "title": "ID de seguimiento", "x-ui": { "widget": "password", "secret": true } },
+      "apiSecret": { "type": "string", "title": "API Secret (GA4)", "x-ui": { "widget": "password", "secret": true } },
+      "domain": { "type": "string", "title": "Dominio (Plausible)" },
+      "serverUrl": { "type": "string", "title": "URL del servidor (Plausible/Matomo)" },
+      "siteId": { "type": "string", "title": "ID de sitio (Matomo)" },
       "trackPageViews": { "type": "boolean", "title": "Registrar vistas de página", "default": true },
       "anonymizeIp": { "type": "boolean", "title": "Anonimizar IP", "default": true }
     }

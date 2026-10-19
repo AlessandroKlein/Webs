@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -103,26 +104,27 @@ interface Routine {
 
 type View = 'resumen' | 'ingresos' | 'busqueda' | 'afiliados' | 'academia';
 
-const VIEWS: Array<{ id: View; label: string }> = [
-  { id: 'resumen', label: 'Resumen' },
-  { id: 'ingresos', label: 'Ingresos' },
-  { id: 'busqueda', label: 'Búsqueda' },
-  { id: 'afiliados', label: 'Afiliados' },
-  { id: 'academia', label: 'Academia' },
-];
-
 const REFERRAL_STATUSES = ['pending', 'accepted', 'converted', 'rejected'];
 
 const fmt = (n: number) => n.toLocaleString('es-AR');
 
 export function AnalyticsPage() {
+  const { t } = useTranslation();
   const [view, setView] = useState<View>('resumen');
+
+  const views: Array<{ id: View; label: string }> = [
+    { id: 'resumen', label: t('admin.analytics.summary') },
+    { id: 'ingresos', label: t('admin.analytics.revenue') },
+    { id: 'busqueda', label: t('admin.analytics.search') },
+    { id: 'afiliados', label: t('admin.analytics.affiliates') },
+    { id: 'academia', label: t('admin.analytics.academy') },
+  ];
 
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)' }}>Analítica</h1>
-        {VIEWS.map((v) => (
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)' }}>{t('admin.analytics.title')}</h1>
+        {views.map((v) => (
           <button
             key={v.id}
             className={`nav-link ${v.id === view ? 'active' : ''}`}
@@ -146,6 +148,7 @@ export function AnalyticsPage() {
 }
 
 function ResumenView() {
+  const { t } = useTranslation();
   const { data: summary, isLoading } = useQuery({
     queryKey: ['analytics-summary'],
     queryFn: () => api.get<AnalyticsSummary>(`${ANALYTICS}/summary`),
@@ -165,33 +168,33 @@ function ResumenView() {
 
   return (
     <div className="stack">
-      <h2>Resumen</h2>
+      <h2>{t('admin.analytics.summary')}</h2>
 
       <div className="grid-3">
         <Card>
-          <strong>Ingresos aprobados</strong>
+          <strong>{t('admin.analytics.approvedRevenue')}</strong>
           <p>{fmt(summary?.approvedRevenue ?? 0)}</p>
         </Card>
         <Card>
-          <strong>Pagos</strong>
+          <strong>{t('admin.analytics.payments')}</strong>
           <p>{fmt(summary?.totalPayments ?? 0)}</p>
         </Card>
         <Card>
-          <strong>Usuarios</strong>
+          <strong>{t('admin.analytics.users')}</strong>
           <p>{fmt(summary?.totalUsers ?? 0)}</p>
         </Card>
         <Card>
-          <strong>Órdenes</strong>
+          <strong>{t('admin.analytics.orders')}</strong>
           <p>{fmt(summary?.totalOrders ?? 0)}</p>
         </Card>
         <Card>
-          <strong>Ingresos (30 días)</strong>
+          <strong>{t('admin.analytics.revenue30')}</strong>
           <p>{fmt(revenueTotal)}</p>
         </Card>
       </div>
 
       <Card>
-        <h3>Productos más vendidos</h3>
+        <h3>{t('admin.analytics.topProducts')}</h3>
         <div className="stack">
           {(topProducts ?? []).map((p, i) => (
             <div
@@ -199,11 +202,11 @@ function ResumenView() {
               className="row"
               style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}
             >
-              <span>{p.name ?? p.title ?? `Producto ${i + 1}`}</span>
-              <span className="muted">{typeof p.sales === 'number' ? `${fmt(p.sales)} ventas` : ''}</span>
+              <span>{p.name ?? p.title ?? `${t('admin.analytics.product')} ${i + 1}`}</span>
+              <span className="muted">{typeof p.sales === 'number' ? `${fmt(p.sales)} ${t('admin.analytics.sales')}` : ''}</span>
             </div>
           ))}
-          {(topProducts ?? []).length === 0 && <p className="muted">Sin datos.</p>}
+          {(topProducts ?? []).length === 0 && <p className="muted">{t('admin.analytics.noData')}</p>}
         </div>
       </Card>
     </div>
@@ -211,6 +214,7 @@ function ResumenView() {
 }
 
 function IngresosView() {
+  const { t } = useTranslation();
   const [days, setDays] = useState('30');
   const { data, isLoading } = useQuery({
     queryKey: ['analytics-revenue', days],
@@ -224,14 +228,14 @@ function IngresosView() {
 
   return (
     <div className="stack">
-      <h2>Ingresos</h2>
+      <h2>{t('admin.analytics.revenue')}</h2>
 
       <div className="row" style={{ alignItems: 'flex-end' }}>
-        <TextField label="Días" type="number" value={days} onChange={(e) => setDays(e.target.value)} style={{ width: 140 }} />
+        <TextField label={t('admin.analytics.days')} type="number" value={days} onChange={(e) => setDays(e.target.value)} style={{ width: 140 }} />
       </div>
 
       <Card>
-        <strong>Total</strong>
+        <strong>{t('admin.analytics.total')}</strong>
         <p>{fmt(total)}</p>
       </Card>
 
@@ -240,8 +244,8 @@ function IngresosView() {
           <table className="table">
             <thead>
               <tr>
-                <th>Día</th>
-                <th>Valor</th>
+                <th>{t('admin.analytics.day')}</th>
+                <th>{t('admin.analytics.value')}</th>
               </tr>
             </thead>
             <tbody>
@@ -260,6 +264,7 @@ function IngresosView() {
 }
 
 function BusquedaView() {
+  const { t } = useTranslation();
   const [q, setQ] = useState('');
   const [query, setQuery] = useState('');
 
@@ -278,14 +283,14 @@ function BusquedaView() {
 
   return (
     <div className="stack">
-      <h2>Búsqueda</h2>
+      <h2>{t('admin.analytics.search')}</h2>
 
       <form className="row" onSubmit={onSubmit} style={{ alignItems: 'flex-end', gap: 'var(--ws-space-2)' }}>
         <div style={{ flex: 1 }}>
-          <TextField label="Consulta" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar…" />
+          <TextField label={t('admin.analytics.query')} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.analytics.searchPlaceholder')} />
         </div>
         <Button type="submit" disabled={!q.trim()}>
-          Buscar
+          {t('admin.analytics.searchBtn')}
         </Button>
       </form>
 
@@ -293,9 +298,9 @@ function BusquedaView() {
 
       {query.trim().length > 0 && !isFetching && (
         <div className="stack">
-          <ResultList title="Contenido" items={results.content} />
-          <ResultList title="Posts" items={results.posts} />
-          <ResultList title="Productos" items={results.products} />
+          <ResultList title={t('admin.analytics.content')} items={results.content} />
+          <ResultList title={t('admin.analytics.posts')} items={results.posts} />
+          <ResultList title={t('admin.analytics.products')} items={results.products} />
         </div>
       )}
     </div>
@@ -303,6 +308,7 @@ function BusquedaView() {
 }
 
 function ResultList({ title, items }: { title: string; items: SearchItem[] }) {
+  const { t } = useTranslation();
   return (
     <Card>
       <h3>{title}</h3>
@@ -313,16 +319,17 @@ function ResultList({ title, items }: { title: string; items: SearchItem[] }) {
             className="row"
             style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}
           >
-            <span>{it.title ?? it.name ?? `Resultado ${i + 1}`}</span>
+            <span>{it.title ?? it.name ?? `${t('admin.analytics.result')} ${i + 1}`}</span>
           </div>
         ))}
-        {items.length === 0 && <p className="muted">Sin resultados.</p>}
+        {items.length === 0 && <p className="muted">{t('common.noResults')}</p>}
       </div>
     </Card>
   );
 }
 
 function AfiliadosView() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const { data: affiliates, isLoading } = useQuery({
@@ -396,30 +403,30 @@ function AfiliadosView() {
 
   return (
     <div className="stack">
-      <h2>Afiliados</h2>
+      <h2>{t('admin.analytics.affiliates')}</h2>
 
       <Card>
-        <h3>Crear afiliado</h3>
+        <h3>{t('admin.analytics.createAffiliate')}</h3>
         <form className="row" onSubmit={submitAffiliate} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <TextField label="ID de usuario" value={userId} onChange={(e) => setUserId(e.target.value)} required />
-          <TextField label="Código (opcional)" value={code} onChange={(e) => setCode(e.target.value)} />
-          <TextField label="Comisión (opcional)" type="number" value={commission} onChange={(e) => setCommission(e.target.value)} />
+          <TextField label={t('admin.analytics.userId')} value={userId} onChange={(e) => setUserId(e.target.value)} required />
+          <TextField label={t('admin.analytics.codeOptional')} value={code} onChange={(e) => setCode(e.target.value)} />
+          <TextField label={t('admin.analytics.commissionOptional')} type="number" value={commission} onChange={(e) => setCommission(e.target.value)} />
           <Button type="submit" disabled={createAffiliate.isPending || !userId}>
-            Crear
+            {t('common.create')}
           </Button>
         </form>
       </Card>
 
       <Card>
-        <h3>Lista de afiliados</h3>
+        <h3>{t('admin.analytics.affiliateList')}</h3>
         <table className="table">
           <thead>
             <tr>
-              <th>Usuario</th>
-              <th>Código</th>
-              <th>Comisión</th>
-              <th>Creado</th>
-              <th>Acciones</th>
+              <th>{t('admin.analytics.user')}</th>
+              <th>{t('admin.analytics.code')}</th>
+              <th>{t('admin.analytics.commission')}</th>
+              <th>{t('admin.analytics.created')}</th>
+              <th>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -435,33 +442,33 @@ function AfiliadosView() {
                 <td>{new Date(a.createdAt).toLocaleDateString()}</td>
                 <td>
                   <Button variant="ghost" onClick={() => setConfirmDelete(a)}>
-                    Eliminar
+                    {t('common.delete')}
                   </Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {(affiliates ?? []).length === 0 && <p className="muted">Sin afiliados.</p>}
+        {(affiliates ?? []).length === 0 && <p className="muted">{t('admin.analytics.noAffiliates')}</p>}
       </Card>
 
       <Card>
-        <h3>Referidos</h3>
+        <h3>{t('admin.analytics.referrals')}</h3>
         <form className="row" onSubmit={submitReferral} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <TextField label="ID de afiliado" value={referralAffiliateId} onChange={(e) => setReferralAffiliateId(e.target.value)} required />
-          <TextField label="Email" type="email" value={referralEmail} onChange={(e) => setReferralEmail(e.target.value)} required />
+          <TextField label={t('admin.analytics.affiliateId')} value={referralAffiliateId} onChange={(e) => setReferralAffiliateId(e.target.value)} required />
+          <TextField label={t('common.email')} type="email" value={referralEmail} onChange={(e) => setReferralEmail(e.target.value)} required />
           <Button type="submit" disabled={createReferral.isPending || !referralAffiliateId || !referralEmail}>
-            Agregar
+            {t('common.add')}
           </Button>
         </form>
 
         <table className="table" style={{ marginTop: 'var(--ws-space-3)' }}>
           <thead>
             <tr>
-              <th>Email</th>
-              <th>Afiliado</th>
-              <th>Estado</th>
-              <th>Creado</th>
+              <th>{t('common.email')}</th>
+              <th>{t('admin.analytics.affiliate')}</th>
+              <th>{t('common.status')}</th>
+              <th>{t('admin.analytics.created')}</th>
             </tr>
           </thead>
           <tbody>
@@ -489,13 +496,13 @@ function AfiliadosView() {
             ))}
           </tbody>
         </table>
-        {(referrals ?? []).length === 0 && <p className="muted">Sin referidos.</p>}
+        {(referrals ?? []).length === 0 && <p className="muted">{t('admin.analytics.noReferrals')}</p>}
       </Card>
 
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="Eliminar afiliado"
-        confirmLabel="Eliminar"
+        title={t('admin.analytics.deleteAffiliate')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => {
           if (confirmDelete) removeAffiliate.mutate(confirmDelete.id);
@@ -503,13 +510,14 @@ function AfiliadosView() {
         }}
         onCancel={() => setConfirmDelete(null)}
       >
-        ¿Eliminar el afiliado <strong>{confirmDelete?.code}</strong>? Esta acción es irreversible.
+        {t('admin.analytics.deleteAffiliateConfirm', { code: confirmDelete?.code })}
       </ConfirmDialog>
     </div>
   );
 }
 
 function AcademiaView() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const { data: courses, isLoading } = useQuery({
@@ -645,25 +653,25 @@ function AcademiaView() {
 
   return (
     <div className="stack">
-      <h2>Academia</h2>
+      <h2>{t('admin.analytics.academy')}</h2>
 
       <Card>
-        <h3>{editingCourse ? 'Editar curso' : 'Crear curso'}</h3>
+        <h3>{editingCourse ? t('admin.analytics.editCourse') : t('admin.analytics.createCourse')}</h3>
         <form className="stack" onSubmit={submitCourse}>
-          <TextField label="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <TextField label={t('common.title')} value={title} onChange={(e) => setTitle(e.target.value)} required />
           <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <TextField label="Nivel" value={level} onChange={(e) => setLevel(e.target.value)} />
-            <TextField label="Descripción" value={description} onChange={(e) => setDescription(e.target.value)} />
+            <TextField label={t('admin.analytics.level')} value={level} onChange={(e) => setLevel(e.target.value)} />
+            <TextField label={t('admin.analytics.description')} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <TextField
-            label="Lecciones (JSON opcional)"
+            label={t('admin.analytics.lessonsJson')}
             value={lessonsRaw}
             onChange={(e) => setLessonsRaw(e.target.value)}
             placeholder='[{"title":"Introducción"}]'
           />
           <div className="row">
             <Button type="submit" disabled={createCourse.isPending || updateCourse.isPending || !title}>
-              {editingCourse ? 'Guardar' : 'Crear'}
+              {editingCourse ? t('common.save') : t('common.create')}
             </Button>
             {editingCourse && (
               <Button
@@ -673,7 +681,7 @@ function AcademiaView() {
                   resetCourseForm();
                 }}
               >
-                Cancelar
+                {t('common.cancel')}
               </Button>
             )}
           </div>
@@ -681,15 +689,15 @@ function AcademiaView() {
       </Card>
 
       <Card>
-        <h3>Cursos</h3>
+        <h3>{t('admin.analytics.courses')}</h3>
         <table className="table">
           <thead>
             <tr>
-              <th>Título</th>
-              <th>Nivel</th>
-              <th>Lecciones</th>
-              <th>Descripción</th>
-              <th>Acciones</th>
+              <th>{t('common.title')}</th>
+              <th>{t('admin.analytics.level')}</th>
+              <th>{t('admin.analytics.lessons')}</th>
+              <th>{t('admin.analytics.description')}</th>
+              <th>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -704,10 +712,10 @@ function AcademiaView() {
                 <td>
                   <div className="row">
                     <Button variant="secondary" onClick={() => startEdit(c)}>
-                      Editar
+                      {t('common.edit')}
                     </Button>
                     <Button variant="ghost" onClick={() => setConfirmCourse(c)}>
-                      Eliminar
+                      {t('common.delete')}
                     </Button>
                   </div>
                 </td>
@@ -715,31 +723,31 @@ function AcademiaView() {
             ))}
           </tbody>
         </table>
-        {(courses ?? []).length === 0 && <p className="muted">Sin cursos.</p>}
+        {(courses ?? []).length === 0 && <p className="muted">{t('admin.analytics.noCourses')}</p>}
       </Card>
 
       <Card>
-        <h3>Matricular estudiante</h3>
+        <h3>{t('admin.analytics.enrollStudent')}</h3>
         <form className="row" onSubmit={submitEnrollment} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <TextField label="ID de curso" value={enrollCourseId} onChange={(e) => setEnrollCourseId(e.target.value)} required />
-          <TextField label="Estudiante" value={enrollStudent} onChange={(e) => setEnrollStudent(e.target.value)} required />
+          <TextField label={t('admin.analytics.courseId')} value={enrollCourseId} onChange={(e) => setEnrollCourseId(e.target.value)} required />
+          <TextField label={t('admin.analytics.student')} value={enrollStudent} onChange={(e) => setEnrollStudent(e.target.value)} required />
           <Button type="submit" disabled={createEnrollment.isPending || !enrollCourseId || !enrollStudent}>
-            Matricular
+            {t('admin.analytics.enroll')}
           </Button>
         </form>
       </Card>
 
       <Card>
-        <h3>Matrículas</h3>
+        <h3>{t('admin.analytics.enrollments')}</h3>
         <table className="table">
           <thead>
             <tr>
-              <th>Estudiante</th>
-              <th>Curso</th>
-              <th>Progreso</th>
-              <th>Completado</th>
-              <th>Creado</th>
-              <th>Acciones</th>
+              <th>{t('admin.analytics.student')}</th>
+              <th>{t('admin.analytics.course')}</th>
+              <th>{t('admin.analytics.progress')}</th>
+              <th>{t('admin.analytics.completed')}</th>
+              <th>{t('admin.analytics.created')}</th>
+              <th>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -753,33 +761,33 @@ function AcademiaView() {
             ))}
           </tbody>
         </table>
-        {(enrollments ?? []).length === 0 && <p className="muted">Sin matrículas.</p>}
+        {(enrollments ?? []).length === 0 && <p className="muted">{t('admin.analytics.noEnrollments')}</p>}
       </Card>
 
       <Card>
-        <h3>Rutinas (entrenador → cliente)</h3>
+        <h3>{t('admin.analytics.routines')}</h3>
         <form
           className="row"
           onSubmit={(e) => { e.preventDefault(); createRoutine.mutate(); }}
           style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}
         >
-          <TextField label="ID entrenador" value={rtTrainerId} onChange={(e) => setRtTrainerId(e.target.value)} required />
-          <TextField label="ID cliente/miembro" value={rtMemberId} onChange={(e) => setRtMemberId(e.target.value)} required />
-          <TextField label="Nombre" value={rtName} onChange={(e) => setRtName(e.target.value)} placeholder="Rutina" />
-          <TextField label="Ejercicios (JSON opcional)" value={rtExercises} onChange={(e) => setRtExercises(e.target.value)} placeholder='[{"name":"Press banca","sets":3}]' />
+          <TextField label={t('admin.analytics.trainerId')} value={rtTrainerId} onChange={(e) => setRtTrainerId(e.target.value)} required />
+          <TextField label={t('admin.analytics.memberId')} value={rtMemberId} onChange={(e) => setRtMemberId(e.target.value)} required />
+          <TextField label={t('common.name')} value={rtName} onChange={(e) => setRtName(e.target.value)} placeholder="Rutina" />
+          <TextField label={t('admin.analytics.exercisesJson')} value={rtExercises} onChange={(e) => setRtExercises(e.target.value)} placeholder='[{"name":"Press banca","sets":3}]' />
           <Button type="submit" disabled={createRoutine.isPending || !rtTrainerId || !rtMemberId}>
-            Crear rutina
+            {t('admin.analytics.createRoutine')}
           </Button>
         </form>
         <table className="table" style={{ marginTop: 'var(--ws-space-3)' }}>
           <thead>
             <tr>
-              <th>Nombre</th>
-              <th>Entrenador</th>
-              <th>Cliente</th>
-              <th>Ejercicios</th>
-              <th>Estado</th>
-              <th>Acciones</th>
+              <th>{t('common.name')}</th>
+              <th>{t('admin.analytics.trainer')}</th>
+              <th>{t('admin.analytics.client')}</th>
+              <th>{t('admin.analytics.exercises')}</th>
+              <th>{t('common.status')}</th>
+              <th>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -792,20 +800,20 @@ function AcademiaView() {
                 <td><span className="badge">{r.status}</span></td>
                 <td>
                   <Button variant="ghost" onClick={() => removeRoutine.mutate(r.id)}>
-                    Eliminar
+                    {t('common.delete')}
                   </Button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {(routines ?? []).length === 0 && <p className="muted">Sin rutinas asignadas.</p>}
+        {(routines ?? []).length === 0 && <p className="muted">{t('admin.analytics.noRoutines')}</p>}
       </Card>
 
       <ConfirmDialog
         open={confirmCourse !== null}
-        title="Eliminar curso"
-        confirmLabel="Eliminar"
+        title={t('admin.analytics.deleteCourse')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => {
           if (confirmCourse) removeCourse.mutate(confirmCourse.id);
@@ -813,13 +821,13 @@ function AcademiaView() {
         }}
         onCancel={() => setConfirmCourse(null)}
       >
-        ¿Eliminar el curso <strong>{confirmCourse?.title}</strong>? Esta acción es irreversible.
+        {t('admin.analytics.deleteCourseConfirm', { title: confirmCourse?.title })}
       </ConfirmDialog>
 
       <ConfirmDialog
         open={confirmEnrollment !== null}
-        title="Eliminar matrícula"
-        confirmLabel="Eliminar"
+        title={t('admin.analytics.deleteEnrollment')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => {
           if (confirmEnrollment) removeEnrollment.mutate(confirmEnrollment.id);
@@ -827,7 +835,7 @@ function AcademiaView() {
         }}
         onCancel={() => setConfirmEnrollment(null)}
       >
-        ¿Eliminar la matrícula de <strong>{confirmEnrollment?.student}</strong>? Esta acción es irreversible.
+        {t('admin.analytics.deleteEnrollmentConfirm', { student: confirmEnrollment?.student })}
       </ConfirmDialog>
     </div>
   );
@@ -842,6 +850,7 @@ function EnrollmentRow({
   onPatch: (id: string, progress: number) => void;
   onDelete: (enrollment: Enrollment) => void;
 }) {
+  const { t } = useTranslation();
   const [progress, setProgress] = useState(String(enrollment.progress));
 
   return (
@@ -862,7 +871,7 @@ function EnrollmentRow({
             style={{ width: 80 }}
           />
           <Button variant="secondary" onClick={() => onPatch(enrollment.id, Number(progress))}>
-            Guardar
+            {t('common.save')}
           </Button>
         </div>
       </td>
@@ -870,7 +879,7 @@ function EnrollmentRow({
       <td>{new Date(enrollment.createdAt).toLocaleDateString()}</td>
       <td>
         <Button variant="ghost" onClick={() => onDelete(enrollment)}>
-          Eliminar
+          {t('common.delete')}
         </Button>
       </td>
     </tr>

@@ -19,6 +19,8 @@
       "provider": { "type": "string", "title": "Proveedor", "enum": ["openai", "anthropic", "gemini", "ollama"], "default": "openai" },
       "model": { "type": "string", "title": "Modelo", "default": "gpt-4o-mini" },
       "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password" } },
+      "baseUrl": { "type": "string", "title": "URL base (OpenAI-compatible)" },
+      "temperature": { "type": "number", "title": "Temperatura" },
       "ollamaUrl": { "type": "string", "title": "URL de Ollama", "default": "http://localhost:11434" },
       "room": { "type": "string", "title": "Sala / room", "default": "general" }
     }

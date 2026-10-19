@@ -1,4 +1,5 @@
 import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import { createExternalEvent } from '../../../apps/api/src/integrations/calendar';
 import manifestJson from '../block.json';
 
 const manifest = manifestJson as unknown as BlockManifest;
@@ -8,11 +9,17 @@ interface CalendarConfig {
   timezone?: string;
   workingHoursStart?: string;
   workingHoursEnd?: string;
+  calendarApiKey?: string;
+  calendarAccessToken?: string;
+  calendarId?: string;
+  caldavUrl?: string;
+  caldavUsername?: string;
+  caldavPassword?: string;
 }
 
 /**
- * Proveedores de calendario soportados. `local` persiste en la base de datos;
- * `google` y `caldav` se integran mediante adaptadores externos (ver TODO).
+ * Proveedores de calendario soportados. `local` persiste solo en la base de
+ * datos; `google` y `caldav` además crean el evento en el calendario externo.
  */
 const CALENDAR_PROVIDERS = ['local', 'google', 'caldav'] as const;
 type CalendarProvider = (typeof CALENDAR_PROVIDERS)[number];
@@ -32,11 +39,16 @@ export default defineBlock(manifest, {
       req: unknown,
     ) => Promise<void>;
 
-    // TODO(adaptadores): modelar un `CalendarProviderAdapter` para `google`
-    // (Google Calendar API) y `caldav`. Hoy todas las rutas persisten en la DB
-    // local sin importar `settings.provider`; el adaptador reemplazaría esa
-    // persistencia por la sincronización contra el calendario externo.
-    void provider;
+    // Credenciales del calendario externo (claves genéricas para el adaptador).
+    const calendarConfig: Record<string, unknown> = {
+      apiKey: cfg.calendarApiKey,
+      accessToken: cfg.calendarAccessToken,
+      calendarId: cfg.calendarId,
+      caldavUrl: cfg.caldavUrl,
+      caldavUsername: cfg.caldavUsername,
+      caldavPassword: cfg.caldavPassword,
+      timezone: cfg.timezone,
+    };
 
     // Listado público con filtro por rango de `start` (`?from=&to=`).
     fastify.get('/events', async (request: unknown) => {
@@ -58,7 +70,8 @@ export default defineBlock(manifest, {
         const { body } = request as {
           body?: { title?: string; start?: string; end?: string; type?: string };
         };
-        return db.calendarEvent.create({
+        // Persistencia local (siempre).
+        const created = await db.calendarEvent.create({
           data: {
             title: body?.title ?? '',
             start: new Date(body?.start ?? Date.now()),
@@ -66,6 +79,14 @@ export default defineBlock(manifest, {
             type: body?.type ?? null,
           },
         });
+        // Sincronización opcional contra el calendario externo configurado.
+        const external = await createExternalEvent(provider, calendarConfig, {
+          title: created.title,
+          start: created.start,
+          end: created.end,
+          timezone: cfg.timezone,
+        });
+        return { ...created, external };
       },
     );
 

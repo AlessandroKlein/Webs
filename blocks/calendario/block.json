@@ -29,6 +29,19 @@
         "type": "string",
         "title": "API Key del calendario",
         "x-ui": { "widget": "password", "secret": true }
+      },
+      "calendarAccessToken": {
+        "type": "string",
+        "title": "Token OAuth2 (Google Calendar)",
+        "x-ui": { "widget": "password", "secret": true }
+      },
+      "calendarId": { "type": "string", "title": "ID del calendario (Google)", "default": "primary" },
+      "caldavUrl": { "type": "string", "title": "URL de colección CalDAV" },
+      "caldavUsername": { "type": "string", "title": "Usuario CalDAV" },
+      "caldavPassword": {
+        "type": "string",
+        "title": "Contraseña CalDAV",
+        "x-ui": { "widget": "password", "secret": true }
       }
     }
   }

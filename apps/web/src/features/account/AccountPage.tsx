@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { startRegistration } from '@simplewebauthn/browser';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import { useLocaleStore } from '../../lib/locale-store';
@@ -29,6 +30,7 @@ interface MeResponse {
 type Tab = 'profile' | 'security' | 'password' | 'danger';
 
 export function AccountPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const logout = useAuthStore((s) => s.logout);
   const catalog = useLocaleStore((s) => s.catalog);
@@ -81,13 +83,19 @@ export function AccountPage() {
     updateProfile.mutate({ displayName, username, avatarUrl, locale });
   };
 
-  const tabLabel = (t: Tab): string =>
-    t === 'profile' ? 'Perfil' : t === 'security' ? 'Seguridad' : t === 'password' ? 'Cambiar contraseña' : 'Zona de peligro';
+  const tabLabel = (tab: Tab): string =>
+    tab === 'profile'
+      ? t('admin.account.profile')
+      : tab === 'security'
+        ? t('admin.account.security')
+        : tab === 'password'
+          ? t('admin.account.changePassword')
+          : t('admin.account.dangerZone');
 
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Mi cuenta</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.account')}</h1>
         {(['profile', 'security', 'password', 'danger'] as const).map((t) => (
           <button
             key={t}
@@ -108,7 +116,7 @@ export function AccountPage() {
                 {data?.user?.avatarUrl ? (
                   <img
                     src={data.user.avatarUrl}
-                    alt="Avatar"
+                    alt={t('admin.account.avatar')}
                     style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--ws-border)' }}
                   />
                 ) : (
@@ -139,21 +147,21 @@ export function AccountPage() {
                     className="badge"
                     style={{ alignSelf: 'flex-start', background: data?.user?.active ? 'var(--ws-success, #16a34a)' : 'var(--ws-danger)', color: '#fff' }}
                   >
-                    {data?.user?.active ? 'Activa' : 'Inactiva'}
+                    {data?.user?.active ? t('admin.account.active') : t('admin.account.inactive')}
                   </span>
                 </div>
               </div>
             </Card>
 
             <Card>
-              <h3>Datos del perfil</h3>
+              <h3>{t('admin.account.profileData')}</h3>
               <form className="stack" onSubmit={onProfile}>
                 <div className="grid-2" style={{ gap: 'var(--ws-space-3)' }}>
-                  <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} placeholder="Tu nombre" />
-                  <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
-                  <TextField label="Avatar URL" name="avatarUrl" defaultValue={data?.user?.avatarUrl ?? ''} placeholder="https://…" />
+                  <TextField label={t('admin.account.name')} name="displayName" defaultValue={data?.user?.displayName ?? ''} placeholder={t('admin.account.namePlaceholder')} />
+                  <TextField label={t('admin.account.username')} name="username" defaultValue={data?.user?.username ?? ''} placeholder={t('admin.account.usernamePlaceholder')} />
+                  <TextField label={t('admin.account.avatarUrl')} name="avatarUrl" defaultValue={data?.user?.avatarUrl ?? ''} placeholder="https://…" />
                   <div className="field">
-                    <label>Idioma</label>
+                    <label>{t('lang.label')}</label>
                     <select className="input" name="locale" defaultValue={data?.user?.locale ?? 'es'}>
                       {catalog
                         .filter((l) => enabledLocales.includes(l.code))
@@ -167,12 +175,12 @@ export function AccountPage() {
                 </div>
                 {profileSaved && (
                   <p className="muted" style={{ color: 'var(--ws-success, #16a34a)', margin: 0 }}>
-                    <i className="bi bi-check-circle" /> Perfil guardado
+                    <i className="bi bi-check-circle" /> {t('admin.account.profileSaved')}
                   </p>
                 )}
                 <div className="row" style={{ justifyContent: 'flex-end' }}>
                   <Button type="submit" disabled={updateProfile.isPending}>
-                    {updateProfile.isPending ? 'Guardando…' : 'Guardar perfil'}
+                    {updateProfile.isPending ? t('admin.account.saving') : t('admin.account.saveProfile')}
                   </Button>
                 </div>
               </form>
@@ -192,25 +200,25 @@ export function AccountPage() {
 
         {tab === 'danger' && (
           <Card>
-            <h3>Zona de peligro</h3>
-            <p className="muted">Eliminar tu cuenta es irreversible.</p>
+            <h3>{t('admin.account.dangerZone')}</h3>
+            <p className="muted">{t('admin.account.deleteIrreversible')}</p>
             <Button
               variant="ghost"
               style={{ color: 'var(--ws-danger)' }}
               disabled={deleteAccount.isPending}
               onClick={() => setConfirmDelete(true)}
             >
-              Eliminar cuenta
+              {t('admin.account.deleteAccount')}
             </Button>
             <ConfirmDialog
               open={confirmDelete}
-              title="Eliminar cuenta"
-              confirmLabel="Eliminar definitivamente"
+              title={t('admin.account.deleteAccount')}
+              confirmLabel={t('common.confirmDelete')}
               danger
               onConfirm={() => { setConfirmDelete(false); deleteAccount.mutate(); }}
               onCancel={() => setConfirmDelete(false)}
             >
-              ¿Seguro que querés eliminar tu cuenta? Esta acción es irreversible y no se puede deshacer.
+              {t('admin.account.deleteConfirm')}
             </ConfirmDialog>
           </Card>
         )}
@@ -220,6 +228,7 @@ export function AccountPage() {
 }
 
 function ChangePasswordCard() {
+  const { t } = useTranslation();
   const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -229,12 +238,12 @@ function ChangePasswordCard() {
   const change = useMutation({
     mutationFn: () => api.post('/api/v1/auth/change-password', { currentPassword, password }),
     onSuccess: () => {
-      setMsg('Contraseña actualizada ✓');
+      setMsg(t('admin.account.passwordUpdated'));
       setCurrentPassword('');
       setPassword('');
       setConfirm('');
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error al cambiar la contraseña'),
+    onError: (e) => setError(e instanceof Error ? e.message : t('admin.account.passwordChangeError')),
   });
 
   const submit = (e: FormEvent) => {
@@ -242,7 +251,7 @@ function ChangePasswordCard() {
     setError(null);
     setMsg(null);
     if (password !== confirm) {
-      setError('Las contraseñas no coinciden');
+      setError(t('admin.account.passwordsDontMatch'));
       return;
     }
     change.mutate();
@@ -250,15 +259,15 @@ function ChangePasswordCard() {
 
   return (
     <Card>
-      <h3>Cambiar contraseña</h3>
+      <h3>{t('admin.account.changePassword')}</h3>
       <form className="stack" onSubmit={submit}>
-        <TextField label="Contraseña actual" type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
-        <TextField label="Nueva contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <TextField label="Confirmar nueva contraseña" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+        <TextField label={t('admin.account.currentPassword')} type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+        <TextField label={t('admin.account.newPassword')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <TextField label={t('admin.account.confirmNewPassword')} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
         {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
         {msg && <p style={{ color: 'var(--ws-success, #16a34a)' }}>{msg}</p>}
         <div className="row">
-          <Button type="submit" disabled={change.isPending}>Guardar contraseña</Button>
+          <Button type="submit" disabled={change.isPending}>{t('admin.account.savePassword')}</Button>
         </div>
       </form>
     </Card>
@@ -266,6 +275,7 @@ function ChangePasswordCard() {
 }
 
 function TwoFactorCard({ enabled, onChanged }: { enabled: boolean; onChanged: () => void }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'idle' | 'confirm' | 'codes'>('idle');
   const [secret, setSecret] = useState('');
   const [otpauthUrl, setOtpauthUrl] = useState('');
@@ -309,36 +319,36 @@ function TwoFactorCard({ enabled, onChanged }: { enabled: boolean; onChanged: ()
 
   return (
     <Card>
-      <h3>Autenticación de dos factores (2FA)</h3>
+      <h3>{t('admin.account.twoFactor')}</h3>
       <p className="muted">
         {enabled
-          ? '2FA está activo. Al iniciar sesión se pedirá un código de tu app de autenticación (o un código de respaldo).'
-          : 'Protegé tu cuenta con un segundo factor (Google Authenticator, Authy, etc.).'}
+          ? t('admin.account.twoFactorEnabled')
+          : t('admin.account.twoFactorDisabled')}
       </p>
 
       {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
 
       {!enabled && step === 'idle' && (
         <Button onClick={() => setup.mutate()} disabled={setup.isPending}>
-          Activar 2FA
+          {t('admin.account.enable2fa')}
         </Button>
       )}
 
       {step === 'confirm' && (
         <div className="stack">
-          <p className="muted">Escaneá el código en tu app o ingresá la clave manualmente:</p>
+          <p className="muted">{t('admin.account.scanCode')}</p>
           <QrCode value={otpauthUrl} />
           <p>
-            <strong>Clave secreta:</strong> <code>{secret}</code>
+            <strong>{t('admin.account.secretKey')}</strong> <code>{secret}</code>
           </p>
           <p className="muted" style={{ wordBreak: 'break-all' }}>{otpauthUrl}</p>
-          <TextField label="Código de 6 dígitos" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
+          <TextField label={t('admin.account.code6')} value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
           <div className="row">
             <Button onClick={() => confirm.mutate()} disabled={confirm.isPending || code.length < 6}>
-              Confirmar
+              {t('common.confirm')}
             </Button>
             <Button variant="ghost" onClick={() => setStep('idle')}>
-              Cancelar
+              {t('common.cancel')}
             </Button>
           </div>
         </div>
@@ -346,8 +356,8 @@ function TwoFactorCard({ enabled, onChanged }: { enabled: boolean; onChanged: ()
 
       {step === 'codes' && (
         <div className="stack">
-          <h4>✔ 2FA activado</h4>
-          <p className="muted">Guardá estos códigos de respaldo (se muestran una sola vez):</p>
+          <h4>{t('admin.account.twoFactorActivated')}</h4>
+          <p className="muted">{t('admin.account.backupCodes')}</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--ws-space-2)' }}>
             {backupCodes.map((c) => (
               <code key={c} style={{ background: 'var(--ws-surface-2)', padding: 'var(--ws-space-1)', borderRadius: 'var(--ws-radius-sm)' }}>
@@ -355,15 +365,15 @@ function TwoFactorCard({ enabled, onChanged }: { enabled: boolean; onChanged: ()
               </code>
             ))}
           </div>
-          <Button onClick={() => setStep('idle')}>Listo</Button>
+          <Button onClick={() => setStep('idle')}>{t('admin.account.done')}</Button>
         </div>
       )}
 
       {enabled && step === 'idle' && (
         <div className="stack">
-          <TextField label="Código actual para desactivar" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
+          <TextField label={t('admin.account.currentCodeToDisable')} value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
           <Button variant="ghost" onClick={() => disable.mutate()} disabled={disable.isPending || code.length < 6}>
-            Desactivar 2FA
+            {t('admin.account.disable2fa')}
           </Button>
         </div>
       )}
@@ -372,6 +382,7 @@ function TwoFactorCard({ enabled, onChanged }: { enabled: boolean; onChanged: ()
 }
 
 function SmsTwoFactorCard() {
+  const { t } = useTranslation();
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [step, setStep] = useState<'idle' | 'code'>('idle');
@@ -384,7 +395,7 @@ function SmsTwoFactorCard() {
     try {
       await api.post('/api/v1/auth/2fa/sms/setup', { phone });
       setStep('code');
-      setMsg('Código enviado por SMS');
+      setMsg(t('admin.account.smsCodeSent'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error');
     }
@@ -396,7 +407,7 @@ function SmsTwoFactorCard() {
       setStep('idle');
       setPhone('');
       setCode('');
-      setMsg('2FA por SMS activado');
+      setMsg(t('admin.account.sms2faActivated'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error');
     }
@@ -405,7 +416,7 @@ function SmsTwoFactorCard() {
     setError(null);
     try {
       await api.post('/api/v1/auth/2fa/sms/disable');
-      setMsg('2FA por SMS desactivado');
+      setMsg(t('admin.account.sms2faDeactivated'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error');
     }
@@ -413,20 +424,20 @@ function SmsTwoFactorCard() {
 
   return (
     <Card>
-      <h3>2FA por SMS</h3>
-      <p className="muted">Recibí un código por SMS (requiere el bloque Twilio configurado).</p>
+      <h3>{t('admin.account.sms2fa')}</h3>
+      <p className="muted">{t('admin.account.sms2faDesc')}</p>
       {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
       {msg && <p className="muted">{msg}</p>}
 
       {step === 'idle' && (
         <div className="stack">
-          <TextField label="Teléfono (ej. +549…)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <TextField label={t('admin.account.phone')} value={phone} onChange={(e) => setPhone(e.target.value)} />
           <div className="row">
             <Button onClick={setup} disabled={!phone}>
-              Enviar código
+              {t('admin.account.sendCode')}
             </Button>
             <Button variant="ghost" onClick={disable}>
-              Desactivar
+              {t('admin.account.disable')}
             </Button>
           </div>
         </div>
@@ -434,9 +445,9 @@ function SmsTwoFactorCard() {
 
       {step === 'code' && (
         <div className="stack">
-          <TextField label="Código SMS" value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
+          <TextField label={t('admin.account.smsCode')} value={code} onChange={(e) => setCode(e.target.value)} inputMode="numeric" />
           <Button onClick={verify} disabled={code.length < 6}>
-            Activar
+            {t('admin.account.activate')}
           </Button>
         </div>
       )}
@@ -451,6 +462,7 @@ interface PasskeyRow {
   lastUsedAt: string | null;
 }
 function PasskeysCard() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data } = useQuery({
     queryKey: ['passkeys'],
@@ -471,7 +483,7 @@ function PasskeysCard() {
       await api.post('/api/v1/auth/passkey/register/verify', { challengeId: opts.challengeId, credential });
       qc.invalidateQueries({ queryKey: ['passkeys'] });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al registrar passkey');
+      setError(err instanceof Error ? err.message : t('admin.account.passkeyRegisterError'));
     } finally {
       setRegistering(false);
     }
@@ -488,42 +500,42 @@ function PasskeysCard() {
 
   return (
     <Card>
-      <h3>Passkeys (FIDO2)</h3>
-      <p className="muted">Iniciá sesión sin contraseña con tu huella, rostro o llave de seguridad.</p>
+      <h3>{t('admin.account.passkeys')}</h3>
+      <p className="muted">{t('admin.account.passkeysDesc')}</p>
       {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
 
       <div className="stack">
         {(data ?? []).map((p) => (
           <div key={p.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
             <span>
-              {p.deviceName ?? 'Passkey'} <span className="muted">· creada {new Date(p.createdAt).toLocaleDateString()}</span>
+              {p.deviceName ?? t('admin.account.passkey')} <span className="muted">· {t('admin.account.created')} {new Date(p.createdAt).toLocaleDateString()}</span>
             </span>
             <div className="row">
               <Button
                 variant="ghost"
                 onClick={() => setRenaming(p)}
               >
-                Renombrar
+                {t('common.rename')}
               </Button>
               <Button variant="ghost" onClick={() => remove.mutate(p.id)}>
-                Eliminar
+                {t('common.delete')}
               </Button>
             </div>
           </div>
         ))}
-        {(data ?? []).length === 0 && <p className="muted">No hay passkeys registradas.</p>}
+        {(data ?? []).length === 0 && <p className="muted">{t('admin.account.noPasskeys')}</p>}
       </div>
 
       <Button onClick={register} disabled={registering} style={{ marginTop: 'var(--ws-space-3)' }}>
-        {registering ? 'Registrando…' : 'Registrar passkey'}
+        {registering ? t('admin.account.registering') : t('admin.account.registerPasskey')}
       </Button>
 
       <PromptDialog
         open={renaming !== null}
-        title="Renombrar passkey"
-        label="Nombre del dispositivo"
+        title={t('admin.account.renamePasskey')}
+        label={t('admin.account.deviceName')}
         defaultValue={renaming?.deviceName ?? ''}
-        confirmLabel="Guardar"
+        confirmLabel={t('common.save')}
         onConfirm={(name) => {
           if (renaming && name.trim()) rename.mutate({ id: renaming.id, deviceName: name.trim() });
           setRenaming(null);

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -31,6 +32,7 @@ interface Comment {
 type View = 'feed' | 'comments';
 
 export function SocialPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [view, setView] = useState<View>('feed');
 
@@ -98,20 +100,20 @@ export function SocialPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Social</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.social.title')}</h1>
         <button
           className={`nav-link ${view === 'feed' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('feed')}
         >
-          Feed
+          {t('admin.social.feed')}
         </button>
         <button
           className={`nav-link ${view === 'comments' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('comments')}
         >
-          Comentarios
+          {t('admin.social.comments')}
         </button>
       </aside>
 
@@ -119,27 +121,27 @@ export function SocialPage() {
         {view === 'feed' && (
           <>
             <Card>
-              <h3 style={{ marginTop: 0 }}>Publicar</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.social.publish')}</h3>
               <form className="stack" onSubmit={onSubmit}>
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-                  <TextField label="Autor" value={author} onChange={(e) => setAuthor(e.target.value)} required />
-                  <TextField label="URL de medio" value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder="Opcional" />
+                  <TextField label={t('admin.social.author')} value={author} onChange={(e) => setAuthor(e.target.value)} required />
+                  <TextField label={t('admin.social.mediaUrl')} value={mediaUrl} onChange={(e) => setMediaUrl(e.target.value)} placeholder={t('admin.blog.optional')} />
                   <div className="field">
-                    <label>Tipo de medio</label>
+                    <label>{t('admin.social.mediaType')}</label>
                     <select className="input" style={{ width: 'auto' }} value={mediaType} onChange={(e) => setMediaType(e.target.value)}>
-                      <option value="">Ninguno</option>
-                      <option value="image">Imagen</option>
-                      <option value="video">Video</option>
+                      <option value="">{t('admin.social.none')}</option>
+                      <option value="image">{t('admin.social.image')}</option>
+                      <option value="video">{t('admin.social.video')}</option>
                     </select>
                   </div>
                 </div>
                 <div className="field">
-                  <label>Texto</label>
+                  <label>{t('admin.social.text')}</label>
                   <textarea className="input" rows={3} value={text} onChange={(e) => setText(e.target.value)} required />
                 </div>
                 <div className="row">
-                  <Button type="submit" disabled={publish.isPending}>Publicar</Button>
-                  {publish.isSuccess && <span style={{ color: 'var(--ws-success)' }}>Publicado ✓</span>}
+                  <Button type="submit" disabled={publish.isPending}>{t('admin.social.publish')}</Button>
+                  {publish.isSuccess && <span style={{ color: 'var(--ws-success)' }}>{t('admin.social.published')}</span>}
                 </div>
                 {publish.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{publish.error.message}</p>}
               </form>
@@ -153,17 +155,17 @@ export function SocialPage() {
                       <strong>{p.author}</strong>
                       {p.mediaUrl && (
                         <span className="muted">
-                          {p.mediaType === 'video' ? 'Video' : 'Imagen'}:{' '}
+                          {p.mediaType === 'video' ? t('admin.social.video') : t('admin.social.image')}:{' '}
                           <a href={p.mediaUrl} target="_blank" rel="noreferrer">{p.mediaUrl}</a>
                         </span>
                       )}
                       <p style={{ margin: 'var(--ws-space-2) 0' }}>{p.text}</p>
                     </div>
-                    <Button variant="ghost" onClick={() => setConfirmDeletePost(p)}>Eliminar</Button>
+                    <Button variant="ghost" onClick={() => setConfirmDeletePost(p)}>{t('common.delete')}</Button>
                   </div>
                   <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                     <Button variant="secondary" onClick={() => like.mutate(p.id)} disabled={like.isPending}>
-                      👍 Me gusta · {p.likes}
+                      👍 {t('admin.social.like')} · {p.likes}
                     </Button>
                     <span className="muted">{new Date(p.createdAt).toLocaleString()}</span>
                   </div>
@@ -171,7 +173,7 @@ export function SocialPage() {
               ))}
               {postList.length === 0 && (
                 <Card>
-                  <p className="muted">No hay publicaciones.</p>
+                  <p className="muted">{t('admin.social.noPosts')}</p>
                 </Card>
               )}
             </div>
@@ -180,15 +182,15 @@ export function SocialPage() {
 
         {view === 'comments' && (
           <Card>
-            <h3 style={{ marginTop: 0 }}>Comentarios</h3>
+            <h3 style={{ marginTop: 0 }}>{t('admin.social.comments')}</h3>
             <table className="table">
               <thead>
                 <tr>
-                  <th>Autor</th>
-                  <th>Comentario</th>
-                  <th>Valoración</th>
-                  <th>Fecha</th>
-                  <th>Acciones</th>
+                  <th>{t('admin.social.author')}</th>
+                  <th>{t('admin.social.comment')}</th>
+                  <th>{t('admin.social.rating')}</th>
+                  <th>{t('common.date')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -199,14 +201,14 @@ export function SocialPage() {
                     <td>{c.rating}</td>
                     <td>{new Date(c.createdAt).toLocaleString()}</td>
                     <td>
-                      <Button variant="ghost" onClick={() => setConfirmDeleteComment(c)}>Eliminar</Button>
+                      <Button variant="ghost" onClick={() => setConfirmDeleteComment(c)}>{t('common.delete')}</Button>
                     </td>
                   </tr>
                 ))}
                 {commentList.length === 0 && (
                   <tr>
                     <td colSpan={5}>
-                      <p className="muted">No hay comentarios.</p>
+                      <p className="muted">{t('admin.social.noComments')}</p>
                     </td>
                   </tr>
                 )}
@@ -217,8 +219,8 @@ export function SocialPage() {
 
         <ConfirmDialog
           open={confirmDeletePost !== null}
-          title="Eliminar publicación"
-          confirmLabel="Eliminar"
+          title={t('admin.social.deletePost')}
+          confirmLabel={t('common.delete')}
           danger
           onConfirm={() => {
             if (confirmDeletePost) removePost.mutate(confirmDeletePost.id);
@@ -226,13 +228,13 @@ export function SocialPage() {
           }}
           onCancel={() => setConfirmDeletePost(null)}
         >
-          ¿Eliminar la publicación de <strong>{confirmDeletePost?.author}</strong>? Esta acción es irreversible.
+          {t('admin.social.deletePostConfirm', { author: confirmDeletePost?.author })}
         </ConfirmDialog>
 
         <ConfirmDialog
           open={confirmDeleteComment !== null}
-          title="Eliminar comentario"
-          confirmLabel="Eliminar"
+          title={t('admin.social.deleteComment')}
+          confirmLabel={t('common.delete')}
           danger
           onConfirm={() => {
             if (confirmDeleteComment) removeComment.mutate(confirmDeleteComment.id);
@@ -240,7 +242,7 @@ export function SocialPage() {
           }}
           onCancel={() => setConfirmDeleteComment(null)}
         >
-          ¿Eliminar el comentario de <strong>{confirmDeleteComment?.author}</strong>? Esta acción es irreversible.
+          {t('admin.social.deleteCommentConfirm', { author: confirmDeleteComment?.author })}
         </ConfirmDialog>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { useAuthStore } from '../lib/auth-store';
 
@@ -22,6 +23,7 @@ interface MenuItem {
  * botón de inicio de sesión. Responsive con menú hamburguesa en móvil.
  */
 export function SiteHeader() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const hasPermission = useAuthStore((s) => s.hasPermission);
@@ -71,7 +73,7 @@ export function SiteHeader() {
         <div className="site-actions">
           {user ? (
             <div className="user-menu-wrap">
-              <button className="site-user" onClick={() => setUserOpen((o) => !o)} aria-label="Menú de usuario">
+              <button className="site-user" onClick={() => setUserOpen((o) => !o)} aria-label={t('site.header.userMenu')}>
                 <span className="site-avatar">{initial}</span>
                 <span className="site-user-name">{user.displayName ?? user.email}</span>
                 <i className="bi bi-chevron-down" style={{ fontSize: '0.8em' }} />
@@ -79,23 +81,23 @@ export function SiteHeader() {
               {userOpen && (
                 <div className="dropdown" style={{ right: 0 }}>
                   <Link to="/account" onClick={() => setUserOpen(false)}>
-                    <i className="bi bi-person" /> Mi cuenta
+                    <i className="bi bi-person" /> {t('site.header.myAccount')}
                   </Link>
                   {hasPermission('user.read') && (
                     <Link to="/admin" onClick={() => setUserOpen(false)}>
-                      <i className="bi bi-speedometer2" /> Panel admin
+                      <i className="bi bi-speedometer2" /> {t('site.header.adminPanel')}
                     </Link>
                   )}
                   <button onClick={() => void logout()}>
-                    <i className="bi bi-box-arrow-right" /> Cerrar sesión
+                    <i className="bi bi-box-arrow-right" /> {t('site.header.logout')}
                   </button>
                 </div>
               )}
             </div>
           ) : (
-            <Link to="/login" className="btn">Iniciar sesión</Link>
+            <Link to="/login" className="btn">{t('site.header.login')}</Link>
           )}
-          <button className="site-burger" onClick={() => setMenuOpen((o) => !o)} aria-label="Abrir menú">
+          <button className="site-burger" onClick={() => setMenuOpen((o) => !o)} aria-label={t('site.header.openMenu')}>
             <i className={`bi bi-${menuOpen ? 'x-lg' : 'list'}`} />
           </button>
         </div>

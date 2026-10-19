@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -36,6 +37,7 @@ interface DocumentRow {
 type View = 'forms' | 'documents';
 
 export function FormsPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [view, setView] = useState<View>('forms');
 
@@ -83,7 +85,7 @@ export function FormsPage() {
     try {
       fields = JSON.parse(fieldsJson);
     } catch {
-      setFieldsError('El JSON de campos no es válido.');
+      setFieldsError(t('admin.forms.invalidJson'));
       return;
     }
     setFieldsError('');
@@ -122,20 +124,20 @@ export function FormsPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Formularios</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.forms.title')}</h1>
         <button
           className={`nav-link ${view === 'forms' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('forms')}
         >
-          Formularios
+          {t('admin.forms.forms')}
         </button>
         <button
           className={`nav-link ${view === 'documents' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('documents')}
         >
-          Documentos
+          {t('admin.forms.documents')}
         </button>
       </aside>
 
@@ -143,7 +145,7 @@ export function FormsPage() {
         {view === 'forms' && (
           <>
             <Card>
-              <h3 style={{ marginTop: 0 }}>Nuevo formulario</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.forms.newForm')}</h3>
               <form
                 className="stack"
                 onSubmit={(e) => {
@@ -152,10 +154,10 @@ export function FormsPage() {
                 }}
               >
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <TextField label="Título" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} required />
+                  <TextField label={t('common.title')} value={formTitle} onChange={(e) => setFormTitle(e.target.value)} required />
                 </div>
                 <div className="field">
-                  <label>Campos (JSON)</label>
+                  <label>{t('admin.forms.fieldsJson')}</label>
                   <textarea
                     className="input"
                     value={fieldsJson}
@@ -167,7 +169,7 @@ export function FormsPage() {
                 {fieldsError && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{fieldsError}</p>}
                 <div className="row">
                   <Button type="submit" disabled={createForm.isPending || !formTitle}>
-                    Crear formulario
+                    {t('admin.forms.createForm')}
                   </Button>
                   {createForm.error && <span style={{ color: 'var(--ws-danger)' }}>{createForm.error.message}</span>}
                 </div>
@@ -175,17 +177,17 @@ export function FormsPage() {
             </Card>
 
             <Card>
-              <h3 style={{ marginTop: 0 }}>Formularios</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.forms.forms')}</h3>
               {formsLoading ? (
                 <Spinner />
               ) : (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Título</th>
-                      <th>Campos</th>
-                      <th>Creado</th>
-                      <th>Acciones</th>
+                      <th>{t('common.title')}</th>
+                      <th>{t('admin.forms.fields')}</th>
+                      <th>{t('admin.forms.created')}</th>
+                      <th>{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -199,10 +201,10 @@ export function FormsPage() {
                         <td>
                           <div className="row">
                             <Button variant="secondary" onClick={() => setSelectedForm(f)}>
-                              Respuestas
+                              {t('admin.forms.responses')}
                             </Button>
                             <Button variant="ghost" onClick={() => setConfirmForm(f)}>
-                              Eliminar
+                              {t('common.delete')}
                             </Button>
                           </div>
                         </td>
@@ -211,7 +213,7 @@ export function FormsPage() {
                     {(forms ?? []).length === 0 && (
                       <tr>
                         <td colSpan={4}>
-                          <p className="muted">No hay formularios.</p>
+                          <p className="muted">{t('admin.forms.noForms')}</p>
                         </td>
                       </tr>
                     )}
@@ -223,9 +225,9 @@ export function FormsPage() {
             {selectedForm && (
               <Card>
                 <div className="row" style={{ justifyContent: 'space-between' }}>
-                  <h3 style={{ margin: 0 }}>Respuestas · {selectedForm.title}</h3>
+                  <h3 style={{ margin: 0 }}>{t('admin.forms.responsesOf', { title: selectedForm.title })}</h3>
                   <Button variant="ghost" onClick={() => setSelectedForm(null)}>
-                    Cerrar
+                    {t('common.close')}
                   </Button>
                 </div>
                 {responsesLoading ? (
@@ -234,8 +236,8 @@ export function FormsPage() {
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Datos</th>
-                        <th>Fecha</th>
+                        <th>{t('admin.forms.data')}</th>
+                        <th>{t('common.date')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -250,7 +252,7 @@ export function FormsPage() {
                       {(responses ?? []).length === 0 && (
                         <tr>
                           <td colSpan={2}>
-                            <p className="muted">Sin respuestas.</p>
+                            <p className="muted">{t('admin.forms.noResponses')}</p>
                           </td>
                         </tr>
                       )}
@@ -265,7 +267,7 @@ export function FormsPage() {
         {view === 'documents' && (
           <>
             <Card>
-              <h3 style={{ marginTop: 0 }}>Nuevo documento</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.forms.newDocument')}</h3>
               <form
                 className="stack"
                 onSubmit={(e) => {
@@ -274,10 +276,10 @@ export function FormsPage() {
                 }}
               >
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <TextField label="Nombre" value={docName} onChange={(e) => setDocName(e.target.value)} required />
+                  <TextField label={t('common.name')} value={docName} onChange={(e) => setDocName(e.target.value)} required />
                 </div>
                 <div className="field">
-                  <label>Contenido</label>
+                  <label>{t('admin.forms.content')}</label>
                   <textarea
                     className="input"
                     value={docContent}
@@ -288,7 +290,7 @@ export function FormsPage() {
                 </div>
                 <div className="row">
                   <Button type="submit" disabled={createDoc.isPending || !docName || !docContent}>
-                    Crear documento
+                    {t('admin.forms.createDocument')}
                   </Button>
                   {createDoc.error && <span style={{ color: 'var(--ws-danger)' }}>{createDoc.error.message}</span>}
                 </div>
@@ -296,17 +298,17 @@ export function FormsPage() {
             </Card>
 
             <Card>
-              <h3 style={{ marginTop: 0 }}>Documentos</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.forms.documents')}</h3>
               {documentsLoading ? (
                 <Spinner />
               ) : (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Nombre</th>
-                      <th>Firmado</th>
-                      <th>Creado</th>
-                      <th>Acciones</th>
+                      <th>{t('common.name')}</th>
+                      <th>{t('admin.forms.signed')}</th>
+                      <th>{t('admin.forms.created')}</th>
+                      <th>{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -321,7 +323,7 @@ export function FormsPage() {
                               color: d.signed ? '#fff' : 'var(--ws-text-muted)',
                             }}
                           >
-                            {d.signed ? 'Firmado' : 'Pendiente'}
+                            {d.signed ? t('admin.forms.signed') : t('admin.forms.pending')}
                           </span>
                         </td>
                         <td>{new Date(d.createdAt).toLocaleString()}</td>
@@ -329,11 +331,11 @@ export function FormsPage() {
                           <div className="row">
                             {!d.signed && (
                               <Button variant="secondary" onClick={() => signDoc.mutate(d.id)} disabled={signDoc.isPending}>
-                                Firmar
+                                {t('admin.forms.sign')}
                               </Button>
                             )}
                             <Button variant="ghost" onClick={() => setConfirmDoc(d)}>
-                              Eliminar
+                              {t('common.delete')}
                             </Button>
                           </div>
                         </td>
@@ -342,7 +344,7 @@ export function FormsPage() {
                     {(documents ?? []).length === 0 && (
                       <tr>
                         <td colSpan={4}>
-                          <p className="muted">No hay documentos.</p>
+                          <p className="muted">{t('admin.forms.noDocuments')}</p>
                         </td>
                       </tr>
                     )}
@@ -355,8 +357,8 @@ export function FormsPage() {
 
         <ConfirmDialog
           open={confirmForm !== null}
-          title="Eliminar formulario"
-          confirmLabel="Eliminar"
+          title={t('admin.forms.deleteForm')}
+          confirmLabel={t('common.delete')}
           danger
           onConfirm={() => {
             if (confirmForm) deleteForm.mutate(confirmForm.id);
@@ -364,13 +366,13 @@ export function FormsPage() {
           }}
           onCancel={() => setConfirmForm(null)}
         >
-          ¿Eliminar el formulario <strong>{confirmForm?.title}</strong>?
+          {t('admin.forms.deleteFormConfirm', { title: confirmForm?.title })}
         </ConfirmDialog>
 
         <ConfirmDialog
           open={confirmDoc !== null}
-          title="Eliminar documento"
-          confirmLabel="Eliminar"
+          title={t('admin.forms.deleteDocument')}
+          confirmLabel={t('common.delete')}
           danger
           onConfirm={() => {
             if (confirmDoc) deleteDoc.mutate(confirmDoc.id);
@@ -378,7 +380,7 @@ export function FormsPage() {
           }}
           onCancel={() => setConfirmDoc(null)}
         >
-          ¿Eliminar el documento <strong>{confirmDoc?.name}</strong>?
+          {t('admin.forms.deleteDocumentConfirm', { name: confirmDoc?.name })}
         </ConfirmDialog>
       </div>
     </div>

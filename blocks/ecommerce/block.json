@@ -39,6 +39,11 @@
         ]
       },
       "shippingApiKey": { "type": "string", "title": "API Key de envíos", "x-ui": { "widget": "password", "secret": true } },
+      "shippingApiSecret": { "type": "string", "title": "API Secret de envíos", "x-ui": { "widget": "password", "secret": true } },
+      "shippingUsername": { "type": "string", "title": "Usuario del proveedor" },
+      "shippingPassword": { "type": "string", "title": "Contraseña del proveedor", "x-ui": { "widget": "password", "secret": true } },
+      "shippingToken": { "type": "string", "title": "Token de acceso", "x-ui": { "widget": "password", "secret": true } },
+      "shippingBaseUrl": { "type": "string", "title": "URL base del proveedor" },
       "shippingFlat": { "type": "number", "title": "Tarifa de envío fija", "default": 0 },
       "products": { "type": "array", "title": "Productos", "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "price": { "type": "number" }, "stock": { "type": "number" }, "category": { "type": "string" } } }, "default": [] }
     }

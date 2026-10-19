@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -21,12 +22,8 @@ interface BlogPost {
 
 type View = 'list' | 'new';
 
-const STATUS_LABEL: Record<BlogPost['status'], string> = {
-  draft: 'Borrador',
-  published: 'Publicado',
-};
-
 export function BlogPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [view, setView] = useState<View>('list');
   const [q, setQ] = useState('');
@@ -112,20 +109,20 @@ export function BlogPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Blog</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.blog.title')}</h1>
         <button
           className={`nav-link ${view === 'list' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('list')}
         >
-          Listado
+          {t('admin.blog.list')}
         </button>
         <button
           className={`nav-link ${view === 'new' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={openCreate}
         >
-          Nuevo post
+          {t('admin.blog.newPost')}
         </button>
       </aside>
 
@@ -133,30 +130,30 @@ export function BlogPage() {
         {view === 'list' && (
           <Card>
             <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-              <h3 style={{ margin: 0 }}>Posts</h3>
+              <h3 style={{ margin: 0 }}>{t('admin.blog.posts')}</h3>
               <div className="row" style={{ gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
                 <input
                   className="input"
-                  placeholder="Buscar por título…"
+                  placeholder={t('admin.blog.searchPlaceholder')}
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                 />
                 <select className="input" style={{ width: 'auto' }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-                  <option value="">Todos los estados</option>
-                  <option value="draft">Borrador</option>
-                  <option value="published">Publicado</option>
+                  <option value="">{t('admin.blog.allStatuses')}</option>
+                  <option value="draft">{t('admin.blog.draft')}</option>
+                  <option value="published">{t('admin.blog.published')}</option>
                 </select>
-                <Button onClick={openCreate}>Nuevo post</Button>
+                <Button onClick={openCreate}>{t('admin.blog.newPost')}</Button>
               </div>
             </div>
 
             <table className="table" style={{ marginTop: 'var(--ws-space-3)' }}>
               <thead>
                 <tr>
-                  <th>Título</th>
-                  <th>Estado</th>
-                  <th>Categoría</th>
-                  <th>Acciones</th>
+                  <th>{t('admin.blog.titleCol')}</th>
+                  <th>{t('admin.blog.status')}</th>
+                  <th>{t('admin.blog.category')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,14 +169,14 @@ export function BlogPage() {
                             : { background: 'var(--ws-warning)', color: '#111' }
                         }
                       >
-                        {STATUS_LABEL[p.status]}
+                        {p.status === 'published' ? t('admin.blog.published') : t('admin.blog.draft')}
                       </span>
                     </td>
                     <td>{p.category ?? '—'}</td>
                     <td>
                       <div className="row">
-                        <Button variant="secondary" onClick={() => openEdit(p)}>Editar</Button>
-                        <Button variant="ghost" onClick={() => setConfirmDelete(p)}>Eliminar</Button>
+                        <Button variant="secondary" onClick={() => openEdit(p)}>{t('common.edit')}</Button>
+                        <Button variant="ghost" onClick={() => setConfirmDelete(p)}>{t('common.delete')}</Button>
                       </div>
                     </td>
                   </tr>
@@ -187,7 +184,7 @@ export function BlogPage() {
                 {postList.length === 0 && (
                   <tr>
                     <td colSpan={4}>
-                      <p className="muted">No hay posts.</p>
+                      <p className="muted">{t('admin.blog.noPosts')}</p>
                     </td>
                   </tr>
                 )}
@@ -198,28 +195,28 @@ export function BlogPage() {
 
         {view === 'new' && (
           <Card>
-            <h3 style={{ marginTop: 0 }}>{editing ? 'Editar post' : 'Nuevo post'}</h3>
+            <h3 style={{ marginTop: 0 }}>{editing ? t('admin.blog.editPost') : t('admin.blog.newPost')}</h3>
             <form className="stack" onSubmit={onSubmit}>
-              <TextField label="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
+              <TextField label={t('admin.blog.titleCol')} value={title} onChange={(e) => setTitle(e.target.value)} required />
               <div className="field">
-                <label>Cuerpo</label>
+                <label>{t('admin.blog.body')}</label>
                 <textarea className="input" rows={6} value={body} onChange={(e) => setBody(e.target.value)} required />
               </div>
               <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-                <TextField label="Categoría" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Opcional" />
-                <TextField label="Etiquetas (separadas por coma)" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="Opcional" />
+                <TextField label={t('admin.blog.category')} value={category} onChange={(e) => setCategory(e.target.value)} placeholder={t('admin.blog.optional')} />
+                <TextField label={t('admin.blog.tags')} value={tags} onChange={(e) => setTags(e.target.value)} placeholder={t('admin.blog.optional')} />
                 <div className="field">
-                  <label>Estado</label>
+                  <label>{t('admin.blog.status')}</label>
                   <select className="input" style={{ width: 'auto' }} value={status} onChange={(e) => setStatus(e.target.value as BlogPost['status'])}>
-                    <option value="draft">Borrador</option>
-                    <option value="published">Publicado</option>
+                    <option value="draft">{t('admin.blog.draft')}</option>
+                    <option value="published">{t('admin.blog.published')}</option>
                   </select>
                 </div>
               </div>
               <div className="row">
-                <Button type="submit" disabled={save.isPending}>{editing ? 'Guardar' : 'Crear'}</Button>
-                <Button variant="ghost" onClick={() => setView('list')}>Cancelar</Button>
-                {save.isSuccess && <span style={{ color: 'var(--ws-success)' }}>Guardado ✓</span>}
+                <Button type="submit" disabled={save.isPending}>{editing ? t('common.save') : t('common.create')}</Button>
+                <Button variant="ghost" onClick={() => setView('list')}>{t('common.cancel')}</Button>
+                {save.isSuccess && <span style={{ color: 'var(--ws-success)' }}>{t('admin.blog.saved')}</span>}
               </div>
               {save.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{save.error.message}</p>}
             </form>
@@ -228,8 +225,8 @@ export function BlogPage() {
 
         <ConfirmDialog
           open={confirmDelete !== null}
-          title="Eliminar post"
-          confirmLabel="Eliminar"
+          title={t('admin.blog.deletePost')}
+          confirmLabel={t('common.delete')}
           danger
           onConfirm={() => {
             if (confirmDelete) remove.mutate(confirmDelete.id);
@@ -237,7 +234,7 @@ export function BlogPage() {
           }}
           onCancel={() => setConfirmDelete(null)}
         >
-          ¿Eliminar el post <strong>{confirmDelete?.title}</strong>? Esta acción es irreversible.
+          {t('admin.blog.deleteConfirm', { title: confirmDelete?.title })}
         </ConfirmDialog>
       </div>
     </div>

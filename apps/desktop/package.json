@@ -1,0 +1,13 @@
+{
+  "name": "@webs/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Companion de escritorio: lee QR/barras desde puerto serial o keyboard-wedge y lo expone vía WebSocket.",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "optionalDependencies": {
+    "ws": "^8.18.0"
+  }
+}

@@ -1,4 +1,5 @@
 import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import * as analytics from '../../../apps/api/src/integrations/analytics';
 import manifestJson from '../block.json';
 
 const manifest = manifestJson as unknown as BlockManifest;
@@ -20,9 +21,10 @@ export default defineBlock(manifest, {
       const path = body?.path ?? '/';
       pages.set(path, (pages.get(path) ?? 0) + 1);
       total += 1;
-      // TODO(track a 3ros): si `settings.provider` no es "internal", enviar el
-      // evento al proveedor configurado (google-analytics / plausible / matomo)
-      // usando `settings.trackingId`. Aquí solo se registra localmente.
+      // Fire-and-forget al proveedor configurado (GA4 / Plausible / Matomo).
+      // Con `internal` (default) o sin credenciales es un no-op.
+      const provider = String(cfg.provider ?? 'internal');
+      void analytics.track(provider, cfg, { name: 'page_view', url: path, params: { path } });
       return { ok: true };
     });
 

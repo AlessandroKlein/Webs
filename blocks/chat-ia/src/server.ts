@@ -1,4 +1,5 @@
 import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import { chatCompletion } from '../../../apps/api/src/integrations/ai';
 import manifestJson from '../block.json';
 
 const manifest = manifestJson as unknown as BlockManifest;
@@ -12,8 +13,8 @@ type ChatMessageInput = { role: 'system' | 'user' | 'assistant'; content: string
  * chat-ia — servidor.
  *
  *  - GET  /config → {provider, model, available}.
- *  - POST /chat   → responde con el modelo configurado. Para `ollama` intenta
- *    `fetch({ollamaUrl}/api/chat)`; si falla (o el proveedor no tiene API key)
+ *  - POST /chat   → responde con el modelo configurado vía `chatCompletion`
+ *    (OpenAI/Anthropic/Gemini/Ollama). Si el proveedor no tiene API key o falla,
  *    devuelve una respuesta simulada explícita. Persiste el mensaje del usuario
  *    y la respuesta en `db.chatMessage` dentro de `config.room` (default "general").
  *
@@ -24,8 +25,6 @@ export default defineBlock(manifest, {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const provider = String(config.provider ?? 'openai');
     const model = String(config.model ?? 'gpt-4o-mini');
-    const apiKey = String(config.apiKey ?? '');
-    const ollamaUrl = String(config.ollamaUrl ?? 'http://localhost:11434');
     const room = String(config.room ?? 'general');
     const systemPrompt = String(config.systemPrompt ?? DEFAULT_SYSTEM);
     const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
@@ -52,27 +51,10 @@ export default defineBlock(manifest, {
         { role: 'user', content: message },
       ];
 
-      let reply: string;
-
-      if (provider === 'ollama' && ollamaUrl) {
-        try {
-          const res = await fetch(`${ollamaUrl.replace(/\/$/, '')}/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ model, messages }),
-          });
-          if (res.ok) {
-            const data = (await res.json()) as { message?: { content?: string } };
-            reply = data.message?.content ?? '';
-          } else {
-            reply = `Respuesta simulada: ${provider} respondió ${res.status}.`;
-          }
-        } catch {
-          reply = `Respuesta simulada: no se pudo contactar a ${provider} en ${ollamaUrl}.`;
-        }
-      } else {
-        reply = `Respuesta simulada: ${provider} sin API key configurada.`;
-      }
+      // Llamada real al proveedor configurado; `null` → respuesta simulada.
+      const reply =
+        (await chatCompletion(provider, config, messages)) ??
+        `Respuesta simulada: ${provider} sin API key configurada.`;
 
       // Persiste el mensaje del usuario y la respuesta de la IA en la sala.
       await db.chatMessage.create({ data: { from: 'user', to: room, body: message } });

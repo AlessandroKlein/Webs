@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BlockSlot, BlockById } from '../../blocks/BlockSlot';
 import { useAuthStore } from '../../lib/auth-store';
 import { useQuery } from '@tanstack/react-query';
@@ -26,6 +27,7 @@ const sizeClass = (size?: string) => (size === 'half' ? 'grid-2' : size === 'thi
  * hay página configurada, un hero por defecto; y el pie con footer/bloques.
  */
 export function PublicHome() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const { data: page } = useQuery({
     queryKey: ['public-home'],
@@ -70,11 +72,11 @@ export function PublicHome() {
             {tagline && <p className="muted" style={{ fontSize: '1.15rem', maxWidth: 560, margin: '0 auto var(--ws-space-5)' }}>{tagline}</p>}
             <div className="row" style={{ justifyContent: 'center', gap: 'var(--ws-space-3)', flexWrap: 'wrap' }}>
               {user ? (
-                <Link to="/admin" className="btn" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>Ir al panel</Link>
+                <Link to="/admin" className="btn" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>{t('site.hero.goToPanel')}</Link>
               ) : (
                 <>
-                  <Link to="/login" className="btn" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>Iniciar sesión</Link>
-                  <Link to="/store" className="btn ghost" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>Ver tienda</Link>
+                  <Link to="/login" className="btn" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>{t('site.hero.login')}</Link>
+                  <Link to="/store" className="btn ghost" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>{t('site.hero.viewStore')}</Link>
                 </>
               )}
             </div>

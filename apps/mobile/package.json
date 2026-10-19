@@ -1,0 +1,15 @@
+{
+  "name": "@webs/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PWA instalable de asistencia por QR para el gimnasio (HTML + JS + Vite, sin frameworks pesados).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}

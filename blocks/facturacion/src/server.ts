@@ -1,4 +1,5 @@
 import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import { issueInvoice } from '../../../apps/api/src/integrations/tax';
 import manifestJson from '../block.json';
 
 const manifest = manifestJson as unknown as BlockManifest;
@@ -19,6 +20,20 @@ export default defineBlock(manifest, {
     const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
       req: unknown,
     ) => Promise<void>;
+
+    // Credenciales del proveedor fiscal (claves genéricas para el adaptador).
+    const taxConfig: Record<string, unknown> = {
+      cuit: cfg.taxId,
+      taxId: cfg.taxId,
+      token: cfg.fiscalToken,
+      sign: cfg.fiscalSign,
+      username: cfg.fiscalUsername,
+      password: cfg.fiscalPassword,
+      reseller: cfg.fiscalReseller,
+      serviceUrl: cfg.fiscalServiceUrl,
+      baseUrl: cfg.fiscalServiceUrl,
+      arcaCert: cfg.arcaCert,
+    };
 
     // ------------------------------------------------------------------
     // Facturas
@@ -62,18 +77,37 @@ export default defineBlock(manifest, {
       return db.invoice.update({ where: { id: invoice.id }, data: { status } });
     });
 
-    // Simula la emisión fiscal: setea "issued" y un CAE ficticio.
+    // Emite la factura ante el proveedor fiscal configurado; si no hay
+    // credenciales o falla el webservice, cae a un CAE simulado.
     fastify.post('/invoices/:id/issue', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params } = request as { params?: { id?: string } };
       const invoice = await db.invoice.findUnique({ where: { id: params?.id } });
       if (!invoice) return { ok: false, error: 'Factura no encontrada' };
 
-      // TODO(emisión fiscal real): reemplazar este CAE ficticio por la emisión
-      // contra AFIP/ARCA o el proveedor fiscal configurado en `settings.taxProvider`
-      // ("local" | "afip" | "facturante" | "tsd"). Aquí solo se simula el flujo.
-      const cae = crypto.randomUUID();
-      const updated = await db.invoice.update({ where: { id: invoice.id }, data: { status: 'issued', cae } });
-      return { ok: true, cae, provider: cfg.taxProvider ?? 'local', invoice: updated };
+      const provider = String(cfg.taxProvider ?? 'local');
+      const result = await issueInvoice(provider, taxConfig, {
+        id: invoice.id,
+        number: invoice.number,
+        amount: Number(invoice.amount),
+        currency: invoice.currency,
+        customerName: invoice.customerName,
+        customerTaxId: invoice.customerTaxId,
+        vatCondition: invoice.vatCondition,
+        type: invoice.type,
+      });
+
+      const updated = await db.invoice.update({
+        where: { id: invoice.id },
+        data: { status: 'issued', cae: result.cae },
+      });
+      return {
+        ok: true,
+        cae: result.cae,
+        provider,
+        simulated: result.simulated,
+        caeExpiresAt: result.caeExpiresAt ?? null,
+        invoice: updated,
+      };
     });
 
     fastify.delete('/invoices/:id', { preHandler: [authenticate] }, async (request: unknown) => {

@@ -22,7 +22,13 @@
       "taxId": { "type": "string", "title": "CUIT/CIF" },
       "taxRate": { "type": "number", "title": "IVA (%)", "default": 21 },
       "taxProvider": { "type": "string", "title": "Proveedor fiscal", "enum": ["local", "afip", "facturante", "tsd"], "default": "local" },
-      "arcaCert": { "type": "string", "title": "Certificado ARCA", "x-ui": { "widget": "password", "secret": true } }
+      "arcaCert": { "type": "string", "title": "Certificado ARCA", "x-ui": { "widget": "password", "secret": true } },
+      "fiscalToken": { "type": "string", "title": "Token de acceso (AFIP TA)", "x-ui": { "widget": "password", "secret": true } },
+      "fiscalSign": { "type": "string", "title": "Sign (AFIP TA)", "x-ui": { "widget": "password", "secret": true } },
+      "fiscalUsername": { "type": "string", "title": "Usuario fiscal (Facturante/TSD)" },
+      "fiscalPassword": { "type": "string", "title": "Contraseña fiscal", "x-ui": { "widget": "password", "secret": true } },
+      "fiscalReseller": { "type": "string", "title": "Reseller (Facturante)" },
+      "fiscalServiceUrl": { "type": "string", "title": "URL del webservice fiscal" }
     }
   }
 }

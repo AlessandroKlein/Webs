@@ -1,4 +1,5 @@
 import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import { quoteShipping } from '../../../apps/api/src/integrations/shipping';
 import manifestJson from '../block.json';
 
 const manifest = manifestJson as unknown as BlockManifest;
@@ -34,6 +35,17 @@ export default defineBlock(manifest, {
           days: Number(r.days ?? 3),
         }))
       : DEFAULT_SHIPPING_RATES;
+
+    // Credenciales de los proveedores de envío (leídas de los settings; ninguna
+    // hardcodeada). Se pasan al adaptador con claves genéricas (`apiKey`, etc.).
+    const shippingConfig: Record<string, unknown> = {
+      apiKey: cfg.shippingApiKey,
+      apiSecret: cfg.shippingApiSecret,
+      username: cfg.shippingUsername,
+      password: cfg.shippingPassword,
+      token: cfg.shippingToken,
+      baseUrl: cfg.shippingBaseUrl,
+    };
 
     // Datos persistentes (tablas `orders`/`shipments`/`coupons` del esquema principal).
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
@@ -131,12 +143,16 @@ export default defineBlock(manifest, {
       if (!(SHIPPING_PROVIDERS as readonly string[]).includes(provider)) {
         return { ok: false, error: 'Proveedor no soportado', providers: SHIPPING_PROVIDERS };
       }
-      const rate = shippingRates.find((r) => r.provider === provider);
-      const baseCost = Number(rate?.baseCost ?? 0);
-      const costPerKg = Number(rate?.costPerKg ?? 0);
-      const days = Number(rate?.days ?? 3);
-      const cost = Math.round(baseCost + costPerKg * Math.max(weight, 0));
-      return { provider, cost, days, destination };
+      // Cotización real contra el proveedor configurado; con fallback local.
+      const quote = await quoteShipping(provider, shippingConfig, { weight, destination }, shippingRates);
+      return {
+        provider,
+        cost: quote.cost,
+        days: quote.days,
+        destination,
+        currency: quote.currency,
+        source: quote.source,
+      };
     });
 
     fastify.post('/shipments', { preHandler: [authenticate] }, async (request: unknown) => {

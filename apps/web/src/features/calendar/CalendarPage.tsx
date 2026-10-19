@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -47,6 +48,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export function CalendarPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [view, setView] = useState<View>('events');
 
@@ -134,20 +136,20 @@ export function CalendarPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Calendario</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.calendar.title')}</h1>
         <button
           className={`nav-link ${view === 'events' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('events')}
         >
-          Eventos
+          {t('admin.calendar.events')}
         </button>
         <button
           className={`nav-link ${view === 'bookings' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('bookings')}
         >
-          Reservas
+          {t('admin.calendar.bookings')}
         </button>
       </aside>
 
@@ -155,7 +157,7 @@ export function CalendarPage() {
         {view === 'events' && (
           <>
             <Card>
-              <h3 style={{ marginTop: 0 }}>Nuevo evento</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.calendar.newEvent')}</h3>
               <form
                 className="stack"
                 onSubmit={(e) => {
@@ -164,14 +166,14 @@ export function CalendarPage() {
                 }}
               >
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <TextField label="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
-                  <TextField label="Inicio" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} required />
-                  <TextField label="Fin (opcional)" type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} />
-                  <TextField label="Tipo (opcional)" value={type} onChange={(e) => setType(e.target.value)} placeholder="reunión, recordatorio…" />
+                  <TextField label={t('admin.calendar.titleCol')} value={title} onChange={(e) => setTitle(e.target.value)} required />
+                  <TextField label={t('admin.calendar.start')} type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} required />
+                  <TextField label={t('admin.calendar.endOptional')} type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} />
+                  <TextField label={t('admin.calendar.typeOptional')} value={type} onChange={(e) => setType(e.target.value)} placeholder={t('admin.calendar.typePlaceholder')} />
                 </div>
                 <div className="row">
                   <Button type="submit" disabled={createEvent.isPending || !title || !start}>
-                    Crear evento
+                    {t('admin.calendar.createEvent')}
                   </Button>
                   {createEvent.error && <span style={{ color: 'var(--ws-danger)' }}>{createEvent.error.message}</span>}
                 </div>
@@ -179,18 +181,18 @@ export function CalendarPage() {
             </Card>
 
             <Card>
-              <h3 style={{ marginTop: 0 }}>Eventos</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.calendar.events')}</h3>
               {eventsLoading ? (
                 <Spinner />
               ) : (
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Título</th>
-                      <th>Inicio</th>
-                      <th>Fin</th>
-                      <th>Tipo</th>
-                      <th>Acciones</th>
+                      <th>{t('admin.calendar.titleCol')}</th>
+                      <th>{t('admin.calendar.start')}</th>
+                      <th>{t('admin.calendar.end')}</th>
+                      <th>{t('admin.calendar.type')}</th>
+                      <th>{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -202,7 +204,7 @@ export function CalendarPage() {
                         <td>{ev.type ?? '—'}</td>
                         <td>
                           <Button variant="ghost" onClick={() => setConfirmEvent(ev)}>
-                            Eliminar
+                            {t('common.delete')}
                           </Button>
                         </td>
                       </tr>
@@ -210,7 +212,7 @@ export function CalendarPage() {
                     {(events ?? []).length === 0 && (
                       <tr>
                         <td colSpan={5}>
-                          <p className="muted">No hay eventos.</p>
+                          <p className="muted">{t('admin.calendar.noEvents')}</p>
                         </td>
                       </tr>
                     )}
@@ -224,7 +226,7 @@ export function CalendarPage() {
         {view === 'bookings' && (
           <>
             <Card>
-              <h3 style={{ marginTop: 0 }}>Nueva reserva</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.calendar.newBooking')}</h3>
               <form
                 className="stack"
                 onSubmit={(e) => {
@@ -234,14 +236,14 @@ export function CalendarPage() {
               >
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
                   <div className="field">
-                    <label>Servicio</label>
+                    <label>{t('admin.calendar.service')}</label>
                     <select
                       className="input"
                       value={bookingServiceId}
                       onChange={(e) => setBookingServiceId(e.target.value)}
                       required
                     >
-                      <option value="">Seleccionar…</option>
+                      <option value="">{t('admin.calendar.select')}</option>
                       {(services ?? []).map((s) => (
                         <option key={s} value={s}>
                           {s}
@@ -249,13 +251,13 @@ export function CalendarPage() {
                       ))}
                     </select>
                   </div>
-                  <TextField label="Nombre" value={bookingName} onChange={(e) => setBookingName(e.target.value)} required />
-                  <TextField label="Fecha" type="date" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required />
-                  <TextField label="Estado (opcional)" value={bookingStatus} onChange={(e) => setBookingStatus(e.target.value)} placeholder="pending" />
+                  <TextField label={t('common.name')} value={bookingName} onChange={(e) => setBookingName(e.target.value)} required />
+                  <TextField label={t('common.date')} type="date" value={bookingDate} onChange={(e) => setBookingDate(e.target.value)} required />
+                  <TextField label={t('admin.calendar.statusOptional')} value={bookingStatus} onChange={(e) => setBookingStatus(e.target.value)} placeholder="pending" />
                 </div>
                 <div className="row">
                   <Button type="submit" disabled={createBooking.isPending || !bookingServiceId || !bookingName || !bookingDate}>
-                    Crear reserva
+                    {t('admin.calendar.createBooking')}
                   </Button>
                   {createBooking.error && <span style={{ color: 'var(--ws-danger)' }}>{createBooking.error.message}</span>}
                 </div>
@@ -264,8 +266,8 @@ export function CalendarPage() {
 
             <Card>
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <h3 style={{ margin: 0 }}>Reservas</h3>
-                <TextField label="Filtrar por fecha" type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
+                <h3 style={{ margin: 0 }}>{t('admin.calendar.bookings')}</h3>
+                <TextField label={t('admin.calendar.filterByDate')} type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} />
               </div>
               {bookingsLoading ? (
                 <Spinner />
@@ -273,11 +275,11 @@ export function CalendarPage() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Servicio</th>
-                      <th>Nombre</th>
-                      <th>Fecha</th>
-                      <th>Estado</th>
-                      <th>Acciones</th>
+                      <th>{t('admin.calendar.service')}</th>
+                      <th>{t('common.name')}</th>
+                      <th>{t('common.date')}</th>
+                      <th>{t('common.status')}</th>
+                      <th>{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -296,17 +298,17 @@ export function CalendarPage() {
                               onClick={() => updateBookingStatus.mutate({ id: b.id, status: 'confirmed' })}
                               disabled={updateBookingStatus.isPending}
                             >
-                              Confirmar
+                              {t('common.confirm')}
                             </Button>
                             <Button
                               variant="ghost"
                               onClick={() => updateBookingStatus.mutate({ id: b.id, status: 'cancelled' })}
                               disabled={updateBookingStatus.isPending}
                             >
-                              Cancelar
+                              {t('common.cancel')}
                             </Button>
                             <Button variant="ghost" onClick={() => setConfirmBooking(b)}>
-                              Eliminar
+                              {t('common.delete')}
                             </Button>
                           </div>
                         </td>
@@ -315,7 +317,7 @@ export function CalendarPage() {
                     {(bookings ?? []).length === 0 && (
                       <tr>
                         <td colSpan={5}>
-                          <p className="muted">No hay reservas.</p>
+                          <p className="muted">{t('admin.calendar.noBookings')}</p>
                         </td>
                       </tr>
                     )}
@@ -328,8 +330,8 @@ export function CalendarPage() {
 
         <ConfirmDialog
           open={confirmEvent !== null}
-          title="Eliminar evento"
-          confirmLabel="Eliminar"
+          title={t('admin.calendar.deleteEvent')}
+          confirmLabel={t('common.delete')}
           danger
           onConfirm={() => {
             if (confirmEvent) deleteEvent.mutate(confirmEvent.id);
@@ -337,13 +339,13 @@ export function CalendarPage() {
           }}
           onCancel={() => setConfirmEvent(null)}
         >
-          ¿Eliminar el evento <strong>{confirmEvent?.title}</strong>?
+          {t('admin.calendar.deleteEventConfirm', { title: confirmEvent?.title })}
         </ConfirmDialog>
 
         <ConfirmDialog
           open={confirmBooking !== null}
-          title="Eliminar reserva"
-          confirmLabel="Eliminar"
+          title={t('admin.calendar.deleteBooking')}
+          confirmLabel={t('common.delete')}
           danger
           onConfirm={() => {
             if (confirmBooking) deleteBooking.mutate(confirmBooking.id);
@@ -351,7 +353,7 @@ export function CalendarPage() {
           }}
           onCancel={() => setConfirmBooking(null)}
         >
-          ¿Eliminar la reserva de <strong>{confirmBooking?.name}</strong>?
+          {t('admin.calendar.deleteBookingConfirm', { name: confirmBooking?.name })}
         </ConfirmDialog>
       </div>
     </div>

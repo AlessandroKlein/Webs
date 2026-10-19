@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -35,25 +36,26 @@ interface SendResult {
 type View = 'inbox' | 'send';
 
 export function NotificationsPage() {
+  const { t } = useTranslation();
   const [view, setView] = useState<View>('inbox');
 
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)' }}>Notificaciones</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)' }}>{t('admin.notifications.title')}</h1>
         <button
           className={`nav-link ${view === 'inbox' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('inbox')}
         >
-          Bandeja
+          {t('admin.notifications.inbox')}
         </button>
         <button
           className={`nav-link ${view === 'send' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('send')}
         >
-          Enviar
+          {t('admin.notifications.send')}
         </button>
       </aside>
 
@@ -65,6 +67,7 @@ export function NotificationsPage() {
 }
 
 function InboxView() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -96,9 +99,9 @@ function InboxView() {
   return (
     <div className="stack">
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2>Bandeja</h2>
+        <h2>{t('admin.notifications.inbox')}</h2>
         <Button variant="secondary" onClick={() => markAll.mutate()} disabled={markAll.isPending}>
-          Marcar todas como leídas
+          {t('common.markAllRead')}
         </Button>
       </div>
 
@@ -106,12 +109,12 @@ function InboxView() {
         <table className="table">
           <thead>
             <tr>
-              <th>Título</th>
-              <th>Mensaje</th>
-              <th>Prioridad</th>
-              <th>Estado</th>
-              <th>Vence</th>
-              <th>Acciones</th>
+              <th>{t('admin.notifications.titleCol')}</th>
+              <th>{t('admin.notifications.message')}</th>
+              <th>{t('common.priority')}</th>
+              <th>{t('common.status')}</th>
+              <th>{t('common.expires')}</th>
+              <th>{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -132,15 +135,15 @@ function InboxView() {
                           : undefined
                     }
                   >
-                    {n.priority === 'alta' ? 'Alta' : n.priority === 'media' ? 'Media' : 'Normal'}
+                    {n.priority === 'alta' ? t('admin.notifications.high') : n.priority === 'media' ? t('admin.notifications.medium') : t('admin.notifications.normal')}
                   </span>
                 </td>
                 <td>
                   {n.read ? (
-                    <span className="badge">Leída</span>
+                    <span className="badge">{t('admin.notifications.read')}</span>
                   ) : (
                     <span className="badge" style={{ background: 'var(--ws-warning)', color: '#000' }}>
-                      No leída
+                      {t('admin.notifications.unread')}
                     </span>
                   )}
                 </td>
@@ -149,11 +152,11 @@ function InboxView() {
                   <div className="row">
                     {!n.read && (
                       <Button variant="secondary" onClick={() => markRead.mutate(n.id)}>
-                        Marcar leída
+                        {t('common.markRead')}
                       </Button>
                     )}
                     <Button variant="ghost" onClick={() => setConfirmDelete(n)}>
-                      Eliminar
+                      {t('common.delete')}
                     </Button>
                   </div>
                 </td>
@@ -161,13 +164,13 @@ function InboxView() {
             ))}
           </tbody>
         </table>
-        {(data ?? []).length === 0 && <p className="muted">No hay notificaciones.</p>}
+        {(data ?? []).length === 0 && <p className="muted">{t('admin.notifications.noNotifications')}</p>}
       </Card>
 
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="Eliminar notificación"
-        confirmLabel="Eliminar"
+        title={t('admin.notifications.deleteNotification')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => {
           if (confirmDelete) remove.mutate(confirmDelete.id);
@@ -175,13 +178,14 @@ function InboxView() {
         }}
         onCancel={() => setConfirmDelete(null)}
       >
-        ¿Eliminar la notificación <strong>{confirmDelete?.title}</strong>? Esta acción es irreversible.
+        {t('admin.notifications.deleteConfirm', { title: confirmDelete?.title })}
       </ConfirmDialog>
     </div>
   );
 }
 
 function SendView() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const [userId, setUserId] = useState('');
@@ -223,33 +227,33 @@ function SendView() {
 
   return (
     <div className="stack">
-      <h2>Enviar notificación</h2>
+      <h2>{t('admin.notifications.sendNotification')}</h2>
 
       <Card>
-        <h3>Formulario</h3>
+        <h3>{t('admin.notifications.form')}</h3>
         <form className="stack" onSubmit={onSubmit}>
           <TextField
-            label="ID de usuario (opcional)"
+            label={t('admin.notifications.userIdOptional')}
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
-            placeholder="Vacío = enviar a todos"
+            placeholder={t('admin.notifications.emptyAll')}
           />
-          <TextField label="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <TextField label={t('admin.notifications.titleCol')} value={title} onChange={(e) => setTitle(e.target.value)} required />
           <div className="field">
-            <label>Mensaje</label>
+            <label>{t('admin.notifications.message')}</label>
             <textarea className="input" value={body} onChange={(e) => setBody(e.target.value)} rows={4} required />
           </div>
           <div className="grid-2" style={{ gap: 'var(--ws-space-2)' }}>
             <div className="field">
-              <label>Prioridad</label>
+              <label>{t('common.priority')}</label>
               <select className="input" value={priority} onChange={(e) => setPriority(e.target.value)}>
-                <option value="normal">Normal</option>
-                <option value="media">Media</option>
-                <option value="alta">Alta</option>
+                <option value="normal">{t('admin.notifications.normal')}</option>
+                <option value="media">{t('admin.notifications.medium')}</option>
+                <option value="alta">{t('admin.notifications.high')}</option>
               </select>
             </div>
             <div className="field">
-              <label>Vencimiento (opcional)</label>
+              <label>{t('admin.notifications.expiryOptional')}</label>
               <input
                 className="input"
                 type="datetime-local"
@@ -260,7 +264,7 @@ function SendView() {
           </div>
           <div className="row">
             <Button type="submit" disabled={send.isPending || !title || !body}>
-              Enviar
+              {t('admin.notifications.send')}
             </Button>
           </div>
         </form>
@@ -268,15 +272,15 @@ function SendView() {
 
       {send.isError && (
         <p className="muted" style={{ color: 'var(--ws-danger)' }}>
-          No se pudo enviar la notificación.
+          {t('admin.notifications.sendFailed')}
         </p>
       )}
 
       {result && (
         <Card>
-          <h3>Enviado</h3>
+          <h3>{t('admin.notifications.sent')}</h3>
           <p>
-            Estado: <strong>{result.ok ? 'ok' : 'falló'}</strong>
+            {t('admin.notifications.statusLabel')}: <strong>{result.ok ? t('admin.notifications.ok') : t('admin.notifications.failed')}</strong>
           </p>
           {result.notification && (
             <div className="stack">
@@ -290,7 +294,7 @@ function SendView() {
       )}
 
       <Card>
-        <h3>Proveedores</h3>
+        <h3>{t('admin.notifications.providers')}</h3>
         <div className="stack">
           {(providers ?? []).map((p) => (
             <div
@@ -303,11 +307,11 @@ function SendView() {
                 className="badge"
                 style={p.enabled ? undefined : { background: 'var(--ws-surface-2)', color: 'var(--ws-text-muted)' }}
               >
-                {p.enabled ? 'Activo' : 'Inactivo'}
+                {p.enabled ? t('common.active') : t('common.inactive')}
               </span>
             </div>
           ))}
-          {(providers ?? []).length === 0 && <p className="muted">Sin proveedores.</p>}
+          {(providers ?? []).length === 0 && <p className="muted">{t('admin.notifications.noProviders')}</p>}
         </div>
       </Card>
     </div>
