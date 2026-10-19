@@ -26,18 +26,30 @@ export default defineBlock(manifest, {
 
     fastify.get('/inbox', async (request: unknown) => {
       const { query } = request as { query?: { userId?: string } };
-      const where = query?.userId ? { userId: query.userId } : {};
+      const now = new Date();
+      const where = {
+        ...(query?.userId ? { userId: query.userId } : {}),
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      };
       return db.notification.findMany({ where, orderBy: { createdAt: 'desc' }, take: 100 });
     });
 
     fastify.post('/send', { preHandler: [authenticate] }, async (request: unknown) => {
-      const { body } = request as { body?: { userId?: string; title?: string; body?: string } };
+      const { body } = request as {
+        body?: { userId?: string; title?: string; body?: string; priority?: string; expiresAt?: string | null };
+      };
       const title = (body?.title ?? '').trim();
       const message = body?.body ?? '';
       if (!title) return { ok: false, error: 'title es requerido' };
 
       const notification = await db.notification.create({
-        data: { title, body: message, userId: body?.userId ?? null },
+        data: {
+          title,
+          body: message,
+          userId: body?.userId ?? null,
+          priority: body?.priority ?? 'normal',
+          expiresAt: body?.expiresAt ? new Date(body.expiresAt) : null,
+        },
       });
 
       // Emite el evento de negocio si el emisor está disponible.

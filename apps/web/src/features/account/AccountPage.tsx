@@ -10,6 +10,7 @@ import { TextField } from '../../components/ui/TextField';
 import { QrCode } from '../../components/ui/QrCode';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { PromptDialog } from '../../components/ui/PromptDialog';
 
 interface MeResponse {
   user: {
@@ -48,7 +49,10 @@ export function AccountPage() {
       avatarUrl?: string | null;
       locale?: string;
     }) => api.patch('/api/v1/auth/me', body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['me'] }),
+    onSuccess: () => {
+      setProfileSaved(true);
+      qc.invalidateQueries({ queryKey: ['me'] });
+    },
   });
   const deleteAccount = useMutation({
     mutationFn: () => api.del('/api/v1/auth/me'),
@@ -62,11 +66,13 @@ export function AccountPage() {
 
   const [tab, setTab] = useState<Tab>('profile');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
 
   if (isLoading) return <Spinner />;
 
   const onProfile = (e: FormEvent) => {
     e.preventDefault();
+    setProfileSaved(false);
     const fd = new FormData(e.currentTarget as HTMLFormElement);
     const displayName = (fd.get('displayName') as string) || null;
     const username = (fd.get('username') as string) || null;
@@ -96,31 +102,82 @@ export function AccountPage() {
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
         {tab === 'profile' && (
-          <Card>
-            <h3>Perfil</h3>
-            <p>
-              <strong>{data?.user?.email}</strong>
-              {data?.user?.displayName ? ` — ${data.user.displayName}` : ''}
-            </p>
-            <form className="row" onSubmit={onProfile} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} />
-              <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
-              <TextField label="Avatar URL" name="avatarUrl" defaultValue={data?.user?.avatarUrl ?? ''} placeholder="https://…" />
-              <div className="field">
-                <label>Idioma</label>
-                <select className="input" name="locale" defaultValue={data?.user?.locale ?? 'es'}>
-                  {catalog
-                    .filter((l) => enabledLocales.includes(l.code))
-                    .map((l) => (
-                      <option key={l.code} value={l.code}>
-                        {l.nativeLabel}
-                      </option>
-                    ))}
-                </select>
+          <>
+            <Card>
+              <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-4)' }}>
+                {data?.user?.avatarUrl ? (
+                  <img
+                    src={data.user.avatarUrl}
+                    alt="Avatar"
+                    style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--ws-border)' }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: '50%',
+                      background: 'var(--ws-primary)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.6rem',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {(data?.user?.displayName ?? data?.user?.email ?? '?').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="stack" style={{ gap: 2 }}>
+                  <h2 style={{ margin: 0 }}>{data?.user?.displayName ?? data?.user?.email}</h2>
+                  <p className="muted" style={{ margin: 0 }}>
+                    <i className="bi bi-envelope" /> {data?.user?.email}
+                    {data?.user?.username ? <span> · @{data.user.username}</span> : ''}
+                  </p>
+                  <span
+                    className="badge"
+                    style={{ alignSelf: 'flex-start', background: data?.user?.active ? 'var(--ws-success, #16a34a)' : 'var(--ws-danger)', color: '#fff' }}
+                  >
+                    {data?.user?.active ? 'Activa' : 'Inactiva'}
+                  </span>
+                </div>
               </div>
-              <Button type="submit" disabled={updateProfile.isPending}>Guardar perfil</Button>
-            </form>
-          </Card>
+            </Card>
+
+            <Card>
+              <h3>Datos del perfil</h3>
+              <form className="stack" onSubmit={onProfile}>
+                <div className="grid-2" style={{ gap: 'var(--ws-space-3)' }}>
+                  <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} placeholder="Tu nombre" />
+                  <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
+                  <TextField label="Avatar URL" name="avatarUrl" defaultValue={data?.user?.avatarUrl ?? ''} placeholder="https://…" />
+                  <div className="field">
+                    <label>Idioma</label>
+                    <select className="input" name="locale" defaultValue={data?.user?.locale ?? 'es'}>
+                      {catalog
+                        .filter((l) => enabledLocales.includes(l.code))
+                        .map((l) => (
+                          <option key={l.code} value={l.code}>
+                            {l.nativeLabel}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+                {profileSaved && (
+                  <p className="muted" style={{ color: 'var(--ws-success, #16a34a)', margin: 0 }}>
+                    <i className="bi bi-check-circle" /> Perfil guardado
+                  </p>
+                )}
+                <div className="row" style={{ justifyContent: 'flex-end' }}>
+                  <Button type="submit" disabled={updateProfile.isPending}>
+                    {updateProfile.isPending ? 'Guardando…' : 'Guardar perfil'}
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          </>
         )}
 
         {tab === 'security' && (
@@ -401,6 +458,7 @@ function PasskeysCard() {
   });
   const [error, setError] = useState<string | null>(null);
   const [registering, setRegistering] = useState(false);
+  const [renaming, setRenaming] = useState<PasskeyRow | null>(null);
 
   const register = async () => {
     setRegistering(true);
@@ -443,10 +501,7 @@ function PasskeysCard() {
             <div className="row">
               <Button
                 variant="ghost"
-                onClick={() => {
-                  const name = window.prompt('Nombre del dispositivo', p.deviceName ?? '');
-                  if (name) rename.mutate({ id: p.id, deviceName: name });
-                }}
+                onClick={() => setRenaming(p)}
               >
                 Renombrar
               </Button>
@@ -462,6 +517,19 @@ function PasskeysCard() {
       <Button onClick={register} disabled={registering} style={{ marginTop: 'var(--ws-space-3)' }}>
         {registering ? 'Registrando…' : 'Registrar passkey'}
       </Button>
+
+      <PromptDialog
+        open={renaming !== null}
+        title="Renombrar passkey"
+        label="Nombre del dispositivo"
+        defaultValue={renaming?.deviceName ?? ''}
+        confirmLabel="Guardar"
+        onConfirm={(name) => {
+          if (renaming && name.trim()) rename.mutate({ id: renaming.id, deviceName: name.trim() });
+          setRenaming(null);
+        }}
+        onCancel={() => setRenaming(null)}
+      />
     </Card>
   );
 }

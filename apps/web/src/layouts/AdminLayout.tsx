@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme, type ThemeMode } from '@webs/ui';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../lib/auth-store';
 import { setLocale } from '../lib/i18n';
 import { useLocaleStore } from '../lib/locale-store';
@@ -49,10 +49,28 @@ export function AdminLayout() {
 
   const { data: inbox } = useQuery({
     queryKey: ['notifications-inbox'],
-    queryFn: () => api.get<Array<{ id: string; title: string; body: string; read: boolean }>>('/api/v1/notifications/inbox'),
+    queryFn: () =>
+      api.get<
+        Array<{ id: string; title: string; body: string; read: boolean; priority: string; expiresAt: string | null }>
+      >('/api/v1/notifications/inbox'),
     refetchInterval: 30_000,
   });
+  const qc = useQueryClient();
   const unread = (inbox ?? []).filter((n) => !n.read).length;
+
+  const markRead = useMutation({
+    mutationFn: (id: string) => api.patch(`/api/v1/notifications/inbox/${id}`, {}),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['notifications-inbox'] }),
+  });
+  const markAllRead = useMutation({
+    mutationFn: () => api.patch('/api/v1/notifications/inbox/read-all', {}),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['notifications-inbox'] }),
+  });
+
+  const priorityLabel = (p: string) =>
+    p === 'alta' ? 'Alta' : p === 'media' ? 'Media' : 'Normal';
+  const priorityColor = (p: string) =>
+    p === 'alta' ? 'var(--ws-danger)' : p === 'media' ? '#d97706' : 'var(--ws-muted, #6b7280)';
 
   const nav = [
     { to: '/admin', label: t('nav.dashboard'), end: true, perm: null as string | null },
@@ -182,10 +200,47 @@ export function AdminLayout() {
                 {unread > 0 && <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-danger)', color: '#fff' }}>{unread}</span>}
               </button>
               {bellOpen && (
-                <div className="dropdown">
+                <div className="dropdown" style={{ width: 320 }}>
+                  <div
+                    className="row"
+                    style={{ justifyContent: 'space-between', padding: 'var(--ws-space-2)', borderBottom: '1px solid var(--ws-border)' }}
+                  >
+                    <strong>Notificaciones</strong>
+                    {unread > 0 && (
+                      <button className="btn ghost" onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>
+                        <i className="bi bi-check2-all" /> Marcar todas
+                      </button>
+                    )}
+                  </div>
                   {(inbox ?? []).slice(0, 20).map((n) => (
-                    <div key={n.id} style={{ padding: 'var(--ws-space-2)', borderBottom: '1px solid var(--ws-border)' }}>
-                      <strong style={{ fontWeight: n.read ? 400 : 600 }}>{n.title}</strong>
+                    <div
+                      key={n.id}
+                      style={{
+                        padding: 'var(--ws-space-2)',
+                        borderBottom: '1px solid var(--ws-border)',
+                        opacity: n.read ? 0.6 : 1,
+                      }}
+                    >
+                      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div className="stack" style={{ gap: 2 }}>
+                          <strong style={{ fontWeight: n.read ? 400 : 600 }}>{n.title}</strong>
+                          <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
+                            <i className="bi bi-flag-fill" style={{ color: priorityColor(n.priority ?? 'normal') }} />{' '}
+                            {priorityLabel(n.priority ?? 'normal')}
+                            {n.expiresAt ? ` · vence ${new Date(n.expiresAt).toLocaleDateString()}` : ''}
+                          </span>
+                        </div>
+                        {!n.read && (
+                          <button
+                            className="btn ghost"
+                            title="Marcar como leída"
+                            onClick={() => markRead.mutate(n.id)}
+                            disabled={markRead.isPending}
+                          >
+                            <i className="bi bi-check2" />
+                          </button>
+                        )}
+                      </div>
                       <p className="muted" style={{ margin: 0 }}>{n.body}</p>
                     </div>
                   ))}

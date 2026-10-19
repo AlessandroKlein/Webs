@@ -16,6 +16,8 @@ interface NotificationRow {
   title: string;
   body: string;
   read: boolean;
+  priority: string;
+  expiresAt: string | null;
   createdAt: string;
 }
 
@@ -106,8 +108,9 @@ function InboxView() {
             <tr>
               <th>Título</th>
               <th>Mensaje</th>
+              <th>Prioridad</th>
               <th>Estado</th>
-              <th>Fecha</th>
+              <th>Vence</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -119,6 +122,20 @@ function InboxView() {
                   <span className="muted">{n.body}</span>
                 </td>
                 <td>
+                  <span
+                    className="badge"
+                    style={
+                      n.priority === 'alta'
+                        ? { background: 'var(--ws-danger)', color: '#fff' }
+                        : n.priority === 'media'
+                          ? { background: '#d97706', color: '#fff' }
+                          : undefined
+                    }
+                  >
+                    {n.priority === 'alta' ? 'Alta' : n.priority === 'media' ? 'Media' : 'Normal'}
+                  </span>
+                </td>
+                <td>
                   {n.read ? (
                     <span className="badge">Leída</span>
                   ) : (
@@ -127,7 +144,7 @@ function InboxView() {
                     </span>
                   )}
                 </td>
-                <td>{new Date(n.createdAt).toLocaleString()}</td>
+                <td>{n.expiresAt ? new Date(n.expiresAt).toLocaleString() : '—'}</td>
                 <td>
                   <div className="row">
                     {!n.read && (
@@ -170,6 +187,8 @@ function SendView() {
   const [userId, setUserId] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [priority, setPriority] = useState('normal');
+  const [expiresAt, setExpiresAt] = useState('');
   const [result, setResult] = useState<SendResult | null>(null);
 
   const { data: providers } = useQuery({
@@ -183,12 +202,16 @@ function SendView() {
         ...(userId.trim() ? { userId: userId.trim() } : {}),
         title,
         body,
+        priority,
+        ...(expiresAt ? { expiresAt: new Date(expiresAt).toISOString() } : {}),
       }),
     onSuccess: (res) => {
       setResult(res);
       setUserId('');
       setTitle('');
       setBody('');
+      setPriority('normal');
+      setExpiresAt('');
       qc.invalidateQueries({ queryKey: ['notificaciones-inbox'] });
     },
   });
@@ -215,6 +238,25 @@ function SendView() {
           <div className="field">
             <label>Mensaje</label>
             <textarea className="input" value={body} onChange={(e) => setBody(e.target.value)} rows={4} required />
+          </div>
+          <div className="grid-2" style={{ gap: 'var(--ws-space-2)' }}>
+            <div className="field">
+              <label>Prioridad</label>
+              <select className="input" value={priority} onChange={(e) => setPriority(e.target.value)}>
+                <option value="normal">Normal</option>
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>Vencimiento (opcional)</label>
+              <input
+                className="input"
+                type="datetime-local"
+                value={expiresAt}
+                onChange={(e) => setExpiresAt(e.target.value)}
+              />
+            </div>
           </div>
           <div className="row">
             <Button type="submit" disabled={send.isPending || !title || !body}>

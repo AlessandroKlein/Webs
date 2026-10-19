@@ -20,7 +20,16 @@ export default async function notificationsRoutes(fastify: FastifyInstance): Pro
   fastify.get(
     '/notifications/inbox',
     { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate] },
-    async () => fastify.prisma.notification.findMany({ orderBy: { createdAt: 'desc' }, take: 50 }),
+    async (request) => {
+      const { userId } = request.query as { userId?: string };
+      const now = new Date();
+      const where = {
+        ...(userId ? { userId } : {}),
+        // Oculta notificaciones vencidas (caducadas).
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      };
+      return fastify.prisma.notification.findMany({ where, orderBy: { createdAt: 'desc' }, take: 50 });
+    },
   );
 
   // Creación de una notificación en la bandeja (requiere permiso de escritura de ajustes).
@@ -28,11 +37,30 @@ export default async function notificationsRoutes(fastify: FastifyInstance): Pro
     '/notifications/inbox',
     { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate, fastify.authorize('setting.write')] },
     async (request, reply) => {
-      const body = request.body as { title?: string; body?: string; userId?: string };
+      const body = request.body as { title?: string; body?: string; userId?: string; priority?: string; expiresAt?: string | null };
       const n = await fastify.prisma.notification.create({
-        data: { title: body?.title ?? '', body: body?.body ?? '', userId: body?.userId ?? null },
+        data: {
+          title: body?.title ?? '',
+          body: body?.body ?? '',
+          userId: body?.userId ?? null,
+          priority: body?.priority ?? 'normal',
+          expiresAt: body?.expiresAt ? new Date(body.expiresAt) : null,
+        },
       });
       return reply.status(201).send(n);
+    },
+  );
+
+  // Marca todas las notificaciones como leídas.
+  fastify.patch(
+    '/notifications/inbox/read-all',
+    { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate] },
+    async () => {
+      const result = await fastify.prisma.notification.updateMany({
+        where: { read: false },
+        data: { read: true },
+      });
+      return { ok: true, updated: result.count ?? 0 };
     },
   );
 
