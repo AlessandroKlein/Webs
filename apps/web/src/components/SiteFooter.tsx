@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 
 interface FooterData {
@@ -20,11 +21,19 @@ interface FooterData {
  * enlaces legales y redes sociales — solo muestra los que están completos.
  */
 export function SiteFooter() {
+  const { i18n } = useTranslation();
   const { data } = useQuery({
     queryKey: ['public-footer'],
     queryFn: () => api.get<FooterData>('/api/v1/public/footer'),
     retry: 0,
   });
+
+  const rightsText: Record<string, string> = {
+    es: 'Todos los derechos reservados.',
+    en: 'All rights reserved.',
+    pt: 'Todos os direitos reservados.',
+  };
+  const rights = rightsText[i18n.language] ?? rightsText.en;
 
   const siteName = data?.site.name ?? 'Webs';
   const year = new Date().getFullYear();
@@ -43,7 +52,7 @@ export function SiteFooter() {
     <footer className="footer" style={{ padding: 'var(--ws-space-5) var(--ws-space-6)' }}>
       <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
         <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-4)', justifyContent: 'space-between' }}>
-          <span>© {range} {siteName}. Todos los derechos reservados.</span>
+          <span>© {range} {siteName}. {rights}</span>
 
           {hasContact && (
             <span className="muted">

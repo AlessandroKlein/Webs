@@ -3,6 +3,12 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.34.1] - 2026-10-19
+
+### Corregido
+
+- Footer: el texto de copyright respeta el idioma seleccionado (es/en/pt).
+
 ## [1.34.0] - 2026-10-19
 
 ### Añadido
