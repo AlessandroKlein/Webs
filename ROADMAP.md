@@ -50,6 +50,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | WebAuthn en Redis + plantilla cursos + bloques carrito/facturación/push | ✅ | 0.37.0 |
 | Núcleo: modo mantenimiento + zona horaria + respaldos | ✅ | 0.38.0 |
 | Módulos opcionales: SEO, analítica, marketing, comentarios, búsqueda, soporte | ✅ | 0.39.0 |
+| Bloques de negocio: ecommerce, reservas, blog, academia/LMS | ✅ | 0.40.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
