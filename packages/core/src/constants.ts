@@ -77,6 +77,45 @@ export const Permission = {
   // Tokens de API
   ApiTokenRead: 'apiToken.read',
   ApiTokenWrite: 'apiToken.write',
+
+  // Organizaciones / membresías
+  OrganizationManage: 'organization.manage',
+  MembershipManage: 'membership.manage',
+  AttendanceManage: 'attendance.manage',
+
+  // Inventario
+  InventoryRead: 'inventory.read',
+  InventoryManage: 'inventory.manage',
+
+  // Finanzas / facturación
+  BillingRead: 'billing.read',
+  BillingWrite: 'billing.write',
+  RefundManage: 'refund.manage',
+
+  // Soporte
+  SupportRead: 'support.read',
+  SupportManage: 'support.manage',
+
+  // Marketing / analítica
+  MarketingManage: 'marketing.manage',
+  AnalyticsRead: 'analytics.read',
+
+  // Recursos humanos
+  HrManage: 'hr.manage',
+
+  // Ventas / punto de venta
+  SalesManage: 'sales.manage',
+
+  // Capacitación / academia
+  CourseManage: 'course.manage',
+
+  // Contenido / usuarios
+  ContentModerate: 'content.moderate',
+  UserInvite: 'user.invite',
+
+  // Informes / auditoría
+  ReportExport: 'report.export',
+  AuditExport: 'audit.export',
 } as const;
 
 export type PermissionValue = (typeof Permission)[keyof typeof Permission];

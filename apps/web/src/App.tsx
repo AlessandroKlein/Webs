@@ -43,6 +43,8 @@ import { AnalyticsPage } from './features/analytics/AnalyticsPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { AuthConfigPage } from './features/auth-config/AuthConfigPage';
 import { PublicHome } from './features/public/PublicHome';
+import { PublicPage } from './features/public/PublicPage';
+import { SiteLayout } from './components/SiteLayout';
 import { SetupWizard } from './features/setup/SetupWizard';
 import { ErrorPage } from './pages/ErrorPage';
 
@@ -123,9 +125,9 @@ function MainApp() {
         <Route path="/setup-2fa" element={<SetupTwoFactorPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/store" element={<StorePage />} />
+        <Route path="/store" element={<SiteLayout><StorePage /></SiteLayout>} />
         <Route path="/" element={<PublicHome />} />
-        <Route path="/account" element={<RequireAuth><AccountPage /></RequireAuth>} />
+        <Route path="/account" element={<RequireAuth><SiteLayout><AccountPage /></SiteLayout></RequireAuth>} />
 
         <Route
           path="/admin"
@@ -164,6 +166,7 @@ function MainApp() {
           <Route path="api-tokens" element={<ApiTokensPage />} />
         </Route>
 
+        <Route path="/:slug" element={<PublicPage />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
     </BrowserRouter>

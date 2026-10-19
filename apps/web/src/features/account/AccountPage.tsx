@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { startRegistration } from '@simplewebauthn/browser';
@@ -27,7 +28,26 @@ interface MeResponse {
   twoFactorEnabled: boolean;
 }
 
-type Tab = 'profile' | 'security' | 'password' | 'danger';
+interface Course {
+  id: string;
+  title: string;
+  description: string | null;
+  level: string | null;
+  lessons: unknown[] | null;
+}
+
+interface Enrollment {
+  id: string;
+  courseId: string;
+  student: string;
+  progress: number;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+const ACADEMIA = '/api/v1/blocks/academia';
+
+type Tab = 'summary' | 'profile' | 'security' | 'password' | 'danger';
 
 export function AccountPage() {
   const { t } = useTranslation();
@@ -65,8 +85,9 @@ export function AccountPage() {
   });
 
   const twilioInstalled = blocksData?.installed?.some((b) => b.blockId === 'twilio' && b.enabled);
+  const academiaInstalled = blocksData?.installed?.some((b) => b.blockId === 'academia' && b.enabled);
 
-  const [tab, setTab] = useState<Tab>('profile');
+  const [tab, setTab] = useState<Tab>('summary');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
 
@@ -84,31 +105,37 @@ export function AccountPage() {
   };
 
   const tabLabel = (tab: Tab): string =>
-    tab === 'profile'
-      ? t('admin.account.profile')
-      : tab === 'security'
-        ? t('admin.account.security')
-        : tab === 'password'
-          ? t('admin.account.changePassword')
-          : t('admin.account.dangerZone');
+    tab === 'summary'
+      ? t('admin.account.summary')
+      : tab === 'profile'
+        ? t('admin.account.profile')
+        : tab === 'security'
+          ? t('admin.account.security')
+          : tab === 'password'
+            ? t('admin.account.changePassword')
+            : t('admin.account.dangerZone');
 
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
         <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.account')}</h1>
-        {(['profile', 'security', 'password', 'danger'] as const).map((t) => (
+        {(['summary', 'profile', 'security', 'password', 'danger'] as const).map((tabKey) => (
           <button
-            key={t}
-            className={`nav-link ${tab === t ? 'active' : ''}`}
+            key={tabKey}
+            className={`nav-link ${tab === tabKey ? 'active' : ''}`}
             style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
-            onClick={() => setTab(t)}
+            onClick={() => setTab(tabKey)}
           >
-            {tabLabel(t)}
+            {tabLabel(tabKey)}
           </button>
         ))}
       </aside>
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+        {tab === 'summary' && (
+          <SummaryView user={data?.user ?? null} academiaInstalled={!!academiaInstalled} onNavigate={setTab} />
+        )}
+
         {tab === 'profile' && (
           <>
             <Card>
@@ -224,6 +251,134 @@ export function AccountPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function SummaryView({
+  user,
+  academiaInstalled,
+  onNavigate,
+}: {
+  user: MeResponse['user'];
+  academiaInstalled: boolean;
+  onNavigate: (tab: Tab) => void;
+}) {
+  const { t } = useTranslation();
+  const hasPermission = useAuthStore((s) => s.hasPermission);
+  const hasAdmin = hasPermission('user.read');
+
+  const { data: enrollments } = useQuery({
+    queryKey: ['academia-enrollments'],
+    queryFn: () => api.get<Enrollment[]>(`${ACADEMIA}/enrollments`),
+    enabled: academiaInstalled,
+  });
+  const { data: courses } = useQuery({
+    queryKey: ['academia-courses'],
+    queryFn: () => api.get<Course[]>(`${ACADEMIA}/courses`),
+    enabled: academiaInstalled,
+  });
+
+  const mine = (enrollments ?? []).filter((e) =>
+    user ? e.student === user.email || (user.username ? e.student === user.username : false) : false,
+  );
+  const courseTitle = (id: string) => courses?.find((c) => c.id === id)?.title ?? id;
+
+  if (!user) return <Spinner />;
+
+  return (
+    <>
+      <Card>
+        <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-4)' }}>
+          {user.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={t('admin.account.avatar')}
+              style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--ws-border)' }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                background: 'var(--ws-primary)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.6rem',
+                fontWeight: 700,
+              }}
+            >
+              {(user.displayName ?? user.email ?? '?').charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div className="stack" style={{ gap: 2 }}>
+            <h2 style={{ margin: 0 }}>{user.displayName ?? user.email}</h2>
+            <p className="muted" style={{ margin: 0 }}>
+              <i className="bi bi-envelope" /> {user.email}
+              {user.username ? <span> · @{user.username}</span> : ''}
+            </p>
+          </div>
+        </div>
+
+        <h3 style={{ marginTop: 'var(--ws-space-4)', marginBottom: 'var(--ws-space-2)' }}>{t('admin.account.quickLinks')}</h3>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+          <button className="btn" onClick={() => onNavigate('profile')}>
+            <i className="bi bi-person" /> {t('admin.account.profile')}
+          </button>
+          <button className="btn secondary" onClick={() => onNavigate('security')}>
+            <i className="bi bi-shield-check" /> {t('admin.account.security')}
+          </button>
+          <button className="btn secondary" onClick={() => onNavigate('password')}>
+            <i className="bi bi-key" /> {t('admin.account.changePassword')}
+          </button>
+          <Link to="/store" className="btn secondary">
+            <i className="bi bi-bag" /> Tienda
+          </Link>
+          {hasAdmin && (
+            <Link to="/admin" className="btn secondary">
+              <i className="bi bi-speedometer2" /> {t('site.header.adminPanel')}
+            </Link>
+          )}
+        </div>
+      </Card>
+
+      <Card>
+        <h3>{t('admin.account.myEnrollments')}</h3>
+        {!academiaInstalled ? (
+          <p className="muted">{t('admin.account.academyUnavailable')}</p>
+        ) : mine.length === 0 ? (
+          <p className="muted">{t('admin.account.noEnrollments')}</p>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t('common.title')}</th>
+                <th>{t('admin.account.progressLabel')}</th>
+                <th>{t('common.status')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mine.map((e) => (
+                <tr key={e.id}>
+                  <td>{courseTitle(e.courseId)}</td>
+                  <td>{e.progress}%</td>
+                  <td>
+                    <span
+                      className="badge"
+                      style={e.completedAt ? { background: 'var(--ws-success, #16a34a)', color: '#fff' } : undefined}
+                    >
+                      {e.completedAt ? t('admin.account.completedLabel') : t('admin.account.inProgress')}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+    </>
   );
 }
 

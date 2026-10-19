@@ -20,6 +20,7 @@ export function AdminLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+  const [blocksOpen, setBlocksOpen] = useState(true);
 
   const { data: blocksData } = useQuery({
     queryKey: ['blocks'],
@@ -72,22 +73,10 @@ export function AdminLayout() {
   const priorityColor = (p: string) =>
     p === 'alta' ? 'var(--ws-danger)' : p === 'media' ? '#d97706' : 'var(--ws-muted, #6b7280)';
 
-  const nav = [
+  const coreNav = [
     { to: '/admin', label: t('nav.dashboard'), end: true, perm: null as string | null },
     { to: '/admin/content', label: t('nav.content'), perm: 'content.read' },
-    { to: '/admin/pages', label: 'Páginas', perm: 'content.read' },
-    { to: '/admin/organizations', label: 'Organizaciones', perm: null },
-    { to: '/admin/inventory', label: 'Inventario', perm: null },
-    { to: '/admin/blog', label: 'Blog', perm: null },
-    { to: '/admin/social', label: 'Social', perm: null },
-    { to: '/admin/chat', label: 'Chat', perm: null },
-    { to: '/admin/calendar', label: 'Calendario', perm: null },
-    { to: '/admin/forms', label: 'Formularios', perm: null },
-    { to: '/admin/commerce', label: 'Comercio', perm: null },
-    { to: '/admin/invoices', label: 'Facturación', perm: null },
-    { to: '/admin/analytics', label: 'Analítica', perm: null },
-    { to: '/admin/notifications', label: 'Notificaciones', perm: null },
-    { to: '/admin/auth', label: 'Registro/Login', perm: null },
+    { to: '/admin/pages', label: t('nav.pages'), perm: 'content.read' },
     { to: '/admin/email', label: t('nav.email'), perm: 'email.read' },
     { to: '/admin/blocks', label: t('nav.blocks'), perm: 'block.read' },
     { to: '/admin/templates', label: t('nav.templates'), perm: 'setting.write' },
@@ -101,12 +90,27 @@ export function AdminLayout() {
     { to: '/admin/api-tokens', label: t('nav.api'), perm: null },
   ].filter((item) => item.perm === null || hasPermission(item.perm));
 
+  const blockNav = [
+    { to: '/admin/blog', label: t('admin.blog.title') },
+    { to: '/admin/social', label: t('admin.social.title') },
+    { to: '/admin/chat', label: t('admin.chat.title') },
+    { to: '/admin/calendar', label: t('admin.calendar.title') },
+    { to: '/admin/forms', label: t('admin.forms.title') },
+    { to: '/admin/commerce', label: t('admin.commerce.title') },
+    { to: '/admin/invoices', label: t('admin.invoices.title') },
+    { to: '/admin/analytics', label: t('admin.analytics.title') },
+    { to: '/admin/notifications', label: t('admin.notifications.title') },
+    { to: '/admin/auth', label: 'Registro/Login' },
+    { to: '/admin/organizations', label: t('admin.organizations.title') },
+    { to: '/admin/inventory', label: t('admin.inventory.title') },
+  ];
+
   return (
     <div className={`admin-layout${collapsed ? ' collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="brand">{collapsed ? 'W' : 'Webs'}</div>
         <nav className="stack">
-          {nav.map((item) => (
+          {coreNav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -117,44 +121,91 @@ export function AdminLayout() {
               {collapsed ? item.label.charAt(0) : item.label}
             </NavLink>
           ))}
-          {installedBlocks.length > 0 && !collapsed && (
-            <>
-              <div className="muted" style={{ fontSize: 'var(--ws-font-size-sm)', marginTop: 'var(--ws-space-3)', paddingInline: 'var(--ws-space-3)' }}>Bloques instalados</div>
-              {Object.entries(groupedBlocks)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([category, blocks]) => {
-                  const isOpen = openCategories[category] ?? true;
-                  return (
-                    <div key={category}>
-                      <button
-                        type="button"
-                        className="nav-link"
-                        style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'capitalize' }}
-                        onClick={() => toggleCategory(category)}
-                        title={category}
+
+          {collapsed ? (
+            blockNav.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                title={item.label}
+                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+              >
+                {item.label.charAt(0)}
+              </NavLink>
+            ))
+          ) : (
+            <div>
+              <button
+                type="button"
+                className="nav-link"
+                style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                onClick={() => setBlocksOpen((o) => !o)}
+                title={t('nav.installedBlocks')}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <i className={`bi bi-chevron-${blocksOpen ? 'down' : 'right'}`} style={{ fontSize: '0.8em' }} />
+                  {t('nav.installedBlocks')}
+                </span>
+              </button>
+              {blocksOpen && (
+                <div className="stack" style={{ gap: 'var(--ws-space-1)', paddingLeft: 'var(--ws-space-4)' }}>
+                  {blockNav.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      title={item.label}
+                      className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                    >
+                      {item.label}
+                    </NavLink>
+                  ))}
+                  {installedBlocks.length > 0 && (
+                    <>
+                      <div
+                        className="muted"
+                        style={{ fontSize: 'var(--ws-font-size-sm)', marginTop: 'var(--ws-space-2)', paddingInline: 'var(--ws-space-3)' }}
                       >
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                          <i className={`bi bi-chevron-${isOpen ? 'down' : 'right'}`} style={{ fontSize: '0.8em' }} />
-                          {category}
-                        </span>
-                      </button>
-                      {isOpen &&
-                        [...blocks]
-                          .sort((a, b) => a.name.localeCompare(b.name))
-                          .map((b) => (
-                            <NavLink
-                              key={b.blockId}
-                              to={`/admin/blocks/${b.blockId}`}
-                              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                              style={{ paddingLeft: 'var(--ws-space-7)' }}
-                            >
-                              {b.name}
-                            </NavLink>
-                          ))}
-                    </div>
-                  );
-                })}
-            </>
+                        {t('nav.catalog')}
+                      </div>
+                      {Object.entries(groupedBlocks)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([category, blocks]) => {
+                          const isOpen = openCategories[category] ?? true;
+                          return (
+                            <div key={category}>
+                              <button
+                                type="button"
+                                className="nav-link"
+                                style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', textTransform: 'capitalize' }}
+                                onClick={() => toggleCategory(category)}
+                                title={category}
+                              >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                  <i className={`bi bi-chevron-${isOpen ? 'down' : 'right'}`} style={{ fontSize: '0.8em' }} />
+                                  {category}
+                                </span>
+                              </button>
+                              {isOpen &&
+                                [...blocks]
+                                  .sort((a, b) => a.name.localeCompare(b.name))
+                                  .map((b) => (
+                                    <NavLink
+                                      key={b.blockId}
+                                      to={`/admin/blocks/${b.blockId}`}
+                                      className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                                      style={{ paddingLeft: 'var(--ws-space-7)' }}
+                                    >
+                                      {b.name}
+                                    </NavLink>
+                                  ))}
+                            </div>
+                          );
+                        })}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </nav>
       </aside>

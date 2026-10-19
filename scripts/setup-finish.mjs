@@ -66,6 +66,39 @@ const PERMISSIONS = [
   { key: 'membership.manage', description: 'Gestionar membresías y planes' },
   { key: 'attendance.manage', description: 'Registrar/consultar asistencia' },
   { key: 'inventory.manage', description: 'Gestionar inventario' },
+
+  // Finanzas / facturación
+  { key: 'billing.read', description: 'Ver facturación y pagos' },
+  { key: 'billing.write', description: 'Gestionar facturación y pagos' },
+  { key: 'refund.manage', description: 'Gestionar reembolsos' },
+
+  // Inventario
+  { key: 'inventory.read', description: 'Ver inventario y stock' },
+
+  // Soporte
+  { key: 'support.read', description: 'Ver tickets de soporte' },
+  { key: 'support.manage', description: 'Gestionar tickets de soporte' },
+
+  // Marketing y analítica
+  { key: 'marketing.manage', description: 'Gestionar campañas de marketing' },
+  { key: 'analytics.read', description: 'Ver analíticas e informes' },
+
+  // Recursos humanos
+  { key: 'hr.manage', description: 'Gestionar recursos humanos' },
+
+  // Ventas / punto de venta
+  { key: 'sales.manage', description: 'Gestionar ventas y caja' },
+
+  // Capacitación / academia
+  { key: 'course.manage', description: 'Gestionar cursos y capacitaciones' },
+
+  // Contenido / usuarios
+  { key: 'content.moderate', description: 'Moderar contenido y comentarios' },
+  { key: 'user.invite', description: 'Invitar usuarios' },
+
+  // Informes / auditoría
+  { key: 'report.export', description: 'Exportar informes' },
+  { key: 'audit.export', description: 'Exportar auditoría' },
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -36,356 +36,420 @@ interface BaseKeysResponse {
   keys: Array<{ key: string; values: Record<string, string> }>;
 }
 
+/** Clave compuesta para indexar sobrescrituras: `${locale}\u0000${key}`. */
+const overrideId = (locale: string, key: string) => `${locale}\u0000${key}`;
+
+const EMPTY_VALUES: Record<string, string> = {};
+
 export function TranslationsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
 
-  const [selectedLocale, setSelectedLocale] = useState<string | null>(null);
-  const [addingLocale, setAddingLocale] = useState(false);
+  const [search, setSearch] = useState('');
+  const [showNewKey, setShowNewKey] = useState(false);
 
   const { data: localesData } = useQuery({
     queryKey: ['translations-locales'],
     queryFn: () => api.get<LocalesResponse>('/api/v1/locales'),
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['translations'],
-    queryFn: () => api.get<TranslationsResponse>('/api/v1/translations'),
-  });
-
-  const { data: keysData } = useQuery({
+  const { data: keysData, isLoading: keysLoading } = useQuery({
     queryKey: ['translations-keys'],
     queryFn: () => api.get<BaseKeysResponse>('/api/v1/translations/keys'),
   });
 
-  const baseKeys = (keysData?.keys ?? []).map((k) => k.key);
+  const { data, isLoading: translationsLoading } = useQuery({
+    queryKey: ['translations'],
+    queryFn: () => api.get<TranslationsResponse>('/api/v1/translations'),
+  });
+
   const catalog = localesData?.locales ?? [];
   const items = data?.items ?? [];
 
-  // Locales de la barra lateral: el catálogo más los idiomas que ya tienen
-  // traducciones en la BD (así un idioma recién creado aparece de inmediato).
-  const catalogCodes = new Set(catalog.map((l) => l.code));
-  const dbCodes = new Set(items.map((i) => i.locale));
-  const extraCodes = [...dbCodes].filter((c) => !catalogCodes.has(c)).sort();
-  const sidebarLocales: Array<{ code: string; nativeLabel: string }> = [
-    ...catalog.map((l) => ({ code: l.code, nativeLabel: l.nativeLabel })),
-    ...extraCodes.map((c) => ({ code: c, nativeLabel: c })),
-  ];
+  // Valores base por clave (fuente de verdad de las claves fijas).
+  const baseValuesByKey = useMemo(() => {
+    const map = new Map<string, Record<string, string>>();
+    for (const entry of keysData?.keys ?? []) map.set(entry.key, entry.values);
+    return map;
+  }, [keysData]);
 
-  const activeLocale = selectedLocale ?? localesData?.defaultLocale ?? catalog[0]?.code ?? null;
-  const rows = activeLocale ? items.filter((i) => i.locale === activeLocale) : [];
+  // Sobrescrituras de la BD (namespace "translation") indexadas por locale+key.
+  const overridesByKeyLocale = useMemo(() => {
+    const map = new Map<string, TranslationRow>();
+    for (const item of items) {
+      if (item.namespace !== 'translation') continue;
+      map.set(overrideId(item.locale, item.key), item);
+    }
+    return map;
+  }, [items]);
 
-  if (isLoading) return <Spinner />;
+  // Columnas por idioma: catálogo (es/en/pt) + idiomas extra que ya tengan datos.
+  const columnLocales = useMemo(() => {
+    const order: string[] = catalog.map((l) => l.code);
+    for (const loc of keysData?.locales ?? []) if (!order.includes(loc)) order.push(loc);
+    for (const item of items) if (!order.includes(item.locale)) order.push(item.locale);
+    return order;
+  }, [catalog, keysData, items]);
+
+  const nativeLabelOf = (code: string) => catalog.find((l) => l.code === code)?.nativeLabel ?? code;
+
+  // Unión de claves: todas las base + claves creadas desde el admin (no base).
+  const allKeys = useMemo(() => {
+    const set = new Set<string>(baseValuesByKey.keys());
+    for (const item of items) {
+      if (item.namespace === 'translation') set.add(item.key);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [baseValuesByKey, items]);
+
+  const filteredKeys = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allKeys;
+    return allKeys.filter((key) => key.toLowerCase().includes(q));
+  }, [allKeys, search]);
+
+  const invalidate = useCallback(() => {
+    void qc.invalidateQueries({ queryKey: ['translations'] });
+  }, [qc]);
+
+  if (keysLoading || translationsLoading) return <Spinner />;
 
   return (
-    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
-      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
+    <div className="stack" style={{ gap: 'var(--ws-space-5)' }}>
+      <Card>
         <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.translations')}</h1>
-        {sidebarLocales.map((l) => (
-          <button
-            key={l.code}
-            className={`nav-link ${activeLocale === l.code && !addingLocale ? 'active' : ''}`}
-            style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
-            onClick={() => {
-              setSelectedLocale(l.code);
-              setAddingLocale(false);
-            }}
-          >
-            {l.nativeLabel} <span className="muted">({l.code})</span>
-          </button>
-        ))}
-        <button
-          className={`nav-link ${addingLocale ? 'active' : ''}`}
-          style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
-          onClick={() => setAddingLocale(true)}
-        >
-          + Agregar idioma
-        </button>
-      </aside>
+        <p className="muted" style={{ margin: 'var(--ws-space-2) 0 0' }}>
+          Todas las claves base del sitio. Editá el valor en cada idioma y guardá: el valor guardado
+          sobreescribe la traducción base y se sirve en el sitio.
+        </p>
+      </Card>
 
-      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-        <datalist id="translation-keys">
-          {baseKeys.map((k) => (
-            <option key={k} value={k} />
-          ))}
-        </datalist>
+      <Card>
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 240 }}>
+            <TextField
+              label="Buscar clave"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="nav.home, common.save…"
+            />
+          </div>
+          <span className="muted" style={{ paddingBottom: 'var(--ws-space-4)' }}>
+            {filteredKeys.length} / {allKeys.length} claves
+          </span>
+        </div>
 
-        {addingLocale ? (
-          <AddLocaleForm
-            onCreated={(code) => {
-              setSelectedLocale(code);
-              setAddingLocale(false);
-              void qc.invalidateQueries({ queryKey: ['translations'] });
-            }}
+        <div className="row" style={{ justifyContent: 'flex-start', gap: 'var(--ws-space-2)' }}>
+          <Button variant={showNewKey ? 'secondary' : 'primary'} onClick={() => setShowNewKey((v) => !v)}>
+            {showNewKey ? 'Cerrar formulario' : '+ Nueva clave'}
+          </Button>
+        </div>
+
+        {showNewKey && (
+          <NewKeyForm
+            labels={Object.fromEntries(columnLocales.map((code) => [code, nativeLabelOf(code)]))}
+            existingKeys={new Set(allKeys)}
+            onCreated={invalidate}
           />
-        ) : activeLocale ? (
-          <>
-            <Card>
-              <h3 style={{ marginTop: 0 }}>
-                {catalog.find((l) => l.code === activeLocale)?.nativeLabel ?? activeLocale}{' '}
-                <span className="muted">({activeLocale})</span>
-              </h3>
-              <p className="muted" style={{ margin: 0 }}>
-                Claves y valores de este idioma. Editá cada fila y guardá los cambios.
-              </p>
-            </Card>
-
-            <NewKeyForm locale={activeLocale} />
-
-            <Card>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Clave</th>
-                    <th>Valor</th>
-                    <th style={{ width: 220 }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <TranslationRowItem key={row.id} row={row} />
-                  ))}
-                </tbody>
-              </table>
-              {rows.length === 0 && (
-                <p className="muted">Este idioma no tiene traducciones definidas. Agregá una clave arriba.</p>
-              )}
-            </Card>
-          </>
-        ) : (
-          <Card>
-            <p className="muted">Seleccioná un idioma para ver sus traducciones.</p>
-          </Card>
         )}
-      </div>
+      </Card>
+
+      <Card>
+        <div className="table-scroll" style={{ overflowX: 'auto' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th style={{ minWidth: 200 }}>Clave</th>
+                {columnLocales.map((loc) => (
+                  <th key={loc} style={{ minWidth: 200 }}>
+                    {nativeLabelOf(loc)} <span className="muted">({loc})</span>
+                  </th>
+                ))}
+                <th style={{ width: 170 }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredKeys.map((key) => (
+                <KeyRow
+                  key={key}
+                  rowKey={key}
+                  locales={columnLocales}
+                  baseValues={baseValuesByKey.get(key) ?? EMPTY_VALUES}
+                  overrides={overridesByKeyLocale}
+                  onSaved={invalidate}
+                />
+              ))}
+            </tbody>
+          </table>
+          {filteredKeys.length === 0 && (
+            <p className="muted" style={{ padding: 'var(--ws-space-4)' }}>
+              No hay claves que coincidan con la búsqueda.
+            </p>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }
 
-function AddLocaleForm({ onCreated }: { onCreated: (code: string) => void }) {
-  const [code, setCode] = useState('');
-  const [key, setKey] = useState('');
-  const [value, setValue] = useState('');
-  const [error, setError] = useState<string | null>(null);
+const KeyRow = memo(function KeyRow({
+  rowKey,
+  locales,
+  baseValues,
+  overrides,
+  onSaved,
+}: {
+  rowKey: string;
+  locales: string[];
+  baseValues: Record<string, string>;
+  overrides: Map<string, TranslationRow>;
+  onSaved: () => void;
+}) {
+  const overrideRows = useMemo(() => {
+    const out: Record<string, TranslationRow | undefined> = {};
+    for (const loc of locales) out[loc] = overrides.get(overrideId(loc, rowKey));
+    return out;
+  }, [locales, overrides, rowKey]);
 
-  const create = useMutation({
-    mutationFn: () =>
-      api.post<TranslationRow>('/api/v1/translations', {
-        locale: code.trim(),
-        namespace: 'translation',
-        key: key.trim(),
-        value,
-      }),
-    onSuccess: () => onCreated(code.trim()),
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error al crear el idioma'),
-  });
-
-  function submit() {
-    if (!code.trim() || !key.trim()) {
-      setError('El código de idioma y la primera clave son obligatorios');
-      return;
+  const effective = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const loc of locales) {
+      out[loc] = overrideRows[loc]?.value ?? baseValues[loc] ?? '';
     }
-    setError(null);
-    create.mutate();
-  }
+    return out;
+  }, [locales, overrideRows, baseValues]);
 
-  return (
-    <Card>
-      <h3 style={{ marginTop: 0 }}>Agregar idioma</h3>
-      <p className="muted">
-        Creá un idioma nuevo registrando su primera traducción. Usá un código ISO (por ejemplo <code>fr</code>).
-      </p>
-      <div className="grid-2" style={{ gap: 'var(--ws-space-2)' }}>
-        <TextField
-          label="Código de idioma"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder="fr, de, it, …"
-        />
-        <TextField
-          label="Primera clave"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="nav.home, common.save, …"
-          list="translation-keys"
-        />
-      </div>
-      <TextField
-        label="Valor"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Texto traducido"
-      />
-      {error && <p style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</p>}
-      <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
-        <Button onClick={submit} disabled={create.isPending}>
-          {create.isPending ? 'Creando…' : 'Crear idioma'}
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-function NewKeyForm({ locale }: { locale: string }) {
-  const qc = useQueryClient();
-  const [key, setKey] = useState('');
-  const [value, setValue] = useState('');
-  const [error, setError] = useState<string | null>(null);
-
-  const create = useMutation({
-    mutationFn: () =>
-      api.post<TranslationRow>('/api/v1/translations', {
-        locale,
-        namespace: 'translation',
-        key: key.trim(),
-        value,
-      }),
-    onSuccess: () => {
-      setKey('');
-      setValue('');
-      setError(null);
-      void qc.invalidateQueries({ queryKey: ['translations'] });
-    },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error al guardar'),
-  });
-
-  function submit() {
-    if (!key.trim()) {
-      setError('La clave es obligatoria');
-      return;
-    }
-    setError(null);
-    create.mutate();
-  }
-
-  return (
-    <Card>
-      <h3 style={{ marginTop: 0 }}>Nueva clave</h3>
-      <div className="grid-2" style={{ gap: 'var(--ws-space-2)' }}>
-        <TextField
-          label="Clave"
-          value={key}
-          onChange={(e) => setKey(e.target.value)}
-          placeholder="nav.home, common.save, …"
-          list="translation-keys"
-        />
-        <TextField
-          label="Valor"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          placeholder="Texto traducido"
-        />
-      </div>
-      {error && <p style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</p>}
-      <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
-        <Button onClick={submit} disabled={create.isPending}>
-          {create.isPending ? 'Guardando…' : 'Agregar clave'}
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-function TranslationRowItem({ row }: { row: TranslationRow }) {
-  const qc = useQueryClient();
-  const [key, setKey] = useState(row.key);
-  const [value, setValue] = useState(row.value);
+  const [baseline, setBaseline] = useState<Record<string, string>>(effective);
+  const [values, setValues] = useState<Record<string, string>>(effective);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [resetLocale, setResetLocale] = useState<string | null>(null);
 
-  const dirty = key !== row.key || value !== row.value;
+  const dirtyLocales = locales.filter((loc) => values[loc] !== baseline[loc]);
 
   const save = useMutation({
-    mutationFn: () =>
-      api.put<TranslationRow>(`/api/v1/translations/${row.id}`, {
-        locale: row.locale,
-        namespace: row.namespace,
-        key: key.trim(),
-        value,
-      }),
-    onSuccess: () => {
-      setKey(key.trim());
+    mutationFn: async (dirty: string[]) => {
+      for (const loc of dirty) {
+        await api.post<TranslationRow>('/api/v1/translations', {
+          locale: loc,
+          namespace: 'translation',
+          key: rowKey,
+          value: (values[loc] ?? '').trim(),
+        });
+      }
+    },
+    onSuccess: (_data, dirty) => {
+      setBaseline((prev) => {
+        const next = { ...prev };
+        for (const loc of dirty) next[loc] = (values[loc] ?? '').trim();
+        return next;
+      });
+      setValues((prev) => {
+        const next = { ...prev };
+        for (const loc of dirty) next[loc] = (prev[loc] ?? '').trim();
+        return next;
+      });
       setSaved(true);
       setError(null);
-      void qc.invalidateQueries({ queryKey: ['translations'] });
+      onSaved();
     },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error al guardar'),
   });
 
-  const remove = useMutation({
-    mutationFn: () => api.del(`/api/v1/translations/${row.id}`),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['translations'] }),
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error al eliminar'),
+  const reset = useMutation({
+    mutationFn: (loc: string) => {
+      const row = overrides.get(overrideId(loc, rowKey));
+      if (!row) return Promise.resolve();
+      return api.del(`/api/v1/translations/${row.id}`);
+    },
+    onSuccess: (_data, loc) => {
+      const base = baseValues[loc] ?? '';
+      setBaseline((prev) => ({ ...prev, [loc]: base }));
+      setValues((prev) => ({ ...prev, [loc]: base }));
+      setResetLocale(null);
+      setSaved(false);
+      setError(null);
+      onSaved();
+    },
+    onError: (e) => {
+      setResetLocale(null);
+      setError(e instanceof Error ? e.message : 'Error al restablecer');
+    },
   });
 
   function submitSave() {
-    if (!key.trim()) {
-      setError('La clave no puede estar vacía');
-      return;
-    }
-    setError(null);
+    if (dirtyLocales.length === 0) return;
     setSaved(false);
-    save.mutate();
+    setError(null);
+    save.mutate(dirtyLocales);
+  }
+
+  function discard() {
+    setValues(baseline);
+    setSaved(false);
   }
 
   return (
     <tr>
-      <td>
-        <input
-          className="input"
-          list="translation-keys"
-          value={key}
-          onChange={(e) => {
-            setKey(e.target.value);
-            setSaved(false);
-          }}
-        />
-        {row.namespace !== 'translation' && (
-          <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
-            ns: {row.namespace}
+      <td style={{ verticalAlign: 'top' }}>
+        <code style={{ wordBreak: 'break-word' }}>{rowKey}</code>
+        {overrideRows && Object.values(overrideRows).some(Boolean) && (
+          <span
+            className="badge"
+            style={{ display: 'inline-block', marginTop: 'var(--ws-space-1)' }}
+            title="Esta clave tiene un valor personalizado en al menos un idioma"
+          >
+            personalizada
           </span>
         )}
       </td>
-      <td>
-        <input
-          className="input"
-          value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setSaved(false);
-          }}
-        />
-      </td>
-      <td>
-        <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
-          <Button onClick={submitSave} disabled={save.isPending || !dirty}>
+      {locales.map((loc) => {
+        const overridden = Boolean(overrideRows[loc]);
+        return (
+          <td key={loc} style={{ verticalAlign: 'top' }}>
+            <input
+              className="input"
+              value={values[loc] ?? ''}
+              disabled={save.isPending}
+              onChange={(e) => {
+                setValues((prev) => ({ ...prev, [loc]: e.target.value }));
+                setSaved(false);
+              }}
+            />
+            {overridden && (
+              <button
+                type="button"
+                className="btn ghost"
+                disabled={save.isPending || reset.isPending}
+                style={{ marginTop: 'var(--ws-space-1)', fontSize: 'var(--ws-font-size-sm)', padding: '2px 8px' }}
+                onClick={() => setResetLocale(loc)}
+              >
+                ↺ Restablecer base
+              </button>
+            )}
+          </td>
+        );
+      })}
+      <td style={{ verticalAlign: 'top' }}>
+        <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
+          <Button onClick={submitSave} disabled={save.isPending || dirtyLocales.length === 0}>
             {save.isPending ? 'Guardando…' : 'Guardar'}
           </Button>
-          <Button variant="ghost" onClick={() => setConfirmDelete(true)}>
-            Eliminar
-          </Button>
+          {dirtyLocales.length > 0 && (
+            <Button variant="ghost" disabled={save.isPending} onClick={discard}>
+              Descartar
+            </Button>
+          )}
+          {saved && !error && <span className="muted">✓ Guardado</span>}
+          {error && <span style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</span>}
         </div>
-        {saved && !error && (
-          <p className="muted" style={{ margin: 0 }}>
-            ✓ Guardado
-          </p>
-        )}
-        {error && <p style={{ color: 'var(--ws-danger, #dc2626)', margin: 0 }}>{error}</p>}
       </td>
       <ConfirmDialog
-        open={confirmDelete}
-        title="Eliminar traducción"
-        confirmLabel="Eliminar"
+        open={resetLocale !== null}
+        title="Restablecer traducción"
+        confirmLabel="Restablecer"
         danger
         onConfirm={() => {
-          remove.mutate();
-          setConfirmDelete(false);
+          if (resetLocale) reset.mutate(resetLocale);
         }}
-        onCancel={() => setConfirmDelete(false)}
+        onCancel={() => setResetLocale(null)}
       >
-        ¿Eliminar la traducción <strong>{row.key}</strong> ({row.locale})?
+        ¿Restablecer <strong>{rowKey}</strong> ({resetLocale}) al valor base? Se eliminará la sobrescritura.
       </ConfirmDialog>
     </tr>
+  );
+});
+
+function NewKeyForm({
+  labels,
+  existingKeys,
+  onCreated,
+}: {
+  labels: Record<string, string>;
+  existingKeys: Set<string>;
+  onCreated: () => void;
+}) {
+  const [key, setKey] = useState('');
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const locales = Object.keys(labels);
+  const trimmedKey = key.trim();
+  const alreadyExists = trimmedKey !== '' && existingKeys.has(trimmedKey);
+
+  const create = useMutation({
+    mutationFn: async () => {
+      for (const loc of locales) {
+        const value = (values[loc] ?? '').trim();
+        if (value === '') continue;
+        await api.post<TranslationRow>('/api/v1/translations', {
+          locale: loc,
+          namespace: 'translation',
+          key: trimmedKey,
+          value,
+        });
+      }
+    },
+    onSuccess: () => {
+      setNotice(`Clave «${trimmedKey}» guardada.`);
+      setKey('');
+      setValues({});
+      setError(null);
+      onCreated();
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'Error al guardar'),
+  });
+
+  function submit() {
+    if (!trimmedKey) {
+      setError('La clave es obligatoria');
+      return;
+    }
+    const hasValue = locales.some((loc) => (values[loc] ?? '').trim() !== '');
+    if (!hasValue) {
+      setError('Ingresá al menos un valor.');
+      return;
+    }
+    setError(null);
+    setNotice(null);
+    create.mutate();
+  }
+
+  return (
+    <div style={{ marginTop: 'var(--ws-space-4)', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-4)' }}>
+      <h3 style={{ marginTop: 0 }}>Nueva clave</h3>
+      <p className="muted" style={{ margin: 0 }}>
+        {alreadyExists
+          ? `La clave ya existe: al guardar se actualizarán los valores (sin duplicarla).`
+          : 'Creá una clave nueva con su valor en cada idioma.'}
+      </p>
+      <div style={{ marginTop: 'var(--ws-space-3)' }}>
+        <TextField
+          label="Clave"
+          value={key}
+          onChange={(e) => setKey(e.target.value)}
+          placeholder="nav.home, common.save, custom.section…"
+        />
+      </div>
+      <div className="grid-2" style={{ gap: 'var(--ws-space-3)' }}>
+        {locales.map((loc) => (
+          <TextField
+            key={loc}
+            label={`${labels[loc]} (${loc})`}
+            value={values[loc] ?? ''}
+            onChange={(e) => setValues((prev) => ({ ...prev, [loc]: e.target.value }))}
+            placeholder="Valor traducido"
+          />
+        ))}
+      </div>
+      {error && <p style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</p>}
+      {notice && !error && <p className="muted">{notice}</p>}
+      <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
+        <Button onClick={submit} disabled={create.isPending}>
+          {create.isPending ? 'Guardando…' : alreadyExists ? 'Actualizar clave' : 'Agregar clave'}
+        </Button>
+      </div>
+    </div>
   );
 }
