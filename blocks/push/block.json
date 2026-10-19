@@ -10,6 +10,7 @@
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
+  "blockDependencies": ["notificaciones"],
   "slots": ["content"],
   "translations": { "es": { "enable": "Activar notificaciones" }, "en": { "enable": "Enable notifications" } },
   "settings": {

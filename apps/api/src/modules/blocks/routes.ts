@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { NotFoundError, ValidationError } from '@webs/core';
 import { parseBlockManifest } from '@webs/plugin-sdk';
 import { blockRegistry } from '../../blocks/registry';
-import { installBlock, installRemoteBlock, uninstallBlock, updateBlock } from '../../blocks/loader';
+import { installBlock, installBlockWithDependencies, installRemoteBlock, uninstallBlock, updateBlock, getMissingDependencies } from '../../blocks/loader';
 import { findRemoteBlock, getCatalog } from '../../blocks/catalog';
 import { audit } from '../../lib/audit';
 
@@ -93,18 +93,27 @@ export default async function blocksRoutes(fastify: FastifyInstance): Promise<vo
             source: { type: 'string', enum: ['git', 'npm'] },
             url: { type: 'string' },
             subdir: { type: 'string' },
+            autoDependencies: { type: 'boolean', default: true },
           },
         },
       },
       preHandler: [fastify.authenticate, fastify.authorize('block.manage')],
     },
     async (request, reply) => {
-      const body = request.body as { id: string; source?: 'git' | 'npm'; url?: string; subdir?: string };
+      const body = request.body as { id: string; source?: 'git' | 'npm'; url?: string; subdir?: string; autoDependencies?: boolean };
       const id = body.id;
+      const autoDeps = body.autoDependencies !== false;
+
+      // Si no queremos autoinstalar dependencias, devolvemos las que faltan (diálogo).
+      if (!autoDeps) {
+        const manifest = blockRegistry.getAvailableManifest(id);
+        const missingDependencies = manifest ? await getMissingDependencies(fastify, manifest) : [];
+        return reply.send({ id, missingDependencies });
+      }
 
       let result;
       if (blockRegistry.getAvailableManifest(id)) {
-        result = await installBlock(fastify, id);
+        result = await installBlockWithDependencies(fastify, id);
       } else if (body.url) {
         result = await installRemoteBlock(fastify, {
           id,

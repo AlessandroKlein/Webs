@@ -220,6 +220,34 @@ export async function installBlock(app: FastifyInstance, blockId: string) {
   return { id: installation.id, blockId, manifest };
 }
 
+/** Dependencias de bloques (por id) que faltan instalar. */
+export async function getMissingDependencies(app: FastifyInstance, manifest: BlockManifest): Promise<string[]> {
+  const missing: string[] = [];
+  for (const depId of manifest.blockDependencies ?? []) {
+    const inst = await app.prisma.blockInstallation.findUnique({ where: { blockId: depId } });
+    if (!inst) missing.push(depId);
+  }
+  return missing;
+}
+
+/** Instala un bloque y sus dependencias (recursivo) si faltan. */
+export async function installBlockWithDependencies(app: FastifyInstance, blockId: string) {
+  const manifest = blockRegistry.getAvailableManifest(blockId);
+  if (!manifest) throw new NotFoundError(`Bloque '${blockId}' no disponible en el catálogo`);
+
+  const installedDependencies: string[] = [];
+  for (const depId of manifest.blockDependencies ?? []) {
+    const inst = await app.prisma.blockInstallation.findUnique({ where: { blockId: depId } });
+    if (!inst) {
+      await installBlockWithDependencies(app, depId);
+      installedDependencies.push(depId);
+    }
+  }
+
+  const result = await installBlock(app, blockId);
+  return { ...result, installedDependencies };
+}
+
 /** Desinstala un bloque (ejecuta `onUninstall` y elimina el registro). */
 export async function uninstallBlock(app: FastifyInstance, blockId: string) {
   const installation = await app.prisma.blockInstallation.findUnique({ where: { blockId } });

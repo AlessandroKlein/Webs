@@ -39,6 +39,13 @@ otro, la app lo recomienda en el diálogo de instalación.
 
 ## Cómo se detectan las dependencias
 
-Cada `block.json` declara `dependencies` (ids de bloques). El instalador lo
-comprueba y, si falta un bloque requerido, lo muestra en el diálogo antes de
-confirmar la instalación.
+Cada `block.json` declara `blockDependencies` (ids de bloques). Al instalar:
+
+- `POST /blocks/install` con `autoDependencies: true` (por defecto) **instala
+  automáticamente** las dependencias que falten (recursivo).
+- Con `autoDependencies: false`, devuelve `missingDependencies` para que el
+  frontend muestre un **diálogo de confirmación** antes de instalar.
+
+Ejemplo: instalar `ecommerce` instala también `mercadopago`; instalar `reservas`
+instala `notificaciones`.
+

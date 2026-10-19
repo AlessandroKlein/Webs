@@ -56,6 +56,8 @@ export interface BlockManifest {
   translations?: Record<string, Record<string, string>>;
   /** Dependencias npm (peers). */
   dependencies?: Record<string, string>;
+  /** Ids de bloques de Webs que este bloque requiere (se instalan automáticamente). */
+  blockDependencies?: string[];
   /** Versión del contrato de bloques contra la que se escribió. */
   apiVersion: string;
 }
@@ -115,6 +117,7 @@ export const blockManifestSchema = z.object({
   events: z.array(z.string()).optional(),
   translations: z.record(z.string(), z.record(z.string(), z.string())).optional(),
   dependencies: z.record(z.string(), z.string()).optional(),
+  blockDependencies: z.array(z.string()).optional(),
   apiVersion: z.string(),
 });
 

@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.2.0] - 2026-10-18
+
+### Añadido
+
+- **Instalación automática de dependencias de bloques**: campo `blockDependencies`
+  en `block.json`; `POST /blocks/install` instala recursivamente las dependencias
+  (`autoDependencies: true` por defecto) o devuelve las faltantes
+  (`autoDependencies: false`) para mostrar un diálogo.
+
 ## [1.1.0] - 2026-10-18
 
 ### Añadido

@@ -9,6 +9,7 @@
   "license": "MIT",
   "entry": "./dist/server.js",
   "apiVersion": "1.0.0",
+  "blockDependencies": ["ecommerce"],
   "settings": {
     "type": "object",
     "title": "Marketing",
