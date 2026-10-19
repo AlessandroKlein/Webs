@@ -3,6 +3,15 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.1.0] - 2026-10-18
+
+### Añadido
+
+- **Bloques**: `notificaciones` (en-app), `chat` (tiempo real vía WebSocket),
+  `chat-ia` (endpoint configurable), `calendario` y `social` (mini red social).
+- Tablas Prisma: `notifications`, `chat_messages`, `calendar_events`, `social_posts`.
+- Guía de módulos y dependencias.
+
 ## [1.0.0] - 2026-10-18
 
 ### Primer lanzamiento estable

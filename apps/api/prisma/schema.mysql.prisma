@@ -260,6 +260,54 @@ model Ticket {
   @@map("tickets")
 }
 
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  from      String
+  to        String   @default("general")
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([to, createdAt])
+  @@map("chat_messages")
+}
+
+model CalendarEvent {
+  id        String   @id @default(uuid())
+  title     String
+  start     DateTime
+  end       DateTime?
+  type      String?
+  createdAt DateTime @default(now())
+
+  @@index([start])
+  @@map("calendar_events")
+}
+
+model SocialPost {
+  id        String   @id @default(uuid())
+  author    String
+  text      String
+  mediaUrl  String?
+  mediaType String?
+  likes     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("social_posts")
+}
+
 // ---------------------------------------------------------------------------
 // Configuración, bloques y colocaciones
 // ---------------------------------------------------------------------------

@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-chat",
+  "id": "chat",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Real-time Chat", "es": "Chat en tiempo real" },
+  "description": { "en": "Real-time chat between users.", "es": "Chat en tiempo real entre usuarios." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Chat", "properties": { "room": { "type": "string", "title": "Sala", "default": "general" } } }
+}

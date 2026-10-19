@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-chat-ia",
+  "id": "chat-ia",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "AI Chat", "es": "Chat con IA" },
+  "description": { "en": "AI chat (configurable endpoint).", "es": "Chat con IA (endpoint configurable)." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Chat IA", "properties": { "endpoint": { "type": "string", "title": "Endpoint (URL)" }, "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password", "secret": true } }, "model": { "type": "string", "title": "Modelo", "default": "gpt-4o-mini" } } }
+}

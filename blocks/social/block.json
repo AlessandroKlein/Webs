@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-social",
+  "id": "social",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Social Network", "es": "Red social" },
+  "description": { "en": "Mini social network (posts, media, likes).", "es": "Mini red social (publicaciones, multimedia, likes)." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Red social", "properties": { "enabled": { "type": "boolean", "default": true } } }
+}

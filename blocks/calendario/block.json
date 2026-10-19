@@ -1,0 +1,15 @@
+{
+  "name": "@webs/block-calendario",
+  "id": "calendario",
+  "version": "0.1.0",
+  "type": "block",
+  "displayName": { "en": "Calendar", "es": "Calendario" },
+  "description": { "en": "Calendar for events and activities.", "es": "Calendario para turnos y actividades." },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": ["content"],
+  "settings": { "type": "object", "title": "Calendario", "properties": { "enabled": { "type": "boolean", "default": true } } }
+}
