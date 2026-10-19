@@ -4,6 +4,7 @@ import type { FastifyInstance } from 'fastify';
 export interface UserProfile {
   id: string;
   email: string;
+  username: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   locale: string;
@@ -36,6 +37,7 @@ export async function findUserWithPermissions(
   return {
     id: user.id,
     email: user.email,
+    username: user.username,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
     locale: user.locale,
@@ -49,6 +51,7 @@ export function toPublicUser(profile: UserProfile) {
   return {
     id: profile.id,
     email: profile.email,
+    username: profile.username,
     displayName: profile.displayName,
     avatarUrl: profile.avatarUrl,
     locale: profile.locale,

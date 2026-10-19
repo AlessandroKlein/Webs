@@ -3,6 +3,22 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.18.0] - 2026-10-19
+
+### Añadido
+
+- **Roles**: CRUD completo en UI (crear/editar/eliminar + permisos; roles de
+  sistema no editables).
+- **Usuarios**: edición (nombre, username, activo, locale, roles) y eliminación.
+- **Traducciones**: módulo completo (CRUD backend + UI con filtros).
+- **Admin**: sub-menú por pestañas en bloques (Instalados/Catálogo/Importar),
+  cuenta movida a `/account` (para todo usuario), botón "Ver sitio" y **bloques
+  instalados en el sidebar**.
+
+### Corregido
+
+- Usuarios: el listado ahora devuelve `username`.
+
 ## [1.17.0] - 2026-10-19
 
 ### Corregido

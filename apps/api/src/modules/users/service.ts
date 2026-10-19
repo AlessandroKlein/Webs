@@ -26,6 +26,7 @@ export async function listUsers(fastify: FastifyInstance, opts: ListUsersOptions
     items: items.map((u) => ({
       id: u.id,
       email: u.email,
+      username: u.username,
       displayName: u.displayName,
       avatarUrl: u.avatarUrl,
       locale: u.locale,
