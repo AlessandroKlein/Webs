@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.29.0] - 2026-10-19
+
+### Añadido
+
+- **Plantillas**: preview en `/admin/templates` (bloques, menú, nombre del sitio y
+  color primario de cada preset).
+
 ## [1.28.0] - 2026-10-19
 
 ### Corregido

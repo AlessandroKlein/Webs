@@ -10,6 +10,8 @@ interface Template {
   name: string;
   description?: string;
   blocks?: Array<{ id: string; config?: Record<string, unknown> }>;
+  settings?: Record<string, Record<string, unknown>>;
+  menu?: Array<{ label: string; path: string; order?: number }>;
 }
 
 export function TemplatesPage() {
@@ -53,6 +55,24 @@ export function TemplatesPage() {
             <p className="muted">
               Bloques: {(tpl.blocks ?? []).map((b) => b.id).join(', ') || 'ninguno'}
             </p>
+            <p className="muted">
+              Menú: {(tpl.menu ?? []).map((m) => m.label).join(' · ') || '—'}
+            </p>
+            {tpl.settings && (
+              <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+                {(tpl.settings.site?.name as string | undefined) && (
+                  <span className="badge">🏷 {String(tpl.settings.site?.name)}</span>
+                )}
+                {(tpl.settings.appearance?.primaryColor as string | undefined) && (
+                  <span className="row" style={{ gap: 6 }}>
+                    <span
+                      style={{ width: 16, height: 16, borderRadius: 4, background: String(tpl.settings.appearance?.primaryColor), border: '1px solid var(--ws-border)' }}
+                    />
+                    <span className="muted">{String(tpl.settings.appearance?.primaryColor)}</span>
+                  </span>
+                )}
+              </div>
+            )}
             <Button onClick={() => apply.mutate(tpl.id)} disabled={apply.isPending}>
               {applied === tpl.id ? 'Aplicada ✓' : 'Aplicar plantilla'}
             </Button>
