@@ -48,6 +48,8 @@ las **plantillas** que los combinan y activan automáticamente.
 | QR visual de 2FA + renombrar dispositivos FIDO2 | ✅ | 0.33.0 |
 | Releases automáticas + plantillas blog/corporativo + bloque mapa | ✅ | 0.34.0 |
 | WebAuthn en Redis + plantilla cursos + bloques carrito/facturación/push | ✅ | 0.37.0 |
+| Núcleo: modo mantenimiento + zona horaria + respaldos | ✅ | 0.38.0 |
+| Módulos opcionales: SEO, analítica, marketing, comentarios, búsqueda, soporte | ✅ | 0.39.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
