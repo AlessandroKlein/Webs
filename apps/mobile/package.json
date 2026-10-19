@@ -1,0 +1,21 @@
+{
+  "name": "@webs/mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App móvil de Webs (Android/iOS) con Capacitor: envuelve apps/web.",
+  "scripts": {
+    "build:web": "pnpm --filter @webs/web build",
+    "sync": "cap sync",
+    "add:android": "cap add android",
+    "add:ios": "cap add ios",
+    "open:android": "cap open android",
+    "open:ios": "cap open ios",
+    "copy": "cap copy"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/ios": "^6.1.0",
+    "@capacitor/cli": "^6.1.0"
+  }
+}
