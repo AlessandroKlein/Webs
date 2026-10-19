@@ -48,6 +48,10 @@ type Tab = 'templates' | 'campaigns' | 'automations';
 
 export function EmailPage() {
   const [tab, setTab] = useState<Tab>('templates');
+  const { data: variables } = useQuery({
+    queryKey: ['email-variables'],
+    queryFn: () => api.get<Array<{ key: string; description: string }>>('/api/v1/email/variables'),
+  });
 
   return (
     <div className="stack">
@@ -63,6 +67,18 @@ export function EmailPage() {
           Automatizaciones
         </Button>
       </div>
+
+      <Card>
+        <h3>Variables disponibles en plantillas</h3>
+        <p className="muted">Usá estas variables dentro del asunto o cuerpo (ej. {'{{ user.name }}'}):</p>
+        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+          {(variables ?? []).map((v) => (
+            <code key={v.key} title={v.description} style={{ background: 'var(--ws-surface-2)', padding: 'var(--ws-space-1) var(--ws-space-2)', borderRadius: 'var(--ws-radius-sm)' }}>
+              {'{{ ' + v.key + ' }}'}
+            </code>
+          ))}
+        </div>
+      </Card>
 
       {tab === 'templates' && <TemplatesPanel />}
       {tab === 'campaigns' && <CampaignsPanel />}

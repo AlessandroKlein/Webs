@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.22.0] - 2026-10-19
+
+### Añadido
+
+- **Email**: endpoint `GET /email/variables` + panel "Variables disponibles"
+  (user.name, user.email, site.name, link, date, year, etc.) en la UI.
+
 ## [1.21.0] - 2026-10-19
 
 ### Añadido

@@ -36,6 +36,22 @@ export default async function emailRoutes(fastify: FastifyInstance): Promise<voi
   // -------- Eventos disponibles (criterios de automatización) --------
   fastify.get('/email/events', { schema: { tags: ['email'] }, preHandler: canRead }, async () => listEvents());
 
+  // -------- Variables disponibles en plantillas --------
+  fastify.get('/email/variables', { schema: { tags: ['email'] }, preHandler: canRead }, async () => [
+    { key: 'user.name', description: 'Nombre de usuario' },
+    { key: 'user.email', description: 'Correo del usuario' },
+    { key: 'user.firstName', description: 'Nombre (primer nombre)' },
+    { key: 'user.lastName', description: 'Apellido' },
+    { key: 'user.gender', description: 'Género' },
+    { key: 'user.locale', description: 'Idioma del usuario' },
+    { key: 'site.name', description: 'Nombre del sitio' },
+    { key: 'site.tagline', description: 'Lema del sitio' },
+    { key: 'site.url', description: 'URL del sitio' },
+    { key: 'link', description: 'Enlace (verificación / reseteo)' },
+    { key: 'date', description: 'Fecha actual' },
+    { key: 'year', description: 'Año actual' },
+  ]);
+
   // -------- Plantillas --------
   fastify.get(
     '/email/templates',
