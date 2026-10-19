@@ -15,7 +15,7 @@ export function LoginPage() {
   const finalizeAuth = useAuthStore((s) => s.finalizeAuth);
   const status = useAuthStore((s) => s.status);
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [totp, setTotp] = useState('');
   const [smsCode, setSmsCode] = useState('');
@@ -54,7 +54,7 @@ export function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await login(email, password, totp || undefined, rememberMe, smsCode || undefined);
+      await login(identifier, password, totp || undefined, rememberMe, smsCode || undefined);
       navigate('/', { replace: true });
     } catch (err) {
       if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_REQUIRED') {
@@ -86,11 +86,11 @@ export function LoginPage() {
         <p className="muted">{t('auth.signInSubtitle')}</p>
 
         <TextField
-          label={t('auth.email')}
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
+          label={t('auth.identifier')}
+          type="text"
+          value={identifier}
+          onChange={(e) => setIdentifier(e.target.value)}
+          autoComplete="username"
           required
           autoFocus
         />

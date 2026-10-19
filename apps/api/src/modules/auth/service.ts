@@ -86,12 +86,14 @@ async function shouldRequireTwoFactor(fastify: FastifyInstance, userId: string):
 
 export async function login(
   fastify: FastifyInstance,
-  email: string,
+  identifier: string,
   password: string,
   totp?: string,
   smsCode?: string,
 ): Promise<LoginResult> {
-  const user = await fastify.prisma.user.findUnique({ where: { email } });
+  const user = await fastify.prisma.user.findFirst({
+    where: { OR: [{ email: identifier }, { username: identifier }] },
+  });
   if (!user || !user.active) {
     throw new UnauthorizedError('Correo o contraseña inválidos');
   }
@@ -149,14 +151,19 @@ export async function login(
 
 export async function registerUser(
   fastify: FastifyInstance,
-  input: { email: string; password: string; displayName?: string },
+  input: { email: string; password: string; displayName?: string; username?: string },
 ): Promise<UserProfile> {
   const existing = await fastify.prisma.user.findUnique({ where: { email: input.email } });
   if (existing) throw new ConflictError('El correo ya está registrado');
 
+  if (input.username) {
+    const byUsername = await fastify.prisma.user.findUnique({ where: { username: input.username } });
+    if (byUsername) throw new ConflictError('El nombre de usuario ya está en uso');
+  }
+
   const passwordHash = await bcrypt.hash(input.password, 10);
   const user = await fastify.prisma.user.create({
-    data: { email: input.email, passwordHash, displayName: input.displayName ?? null },
+    data: { email: input.email, username: input.username ?? null, passwordHash, displayName: input.displayName ?? null },
   });
 
   const userRole = await fastify.prisma.role.findUnique({ where: { key: 'user' } });

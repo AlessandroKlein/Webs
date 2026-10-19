@@ -43,6 +43,7 @@ export const es: Record<string, string> = {
   'auth.login': 'Iniciar sesión',
   'auth.logout': 'Cerrar sesión',
   'auth.email': 'Correo electrónico',
+  'auth.identifier': 'Correo o nombre de usuario',
   'auth.password': 'Contraseña',
   'auth.welcome': 'Bienvenido de nuevo',
   'auth.signInSubtitle': 'Ingresa tus credenciales para continuar',

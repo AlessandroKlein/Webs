@@ -28,7 +28,7 @@ export default async function apiTokensRoutes(fastify: FastifyInstance): Promise
           },
         },
       },
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authenticate, fastify.authorize('apiToken.write')],
     },
     async (request, reply) => {
       const body = request.body as {

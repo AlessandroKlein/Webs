@@ -48,8 +48,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       preHandler: [ipLimiter(fastify.redis, 10, 15 * 60)],
     },
     async (request, reply) => {
-      const { email, password, totp, smsCode, rememberMe } = request.body as LoginBody;
-      const result = await login(fastify, email, password, totp, smsCode);
+      const { identifier, password, totp, smsCode, rememberMe } = request.body as LoginBody;
+      const result = await login(fastify, identifier, password, totp, smsCode);
 
       if ('twoFactorRequired' in result) {
         return reply.status(401).send({
@@ -94,8 +94,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       preHandler: [ipLimiter(fastify.redis, 5, 15 * 60)],
     },
     async (request, reply) => {
-      const { email, password, displayName } = request.body as RegisterBody;
-      const profile = await registerUser(fastify, { email, password, displayName });
+      const { email, password, displayName, username } = request.body as RegisterBody;
+      const profile = await registerUser(fastify, { email, password, displayName, username });
 
       const accessToken = signAccessToken(fastify, profile);
       const refreshToken = await createSession(fastify, profile.id, {

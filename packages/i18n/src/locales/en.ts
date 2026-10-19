@@ -43,6 +43,7 @@ export const en: Record<string, string> = {
   'auth.login': 'Sign in',
   'auth.logout': 'Sign out',
   'auth.email': 'Email',
+  'auth.identifier': 'Email or username',
   'auth.password': 'Password',
   'auth.welcome': 'Welcome back',
   'auth.signInSubtitle': 'Enter your credentials to continue',

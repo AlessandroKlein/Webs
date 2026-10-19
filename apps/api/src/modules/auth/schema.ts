@@ -1,8 +1,8 @@
 export const loginSchema = {
   type: 'object',
-  required: ['email', 'password'],
+  required: ['identifier', 'password'],
   properties: {
-    email: { type: 'string', format: 'email' },
+    identifier: { type: 'string', minLength: 1 },
     password: { type: 'string', minLength: 8 },
     totp: { type: 'string' },
     smsCode: { type: 'string' },
@@ -17,11 +17,12 @@ export const registerSchema = {
     email: { type: 'string', format: 'email' },
     password: { type: 'string', minLength: 8 },
     displayName: { type: 'string', minLength: 1 },
+    username: { type: 'string', minLength: 3 },
   },
 } as const;
 
 export interface LoginBody {
-  email: string;
+  identifier: string;
   password: string;
   totp?: string;
   smsCode?: string;
@@ -32,4 +33,5 @@ export interface RegisterBody {
   email: string;
   password: string;
   displayName?: string;
+  username?: string;
 }

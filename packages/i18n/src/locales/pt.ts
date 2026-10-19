@@ -43,6 +43,7 @@ export const pt: Record<string, string> = {
   'auth.login': 'Entrar',
   'auth.logout': 'Sair',
   'auth.email': 'E-mail',
+  'auth.identifier': 'E-mail ou nome de usuário',
   'auth.password': 'Senha',
   'auth.welcome': 'Bem-vindo de volta',
   'auth.signInSubtitle': 'Insira suas credenciais para continuar',

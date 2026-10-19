@@ -3,6 +3,16 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.5.0] - 2026-10-19
+
+### Añadido
+
+- **Login por nombre de usuario o correo** (`identifier` en `/auth/login`; campo
+  `username` en el modelo User y en el registro).
+- **Menú de usuario** (avatar → perfil, preferencias, panel admin, cerrar sesión).
+- **Sidebar colapsable** y **footer** en el panel.
+- **API tokens** solo creables por administradores (permiso `apiToken.write`).
+
 ## [1.4.0] - 2026-10-19
 
 ### Añadido

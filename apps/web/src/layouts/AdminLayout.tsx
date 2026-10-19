@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme, type ThemeMode } from '@webs/ui';
 import { useAuthStore } from '../lib/auth-store';
@@ -13,6 +14,8 @@ export function AdminLayout() {
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const catalog = useLocaleStore((s) => s.catalog);
   const enabledLocales = useLocaleStore((s) => s.enabled);
+  const [collapsed, setCollapsed] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const nav = [
     { to: '/', label: t('nav.dashboard'), end: true, perm: null as string | null },
@@ -32,26 +35,30 @@ export function AdminLayout() {
   ].filter((item) => item.perm === null || hasPermission(item.perm));
 
   return (
-    <div className="admin-layout">
+    <div className={`admin-layout${collapsed ? ' collapsed' : ''}`}>
       <aside className="sidebar">
-        <div className="brand">Webs</div>
+        <div className="brand">{collapsed ? 'W' : 'Webs'}</div>
         <nav className="stack">
           {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.end}
+              title={item.label}
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
-              {item.label}
+              {collapsed ? item.label.charAt(0) : item.label}
             </NavLink>
           ))}
         </nav>
       </aside>
 
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+      <div className="main-col">
         <header className="topbar">
           <div className="row">
+            <button className="btn ghost" onClick={() => setCollapsed((c) => !c)} title="Colapsar menú" aria-label="Colapsar menú">
+              <i className="bi bi-list" />
+            </button>
             <select
               className="input"
               style={{ width: 'auto' }}
@@ -80,17 +87,38 @@ export function AdminLayout() {
             </select>
           </div>
 
-          <div className="row">
-            <span className="muted">{user?.email}</span>
-            <button className="btn ghost" onClick={() => void logout()}>
-              {t('auth.logout')}
+          <div className="user-menu-wrap">
+            <button className="btn ghost" onClick={() => setMenuOpen((o) => !o)} aria-label="Menú de usuario">
+              <i className="bi bi-person-circle" /> <span>{user?.displayName ?? user?.email ?? 'Usuario'}</span>
             </button>
+            {menuOpen && (
+              <div className="dropdown">
+                <Link to="/account" onClick={() => setMenuOpen(false)}>
+                  <i className="bi bi-person" /> {t('nav.account')}
+                </Link>
+                <Link to="/account" onClick={() => setMenuOpen(false)}>
+                  <i className="bi bi-gear" /> Preferencias
+                </Link>
+                {hasPermission('user.read') && (
+                  <Link to="/" onClick={() => setMenuOpen(false)}>
+                    <i className="bi bi-speedometer2" /> Panel admin
+                  </Link>
+                )}
+                <button onClick={() => void logout()}>
+                  <i className="bi bi-box-arrow-right" /> {t('auth.logout')}
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
         <main className="content">
           <Outlet />
         </main>
+
+        <footer className="footer">
+          <span>Webs · {new Date().getFullYear()}</span>
+        </footer>
       </div>
     </div>
   );
