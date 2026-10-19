@@ -53,6 +53,8 @@ las **plantillas** que los combinan y activan automáticamente.
 | Bloques de negocio: ecommerce, reservas, blog, academia/LMS | ✅ | 0.40.0 |
 | **v1.0.0 estable**: datos persistentes + sistema de versiones/actualización | ✅ | 1.0.0 |
 | Bloques: notificaciones, chat, chat-ia, calendario, social | ✅ | 1.1.0 |
+| Instalación automática de dependencias de bloques | ✅ | 1.2.0 |
+| Selector de proveedores (provides/requiresProviders) | ✅ | 1.3.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
