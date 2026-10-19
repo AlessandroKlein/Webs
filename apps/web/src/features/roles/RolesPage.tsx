@@ -36,7 +36,7 @@ export function RolesPage() {
   });
   const { data: permissions } = useQuery({
     queryKey: ['roles', 'permissions'],
-    queryFn: () => api.get<PermissionOption[]>('/api/v1/roles/permissions'),
+    queryFn: () => api.get<PermissionOption[]>('/api/v1/permissions'),
   });
 
   // Estado del formulario de creación.
