@@ -58,6 +58,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | Validación Docker + fixes (logger, BullMQ, instalación) | ✅ | 1.3.1 |
 | Tests automatizados + fix cookies + 7 bloques (org/forms/docs/workflows/afiliados/register/social) | ✅ | 1.4.0 |
 | Login por username + menú de usuario + sidebar/footer + API tokens admin | ✅ | 1.5.0 |
+| Landing pública en `/` + panel en `/admin` | ✅ | 1.6.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
