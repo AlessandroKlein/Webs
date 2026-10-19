@@ -55,6 +55,8 @@ las **plantillas** que los combinan y activan automáticamente.
 | Bloques: notificaciones, chat, chat-ia, calendario, social | ✅ | 1.1.0 |
 | Instalación automática de dependencias de bloques | ✅ | 1.2.0 |
 | Selector de proveedores (provides/requiresProviders) | ✅ | 1.3.0 |
+| Validación Docker + fixes (logger, BullMQ, instalación) | ✅ | 1.3.1 |
+| Tests automatizados + fix cookies + 7 bloques (org/forms/docs/workflows/afiliados/register/social) | ✅ | 1.4.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
