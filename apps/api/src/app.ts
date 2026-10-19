@@ -51,6 +51,7 @@ import trackingRoutes from './modules/email/tracking';
 import { startScheduler } from './modules/email/scheduler';
 
 import { registerBlocks } from './blocks/loader';
+import { seedDefaultEmailTemplates } from './modules/email/seed';
 
 export interface BuildAppOptions {
   env?: Env;
@@ -151,6 +152,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
 
   // 6. Bloques instalados (cargan sus plugins, rutas, settings, slots y permisos).
   await registerBlocks(app);
+
+  // 6a. Siembra plantillas de correo por defecto (verificación, reset, bienvenida).
+  await seedDefaultEmailTemplates(app);
 
   // 6b. Aplica la plantilla elegida en la instalación (si corresponde).
   if (state.pendingTemplate) {

@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.24.0] - 2026-10-19
+
+### Añadido
+
+- **Email**: plantillas precreadas (verificación de correo, restablecer
+  contraseña y bienvenida) que se siembran automáticamente al arrancar.
+
 ## [1.23.0] - 2026-10-19
 
 ### Añadido
