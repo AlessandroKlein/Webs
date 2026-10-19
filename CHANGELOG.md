@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.15.1] - 2026-10-19
+
+### Corregido
+
+- Admin creado en la instalación ahora incluye `username` (login por username
+  funciona de arranque). `SYSTEM_VERSION` actualizada a `1.15.0`.
+
 ## [1.15.0] - 2026-10-19
 
 ### Añadido

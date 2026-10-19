@@ -148,6 +148,7 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       email: payload.admin.email,
+      username: payload.admin.username ?? null,
       passwordHash,
       displayName: payload.admin.displayName ?? 'Administrador',
       locale: payload.site.defaultLocale ?? 'es',
