@@ -3,6 +3,13 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.8.0] - 2026-10-19
+
+### Añadido
+
+- **Settings**: menú desplegable de **zonas horarias** (por país/región) en la
+  sección del sitio, y **tamaños recomendados** en los campos de logos/icono.
+
 ## [1.7.0] - 2026-10-19
 
 ### Añadido
