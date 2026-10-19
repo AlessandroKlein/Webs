@@ -60,6 +60,7 @@ las **plantillas** que los combinan y activan automáticamente.
 | Login por username + menú de usuario + sidebar/footer + API tokens admin | ✅ | 1.5.0 |
 | Landing pública en `/` + panel en `/admin` | ✅ | 1.6.0 |
 | Usuarios: buscador + campo username | ✅ | 1.7.0 |
+| Settings: zonas horarias + tamaños de logo | ✅ | 1.8.0 |
 | Sistema de bloques completo (rutas/settings/permisos/slots/eventos/i18n) | ✅ | — |
 
 ---
