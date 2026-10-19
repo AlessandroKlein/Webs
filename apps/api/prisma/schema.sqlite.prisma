@@ -310,24 +310,77 @@ model SocialPost {
 }
 
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  plan      String   @default("free")
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  name           String
+  slug           String?  @unique
+  plan           String   @default("free")
+  active         Boolean  @default(true)
+  shareInventory Boolean  @default(false)
+  logoUrl        String?
+  createdAt      DateTime @default(now())
 
   @@map("organizations")
 }
 
 model Membership {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   organizationId String
   userId         String
-  role           String   @default("member")
-  createdAt      DateTime @default(now())
+  role           String    @default("member")
+  plan           String    @default("free")
+  status         String    @default("active")
+  startDate      DateTime  @default(now())
+  endDate        DateTime?
+  qrcode         String?   @unique
+  createdAt      DateTime  @default(now())
 
   @@index([organizationId])
+  @@index([userId])
   @@map("memberships")
+}
+
+model MembershipPlan {
+  id           String   @id @default(uuid())
+  name         String
+  price        Int      @default(0)
+  durationDays Int      @default(30)
+  features     Json     @default("[]")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@map("membership_plans")
+}
+
+model AttendanceRecord {
+  id             String   @id @default(uuid())
+  organizationId String
+  membershipId   String
+  userId         String
+  method         String   @default("qr")
+  timestamp      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([membershipId])
+  @@index([timestamp])
+  @@map("attendance_records")
+}
+
+model InventoryItem {
+  id             String   @id @default(uuid())
+  organizationId String?
+  sku            String
+  name           String
+  quantity       Int      @default(0)
+  minQuantity    Int      @default(0)
+  unitPrice      Int      @default(0)
+  category       String?
+  productId      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([sku])
+  @@map("inventory_items")
 }
 
 model Form {

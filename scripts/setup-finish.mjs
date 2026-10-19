@@ -62,6 +62,10 @@ const PERMISSIONS = [
   { key: 'email.send', description: 'Enviar campañas de correo' },
   { key: 'apiToken.read', description: 'Ver tokens de API' },
   { key: 'apiToken.write', description: 'Crear/revocar tokens de API' },
+  { key: 'organization.manage', description: 'Gestionar organizaciones multi-tenant' },
+  { key: 'membership.manage', description: 'Gestionar membresías y planes' },
+  { key: 'attendance.manage', description: 'Registrar/consultar asistencia' },
+  { key: 'inventory.manage', description: 'Gestionar inventario' },
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);

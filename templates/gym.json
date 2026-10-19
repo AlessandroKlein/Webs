@@ -7,6 +7,7 @@
     { "id": "reservas", "config": { "provider": "local", "reminderEmail": true, "leadTimeHours": 1, "cancelPolicyHours": 12 } },
     { "id": "calendario", "config": { "provider": "local", "timezone": "America/Argentina/Buenos_Aires" } },
     { "id": "ecommerce", "config": { "shippingProvider": "flat", "originCountry": "AR" } },
+    { "id": "inventario", "config": { "lowStockThreshold": 5, "trackBySku": true } },
     { "id": "carrito", "config": {} },
     { "id": "mercadopago", "config": {} },
     { "id": "facturacion", "config": { "afipMode": "factura", "arcaEnvironment": "homol" } },

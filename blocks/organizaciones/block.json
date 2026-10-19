@@ -1,15 +1,25 @@
 {
   "name": "@webs/block-organizaciones",
   "id": "organizaciones",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "block",
-  "displayName": { "en": "Organizations", "es": "Organizaciones" },
-  "description": { "en": "Multi-tenant organizations and memberships.", "es": "Organizaciones multi-tenant y membresías." },
+  "displayName": { "en": "Organizations & Memberships", "es": "Organizaciones y membresías" },
+  "description": { "en": "Multi-tenant organizations, membership plans and QR attendance.", "es": "Organizaciones multi-tenant, planes de membresía y asistencia por QR." },
   "author": "Webs",
   "license": "MIT",
+  "category": "negocio",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
+  "permissions": ["organization.manage", "membership.manage", "attendance.manage"],
   "slots": ["content"],
-  "settings": { "type": "object", "title": "Organizaciones", "properties": { "defaultPlan": { "type": "string", "default": "free" }, "requireApproval": { "type": "boolean", "default": false } } }
+  "settings": {
+    "type": "object",
+    "title": "Organizaciones",
+    "properties": {
+      "defaultPlan": { "type": "string", "title": "Plan por defecto", "default": "free" },
+      "requireApproval": { "type": "boolean", "title": "Requerir aprobación", "default": false },
+      "shareInventoryByDefault": { "type": "boolean", "title": "Compartir inventario por defecto", "default": false }
+    }
+  }
 }

@@ -4,6 +4,7 @@
   "description": "E-commerce completo: productos, carrito, pagos, facturación y analíticas. Reutiliza el mismo núcleo que el gimnasio.",
   "blocks": [
     { "id": "ecommerce", "config": { "shippingProvider": "flat", "originCountry": "AR" } },
+    { "id": "inventario", "config": { "lowStockThreshold": 5, "trackBySku": true } },
     { "id": "carrito", "config": {} },
     { "id": "mercadopago", "config": {} },
     { "id": "stripe", "config": {} },

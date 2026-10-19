@@ -30,6 +30,8 @@ import { AuditPage } from './features/audit/AuditPage';
 import { ApiTokensPage } from './features/api-tokens/ApiTokensPage';
 import { AccountPage } from './features/account/AccountPage';
 import { PagesPage } from './features/pages/PagesPage';
+import { OrganizationsPage } from './features/organizations/OrganizationsPage';
+import { InventoryPage } from './features/inventory/InventoryPage';
 import { PublicHome } from './features/public/PublicHome';
 import { SetupWizard } from './features/setup/SetupWizard';
 import { ErrorPage } from './pages/ErrorPage';
@@ -126,6 +128,8 @@ function MainApp() {
           <Route index element={<DashboardPage />} />
           <Route path="content" element={<ContentPage />} />
           <Route path="pages" element={<PagesPage />} />
+          <Route path="organizations" element={<OrganizationsPage />} />
+          <Route path="inventory" element={<InventoryPage />} />
           <Route path="email" element={<EmailPage />} />
           <Route path="blocks" element={<BlocksPage />} />
           <Route path="blocks/:blockId" element={<BlockConfigPage />} />
