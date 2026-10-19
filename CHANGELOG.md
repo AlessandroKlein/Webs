@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.25.0] - 2026-10-19
+
+### Añadido
+
+- **Páginas**: editar páginas existentes con el editor visual (cargar en el
+  editor, modificar secciones/bloques/tamaño, "Guardar" con feedback y
+  "Cancelar"). Botón "Editar" en el listado.
+
 ## [1.24.0] - 2026-10-19
 
 ### Añadido

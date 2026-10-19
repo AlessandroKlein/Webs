@@ -37,12 +37,35 @@ export function PagesPage() {
     mutationFn: (id: string) => api.del(`/api/v1/pages/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['pages'] }),
   });
+  const update = useMutation({
+    mutationFn: (vars: { id: string; body: { slug?: string; title?: string; layout?: unknown; redirectUrl?: string | null; isHome?: boolean } }) =>
+      api.patch(`/api/v1/pages/${vars.id}`, vars.body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pages'] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    },
+  });
 
   const [slug, setSlug] = useState('');
   const [title, setTitle] = useState('');
   const [redirectUrl, setRedirectUrl] = useState('');
   const [isHome, setIsHome] = useState(false);
   const [sections, setSections] = useState<Array<{ blocks: string[]; size: Size }>>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const resetForm = () => {
+    setSlug(''); setTitle(''); setRedirectUrl(''); setSections([]); setIsHome(false); setEditingId(null);
+  };
+  const editPage = (p: Page) => {
+    setEditingId(p.id);
+    setSlug(p.slug);
+    setTitle(p.title);
+    setRedirectUrl(p.redirectUrl ?? '');
+    setIsHome(p.isHome);
+    setSections((p.layout ?? []).map((s) => ({ blocks: s.blocks ?? [], size: (s.size as Size) ?? 'full' })));
+  };
 
   const installedBlocks = (blocksData?.installed ?? []).map((b) => b.blockId);
 
@@ -56,12 +79,13 @@ export function PagesPage() {
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
-    create.mutate({ slug, title, layout: sections, redirectUrl: redirectUrl || null, isHome });
-    setSlug('');
-    setTitle('');
-    setRedirectUrl('');
-    setSections([]);
-    setIsHome(false);
+    const body = { slug, title, layout: sections, redirectUrl: redirectUrl || null, isHome };
+    if (editingId) {
+      update.mutate({ id: editingId, body });
+    } else {
+      create.mutate(body);
+      resetForm();
+    }
   };
 
   return (
@@ -69,7 +93,7 @@ export function PagesPage() {
       <h1>Páginas</h1>
 
       <Card>
-        <h3>Nueva página</h3>
+        <h3>{editingId ? `Editar página` : 'Nueva página'}</h3>
         <form className="row" onSubmit={onSubmit} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <TextField label="Slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="contacto" required />
           <TextField label="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -77,7 +101,9 @@ export function PagesPage() {
           <label className="row" style={{ gap: 6 }}>
             <input type="checkbox" checked={isHome} onChange={(e) => setIsHome(e.target.checked)} /> Es la página de inicio
           </label>
-          <Button type="submit" disabled={create.isPending}>Crear</Button>
+          <Button type="submit" disabled={create.isPending || update.isPending}>{editingId ? 'Guardar' : 'Crear'}</Button>
+          {editingId && <Button variant="ghost" onClick={resetForm}>Cancelar</Button>}
+          {saved && <span style={{ color: 'var(--ws-success)' }}>Guardado ✓</span>}
         </form>
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--ws-border)', margin: 'var(--ws-space-4) 0' }} />
@@ -138,7 +164,10 @@ export function PagesPage() {
                 {p.isHome && <span className="badge" style={{ marginLeft: 6 }}>inicio</span>}
                 {p.redirectUrl && <span className="badge" style={{ marginLeft: 6 }}>redirige</span>}
               </span>
-              <Button variant="ghost" onClick={() => remove.mutate(p.id)}>Eliminar</Button>
+              <div className="row">
+                <Button variant="secondary" onClick={() => editPage(p)}>Editar</Button>
+                <Button variant="ghost" onClick={() => remove.mutate(p.id)}>Eliminar</Button>
+              </div>
             </div>
           ))}
           {(data ?? []).length === 0 && <p className="muted">No hay páginas.</p>}
