@@ -44,10 +44,10 @@ export function DashboardPage() {
           contenido, usuarios y apariencia desde las secciones del menú.
         </p>
         <div className="row" style={{ marginTop: 'var(--ws-space-4)' }}>
-          <Link to="/settings" className="btn secondary">
+          <Link to="/admin/settings" className="btn secondary">
             {t('nav.settings')}
           </Link>
-          <Link to="/blocks" className="btn secondary">
+          <Link to="/admin/blocks" className="btn secondary">
             {t('nav.blocks')}
           </Link>
         </div>

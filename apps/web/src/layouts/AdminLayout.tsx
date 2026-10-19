@@ -18,20 +18,20 @@ export function AdminLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const nav = [
-    { to: '/', label: t('nav.dashboard'), end: true, perm: null as string | null },
-    { to: '/content', label: t('nav.content'), perm: 'content.read' },
-    { to: '/email', label: t('nav.email'), perm: 'email.read' },
-    { to: '/blocks', label: t('nav.blocks'), perm: 'block.read' },
-    { to: '/templates', label: t('nav.templates'), perm: 'setting.write' },
-    { to: '/payments', label: t('nav.payments'), perm: 'user.read' },
-    { to: '/users', label: t('nav.users'), perm: 'user.read' },
-    { to: '/roles', label: t('nav.roles'), perm: 'role.read' },
-    { to: '/settings', label: t('nav.settings'), perm: 'setting.read' },
-    { to: '/appearance', label: t('nav.appearance'), perm: 'theme.read' },
-    { to: '/translations', label: t('nav.translations'), perm: 'translation.read' },
-    { to: '/audit', label: t('nav.audit'), perm: 'audit.read' },
-    { to: '/api-tokens', label: t('nav.api'), perm: null },
-    { to: '/account', label: t('nav.account'), perm: null },
+    { to: '/admin', label: t('nav.dashboard'), end: true, perm: null as string | null },
+    { to: '/admin/content', label: t('nav.content'), perm: 'content.read' },
+    { to: '/admin/email', label: t('nav.email'), perm: 'email.read' },
+    { to: '/admin/blocks', label: t('nav.blocks'), perm: 'block.read' },
+    { to: '/admin/templates', label: t('nav.templates'), perm: 'setting.write' },
+    { to: '/admin/payments', label: t('nav.payments'), perm: 'user.read' },
+    { to: '/admin/users', label: t('nav.users'), perm: 'user.read' },
+    { to: '/admin/roles', label: t('nav.roles'), perm: 'role.read' },
+    { to: '/admin/settings', label: t('nav.settings'), perm: 'setting.read' },
+    { to: '/admin/appearance', label: t('nav.appearance'), perm: 'theme.read' },
+    { to: '/admin/translations', label: t('nav.translations'), perm: 'translation.read' },
+    { to: '/admin/audit', label: t('nav.audit'), perm: 'audit.read' },
+    { to: '/admin/api-tokens', label: t('nav.api'), perm: null },
+    { to: '/admin/account', label: t('nav.account'), perm: null },
   ].filter((item) => item.perm === null || hasPermission(item.perm));
 
   return (
@@ -93,14 +93,14 @@ export function AdminLayout() {
             </button>
             {menuOpen && (
               <div className="dropdown">
-                <Link to="/account" onClick={() => setMenuOpen(false)}>
+                <Link to="/admin/account" onClick={() => setMenuOpen(false)}>
                   <i className="bi bi-person" /> {t('nav.account')}
                 </Link>
-                <Link to="/account" onClick={() => setMenuOpen(false)}>
+                <Link to="/admin/account" onClick={() => setMenuOpen(false)}>
                   <i className="bi bi-gear" /> Preferencias
                 </Link>
                 {hasPermission('user.read') && (
-                  <Link to="/" onClick={() => setMenuOpen(false)}>
+                  <Link to="/admin" onClick={() => setMenuOpen(false)}>
                     <i className="bi bi-speedometer2" /> Panel admin
                   </Link>
                 )}

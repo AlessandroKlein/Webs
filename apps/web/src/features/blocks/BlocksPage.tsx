@@ -217,7 +217,7 @@ function InstalledBlockRow({
         </div>
         <div className="row">
           {block.manifest.settings && (
-            <Link to={`/blocks/${block.blockId}`} className="btn secondary">
+            <Link to={`/admin/blocks/${block.blockId}`} className="btn secondary">
               Configurar
             </Link>
           )}

@@ -1,16 +1,25 @@
+import { Link } from 'react-router-dom';
 import { BlockSlot } from '../../blocks/BlockSlot';
+import { useAuthStore } from '../../lib/auth-store';
 
 /**
- * Página pública de ejemplo que demuestra el sistema de slots: los bloques que
- * el administrador coloca en los slots `header`, `content` y `footer` se
- * renderizan aquí automáticamente.
+ * Página pública (landing) en la raíz `/`: renderiza los bloques que el
+ * administrador coloca en los slots `header`, `content`, `sidebar` y `footer`,
+ * con accesos a iniciar sesión y al panel de administración.
  */
 export function PublicHome() {
+  const user = useAuthStore((s) => s.user);
   return (
     <div className="app-shell">
-      <header style={{ padding: 'var(--ws-space-6)', borderBottom: '1px solid var(--ws-border)' }}>
-        <h1>Webs</h1>
-        <BlockSlot slotId="header" />
+      <header className="topbar" style={{ padding: 'var(--ws-space-3) var(--ws-space-6)' }}>
+        <h1 style={{ margin: 0 }}>Webs</h1>
+        <div className="row">
+          {user ? (
+            <Link to="/admin" className="btn">Panel</Link>
+          ) : (
+            <Link to="/login" className="btn">Iniciar sesión</Link>
+          )}
+        </div>
       </header>
 
       <main style={{ padding: 'var(--ws-space-6)', flex: 1 }}>

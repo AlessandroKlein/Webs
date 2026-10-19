@@ -109,11 +109,11 @@ function MainApp() {
         <Route path="/setup-2fa" element={<SetupTwoFactorPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/site" element={<PublicHome />} />
         <Route path="/store" element={<StorePage />} />
+        <Route path="/" element={<PublicHome />} />
 
         <Route
-          path="/"
+          path="/admin"
           element={
             <RequireAuth>
               <AdminLayout />

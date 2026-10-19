@@ -26,7 +26,7 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
 
-  if (status === 'authenticated') return <Navigate to="/" replace />;
+  if (status === 'authenticated') return <Navigate to="/admin" replace />;
 
   const loginWithPasskey = async () => {
     setPasskeyLoading(true);
@@ -41,7 +41,7 @@ export function LoginPage() {
         { challengeId: opts.challengeId, credential },
       );
       await finalizeAuth(result.accessToken, result.user);
-      navigate('/', { replace: true });
+      navigate('/admin', { replace: true });
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Error al autenticar con passkey');
     } finally {
@@ -55,7 +55,7 @@ export function LoginPage() {
     setError(null);
     try {
       await login(identifier, password, totp || undefined, rememberMe, smsCode || undefined);
-      navigate('/', { replace: true });
+      navigate('/admin', { replace: true });
     } catch (err) {
       if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_REQUIRED') {
         setTwoFactorRequired(true);

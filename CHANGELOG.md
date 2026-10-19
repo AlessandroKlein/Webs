@@ -3,6 +3,14 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.6.0] - 2026-10-19
+
+### Añadido
+
+- **Página pública en la raíz** (`/`): landing con los slots de bloques y acceso a
+  "Iniciar sesión"/"Panel". El panel de administración se movió a **`/admin/*`**
+  (ya no se fuerza el login al entrar a la URL).
+
 ## [1.5.0] - 2026-10-19
 
 ### Añadido

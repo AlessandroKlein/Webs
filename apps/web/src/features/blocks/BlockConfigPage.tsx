@@ -45,7 +45,7 @@ export function BlockConfigPage() {
     return (
       <div className="stack">
         <h1>Bloque no encontrado</h1>
-        <Link to="/blocks" className="btn secondary">Volver a bloques</Link>
+        <Link to="/admin/blocks" className="btn secondary">Volver a bloques</Link>
       </div>
     );
   }
@@ -56,7 +56,7 @@ export function BlockConfigPage() {
     <div className="stack">
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <h1>{block.name} <span className="muted">v{block.version}</span></h1>
-        <Link to="/blocks" className="btn secondary">← Volver</Link>
+        <Link to="/admin/blocks" className="btn secondary">← Volver</Link>
       </div>
 
       <Card>
