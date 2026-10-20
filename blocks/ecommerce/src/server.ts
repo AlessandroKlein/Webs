@@ -1,5 +1,4 @@
 import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import { quoteShipping } from '../../../apps/api/src/integrations/shipping';
 import manifestJson from '../block.json';
 
 const manifest = manifestJson as unknown as BlockManifest;
@@ -157,7 +156,6 @@ export default defineBlock(manifest, {
     const defaultProvider = configuredProvider && (SHIPPING_PROVIDERS as readonly string[]).includes(configuredProvider)
       ? configuredProvider
       : 'local';
-    const enableShippingProviders = cfg.enableShippingProviders === true;
     const configuredRates = (Array.isArray(cfg.shippingRates) ? cfg.shippingRates : []) as Array<{ provider?: string; baseCost?: number; costPerKg?: number; days?: number }>;
     const shippingRates = configuredRates.length
       ? configuredRates.map((r) => ({
@@ -167,29 +165,6 @@ export default defineBlock(manifest, {
           days: Number(r.days ?? 3),
         }))
       : DEFAULT_SHIPPING_RATES;
-
-    // Credenciales de los proveedores de envío (leídas de los settings; ninguna
-    // hardcodeada). Se pasan al adaptador con claves genéricas (`apiKey`, etc.).
-    const shippingConfig: Record<string, unknown> = {
-      apiKey: cfg.shippingApiKey ?? cfg.shippingProviderKey,
-      apiSecret: cfg.shippingApiSecret,
-      username: cfg.shippingUsername ?? cfg.shippingProviderUser,
-      password: cfg.shippingPassword ?? cfg.shippingProviderKey,
-      token: cfg.shippingToken ?? cfg.shippingProviderKey,
-      userToken: cfg.shippingProviderUser ?? cfg.shippingUsername,
-      passwordToken: cfg.shippingProviderKey ?? cfg.shippingPassword,
-      customerId: cfg.shippingProviderCustomerId,
-      itemId: cfg.shippingProviderItemId,
-      postalCodeOrigin: cfg.shippingOriginPostalCode,
-      baseUrl: cfg.shippingBaseUrl,
-    };
-
-    /** Proveedores que se muestran en el cotizador del checkout. */
-    const listProviders = (): string[] => {
-      const out = new Set<string>(['local']);
-      if (enableShippingProviders && defaultProvider !== 'local') out.add(defaultProvider);
-      return [...out];
-    };
 
     // Datos persistentes (tablas `orders`/`shipments`/`coupons` del esquema principal).
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
@@ -375,42 +350,88 @@ export default defineBlock(manifest, {
 
       const requested = body?.provider ?? query?.provider;
       // Sin `provider`, o con `provider=all`/`list`, se devuelven todas las
-      // opciones visibles del checkout (local + el proveedor activo, si aplica).
+      // opciones: local + los proveedores registrados en el registro de envíos.
       const listMode = !requested || requested === 'all' || requested === 'list';
 
-      const quoteOne = async (provider: string) => {
-        if (!(SHIPPING_PROVIDERS as readonly string[]).includes(provider)) return null;
-        const quote = await quoteShipping(provider, shippingConfig, { weight, destination, province, city }, shippingRates);
+      const input = {
+        weight,
+        postalCode: destination || null,
+        destination: destination || null,
+        province: province || null,
+        city: city || null,
+      };
+
+      // Tarifa local calculada a partir de `shippingRates`.
+      const localQuote = (provider: string) => {
+        const rate = shippingRates.find((r) => r.provider === provider);
+        const baseCost = Number(rate?.baseCost ?? 0);
+        const costPerKg = Number(rate?.costPerKg ?? 0);
+        const days = Number(rate?.days ?? 3);
         return {
           provider,
-          cost: quote.cost,
-          days: quote.days,
-          currency: quote.currency,
-          source: quote.source,
+          cost: Math.round(baseCost + costPerKg * Math.max(weight, 0)),
+          days,
+          currency: 'ARS',
+          source: 'local' as const,
         };
       };
 
+      const quoteOne = async (provider: string) => {
+        if (provider === 'local') return localQuote('local');
+        const adapter = fastify.shipping?.get(provider);
+        if (!adapter) return null;
+        try {
+          const quote = await adapter.quote(cfg, input);
+          // Sin credenciales o sin tarifa real el proveedor devuelve cost 0.
+          if (quote.cost <= 0) return null;
+          return {
+            provider,
+            cost: quote.cost,
+            days: quote.days,
+            currency: quote.currency ?? 'ARS',
+            source: 'provider' as const,
+          };
+        } catch {
+          return null;
+        }
+      };
+
       if (listMode) {
-        const quotes = (await Promise.all(listProviders().map(quoteOne))).filter(
+        const registered = (fastify.shipping?.list() ?? []).map((p) => p.id);
+        const providers = ['local', ...registered.filter((id) => id !== 'local')];
+        const quotes = (await Promise.all(providers.map(quoteOne))).filter(
           (q): q is NonNullable<typeof q> => q !== null,
         );
         return { ok: true, quotes };
       }
 
       const provider = requested;
-      if (!(SHIPPING_PROVIDERS as readonly string[]).includes(provider)) {
-        return { ok: false, error: 'Proveedor no soportado', providers: SHIPPING_PROVIDERS };
+      if (!provider) return { ok: false, error: 'Proveedor no especificado' };
+      if (provider === 'local') return localQuote('local');
+
+      const adapter = fastify.shipping?.get(provider);
+      if (!adapter) {
+        return {
+          ok: false,
+          error: 'Proveedor no soportado',
+          providers: ['local', ...(fastify.shipping?.list() ?? []).map((p) => p.id)],
+        };
       }
-      // Cotización real contra el proveedor configurado; con fallback local.
-      const quote = await quoteShipping(provider, shippingConfig, { weight, destination, province, city }, shippingRates);
-      return {
-        provider,
-        cost: quote.cost,
-        days: quote.days,
-        destination,
-        currency: quote.currency,
-        source: quote.source,
-      };
+
+      try {
+        const quote = await adapter.quote(cfg, input);
+        if (quote.cost <= 0) return localQuote(provider); // sin credenciales → tarifa local
+        return {
+          provider,
+          cost: quote.cost,
+          days: quote.days,
+          destination,
+          currency: quote.currency ?? 'ARS',
+          source: 'provider' as const,
+        };
+      } catch {
+        return localQuote(provider);
+      }
     });
 
     fastify.post('/shipments', { preHandler: [authenticate] }, async (request: unknown) => {

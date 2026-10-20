@@ -1,0 +1,58 @@
+{
+  "name": "@webs/block-envio-mercadolibre",
+  "id": "mercadolibre",
+  "version": "0.1.0",
+  "type": "block",
+  "category": "envios",
+  "displayName": { "en": "Mercado Envíos", "es": "Mercado Envíos" },
+  "description": {
+    "en": "Shipping quotes via Mercado Libre shipping options (/items/{id}/shipping_options).",
+    "es": "Cotización de envíos con Mercado Envíos (/items/{id}/shipping_options)."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "provides": ["shipping"],
+  "settings": {
+    "type": "object",
+    "title": "Configuración de Mercado Envíos",
+    "properties": {
+      "enabled": { "type": "boolean", "title": "Habilitado", "default": false },
+      "accessToken": {
+        "type": "string",
+        "title": "Access token",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Access token de Mercado Libre.",
+            "url": "https://developers.mercadolibre.com/es_ar/guia-para-producto/mercado-envios-costos-y-cotizaciones"
+          }
+        }
+      },
+      "itemId": {
+        "type": "string",
+        "title": "ID de publicación",
+        "x-ui": {
+          "help": {
+            "text": "ID de publicación (item) para consultar sus opciones de envío.",
+            "url": "https://developers.mercadolibre.com/es_ar/guia-para-producto/mercado-envios-costos-y-cotizaciones"
+          }
+        }
+      },
+      "baseUrl": {
+        "type": "string",
+        "title": "URL base",
+        "default": "https://api.mercadolibre.com",
+        "x-ui": {
+          "help": {
+            "text": "URL base de la API de Mercado Libre.",
+            "url": "https://developers.mercadolibre.com/es_ar/guia-para-producto/mercado-envios-costos-y-cotizaciones"
+          }
+        }
+      }
+    }
+  }
+}

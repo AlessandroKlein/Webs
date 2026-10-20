@@ -47,6 +47,12 @@ export interface BlockFastify {
   notifications?: {
     register: (adapter: import('./notifications').NotificationProviderAdapter) => void;
   };
+  /** Registro central de proveedores de envío (bloques de envío). */
+  shipping?: {
+    register: (adapter: import('./shipping').ShippingProviderAdapter) => void;
+    get: (id: string) => import('./shipping').ShippingProviderAdapter | undefined;
+    list: () => Array<{ id: string; displayName: string }>;
+  };
   /** Cliente de base de datos (Prisma) heredado de la app. */
   prisma?: unknown;
 }

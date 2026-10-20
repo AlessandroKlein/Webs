@@ -20,6 +20,7 @@ import websocketPlugin from './plugins/websocket';
 import securityPlugin from './plugins/security';
 import eventsPlugin from './plugins/events';
 import paymentsPlugin from './plugins/payments';
+import shippingPlugin from './plugins/shipping';
 import storagePlugin from './plugins/storage';
 import notificationsPlugin from './plugins/notifications';
 
@@ -99,6 +100,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(securityPlugin);
   await app.register(eventsPlugin);
   await app.register(paymentsPlugin);
+  await app.register(shippingPlugin);
   await app.register(storagePlugin);
   await app.register(notificationsPlugin);
   await app.register(authPlugin, { jwtSecret: env.JWT_SECRET });
