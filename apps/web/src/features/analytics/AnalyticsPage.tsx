@@ -607,6 +607,7 @@ function AcademiaView() {
   const [rtTrainerId, setRtTrainerId] = useState('');
   const [rtMemberId, setRtMemberId] = useState('');
   const [rtName, setRtName] = useState('');
+  const [rtDescription, setRtDescription] = useState('');
   const [rtExercises, setRtExercises] = useState('');
 
   const invalidate = () => {
@@ -673,7 +674,12 @@ function AcademiaView() {
 
   const createRoutine = useMutation({
     mutationFn: () => {
-      const body: Record<string, unknown> = { trainerId: rtTrainerId, memberId: rtMemberId, name: rtName || 'Rutina' };
+      const body: Record<string, unknown> = {
+        trainerId: rtTrainerId,
+        memberId: rtMemberId,
+        name: rtName || 'Rutina',
+      };
+      if (rtDescription.trim()) body.description = rtDescription.trim();
       const exercises = parseLessons(rtExercises);
       if (exercises) body.exercises = exercises;
       return api.post<Routine>(`${ACADEMIA}/routines`, body);
@@ -683,6 +689,7 @@ function AcademiaView() {
       setRtTrainerId('');
       setRtMemberId('');
       setRtName('');
+      setRtDescription('');
       setRtExercises('');
     },
   });
@@ -824,19 +831,33 @@ function AcademiaView() {
       </Card>
 
       <Card>
-        <h3>{t('admin.analytics.routines')}</h3>
+        <h3>Rutinas (entrenador)</h3>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Creá y asigná rutinas: indicá el <strong>ID del entrenador</strong> y el{' '}
+          <strong>ID del miembro/cliente</strong>, un nombre y los ejercicios en JSON.
+        </p>
         <form
-          className="row"
+          className="stack"
           onSubmit={(e) => { e.preventDefault(); createRoutine.mutate(); }}
-          style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}
         >
-          <TextField label={t('admin.analytics.trainerId')} value={rtTrainerId} onChange={(e) => setRtTrainerId(e.target.value)} required />
-          <TextField label={t('admin.analytics.memberId')} value={rtMemberId} onChange={(e) => setRtMemberId(e.target.value)} required />
-          <TextField label={t('common.name')} value={rtName} onChange={(e) => setRtName(e.target.value)} placeholder="Rutina" />
-          <TextField label={t('admin.analytics.exercisesJson')} value={rtExercises} onChange={(e) => setRtExercises(e.target.value)} placeholder='[{"name":"Press banca","sets":3}]' />
-          <Button type="submit" disabled={createRoutine.isPending || !rtTrainerId || !rtMemberId}>
-            {t('admin.analytics.createRoutine')}
-          </Button>
+          <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <TextField label="ID entrenador (trainerId)" value={rtTrainerId} onChange={(e) => setRtTrainerId(e.target.value)} required />
+            <TextField label="ID miembro (memberId)" value={rtMemberId} onChange={(e) => setRtMemberId(e.target.value)} required />
+            <TextField label="Nombre" value={rtName} onChange={(e) => setRtName(e.target.value)} placeholder="Rutina de pecho" />
+            <TextField label="Descripción" value={rtDescription} onChange={(e) => setRtDescription(e.target.value)} placeholder="Opcional" />
+          </div>
+          <TextField
+            label="Ejercicios (JSON)"
+            value={rtExercises}
+            onChange={(e) => setRtExercises(e.target.value)}
+            placeholder='[{"name":"Press banca","sets":3,"reps":10}]'
+          />
+          <div className="row">
+            <Button type="submit" disabled={createRoutine.isPending || !rtTrainerId || !rtMemberId}>
+              {createRoutine.isPending ? 'Guardando…' : 'Crear / asignar rutina'}
+            </Button>
+            {createRoutine.error && <span style={{ color: 'var(--ws-danger)' }}>{createRoutine.error.message}</span>}
+          </div>
         </form>
         <table className="table" style={{ marginTop: 'var(--ws-space-3)' }}>
           <thead>
@@ -855,7 +876,7 @@ function AcademiaView() {
                 <td>{r.name}</td>
                 <td><code>{r.trainerId}</code></td>
                 <td><code>{r.memberId}</code></td>
-                <td>{Array.isArray(r.exercises) ? r.exercises.length : '—'}</td>
+                <td>{routineNames(r.exercises)}</td>
                 <td><span className="badge">{r.status}</span></td>
                 <td>
                   <Button variant="ghost" onClick={() => removeRoutine.mutate(r.id)}>
@@ -954,4 +975,14 @@ function parseLessons(raw: string): unknown[] | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** Nombres de ejercicios de una rutina (para mostrar la lista en la tabla). */
+function routineNames(exercises: unknown[] | null): string {
+  if (!Array.isArray(exercises)) return '—';
+  const names = exercises
+    .map((ex) => (ex && typeof ex === 'object' ? String((ex as Record<string, unknown>).name ?? '') : ''))
+    .map((n) => n.trim())
+    .filter(Boolean);
+  return names.length ? names.join(', ') : '—';
 }

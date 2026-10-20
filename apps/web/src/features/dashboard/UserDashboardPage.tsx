@@ -111,6 +111,14 @@ interface SubscribeResult {
   currency?: string;
 }
 
+interface PlanMembership {
+  id: string;
+  plan: string | null;
+  status: string;
+  startDate: string;
+  endDate: string | null;
+}
+
 // ── Estado local de navegación del panel ────────────────────────────────
 
 type View =
@@ -163,6 +171,73 @@ function groupEventsByDate(events: CalendarEvent[]): Array<{ date: string; items
     map.set(key, arr);
   }
   return Array.from(map.entries()).map(([date, items]) => ({ date, items }));
+}
+
+/** Decodifica el `type` de una clase (JSON con cupos/recurrencia) a una etiqueta legible. */
+function eventTypeLabel(type: string | null): string {
+  if (!type) return '';
+  if (type.startsWith('{')) {
+    try {
+      const meta = JSON.parse(type) as { kind?: string; slots?: number; occurrence?: number; total?: number };
+      const label = meta.kind ?? 'clase';
+      const parts = [label];
+      if (meta.slots !== undefined) parts.push(`${meta.slots} cupos`);
+      if (meta.total !== undefined && meta.total > 1 && meta.occurrence !== undefined) {
+        parts.push(`${meta.occurrence}/${meta.total}`);
+      }
+      return parts.join(' · ');
+    } catch {
+      return type;
+    }
+  }
+  return type;
+}
+
+const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * Comprobante simple generado en el cliente (cuando no existe factura): abre una
+ * pestaña imprimible para que el usuario lo guarde como PDF.
+ */
+function openSimpleReceipt(p: PaymentRow) {
+  const date = new Date(p.createdAt).toLocaleString('es-AR');
+  const amount = (p.amount / 100).toFixed(2);
+  const html = `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Comprobante ${escHtml(p.transactionId || p.id)}</title>
+<style>
+  body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: #111827; margin: 0; background: #f6f7f9; }
+  .doc { max-width: 640px; margin: 24px auto; background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 12px 32px rgba(0,0,0,0.08); }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  .meta { color: #6b7280; font-size: 14px; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { padding: 8px 4px; border-bottom: 1px solid #e5e7eb; }
+  td:last-child { text-align: right; }
+  .amount { font-size: 28px; font-weight: 700; margin: 16px 0; }
+  .note { color: #6b7280; font-size: 12px; margin-top: 20px; }
+  @media print { body { background: #fff; } .doc { box-shadow: none; margin: 0; } }
+</style>
+</head>
+<body>
+<div class="doc">
+  <h1>Comprobante de pago</h1>
+  <div class="meta">${date}</div>
+  <table>
+    <tr><td>Referencia</td><td>${escHtml(p.transactionId || p.id)}</td></tr>
+    <tr><td>Proveedor</td><td>${escHtml(p.provider)}</td></tr>
+    <tr><td>Estado</td><td>${escHtml(p.status)}</td></tr>
+  </table>
+  <div class="amount">${escHtml(p.currency)} ${amount}</div>
+  <div class="note">Comprobante generado por Webs. Imprimí esta página (Ctrl+P) para guardarla como PDF.</div>
+</div>
+</body>
+</html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
 }
 
 // ── Etiquetas/colores de estado ─────────────────────────────────────────
@@ -288,7 +363,7 @@ export function UserDashboardPage() {
         <div className="stack" style={{ flex: 1, minWidth: 0 }}>
           {view === 'summary' && <SummaryView user={user} onNavigate={setView} />}
           {view === 'routine' && <RoutineSection user={user} />}
-          {view === 'calendar' && <CalendarSection />}
+          {view === 'calendar' && <CalendarSection user={user} />}
           {view === 'bookings' && <BookingsSection />}
           {view === 'pendingPayments' && <PendingPaymentsSection />}
           {view === 'payments' && <PaymentsHistorySection />}
@@ -361,10 +436,18 @@ function SummaryView({ user, onNavigate }: { user: AuthUser | null; onNavigate: 
 
 // ── Calendario ──────────────────────────────────────────────────────────
 
-function CalendarSection() {
+function CalendarSection({ user }: { user: AuthUser | null }) {
+  const userId = user?.id ?? '';
   const { data: events, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-calendar'],
     queryFn: () => api.get<CalendarEvent[]>('/api/v1/blocks/calendario/events'),
+    retry: 0,
+  });
+
+  const { data: plan } = useQuery({
+    queryKey: ['user-dashboard-plan', userId],
+    queryFn: () => api.get<PlanMembership | null>(`/api/v1/blocks/suscripciones/my?userId=${userId}`),
+    enabled: !!userId,
     retry: 0,
   });
 
@@ -372,6 +455,29 @@ function CalendarSection() {
 
   return (
     <SectionCard title="Calendario">
+      {/* Vencimiento del plan */}
+      <div
+        style={{
+          padding: 'var(--ws-space-3)',
+          background: 'var(--ws-primary-soft, rgba(37, 99, 235, 0.08))',
+          border: '1px solid var(--ws-border)',
+          borderRadius: 'var(--ws-radius-md)',
+          marginBottom: 'var(--ws-space-4)',
+        }}
+      >
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
+          <span>
+            <strong>
+              <i className="bi bi-calendar3" /> Plan: {plan?.plan ?? '—'}
+            </strong>
+            {plan?.status ? <span className="muted"> · {plan.status}</span> : null}
+          </span>
+          <span style={{ fontWeight: 600 }}>
+            Vence: {plan?.endDate ? formatDate(plan.endDate) : '—'}
+          </span>
+        </div>
+      </div>
+
       {isLoading ? (
         <Spinner label="Cargando calendario…" />
       ) : isError ? (
@@ -388,7 +494,7 @@ function CalendarSection() {
                   <div key={ev.id} style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
                     <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
                       <strong>{ev.title}</strong>
-                      {ev.type ? <span className="badge">{ev.type}</span> : null}
+                      {ev.type ? <span className="badge">{eventTypeLabel(ev.type)}</span> : null}
                     </div>
                     <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>
                       <i className="bi bi-clock" /> {formatDateTime(ev.start)}
@@ -764,7 +870,7 @@ function PaymentsHistorySection() {
                     />
                   </td>
                   <td>
-                    {invoice && (
+                    {invoice ? (
                       <a
                         href={`/api/v1/blocks/facturacion/invoices/${invoice.id}/html`}
                         target="_blank"
@@ -783,8 +889,12 @@ function PaymentsHistorySection() {
                           cursor: 'pointer',
                         }}
                       >
-                        <i className="bi bi-download" /> Descargar
+                        <i className="bi bi-download" /> Descargar comprobante
                       </a>
+                    ) : (
+                      <Button variant="secondary" onClick={() => openSimpleReceipt(p)}>
+                        <i className="bi bi-download" /> Descargar comprobante
+                      </Button>
                     )}
                   </td>
                 </tr>

@@ -52,6 +52,7 @@ import { UserDashboardPage } from './features/dashboard/UserDashboardPage';
 import { MenuEditorPage } from './features/menu/MenuEditorPage';
 import { SupportPage } from './features/support/SupportPage';
 import { SiteLayout } from './components/SiteLayout';
+import { StaffDashboard } from './features/staff/StaffDashboard';
 import { SetupWizard } from './features/setup/SetupWizard';
 import { ErrorPage } from './pages/ErrorPage';
 
@@ -138,6 +139,7 @@ function MainApp() {
         <Route path="/clases" element={<ClassesPage />} />
         <Route path="/social" element={<SocialPublicPage />} />
         <Route path="/dashboard" element={<RequireAuth><SiteLayout><UserDashboardPage /></SiteLayout></RequireAuth>} />
+        <Route path="/staff" element={<RequireAuth><SiteLayout><StaffDashboard /></SiteLayout></RequireAuth>} />
         <Route path="/account" element={<RequireAuth><SiteLayout><AccountPage /></SiteLayout></RequireAuth>} />
 
         <Route

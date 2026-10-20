@@ -36,16 +36,39 @@
         "enum": ["sandbox", "production"],
         "default": "sandbox"
       },
-      "publicKey": { "type": "string", "title": "Clave pública (public key)" },
+      "publicKey": {
+        "type": "string",
+        "title": "Clave pública (public key)",
+        "x-ui": {
+          "help": {
+            "text": "Clave pública del panel de Mercado Pago. No es secreta; se expone al cliente para inicializar el checkout.",
+            "url": "https://www.mercadopago.com.ar/developers/es"
+          }
+        }
+      },
       "accessToken": {
         "type": "string",
         "title": "Access token (privado)",
-        "x-ui": { "widget": "password", "secret": true }
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Token de acceso (backend) del panel de Mercado Pago. Se usa solo en el servidor; nunca lo expongas al cliente.",
+            "url": "https://www.mercadopago.com.ar/developers/es"
+          }
+        }
       },
       "webhookSecret": {
         "type": "string",
         "title": "Secreto del webhook",
-        "x-ui": { "widget": "password", "secret": true }
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Secreto para validar la firma del webhook (cabecera x-signature). Si desactivás la verificación en Ajustes → Pagos, no se usa.",
+            "url": "https://www.mercadopago.com.ar/developers/es/guides/notifications/webhooks"
+          }
+        }
       },
       "checkoutMode": {
         "type": "string",

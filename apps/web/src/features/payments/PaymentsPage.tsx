@@ -100,11 +100,41 @@ export function PaymentsPage() {
     },
   });
 
+  const { data: paymentsSettings } = useQuery({
+    queryKey: ['settings-payments'],
+    queryFn: () => api.get<{ value: Record<string, unknown> }>('/api/v1/settings/payments'),
+  });
+  const requireWebhookSignature = (paymentsSettings?.value.requireWebhookSignature as boolean | undefined) ?? true;
+  const setWebhookSignature = useMutation({
+    mutationFn: (next: boolean) =>
+      api.put('/api/v1/settings/payments', { ...(paymentsSettings?.value ?? {}), requireWebhookSignature: next }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['settings-payments'] });
+    },
+  });
+
   if (isLoading) return <Spinner />;
 
   return (
     <div className="stack">
       <h1>Pagos</h1>
+
+      <Card>
+        <h3 style={{ margin: 0 }}>Seguridad de webhooks</h3>
+        <label className="row" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
+          <input
+            type="checkbox"
+            checked={requireWebhookSignature}
+            onChange={(e) => setWebhookSignature.mutate(e.target.checked)}
+            disabled={setWebhookSignature.isPending}
+          />
+          <span>Exigir verificación de firma en los webhooks de pago</span>
+        </label>
+        <p className="muted" style={{ margin: 'var(--ws-space-2) 0 0' }}>
+          Si lo desactivás, los webhooks se aceptarán sin validar la firma (solo se valida el
+          proveedor y la idempotencia). Recomendado mantenerlo activado.
+        </p>
+      </Card>
 
       {summary && (
         <div className="grid-3" style={{ gap: 'var(--ws-space-2)' }}>

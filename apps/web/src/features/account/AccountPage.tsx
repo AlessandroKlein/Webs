@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { startRegistration } from '@simplewebauthn/browser';
 import { useTranslation } from 'react-i18next';
@@ -95,7 +95,7 @@ const ORDER_STATUS_COLOR: Record<string, string> = {
   cancelled: 'var(--ws-danger)',
 };
 
-type Tab = 'summary' | 'profile' | 'notifications' | 'security' | 'connections' | 'password' | 'danger';
+type Tab = 'summary' | 'profile' | 'medical' | 'notifications' | 'security' | 'connections' | 'password' | 'danger';
 
 export function AccountPage() {
   const { t } = useTranslation();
@@ -202,7 +202,9 @@ export function AccountPage() {
       ? t('admin.account.summary')
       : tab === 'profile'
         ? t('admin.account.profile')
-        : tab === 'notifications'
+        : tab === 'medical'
+          ? 'Datos médicos'
+          : tab === 'notifications'
           ? 'Notificaciones'
           : tab === 'security'
             ? t('admin.account.security')
@@ -213,8 +215,8 @@ export function AccountPage() {
               : t('admin.account.dangerZone');
 
   const tabs: Tab[] = socialLoginInstalled
-    ? ['summary', 'profile', 'notifications', 'security', 'connections', 'password', 'danger']
-    : ['summary', 'profile', 'notifications', 'security', 'password', 'danger'];
+    ? ['summary', 'profile', 'medical', 'notifications', 'security', 'connections', 'password', 'danger']
+    : ['summary', 'profile', 'medical', 'notifications', 'security', 'password', 'danger'];
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
@@ -405,6 +407,8 @@ export function AccountPage() {
           </>
         )}
 
+        {tab === 'medical' && <MedicalCard user={data?.user ?? null} />}
+
         {tab === 'notifications' && <NotificationPrefsCard user={data?.user ?? null} />}
 
         {tab === 'security' && (
@@ -446,6 +450,110 @@ export function AccountPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+interface MedicalData {
+  bloodType?: string;
+  allergies?: string;
+  conditions?: string;
+  medication?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
+}
+
+function readMedical(user: MeResponse['user']): MedicalData {
+  const profile = user?.profile ?? {};
+  const raw = (profile as Record<string, unknown>).medical;
+  const m = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  return {
+    bloodType: String(m.bloodType ?? ''),
+    allergies: String(m.allergies ?? ''),
+    conditions: String(m.conditions ?? ''),
+    medication: String(m.medication ?? ''),
+    emergencyName: String(m.emergencyName ?? ''),
+    emergencyPhone: String(m.emergencyPhone ?? ''),
+  };
+}
+
+function MedicalCard({ user }: { user: MeResponse['user'] }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState<MedicalData>(() => readMedical(user));
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setForm(readMedical(user));
+    setSaved(false);
+  }, [user?.id]);
+
+  const onField = (key: keyof MedicalData) => (e: ChangeEvent<HTMLInputElement>) =>
+    setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const save = useMutation({
+    mutationFn: () =>
+      api.patch('/api/v1/auth/me', {
+        profile: { ...(user?.profile ?? {}), medical: form },
+      }),
+    onSuccess: () => {
+      setSaved(true);
+      qc.invalidateQueries({ queryKey: ['me'] });
+    },
+  });
+
+  return (
+    <Card>
+      <h3>Datos médicos</h3>
+      <p className="muted">
+        Información médica para emergencias en el gimnasio. Solo vos y el personal
+        autorizado pueden verla.
+      </p>
+      <form
+        className="stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          save.mutate();
+        }}
+      >
+        <div className="grid-2" style={{ gap: 'var(--ws-space-3)' }}>
+          <div className="field">
+            <label>Grupo sanguíneo</label>
+            <select
+              className="input"
+              value={form.bloodType ?? ''}
+              onChange={(e) => setForm((prev) => ({ ...prev, bloodType: e.target.value }))}
+            >
+              <option value="">—</option>
+              {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
+          <TextField label="Contacto de emergencia (nombre)" value={form.emergencyName} onChange={onField('emergencyName')} />
+          <TextField label="Contacto de emergencia (teléfono)" value={form.emergencyPhone} onChange={onField('emergencyPhone')} />
+          <TextField label="Medicación" value={form.medication} onChange={onField('medication')} />
+        </div>
+        <TextField label="Alergias" value={form.allergies} onChange={onField('allergies')} />
+        <TextField label="Condiciones médicas" value={form.conditions} onChange={onField('conditions')} />
+
+        {save.error && (
+          <p style={{ color: 'var(--ws-danger)' }}>
+            {save.error instanceof Error ? save.error.message : 'Error al guardar'}
+          </p>
+        )}
+        {saved && (
+          <p style={{ color: 'var(--ws-success, #16a34a)', margin: 0 }}>
+            <i className="bi bi-check-circle" /> Datos médicos guardados.
+          </p>
+        )}
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <Button type="submit" disabled={save.isPending}>
+            {save.isPending ? 'Guardando…' : 'Guardar'}
+          </Button>
+        </div>
+      </form>
+    </Card>
   );
 }
 

@@ -19,8 +19,28 @@
     "type": "object",
     "title": "Configuración de push",
     "properties": {
-      "publicKey": { "type": "string", "title": "Clave pública VAPID" },
-      "privateKey": { "type": "string", "title": "Clave privada VAPID", "x-ui": { "widget": "password", "secret": true } }
+      "publicKey": {
+        "type": "string",
+        "title": "Clave pública VAPID",
+        "x-ui": {
+          "help": {
+            "text": "Clave pública VAPID (Web Push). No es secreta; se envía al navegador para suscribirse.",
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Push_API"
+          }
+        }
+      },
+      "privateKey": {
+        "type": "string",
+        "title": "Clave privada VAPID",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Clave privada VAPID (Web Push). Se usa solo en el servidor para firmar las suscripciones push.",
+            "url": "https://developer.mozilla.org/en-US/docs/Web/API/Push_API"
+          }
+        }
+      }
     }
   }
 }

@@ -22,15 +22,49 @@
       "providers": {
         "type": "array",
         "title": "Proveedores",
+        "x-ui": {
+          "help": {
+            "text": "Proveedores de login social (Google, Facebook, Apple, GitHub). Configurá Client ID/Secret en la consola de cada proveedor y usá la URI de redirección de tu sitio.",
+            "url": "https://developers.google.com/identity/protocols/oauth2"
+          }
+        },
         "items": {
           "type": "object",
           "properties": {
             "id": { "type": "string", "title": "ID" },
             "name": { "type": "string", "title": "Nombre" },
             "enabled": { "type": "boolean", "title": "Habilitado", "default": false },
-            "clientId": { "type": "string", "title": "Client ID" },
-            "clientSecret": { "type": "string", "title": "Client Secret", "x-ui": { "widget": "password" } },
-            "redirectUri": { "type": "string", "title": "URI de redirección" }
+            "clientId": {
+              "type": "string",
+              "title": "Client ID",
+              "x-ui": {
+                "help": {
+                  "text": "Client ID de la app OAuth del proveedor. No es secreto.",
+                  "url": "https://developers.google.com/identity/protocols/oauth2"
+                }
+              }
+            },
+            "clientSecret": {
+              "type": "string",
+              "title": "Client Secret",
+              "x-ui": {
+                "widget": "password",
+                "help": {
+                  "text": "Client Secret de la app OAuth del proveedor. Se usa solo en el servidor.",
+                  "url": "https://developers.google.com/identity/protocols/oauth2"
+                }
+              }
+            },
+            "redirectUri": {
+              "type": "string",
+              "title": "URI de redirección",
+              "x-ui": {
+                "help": {
+                  "text": "URI de callback (callback URL) que registraste en el proveedor. Debe coincidir exactamente.",
+                  "url": "https://developers.google.com/identity/protocols/oauth2"
+                }
+              }
+            }
           }
         },
         "default": [

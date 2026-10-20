@@ -225,6 +225,9 @@ export function SiteHeader() {
                   <Link to="/dashboard" onClick={() => setUserOpen(false)}>
                     <i className="bi bi-grid-1x2" /> Dashboard
                   </Link>
+                  <Link to="/staff" onClick={() => setUserOpen(false)}>
+                    <i className="bi bi-briefcase" /> Panel de trabajo
+                  </Link>
                   <Link to="/blog" onClick={() => setUserOpen(false)}>
                     <i className="bi bi-journal-text" /> Blog
                   </Link>

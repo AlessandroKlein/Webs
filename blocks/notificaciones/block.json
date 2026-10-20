@@ -21,6 +21,12 @@
       "providers": {
         "type": "array",
         "title": "Proveedores",
+        "x-ui": {
+          "help": {
+            "text": "Canales de notificación: Email (usa el SMTP de Ajustes → Correo), SMS/WhatsApp (bloque Twilio) y Push (bloque Web Push).",
+            "url": "https://www.twilio.com/docs"
+          }
+        },
         "items": {
           "type": "object",
           "properties": {

@@ -20,8 +20,30 @@
     "properties": {
       "defaultDiscountPercent": { "type": "number", "title": "Descuento por defecto (%)", "default": 10 },
       "pointsPerPurchase": { "type": "number", "title": "Puntos por compra", "default": 1 },
-      "emailProvider": { "type": "string", "title": "Proveedor de email", "enum": ["internal", "mailchimp", "resend", "sendgrid"], "default": "internal" },
-      "emailApiKey": { "type": "string", "title": "API Key de email", "x-ui": { "widget": "password", "secret": true } }
+      "emailProvider": {
+        "type": "string",
+        "title": "Proveedor de email",
+        "enum": ["internal", "mailchimp", "resend", "sendgrid"],
+        "default": "internal",
+        "x-ui": {
+          "help": {
+            "text": "Proveedor de email marketing: interno (SMTP), Mailchimp, Resend o SendGrid. Sin API Key se usa el SMTP interno.",
+            "url": "https://resend.com/docs"
+          }
+        }
+      },
+      "emailApiKey": {
+        "type": "string",
+        "title": "API Key de email",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "API Key del proveedor de email marketing (Mailchimp/Resend/SendGrid). Se usa solo en el servidor.",
+            "url": "https://resend.com/docs"
+          }
+        }
+      }
     }
   }
 }

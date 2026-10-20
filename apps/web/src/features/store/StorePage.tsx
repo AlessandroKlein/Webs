@@ -1,6 +1,8 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { QrCode } from '../../components/ui/QrCode';
 
@@ -83,6 +85,29 @@ const asStringArray = (v: unknown): string[] =>
 
 const money = (n: number) => `$${(n / 100).toFixed(2)}`;
 
+const CART_STORAGE_KEY = 'webs-cart';
+
+const loadCart = (): CartLine[] => {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (l): l is CartLine =>
+        typeof l === 'object' &&
+        l !== null &&
+        typeof (l as CartLine).key === 'string' &&
+        typeof (l as CartLine).id === 'string' &&
+        typeof (l as CartLine).title === 'string' &&
+        typeof (l as CartLine).price === 'number' &&
+        typeof (l as CartLine).qty === 'number',
+    );
+  } catch {
+    return [];
+  }
+};
+
 const qtyBtnStyle: CSSProperties = {
   width: 32,
   height: 32,
@@ -162,7 +187,11 @@ export function StorePage() {
     queryFn: () => api.get<RawProduct[]>(`${EC_BASE}/products/persisted`),
   });
 
-  const [cart, setCart] = useState<CartLine[]>([]);
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const status = useAuthStore((s) => s.status);
+
+  const [cart, setCart] = useState<CartLine[]>(loadCart);
   const [selected, setSelected] = useState<RawProduct | null>(null);
   const [detailSize, setDetailSize] = useState<string | null>(null);
   const [detailQty, setDetailQty] = useState(1);
@@ -179,6 +208,14 @@ export function StorePage() {
   const [shippingQuotes, setShippingQuotes] = useState<ShippingQuote[] | null>(null);
   const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
   const [loadingQuotes, setLoadingQuotes] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+    } catch {
+      /* no-op */
+    }
+  }, [cart]);
 
   const count = cart.reduce((s, l) => s + l.qty, 0);
   const total = cart.reduce((s, l) => s + l.price * l.qty, 0);
@@ -248,7 +285,17 @@ export function StorePage() {
     setCartError(null);
   };
 
+  const requireLogin = () => {
+    if (!user || status === 'unauthenticated') {
+      setNotice('Iniciá sesión para comprar');
+      navigate('/login');
+      return false;
+    }
+    return true;
+  };
+
   const startCheckout = async () => {
+    if (!requireLogin()) return;
     if (!selectedShipping) {
       setCartError('Completá la dirección y elegí un método de envío');
       return;
@@ -275,6 +322,7 @@ export function StorePage() {
   };
 
   const pay = async () => {
+    if (!requireLogin()) return;
     if (!selectedProvider) return;
     if (!selectedShipping) {
       setCartError('Elegí un método de envío antes de pagar');

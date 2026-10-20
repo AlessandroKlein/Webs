@@ -18,9 +18,40 @@
     "type": "object",
     "title": "Configuración de Payway",
     "properties": {
-      "siteId": { "type": "string", "title": "Site ID" },
-      "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password", "secret": true } },
-      "webhookSecret": { "type": "string", "title": "Secreto del webhook", "x-ui": { "widget": "password", "secret": true } },
+      "siteId": {
+        "type": "string",
+        "title": "Site ID",
+        "x-ui": {
+          "help": {
+            "text": "Site ID de Payway (Decidir 2.0) que identifica tu comercio.",
+            "url": "https://developers.payway.com.ar/"
+          }
+        }
+      },
+      "apiKey": {
+        "type": "string",
+        "title": "API Key",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "API Key de Payway para autenticar las llamadas a la API. Se usa solo en el servidor.",
+            "url": "https://developers.payway.com.ar/"
+          }
+        }
+      },
+      "webhookSecret": {
+        "type": "string",
+        "title": "Secreto del webhook",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Secreto para validar la firma del webhook. Si desactivás la verificación en Ajustes → Pagos, no se usa.",
+            "url": "https://developers.payway.com.ar/"
+          }
+        }
+      },
       "environment": { "type": "string", "title": "Entorno", "enum": ["sandbox", "production"], "default": "sandbox" },
       "primaryColor": { "type": "string", "title": "Color del botón", "x-ui": { "widget": "color" }, "default": "#004b93" }
     }

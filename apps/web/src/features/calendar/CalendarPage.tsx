@@ -71,6 +71,40 @@ function formatDateTime(value: string): string {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString('es-AR');
 }
 
+// ── Decodificación del `type` de una clase (JSON con cupos/recurrencia) ─────
+interface ClassMeta {
+  kind?: string;
+  serviceId?: string;
+  slots?: number;
+  recurrence?: string;
+  occurrence?: number;
+  total?: number;
+}
+
+function parseEventType(type: string | null): { label: string; meta: ClassMeta | null } {
+  if (!type) return { label: '', meta: null };
+  if (type.startsWith('{')) {
+    try {
+      const meta = JSON.parse(type) as ClassMeta;
+      return { label: meta.kind ?? 'clase', meta };
+    } catch {
+      return { label: type, meta: null };
+    }
+  }
+  return { label: type, meta: null };
+}
+
+function formatEventType(type: string | null): string {
+  const { label, meta } = parseEventType(type);
+  if (!label) return '';
+  const parts = [label];
+  if (meta?.slots !== undefined) parts.push(`${meta.slots} cupos`);
+  if (meta && meta.total !== undefined && meta.total > 1 && meta.occurrence !== undefined) {
+    parts.push(`${meta.occurrence}/${meta.total}`);
+  }
+  return parts.join(' · ');
+}
+
 export function CalendarPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -158,6 +192,39 @@ export function CalendarPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar-events'] }),
   });
 
+  // ── Clases / turnos (cupos + repetición) ─────────────────
+  const [clsTitle, setClsTitle] = useState('');
+  const [clsStart, setClsStart] = useState('');
+  const [clsEnd, setClsEnd] = useState('');
+  const [clsSlots, setClsSlots] = useState('10');
+  const [clsFrequency, setClsFrequency] = useState<'none' | 'daily' | 'weekly'>('none');
+  const [clsCount, setClsCount] = useState('1');
+
+  const createClass = useMutation({
+    mutationFn: () =>
+      api.post<{ booking: Booking; events: CalendarEvent[] }>(`${RES_BASE}/bookings`, {
+        name: clsTitle.trim(),
+        date: new Date(clsStart).toISOString(),
+        end: clsEnd ? new Date(clsEnd).toISOString() : undefined,
+        slots: Number(clsSlots) || 10,
+        recurrence:
+          clsFrequency === 'none'
+            ? undefined
+            : { frequency: clsFrequency, count: Number(clsCount) || 1 },
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['calendar-events'] });
+      qc.invalidateQueries({ queryKey: ['reservas-bookings'] });
+      qc.invalidateQueries({ queryKey: ['reservas-bookings-all'] });
+      setClsTitle('');
+      setClsStart('');
+      setClsEnd('');
+      setClsSlots('10');
+      setClsFrequency('none');
+      setClsCount('1');
+    },
+  });
+
   // ── Reservas ────────────────────────────────────────────
   const { data: services } = useQuery({
     queryKey: ['reservas-services'],
@@ -235,6 +302,54 @@ export function CalendarPage() {
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
         {view === 'calendar' && (
           <div className="stack">
+            <Card>
+              <h3 style={{ marginTop: 0 }}>Crear clase / turno</h3>
+              <form
+                className="stack"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  createClass.mutate();
+                }}
+              >
+                <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <TextField label="Título" value={clsTitle} onChange={(e) => setClsTitle(e.target.value)} required />
+                  <TextField label="Inicio" type="datetime-local" value={clsStart} onChange={(e) => setClsStart(e.target.value)} required />
+                  <TextField label="Fin" type="datetime-local" value={clsEnd} onChange={(e) => setClsEnd(e.target.value)} />
+                  <TextField label="Cupos" type="number" min={1} value={clsSlots} onChange={(e) => setClsSlots(e.target.value)} style={{ width: 110 }} />
+                </div>
+                <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <div className="field">
+                    <label>Repetición</label>
+                    <select
+                      className="input"
+                      value={clsFrequency}
+                      onChange={(e) => setClsFrequency(e.target.value as 'none' | 'daily' | 'weekly')}
+                    >
+                      <option value="none">Sin repetición</option>
+                      <option value="daily">Diaria</option>
+                      <option value="weekly">Semanal</option>
+                    </select>
+                  </div>
+                  {clsFrequency !== 'none' && (
+                    <TextField
+                      label="Cantidad (días/semanas)"
+                      type="number"
+                      min={1}
+                      value={clsCount}
+                      onChange={(e) => setClsCount(e.target.value)}
+                      style={{ width: 170 }}
+                    />
+                  )}
+                </div>
+                <div className="row">
+                  <Button type="submit" disabled={createClass.isPending || !clsTitle || !clsStart}>
+                    {createClass.isPending ? 'Creando…' : 'Crear clase'}
+                  </Button>
+                  {createClass.error && <span style={{ color: 'var(--ws-danger)' }}>{createClass.error.message}</span>}
+                </div>
+              </form>
+            </Card>
+
             <Card>
               <div
                 className="row"
@@ -368,7 +483,7 @@ export function CalendarPage() {
                         <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
                           {formatDateTime(ev.start)}
                         </span>
-                        {ev.type && <span className="badge">{ev.type}</span>}
+                        {ev.type && <span className="badge">{formatEventType(ev.type)}</span>}
                       </div>
                     ))}
                   </div>
@@ -453,7 +568,7 @@ export function CalendarPage() {
                         <td>{ev.title}</td>
                         <td>{new Date(ev.start).toLocaleString()}</td>
                         <td>{ev.end ? new Date(ev.end).toLocaleString() : '—'}</td>
-                        <td>{ev.type ?? '—'}</td>
+                        <td>{formatEventType(ev.type) || '—'}</td>
                         <td>
                           <Button variant="ghost" onClick={() => setConfirmEvent(ev)}>
                             {t('common.delete')}

@@ -275,8 +275,20 @@ export function registerDefaultSections(): void {
           minimum: 1,
           default: 60,
         },
+        requireWebhookSignature: {
+          type: 'boolean',
+          title: 'Exigir verificación de firma en los webhooks',
+          description: 'Si está activado, cada webhook de pago debe traer una firma válida. Si lo desactivás, se aceptará sin validar la firma (solo se valida el proveedor y la idempotencia).',
+          default: true,
+          'x-ui': {
+            help: {
+              text: 'Recomendado mantener activado. Desactivá solo si tu pasarela no envía firma y querés aceptar los webhooks igual (menos seguro, quedás expuesto a notificaciones falsas).',
+              url: 'https://stripe.com/docs/webhooks/signatures',
+            },
+          },
+        },
       },
     },
-    defaults: { pendingExpiryMinutes: 60 },
+    defaults: { pendingExpiryMinutes: 60, requireWebhookSignature: true },
   });
 }

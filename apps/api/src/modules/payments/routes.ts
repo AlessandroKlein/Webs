@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
+import type { PaymentWebhookResult } from '@webs/plugin-sdk';
 import { BadRequestError, NotFoundError, ValidationError } from '@webs/core';
 import { getPaymentProvider, listPaymentProviders } from './registry';
 
@@ -26,14 +27,67 @@ const checkoutSchema = z.object({
 });
 
 /**
+ * Lee la sección de ajustes `payments` (umbral de auto-cancelación, exigencia de
+ * firma en webhooks, etc.). Si no está configurada, devuelve un objeto vacío.
+ */
+async function getPaymentsSetting(fastify: FastifyInstance): Promise<Record<string, unknown>> {
+  const setting = await fastify.prisma.setting.findUnique({ where: { key: 'payments' } });
+  return (setting?.value as Record<string, unknown> | undefined) ?? {};
+}
+
+/**
  * Lee el umbral de auto-cancelación de la sección de ajustes `payments`
  * (`pendingExpiryMinutes`). Si no está configurado, devuelve 60 minutos.
  */
 async function getPendingExpiryMinutes(fastify: FastifyInstance): Promise<number> {
-  const setting = await fastify.prisma.setting.findUnique({ where: { key: 'payments' } });
-  const value = (setting?.value as Record<string, unknown> | undefined) ?? {};
+  const value = await getPaymentsSetting(fastify);
   const minutes = Number(value.pendingExpiryMinutes);
   return Number.isFinite(minutes) && minutes > 0 ? Math.floor(minutes) : 60;
+}
+
+/**
+ * Normaliza el estado crudo que reporta una pasarela al enum del núcleo
+ * (`approved` | `rejected` | `pending`). Cubre los valores de Mercado Pago,
+ * Stripe, PayPal, EBANX, MODO y Payway.
+ */
+function normalizeWebhookStatus(raw: unknown): 'approved' | 'rejected' | 'pending' {
+  const lower = String(raw ?? 'pending').toLowerCase();
+  const approved = new Set(['approved', 'accredited', 'paid', 'completed', 'succeeded', 'authorized', 'co']);
+  const rejected = new Set(['rejected', 'failed', 'cancelled', 'canceled', 'declined', 'denied', 'ca', 'requires_payment_method']);
+  if (approved.has(lower)) return 'approved';
+  if (rejected.has(lower)) return 'rejected';
+  return 'pending';
+}
+
+/**
+ * Extrae `transactionId` y `status` del cuerpo de un webhook **sin validar la
+ * firma**. Se usa cuando el dueño desactiva la verificación
+ * (`payments.requireWebhookSignature === false`); intenta los esquemas más
+ * comunes de cada pasarela (`data.id`, `resource.id`, `data.object.id`,
+ * `payment.hash`, `id`).
+ */
+function extractWebhookResult(body: unknown, providerId: string): PaymentWebhookResult {
+  const b = (body ?? {}) as Record<string, unknown>;
+  const data = b.data as Record<string, unknown> | undefined;
+  const resource = b.resource as Record<string, unknown> | undefined;
+  const object = data?.object as Record<string, unknown> | undefined;
+  const payment = b.payment as Record<string, unknown> | undefined;
+
+  const transactionId = String(
+    b.transactionId ??
+      data?.id ??
+      resource?.id ??
+      object?.id ??
+      payment?.hash ??
+      b.id ??
+      '',
+  ).trim();
+  const statusRaw = b.status ?? data?.status ?? resource?.status ?? object?.status;
+
+  if (!transactionId) {
+    throw new BadRequestError(`Webhook sin transactionId para el proveedor '${providerId}'`);
+  }
+  return { transactionId, status: normalizeWebhookStatus(statusRaw), raw: b };
 }
 
 export default async function paymentsRoutes(fastify: FastifyInstance): Promise<void> {
@@ -94,6 +148,8 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
 
   // Webhook público: la pasarela lo llama sin autenticación; la firma la valida
   // el adaptador del proveedor. La idempotencia evita reprocesar notificaciones.
+  // Si el dueño desactiva `payments.requireWebhookSignature`, se acepta sin
+  // validar la firma (solo se valida el proveedor y la idempotencia).
   fastify.post(
     '/payments/webhook/:provider',
     { schema: { tags: ['payments'], params: { type: 'object', properties: { provider: { type: 'string' } } } } },
@@ -102,11 +158,20 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
       const provider = getPaymentProvider(providerId);
       if (!provider) throw new NotFoundError(`Proveedor de pago '${providerId}'`);
 
-      let webhook;
-      try {
-        webhook = await provider.verifyWebhook(request);
-      } catch {
-        return reply.status(401).send({ ok: false, error: 'Firma inválida o webhook rechazado' });
+      const settings = await getPaymentsSetting(fastify);
+      const requireSignature = settings.requireWebhookSignature !== false;
+
+      let webhook: PaymentWebhookResult;
+      if (requireSignature) {
+        try {
+          webhook = await provider.verifyWebhook(request);
+        } catch {
+          return reply.status(401).send({ ok: false, error: 'Firma inválida o webhook rechazado' });
+        }
+      } else {
+        // Verificación de firma desactivada por el dueño: se acepta el webhook
+        // extrayendo `transactionId`/`status` del cuerpo sin validar la firma.
+        webhook = extractWebhookResult(request.body, providerId);
       }
 
       const existing = await fastify.prisma.payment.findUnique({ where: { transactionId: webhook.transactionId } });

@@ -19,9 +19,40 @@
     "title": "Configuración de cobro presencial",
     "properties": {
       "mode": { "type": "string", "title": "Modo", "enum": ["cash", "terminal"], "default": "cash" },
-      "terminalId": { "type": "string", "title": "ID del terminal (Point/Payway)" },
-      "apiKey": { "type": "string", "title": "API Key", "x-ui": { "widget": "password", "secret": true } },
-      "webhookSecret": { "type": "string", "title": "Secreto del webhook", "x-ui": { "widget": "password", "secret": true } },
+      "terminalId": {
+        "type": "string",
+        "title": "ID del terminal (Point/Payway)",
+        "x-ui": {
+          "help": {
+            "text": "ID del lector físico (Point de Mercado Pago o terminal Payway) donde se inicia el cobro presencial.",
+            "url": "https://www.mercadopago.com.ar/developers/es"
+          }
+        }
+      },
+      "apiKey": {
+        "type": "string",
+        "title": "API Key",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "API Key del lector para autenticar los cobros presenciales. Se usa solo en el servidor.",
+            "url": "https://www.mercadopago.com.ar/developers/es"
+          }
+        }
+      },
+      "webhookSecret": {
+        "type": "string",
+        "title": "Secreto del webhook",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Secreto para validar la firma del webhook del lector. Si desactivás la verificación en Ajustes → Pagos, no se usa.",
+            "url": "https://www.mercadopago.com.ar/developers/es"
+          }
+        }
+      },
       "primaryColor": { "type": "string", "title": "Color del botón", "x-ui": { "widget": "color" }, "default": "#16a34a" }
     }
   }

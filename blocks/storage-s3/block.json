@@ -15,10 +15,39 @@
     "type": "object",
     "title": "Configuración de S3/R2/MinIO",
     "properties": {
-      "endpoint": { "type": "string", "title": "Endpoint (R2/MinIO)" },
+      "endpoint": {
+        "type": "string",
+        "title": "Endpoint (R2/MinIO)",
+        "x-ui": {
+          "help": {
+            "text": "Endpoint S3-compatible. Para Amazon S3 dejalo vacío; para Cloudflare R2 o MinIO poné la URL de su API (ej. https://<account>.r2.cloudflarestorage.com).",
+            "url": "https://developers.cloudflare.com/r2/"
+          }
+        }
+      },
       "region": { "type": "string", "title": "Región", "default": "auto" },
-      "accessKeyId": { "type": "string", "title": "Access Key ID" },
-      "secretAccessKey": { "type": "string", "title": "Secret Access Key", "x-ui": { "widget": "password", "secret": true } },
+      "accessKeyId": {
+        "type": "string",
+        "title": "Access Key ID",
+        "x-ui": {
+          "help": {
+            "text": "Access Key ID de S3/R2/MinIO. Identifica la credencial que accede al bucket.",
+            "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+          }
+        }
+      },
+      "secretAccessKey": {
+        "type": "string",
+        "title": "Secret Access Key",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Secret Access Key de S3/R2/MinIO. Se usa solo en el servidor para firmar las llamadas.",
+            "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+          }
+        }
+      },
       "bucket": { "type": "string", "title": "Bucket" },
       "publicBaseUrl": { "type": "string", "title": "URL pública base (opcional)" }
     }
