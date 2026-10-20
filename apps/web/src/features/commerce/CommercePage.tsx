@@ -231,6 +231,20 @@ export function CommercePage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ecommerce-orders'] }),
   });
 
+  const cancelOrder = useMutation({
+    mutationFn: (id: string) => api.patch(`${EC_BASE}/orders/${id}`, { status: 'cancelled' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ecommerce-orders'] });
+      // El backend repone stock de productos e inventario al cancelar.
+      qc.invalidateQueries({ queryKey: ['ecommerce-products'] });
+      qc.invalidateQueries({ queryKey: ['ecommerce-inventory'] });
+      qc.invalidateQueries({ queryKey: ['inventory'] });
+      qc.invalidateQueries({ queryKey: ['inventory-low'] });
+    },
+  });
+
+  const [confirmCancelOrder, setConfirmCancelOrder] = useState<Order | null>(null);
+
   // ── Envíos ──────────────────────────────────────────────
   const { data: shipments, isLoading: shipmentsLoading } = useQuery({
     queryKey: ['ecommerce-shipments'],
@@ -508,11 +522,23 @@ export function CommercePage() {
                       <td>{o.items?.length ?? 0}</td>
                       <td>{new Date(o.createdAt).toLocaleString()}</td>
                       <td>
-                        <OrderStatusEditor
-                          order={o}
-                          busy={updateOrderStatus.isPending}
-                          onUpdate={(id, status) => updateOrderStatus.mutate({ id, status })}
-                        />
+                        <div className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <OrderStatusEditor
+                            order={o}
+                            busy={updateOrderStatus.isPending}
+                            onUpdate={(id, status) => updateOrderStatus.mutate({ id, status })}
+                          />
+                          {o.status !== 'cancelled' && o.status !== 'delivered' && (
+                            <Button
+                              variant="ghost"
+                              style={{ color: 'var(--ws-danger)' }}
+                              disabled={cancelOrder.isPending}
+                              onClick={() => setConfirmCancelOrder(o)}
+                            >
+                              Cancelar
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -762,6 +788,20 @@ export function CommercePage() {
           onCancel={() => setConfirmProduct(null)}
         >
           {t('admin.commerce.deleteProductConfirm', { title: confirmProduct?.title })}
+        </ConfirmDialog>
+
+        <ConfirmDialog
+          open={confirmCancelOrder !== null}
+          title="Cancelar pedido"
+          confirmLabel="Cancelar pedido"
+          danger
+          onConfirm={() => {
+            if (confirmCancelOrder) cancelOrder.mutate(confirmCancelOrder.id);
+            setConfirmCancelOrder(null);
+          }}
+          onCancel={() => setConfirmCancelOrder(null)}
+        >
+          Se cancelará el pedido <code>{confirmCancelOrder?.id}</code> y se repondrá el stock de los productos.
         </ConfirmDialog>
 
         <ConfirmDialog

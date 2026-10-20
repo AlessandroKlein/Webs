@@ -94,6 +94,7 @@ interface Subscription {
 
 type View =
   | 'summary'
+  | 'routine'
   | 'calendar'
   | 'bookings'
   | 'pendingPayments'
@@ -104,6 +105,7 @@ type View =
 
 const SECTIONS: Array<{ key: View; label: string; icon: string }> = [
   { key: 'summary', label: 'Resumen', icon: 'bi-house' },
+  { key: 'routine', label: 'Mi rutina', icon: 'bi-clipboard2-pulse' },
   { key: 'calendar', label: 'Calendario', icon: 'bi-calendar3' },
   { key: 'bookings', label: 'Reservas', icon: 'bi-calendar-check' },
   { key: 'pendingPayments', label: 'Pagos pendientes', icon: 'bi-hourglass-split' },
@@ -264,6 +266,7 @@ export function UserDashboardPage() {
 
         <div className="stack" style={{ flex: 1, minWidth: 0 }}>
           {view === 'summary' && <SummaryView user={user} onNavigate={setView} />}
+          {view === 'routine' && <RoutineSection user={user} />}
           {view === 'calendar' && <CalendarSection />}
           {view === 'bookings' && <BookingsSection />}
           {view === 'pendingPayments' && <PendingPaymentsSection />}
@@ -777,6 +780,84 @@ function PlansSection({ user }: { user: AuthUser | null }) {
         <p className="muted" style={{ color: 'var(--ws-danger)', marginTop: 'var(--ws-space-3)' }}>
           No se pudo contratar el plan.
         </p>
+      )}
+    </SectionCard>
+  );
+}
+
+// ── Mi rutina ───────────────────────────────────────────────────────────
+
+interface RoutineRow {
+  id: string;
+  name: string;
+  description: string | null;
+  exercises: unknown;
+  status: string;
+  createdAt: string;
+}
+
+function routineExercises(v: unknown): Array<{ name: string; detail: string }> {
+  if (!Array.isArray(v)) return [];
+  const out: Array<{ name: string; detail: string }> = [];
+  for (const raw of v) {
+    if (typeof raw !== 'object' || raw === null) continue;
+    const ex = raw as Record<string, unknown>;
+    const name = typeof ex.name === 'string' && ex.name.trim() ? ex.name.trim() : 'Ejercicio';
+    const parts: string[] = [];
+    if (ex.sets !== undefined && ex.sets !== null && ex.sets !== '') parts.push(`Series: ${String(ex.sets)}`);
+    if (ex.reps !== undefined && ex.reps !== null && ex.reps !== '') parts.push(`Reps: ${String(ex.reps)}`);
+    out.push({ name, detail: parts.length ? parts.join(' · ') : '—' });
+  }
+  return out;
+}
+
+function RoutineSection({ user }: { user: AuthUser | null }) {
+  const userId = user?.id ?? '';
+  const { data: routines, isLoading, isError } = useQuery({
+    queryKey: ['user-dashboard-routines', userId],
+    queryFn: () => api.get<RoutineRow[]>(`/api/v1/blocks/academia/routines?memberId=${encodeURIComponent(userId)}`),
+    enabled: !!userId,
+    retry: 0,
+  });
+
+  return (
+    <SectionCard title="Mi rutina">
+      {isLoading ? (
+        <Spinner label="Cargando rutinas…" />
+      ) : isError ? (
+        <p className="muted">No disponible: el bloque de academia no está instalado.</p>
+      ) : (routines ?? []).length === 0 ? (
+        <p className="muted">Sin datos: todavía no tenés una rutina asignada por tu entrenador.</p>
+      ) : (
+        <div className="stack">
+          {(routines ?? []).map((r) => (
+            <div key={r.id} style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)' }}>
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
+                <strong>{r.name}</strong>
+                {r.status ? <StatusBadge label={r.status} /> : null}
+              </div>
+              {r.description ? (
+                <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>{r.description}</p>
+              ) : null}
+              <div className="stack" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
+                {routineExercises(r.exercises).map((ex, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      background: 'var(--ws-surface-2)',
+                      border: '1px solid var(--ws-border)',
+                      borderRadius: 'var(--ws-radius-md)',
+                      padding: 'var(--ws-space-3)',
+                    }}
+                  >
+                    <strong>{ex.name}</strong>
+                    <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>{ex.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </SectionCard>
   );

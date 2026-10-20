@@ -9,17 +9,27 @@ export default defineClientBlock(manifest, ({ container, config, i18n }) => {
   const label = mode === 'cash' ? i18n.t('pay') : i18n.t('terminal');
 
   const el = document.createElement('div');
-  el.innerHTML = `<button type="button" style="background:${color};color:#fff;border:0;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:600">${label}</button>`;
+  el.innerHTML = `<button type="button" style="background:${color};color:#fff;border:0;padding:12px 20px;border-radius:8px;cursor:pointer;font-weight:600">${label}</button><p data-role="status" style="margin:8px 0 0;font-size:13px;color:var(--ws-text-muted,#6b7280)"></p>`;
+
+  const status = el.querySelector<HTMLElement>('[data-role="status"]');
   el.querySelector('button')?.addEventListener('click', async () => {
     const amount = Number(container.dataset.amount ?? 100);
-    const res = await fetch('/api/v1/payments/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider: 'pos', amount, currency: 'ARS' }),
-    });
-    const data = (await res.json()) as { transactionId?: string };
-    if (mode === 'cash') alert(`Pago contra entrega registrado: ${data.transactionId}`);
-    else alert(`Cobro enviado al lector: ${data.transactionId}`);
+    if (status) status.textContent = 'Procesando…';
+    try {
+      const res = await fetch('/api/v1/payments/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'pos', amount, currency: 'ARS' }),
+      });
+      const data = (await res.json()) as { transactionId?: string };
+      if (status) {
+        status.textContent = mode === 'cash'
+          ? `Pago contra entrega registrado: ${data.transactionId ?? ''}`
+          : `Cobro enviado al lector: ${data.transactionId ?? ''}`;
+      }
+    } catch {
+      if (status) status.textContent = 'No se pudo registrar el pago.';
+    }
   });
   container.appendChild(el);
   return () => el.remove();

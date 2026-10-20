@@ -10,11 +10,26 @@ async function hmacSha256Hex(secret: string, data: string): Promise<string> {
   return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+/**
+ * Bloque de cobro presencial (POS).
+ *
+ * Mantiene el registro como proveedor de pagos (`payment`) y agrega rutas de
+ * venta/cobro bajo `/api/v1/blocks/pos`.
+ *
+ * ⚠️ Permiso requerido: `sales.manage`. Estas rutas usan SOLO `authenticate`
+ * (no `authorize`) a propósito: se documenta el requisito de permiso pero no se
+ * impone acá, para no bloquear flujos de cobro.
+ */
 export default defineBlock(manifest, {
   register: async (fastify, options) => {
     const config = options as Record<string, unknown>;
     const mode = String(config.mode ?? 'cash');
+    const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
+    const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
+      req: unknown,
+    ) => Promise<void>;
 
+    // Proveedor de pago (contra entrega / lector físico).
     fastify.payments?.register({
       id: 'pos',
       displayName: 'Contra entrega / POS',
@@ -37,11 +52,72 @@ export default defineBlock(manifest, {
         const expected = `sha256=${await hmacSha256Hex(secret, JSON.stringify(body ?? {}))}`;
         if (!secret || signature !== expected) throw new Error('Firma inválida');
         const statusRaw = String(body?.status ?? 'approved');
-        const status = statusRaw === 'approved' || statusRaw === 'approved' ? 'approved' : statusRaw === 'rejected' ? 'rejected' : 'pending';
+        const status = statusRaw === 'approved' ? 'approved' : statusRaw === 'rejected' ? 'rejected' : 'pending';
         return { transactionId: String(body?.id ?? ''), status };
       },
     });
 
     fastify.get('/public-config', async () => ({ mode, primaryColor: config.primaryColor ?? '#16a34a' }));
+
+    // ── POS / cobro presencial ────────────────────────────────────────────
+    // Productos disponibles para vender (tabla `products`).
+    fastify.get('/products', { preHandler: [authenticate] }, async () =>
+      db.product.findMany({ orderBy: { title: 'asc' } }),
+    );
+
+    // Cobro: crea la orden pagada + el pago y descuenta stock.
+    fastify.post('/checkout', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { body } = request as {
+        body?: { items?: Array<{ id?: string; qty?: number }>; userId?: string; method?: string };
+      };
+      const rawItems = (body?.items ?? []).filter((i) => i && typeof i.id === 'string' && i.id);
+      if (rawItems.length === 0) return { ok: false, error: 'No se indicaron ítems para cobrar' };
+
+      const lines: Array<{ id: string; title: string; qty: number; unitPrice: number }> = [];
+      let total = 0;
+      for (const it of rawItems) {
+        const product = await db.product.findUnique({ where: { id: it.id } });
+        if (!product) return { ok: false, error: `Producto no encontrado: ${it.id}` };
+        const qty = Math.max(1, Math.floor(Number(it.qty) || 1));
+        total += product.price * qty;
+        lines.push({ id: product.id, title: product.title, qty, unitPrice: product.price });
+      }
+
+      const now = new Date();
+      const order = await db.order.create({
+        data: { status: 'paid', total, items: lines },
+      });
+
+      const transactionId = `pos_${crypto.randomUUID()}`;
+      const payment = await db.payment.create({
+        data: {
+          provider: 'pos',
+          transactionId,
+          amount: total,
+          currency: 'ARS',
+          status: 'approved',
+          userId: body?.userId || null,
+          externalReference: order.id,
+          paidAt: now,
+          metadata: { method: body?.method ?? 'cash', orderId: order.id },
+        },
+      });
+
+      // Descuenta stock del producto y de los ítems de inventario asociados.
+      for (const line of lines) {
+        await db.product.update({ where: { id: line.id }, data: { stock: { decrement: line.qty } } });
+        const inventory = await db.inventoryItem.findMany({ where: { productId: line.id } });
+        for (const inv of inventory as Array<{ id: string }>) {
+          await db.inventoryItem.update({ where: { id: inv.id }, data: { quantity: { decrement: line.qty } } });
+        }
+      }
+
+      return { ok: true, order, payment };
+    });
+
+    // Historial de ventas pagas.
+    fastify.get('/sales', { preHandler: [authenticate] }, async () =>
+      db.order.findMany({ where: { status: 'paid' }, orderBy: { createdAt: 'desc' } }),
+    );
   },
 });

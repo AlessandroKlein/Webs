@@ -49,6 +49,8 @@ import { BlogListPage } from './features/public/BlogListPage';
 import { ClassesPage } from './features/public/ClassesPage';
 import { SocialPublicPage } from './features/public/SocialPublicPage';
 import { UserDashboardPage } from './features/dashboard/UserDashboardPage';
+import { MenuEditorPage } from './features/menu/MenuEditorPage';
+import { SupportPage } from './features/support/SupportPage';
 import { SiteLayout } from './components/SiteLayout';
 import { SetupWizard } from './features/setup/SetupWizard';
 import { ErrorPage } from './pages/ErrorPage';
@@ -175,6 +177,8 @@ function MainApp() {
           <Route path="translations" element={<TranslationsPage />} />
           <Route path="audit" element={<AuditPage />} />
           <Route path="api-tokens" element={<ApiTokensPage />} />
+          <Route path="menu" element={<MenuEditorPage />} />
+          <Route path="support" element={<SupportPage />} />
         </Route>
 
         <Route path="/:slug" element={<PublicPage />} />

@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { JsonSchema } from '@webs/plugin-sdk';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../lib/api';
+import { api, ApiClientError, downloadFile } from '../../lib/api';
 import { SchemaForm } from '../../components/ui/SchemaForm';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { PromptDialog } from '../../components/ui/PromptDialog';
+import { TextField } from '../../components/ui/TextField';
 
 interface SettingsSection {
   key: string;
@@ -16,6 +17,9 @@ interface SettingsSection {
   defaults: Record<string, unknown>;
   value: Record<string, unknown>;
 }
+
+const UPDATES_ID = '__updates__';
+const BACKUP_ID = '__backup__';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -39,6 +43,13 @@ export function SettingsPage() {
   const sections = data ?? [];
   const active = sections.find((s) => s.key === selected) ?? sections[0];
 
+  const navButton: CSSProperties = {
+    textAlign: 'left',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+  };
+
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
@@ -47,25 +58,146 @@ export function SettingsPage() {
           <button
             key={section.key}
             className={`nav-link ${section.key === active?.key ? 'active' : ''}`}
-            style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+            style={navButton}
             onClick={() => setSelected(section.key)}
           >
             {section.schema.title ?? section.key}
           </button>
         ))}
+        <div style={{ borderTop: '1px solid var(--ws-border, #e5e7eb)', margin: 'var(--ws-space-2) 0' }} />
+        <button
+          className={`nav-link ${selected === UPDATES_ID ? 'active' : ''}`}
+          style={navButton}
+          onClick={() => setSelected(UPDATES_ID)}
+        >
+          Actualizaciones
+        </button>
+        <button
+          className={`nav-link ${selected === BACKUP_ID ? 'active' : ''}`}
+          style={navButton}
+          onClick={() => setSelected(BACKUP_ID)}
+        >
+          Copias de seguridad
+        </button>
       </aside>
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-        {active && (
+        {selected === UPDATES_ID ? (
+          <UpdatesSection />
+        ) : selected === BACKUP_ID ? (
+          <BackupSection />
+        ) : active ? (
           <SettingsSectionCard
             key={active.key}
             section={active}
             saving={save.isPending}
             onSave={(value) => save.mutate({ key: active.key, value })}
           />
-        )}
+        ) : null}
       </div>
     </div>
+  );
+}
+
+interface VersionInfo {
+  version: string;
+  latest: string;
+  hasUpdate: boolean;
+}
+
+function UpdatesSection() {
+  const qc = useQueryClient();
+
+  const { data, isFetching } = useQuery({
+    queryKey: ['system-version'],
+    queryFn: () => api.get<VersionInfo>('/api/v1/system/version'),
+  });
+
+  return (
+    <Card>
+      <h3 style={{ margin: 0 }}>Actualizaciones</h3>
+      <p className="muted" style={{ margin: 'var(--ws-space-3) 0 0' }}>
+        Versión actual: <strong>{data?.version ?? '…'}</strong> · Última disponible:{' '}
+        <strong>{data?.latest ?? '…'}</strong>
+      </p>
+      {data?.hasUpdate && (
+        <p style={{ color: 'var(--ws-warning, #b45309)', margin: 'var(--ws-space-3) 0 0' }}>
+          Hay una nueva versión v{data.latest} (actualizá reconstruyendo el contenedor)
+        </p>
+      )}
+      <div style={{ marginTop: 'var(--ws-space-4)' }}>
+        <Button
+          variant="secondary"
+          disabled={isFetching}
+          onClick={() => qc.invalidateQueries({ queryKey: ['system-version'] })}
+        >
+          {isFetching ? 'Buscando…' : 'Buscar actualizaciones'}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function BackupSection() {
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const download = async () => {
+    if (!password) {
+      setError('Ingresá tu contraseña para verificar tu identidad');
+      setStatus(null);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setStatus(null);
+    try {
+      const date = new Date().toISOString().slice(0, 10);
+      await downloadFile(
+        `/api/v1/system/backup?password=${encodeURIComponent(password)}`,
+        `webs-backup-${date}.json`,
+      );
+      setStatus('Copia descargada correctamente');
+      setPassword('');
+    } catch (e) {
+      setError(
+        e instanceof ApiClientError && e.status === 403
+          ? 'Contraseña incorrecta'
+          : 'No se pudo descargar la copia',
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <h3 style={{ margin: 0 }}>Copias de seguridad</h3>
+      <p className="muted" style={{ margin: 'var(--ws-space-3) 0 0' }}>
+        Descargá una copia de los datos del sitio (usuarios sin contraseña, roles, ajustes,
+        páginas, contenido, productos, órdenes, pagos, inventario, membresías y suscripciones).
+        Por seguridad, tenés que re-ingresar tu contraseña.
+      </p>
+      <div className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'flex-end', marginTop: 'var(--ws-space-3)' }}>
+        <TextField
+          label="Contraseña"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <Button onClick={() => void download()} disabled={busy}>
+          {busy ? 'Descargando…' : 'Descargar copia'}
+        </Button>
+      </div>
+      {status && (
+        <p style={{ color: 'var(--ws-success, #16a34a)', margin: 'var(--ws-space-3) 0 0' }}>{status}</p>
+      )}
+      {error && (
+        <p style={{ color: 'var(--ws-danger, #dc2626)', margin: 'var(--ws-space-3) 0 0' }}>{error}</p>
+      )}
+    </Card>
   );
 }
 

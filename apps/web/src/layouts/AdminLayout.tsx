@@ -67,6 +67,8 @@ export function AdminLayout() {
     { to: '/admin/translations', label: t('nav.translations'), perm: 'translation.read' },
     { to: '/admin/audit', label: t('nav.audit'), perm: 'audit.read' },
     { to: '/admin/api-tokens', label: t('nav.api'), perm: null },
+    { to: '/admin/menu', label: 'Menú', perm: 'setting.read' },
+    { to: '/admin/support', label: 'Soporte', perm: 'support.read' },
   ].filter((item) => item.perm === null || hasPermission(item.perm));
 
   const blockNav = [

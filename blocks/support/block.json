@@ -8,6 +8,7 @@
   "description": { "en": "Floating chat widget and tickets.", "es": "Widget flotante de chat y tickets." },
   "author": "Webs",
   "license": "MIT",
+  "icon": "headset",
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",

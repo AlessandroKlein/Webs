@@ -185,6 +185,41 @@ export default defineBlock(manifest, {
       return { ok: true, membership, organization: org?.name ?? null, record };
     });
 
+    // -------- Asistencia externa (escáneres / sistemas automáticos) --------
+    // Endpoint PÚBLICO (sin `authenticate`) para que un escáner físico o un
+    // sistema automático registre asistencia. Acepta una API key opcional por
+    // header `X-Scanner-Key` (y un `scannerId` opcional en el body) que se
+    // guarda en AttendanceRecord.method como `external:<scannerId>` para
+    // auditoría. La validación de membresía es idéntica a `/attendance/scan`.
+    fastify.post('/attendance/external', async (request: unknown) => {
+      const { body, headers } = request as {
+        body?: { qrcode?: string; scannerId?: string };
+        headers?: Record<string, string | string[] | undefined>;
+      };
+      const qrcode = body?.qrcode;
+      if (!qrcode) return { ok: false, error: 'QR vacío' };
+      const headerValue = headers?.['x-scanner-key'];
+      const scannerKey = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+      const scannerId = body?.scannerId ?? (typeof scannerKey === 'string' && scannerKey.trim() ? scannerKey.trim() : '');
+      const membership = await db.membership.findUnique({ where: { qrcode } });
+      if (!membership) return { ok: false, error: 'Membresía no encontrada' };
+      if (membership.status !== 'active') return { ok: false, error: `Membresía ${membership.status}` };
+      if (membership.endDate && new Date(membership.endDate) < new Date()) {
+        return { ok: false, error: 'Membresía vencida' };
+      }
+      const org = await db.organization.findUnique({ where: { id: membership.organizationId } });
+      const method = scannerId ? `external:${scannerId}` : 'external';
+      const record = await db.attendanceRecord.create({
+        data: {
+          organizationId: membership.organizationId,
+          membershipId: membership.id,
+          userId: membership.userId,
+          method,
+        },
+      });
+      return { ok: true, membership, organization: org?.name ?? null, record };
+    });
+
     fastify.get('/attendance', { preHandler: [authenticate] }, async (request: unknown) => {
       const { query } = request as { query?: { organizationId?: string; membershipId?: string } };
       const where: Record<string, unknown> = {};

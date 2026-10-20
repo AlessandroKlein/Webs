@@ -92,6 +92,59 @@ const syncInventoryBySize = async (
   }
 };
 
+/**
+ * Repone el stock al cancelar un pedido: incrementa `Product.stock` por cada
+ * ítem y, si hay `InventoryItem` vinculado (por `productId`, y por talle cuando
+ * corresponde), también su `quantity`.
+ */
+const restockOrder = async (
+  db: Record<string, any>,
+  items: unknown,
+): Promise<void> => {
+  const list = (Array.isArray(items) ? items : []) as Array<{
+    id?: string;
+    title?: string;
+    qty?: number;
+    size?: string | null;
+  }>;
+  for (const item of list) {
+    if (typeof item?.id !== 'string') continue;
+    const qty = Math.max(1, Number(item.qty ?? 1));
+
+    // 1) Stock simple del producto.
+    try {
+      await db.product.update({
+        where: { id: item.id },
+        data: { stock: { increment: qty } },
+      });
+    } catch {
+      // Producto inexistente: se omite.
+    }
+
+    // 2) Ítem(s) de inventario vinculados al producto.
+    try {
+      const matches: Array<{ id: string; name: string; sku: string }> = await db.inventoryItem.findMany({
+        where: { productId: item.id },
+      });
+      let target = matches[0];
+      if (matches.length > 1 && item.size) {
+        const sizeSlug = slugify(item.size);
+        target =
+          matches.find((m) => m.sku.endsWith(`-${sizeSlug}`) || m.name === `${item.title ?? ''} (${item.size})`) ??
+          matches[0];
+      }
+      if (target) {
+        await db.inventoryItem.update({
+          where: { id: target.id },
+          data: { quantity: { increment: qty } },
+        });
+      }
+    } catch {
+      // Sin inventario vinculado: se omite.
+    }
+  }
+};
+
 export default defineBlock(manifest, {
   register: async (fastify, config) => {
     const cfg = config as Record<string, unknown>;
@@ -234,7 +287,14 @@ export default defineBlock(manifest, {
     fastify.patch('/orders/:id', async (request: unknown) => {
       const { params, body } = request as { params?: { id?: string }; body?: { status?: OrderStatus } };
       if (!body?.status) return { ok: false };
-      return db.order.update({ where: { id: params?.id }, data: { status: body.status } });
+      const existing = await db.order.findUnique({ where: { id: params?.id } });
+      if (!existing) return { ok: false, error: 'Pedido no encontrado' };
+      const updated = await db.order.update({ where: { id: params?.id }, data: { status: body.status } });
+      // Cancelar repone el stock (solo la primera vez, no al re-cancelar).
+      if (body.status === 'cancelled' && existing.status !== 'cancelled') {
+        await restockOrder(db, existing.items);
+      }
+      return updated;
     });
 
     // Aplica un cupón activo/vigente y descuenta el % del total del pedido.

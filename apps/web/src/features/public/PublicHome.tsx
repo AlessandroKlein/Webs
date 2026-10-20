@@ -6,6 +6,7 @@ import { useAuthStore } from '../../lib/auth-store';
 import { api } from '../../lib/api';
 import { SiteFooter } from '../../components/SiteFooter';
 import { SiteHeader } from '../../components/SiteHeader';
+import { SupportWidget } from '../../components/SupportWidget';
 
 interface HomePage {
   slug: string;
@@ -382,6 +383,7 @@ export function PublicHome() {
       <footer style={{ borderTop: '1px solid var(--ws-border)' }}>
         <BlockSlot slotId="footer" />
         <SiteFooter />
+        <SupportWidget />
       </footer>
     </div>
   );

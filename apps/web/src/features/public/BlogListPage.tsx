@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { SiteLayout } from '../../components/SiteLayout';
 import { Card } from '../../components/ui/Card';
+import { SupportWidget } from '../../components/SupportWidget';
 
 interface BlogPost {
   id: string;
@@ -223,6 +224,7 @@ export function BlogListPage() {
           </div>
         )}
       </div>
+      <SupportWidget />
     </SiteLayout>
   );
 }

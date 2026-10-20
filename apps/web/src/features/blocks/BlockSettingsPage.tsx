@@ -47,7 +47,9 @@ export function BlockSettingsPage() {
     grouped.set(cat, list);
   }
 
-  const categories = [...grouped.keys()].sort((a, b) => a.localeCompare(b, 'es'));
+  const categories = [...grouped.keys()]
+    .filter((cat) => cat !== 'auth')
+    .sort((a, b) => a.localeCompare(b, 'es'));
   const selected = category && categories.includes(category) ? category : (categories[0] ?? null);
 
   return (
