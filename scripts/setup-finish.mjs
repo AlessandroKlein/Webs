@@ -142,6 +142,41 @@ const ROLES = [
     system: false,
     permissions: ['content.read'],
   },
+  {
+    key: 'entrenador',
+    name: 'Entrenador',
+    description: 'Asistencia, rutinas, reservas y membresías de sus alumnos.',
+    system: false,
+    permissions: ['attendance.manage', 'membership.manage', 'course.manage', 'organization.manage', 'content.read', 'media.read'],
+  },
+  {
+    key: 'contador',
+    name: 'Contador / Finanzas',
+    description: 'Pagos, facturación, reembolsos e informes.',
+    system: false,
+    permissions: ['billing.read', 'billing.write', 'refund.manage', 'report.export', 'audit.export', 'analytics.read', 'user.read'],
+  },
+  {
+    key: 'cajero',
+    name: 'Cajero / Vendedor',
+    description: 'Ventas, caja y consulta de stock.',
+    system: false,
+    permissions: ['sales.manage', 'inventory.read', 'billing.read', 'refund.manage'],
+  },
+  {
+    key: 'soporte',
+    name: 'Soporte',
+    description: 'Atención de tickets y moderación.',
+    system: false,
+    permissions: ['support.read', 'support.manage', 'content.moderate', 'user.read'],
+  },
+  {
+    key: 'recepcionista',
+    name: 'Recepcionista',
+    description: 'Asistencia y membresías en recepción.',
+    system: false,
+    permissions: ['attendance.manage', 'membership.manage', 'organization.manage', 'content.read'],
+  },
 ];
 
 const payload = JSON.parse(

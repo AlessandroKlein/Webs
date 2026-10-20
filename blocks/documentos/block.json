@@ -22,7 +22,13 @@
         "type": "string",
         "title": "Proveedor de firma",
         "enum": ["local", "docusign", "external"],
-        "default": "local"
+        "default": "local",
+        "x-ui": {
+          "help": {
+            "text": "Local (firma interna sin servicios externos), DocuSign (firma electrónica) o un proveedor externo. Sin credenciales se usa local.",
+            "url": "https://developers.docusign.com/"
+          }
+        }
       }
     }
   }

@@ -8,6 +8,7 @@
   "author": "Webs",
   "license": "MIT",
   "category": "negocio",
+  "permissions": ["billing.write"],
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
@@ -31,13 +32,13 @@
         }
       },
       "taxProvider": { "type": "string", "title": "Proveedor fiscal", "enum": ["local", "afip", "facturante", "tsd"], "default": "local", "x-ui": { "help": { "text": "Local (CAE simulado), AFIP/ARCA (WSFE FECAESolicitar, requiere token+sign), Facturante o TSD. Sin credenciales se usa CAE simulado.", "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf" } } },
-      "arcaCert": { "type": "string", "title": "Certificado ARCA", "x-ui": { "widget": "password", "secret": true } },
-      "fiscalToken": { "type": "string", "title": "Token de acceso (AFIP TA)", "x-ui": { "widget": "password", "secret": true } },
-      "fiscalSign": { "type": "string", "title": "Sign (AFIP TA)", "x-ui": { "widget": "password", "secret": true } },
-      "fiscalUsername": { "type": "string", "title": "Usuario fiscal (Facturante/TSD)" },
-      "fiscalPassword": { "type": "string", "title": "Contraseña fiscal", "x-ui": { "widget": "password", "secret": true } },
-      "fiscalReseller": { "type": "string", "title": "Reseller (Facturante)" },
-      "fiscalServiceUrl": { "type": "string", "title": "URL del webservice fiscal" }
+      "arcaCert": { "type": "string", "title": "Certificado ARCA", "x-ui": { "widget": "password", "secret": true, "help": { "text": "Certificado ARCA/AFIP para firmar las solicitudes al webservice WSFE. Se usa solo en el servidor.", "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf" } } },
+      "fiscalToken": { "type": "string", "title": "Token de acceso (AFIP TA)", "x-ui": { "widget": "password", "secret": true, "help": { "text": "Token de acceso (TA) devuelto por el webservice de autorización de AFIP. Se usa solo en el servidor.", "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf" } } },
+      "fiscalSign": { "type": "string", "title": "Sign (AFIP TA)", "x-ui": { "widget": "password", "secret": true, "help": { "text": "Firma (Sign) devuelta por el webservice de autorización de AFIP. Se usa solo en el servidor.", "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf" } } },
+      "fiscalUsername": { "type": "string", "title": "Usuario fiscal (Facturante/TSD)", "x-ui": { "help": { "text": "Usuario del proveedor fiscal (Facturante o TSD).", "url": "https://www.facturante.com/" } } },
+      "fiscalPassword": { "type": "string", "title": "Contraseña fiscal", "x-ui": { "widget": "password", "secret": true, "help": { "text": "Contraseña del proveedor fiscal (Facturante/TSD). Se usa solo en el servidor.", "url": "https://www.facturante.com/" } } },
+      "fiscalReseller": { "type": "string", "title": "Reseller (Facturante)", "x-ui": { "help": { "text": "Identificador de reseller para el proveedor Facturante.", "url": "https://www.facturante.com/" } } },
+      "fiscalServiceUrl": { "type": "string", "title": "URL del webservice fiscal", "x-ui": { "help": { "text": "URL del webservice fiscal (AFIP WSFE o proveedor). Vacío usa el endpoint por defecto.", "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf" } } }
     }
   }
 }

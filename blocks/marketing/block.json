@@ -8,6 +8,7 @@
   "author": "Webs",
   "license": "MIT",
   "category": "marketing",
+  "permissions": ["marketing.manage"],
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",

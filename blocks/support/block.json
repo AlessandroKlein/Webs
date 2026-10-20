@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "block",
   "category": "soporte",
+  "permissions": ["support.manage"],
   "displayName": { "en": "Support / Live Chat", "es": "Soporte / Chat en vivo" },
   "description": { "en": "Floating chat widget and tickets.", "es": "Widget flotante de chat y tickets." },
   "author": "Webs",

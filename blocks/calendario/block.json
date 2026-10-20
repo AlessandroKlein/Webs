@@ -8,6 +8,7 @@
   "author": "Webs",
   "license": "MIT",
   "category": "negocio",
+  "permissions": ["content.write"],
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",
@@ -29,20 +30,20 @@
       "calendarApiKey": {
         "type": "string",
         "title": "API Key del calendario",
-        "x-ui": { "widget": "password", "secret": true }
+        "x-ui": { "widget": "password", "secret": true, "help": { "text": "API Key para Google Calendar. Sin credenciales se usa el calendario local.", "url": "https://developers.google.com/calendar/api/v3/reference/events/insert" } }
       },
       "calendarAccessToken": {
         "type": "string",
         "title": "Token OAuth2 (Google Calendar)",
-        "x-ui": { "widget": "password", "secret": true }
+        "x-ui": { "widget": "password", "secret": true, "help": { "text": "Access token OAuth2 de Google Calendar (ya autorizado). Se usa solo en el servidor.", "url": "https://developers.google.com/calendar/api/v3/reference/events/insert" } }
       },
-      "calendarId": { "type": "string", "title": "ID del calendario (Google)", "default": "primary" },
-      "caldavUrl": { "type": "string", "title": "URL de colección CalDAV" },
-      "caldavUsername": { "type": "string", "title": "Usuario CalDAV" },
+      "calendarId": { "type": "string", "title": "ID del calendario (Google)", "default": "primary", "x-ui": { "help": { "text": "ID del calendario de Google. 'primary' usa el calendario principal de la cuenta.", "url": "https://developers.google.com/calendar/api/v3/reference/events/insert" } } },
+      "caldavUrl": { "type": "string", "title": "URL de colección CalDAV", "x-ui": { "help": { "text": "URL de la colección CalDAV, ej. https://cloud.example.com/remote.php/dav/calendars/usuario/ (Nextcloud) o tu servidor Radicale.", "url": "https://docs.nextcloud.com/server/latest/developer_manual/client_apis/CalDAV/index.html" } } },
+      "caldavUsername": { "type": "string", "title": "Usuario CalDAV", "x-ui": { "help": { "text": "Usuario de la cuenta CalDAV (Nextcloud/Radicale).", "url": "https://docs.nextcloud.com/server/latest/developer_manual/client_apis/CalDAV/index.html" } } },
       "caldavPassword": {
         "type": "string",
         "title": "Contraseña CalDAV",
-        "x-ui": { "widget": "password", "secret": true }
+        "x-ui": { "widget": "password", "secret": true, "help": { "text": "Contraseña (o app password) de la cuenta CalDAV. Se usa solo en el servidor.", "url": "https://docs.nextcloud.com/server/latest/developer_manual/client_apis/CalDAV/index.html" } }
       }
     }
   }

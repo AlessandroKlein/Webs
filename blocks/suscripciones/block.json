@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "block",
   "category": "negocio",
+  "permissions": ["membership.manage"],
   "displayName": { "en": "Subscriptions", "es": "Suscripciones" },
   "description": { "en": "Membership plans with expiry and payment.", "es": "Planes de suscripción con vencimiento y pago." },
   "author": "Webs",

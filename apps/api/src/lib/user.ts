@@ -32,11 +32,16 @@ export async function findUserWithPermissions(
 
   if (!user) return null;
 
-  const permissions = [
-    ...new Set(
-      user.roles.flatMap((ur) => ur.role.permissions.map((rp) => rp.permission.key)),
-    ),
-  ];
+  // super_admin es supremo: siempre tiene TODOS los permisos existentes (aunque
+  // se agreguen permisos nuevos después del seed, el rol los ve al instante).
+  const isSuperAdmin = user.roles.some((ur) => ur.role.key === 'super_admin');
+  const permissions = isSuperAdmin
+    ? (await fastify.prisma.permission.findMany({ select: { key: true } })).map((p) => p.key)
+    : [
+        ...new Set(
+          user.roles.flatMap((ur) => ur.role.permissions.map((rp) => rp.permission.key)),
+        ),
+      ];
 
   return {
     id: user.id,
