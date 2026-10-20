@@ -13,6 +13,12 @@ const ANALYTICS = '/api/v1/blocks/analytics';
 const SEARCH = '/api/v1/blocks/search';
 const AFILIADOS = '/api/v1/blocks/afiliados';
 const ACADEMIA = '/api/v1/blocks/academia';
+const ORG_BASE = '/api/v1/blocks/organizaciones';
+
+interface Organization {
+  id: string;
+  name: string;
+}
 
 interface AnalyticsSummary {
   approvedRevenue: number;
@@ -111,6 +117,12 @@ const fmt = (n: number) => n.toLocaleString('es-AR');
 export function AnalyticsPage() {
   const { t } = useTranslation();
   const [view, setView] = useState<View>('resumen');
+  const [orgId, setOrgId] = useState('');
+
+  const { data: organizations } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: () => api.get<Organization[]>(`${ORG_BASE}/organizations`),
+  });
 
   const views: Array<{ id: View; label: string }> = [
     { id: 'resumen', label: t('admin.analytics.summary') },
@@ -137,8 +149,8 @@ export function AnalyticsPage() {
       </aside>
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-        {view === 'resumen' && <ResumenView />}
-        {view === 'ingresos' && <IngresosView />}
+        {view === 'resumen' && <ResumenView orgId={orgId} setOrgId={setOrgId} organizations={organizations} />}
+        {view === 'ingresos' && <IngresosView orgId={orgId} setOrgId={setOrgId} organizations={organizations} />}
         {view === 'busqueda' && <BusquedaView />}
         {view === 'afiliados' && <AfiliadosView />}
         {view === 'academia' && <AcademiaView />}
@@ -147,19 +159,52 @@ export function AnalyticsPage() {
   );
 }
 
-function ResumenView() {
+function BranchSelect({
+  value,
+  onChange,
+  organizations,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  organizations: Organization[] | undefined;
+}) {
   const { t } = useTranslation();
+  return (
+    <div className="field">
+      <label>{t('admin.organizations.filterByOrganization')}</label>
+      <select className="input" style={{ width: 'auto' }} value={value} onChange={(e) => onChange(e.target.value)}>
+        <option value="">{t('admin.organizations.all')}</option>
+        {(organizations ?? []).map((o) => (
+          <option key={o.id} value={o.id}>{o.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ResumenView({
+  orgId,
+  setOrgId,
+  organizations,
+}: {
+  orgId: string;
+  setOrgId: (v: string) => void;
+  organizations: Organization[] | undefined;
+}) {
+  const { t } = useTranslation();
+  const orgParam = orgId ? `?organizationId=${encodeURIComponent(orgId)}` : '';
   const { data: summary, isLoading } = useQuery({
-    queryKey: ['analytics-summary'],
-    queryFn: () => api.get<AnalyticsSummary>(`${ANALYTICS}/summary`),
+    queryKey: ['analytics-summary', orgId],
+    queryFn: () => api.get<AnalyticsSummary>(`${ANALYTICS}/summary${orgParam}`),
   });
   const { data: revenue } = useQuery({
-    queryKey: ['analytics-revenue', 30],
-    queryFn: () => api.get<RevenueData>(`${ANALYTICS}/revenue?days=30`),
+    queryKey: ['analytics-revenue', 30, orgId],
+    queryFn: () =>
+      api.get<RevenueData>(`${ANALYTICS}/revenue?days=30${orgId ? `&organizationId=${encodeURIComponent(orgId)}` : ''}`),
   });
   const { data: topProducts } = useQuery({
-    queryKey: ['analytics-top-products'],
-    queryFn: () => api.get<TopProduct[]>(`${ANALYTICS}/top-products`),
+    queryKey: ['analytics-top-products', orgId],
+    queryFn: () => api.get<TopProduct[]>(`${ANALYTICS}/top-products${orgParam}`),
   });
 
   if (isLoading) return <Spinner />;
@@ -169,6 +214,8 @@ function ResumenView() {
   return (
     <div className="stack">
       <h2>{t('admin.analytics.summary')}</h2>
+
+      <BranchSelect value={orgId} onChange={setOrgId} organizations={organizations} />
 
       <div className="grid-3">
         <Card>
@@ -213,12 +260,23 @@ function ResumenView() {
   );
 }
 
-function IngresosView() {
+function IngresosView({
+  orgId,
+  setOrgId,
+  organizations,
+}: {
+  orgId: string;
+  setOrgId: (v: string) => void;
+  organizations: Organization[] | undefined;
+}) {
   const { t } = useTranslation();
   const [days, setDays] = useState('30');
   const { data, isLoading } = useQuery({
-    queryKey: ['analytics-revenue', days],
-    queryFn: () => api.get<RevenueData>(`${ANALYTICS}/revenue?days=${encodeURIComponent(days)}`),
+    queryKey: ['analytics-revenue', days, orgId],
+    queryFn: () =>
+      api.get<RevenueData>(
+        `${ANALYTICS}/revenue?days=${encodeURIComponent(days)}${orgId ? `&organizationId=${encodeURIComponent(orgId)}` : ''}`,
+      ),
   });
 
   if (isLoading) return <Spinner />;
@@ -230,8 +288,9 @@ function IngresosView() {
     <div className="stack">
       <h2>{t('admin.analytics.revenue')}</h2>
 
-      <div className="row" style={{ alignItems: 'flex-end' }}>
+      <div className="row" style={{ alignItems: 'flex-end', gap: 'var(--ws-space-2)' }}>
         <TextField label={t('admin.analytics.days')} type="number" value={days} onChange={(e) => setDays(e.target.value)} style={{ width: 140 }} />
+        <BranchSelect value={orgId} onChange={setOrgId} organizations={organizations} />
       </div>
 
       <Card>

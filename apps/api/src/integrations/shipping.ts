@@ -1,18 +1,25 @@
 /**
- * Adaptadores de cotización de envíos (Andreani / OCA / DHL) con fallback a
- * cálculo local. Sin credenciales hardcodeadas: todo se lee de `config`.
+ * Adaptadores de cotización de envíos (Andreani / OCA / Correo Argentino /
+ * Mercado Envíos / DHL) con fallback a cálculo local. Sin credenciales
+ * hardcodeadas: todo se lee de `config`.
  *
  * Siguiendo el patrón "provider registry": interfaz común (`quoteShipping`) +
  * adaptadores por proveedor + fallback "local/mock" cuando no hay credenciales.
  */
 
-export type ShippingProvider = 'local' | 'andreani' | 'oca' | 'correo' | 'dhl';
+export type ShippingProvider = 'local' | 'andreani' | 'oca' | 'correo' | 'mercadolibre' | 'dhl';
 
 export interface ShippingQuoteInput {
   /** Peso en kg. */
   weight: number;
   /** Código postal / dirección de destino. */
   destination?: string | null;
+  /** Código postal de destino (preferido para cotizar por CP). */
+  postalCode?: string | null;
+  /** Provincia de destino. */
+  province?: string | null;
+  /** Ciudad de destino. */
+  city?: string | null;
   /** Código postal / dirección de origen. */
   origin?: string | null;
 }
@@ -34,7 +41,7 @@ export interface ShippingQuote {
 }
 
 /** Proveedores que intentan una cotización real vía HTTP. */
-const REAL_PROVIDERS: ReadonlySet<string> = new Set(['andreani', 'oca', 'dhl']);
+const REAL_PROVIDERS: ReadonlySet<string> = new Set(['andreani', 'oca', 'correo', 'mercadolibre', 'dhl']);
 
 const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
@@ -145,6 +152,15 @@ function hasCredentials(provider: string, config: Record<string, unknown>): bool
   if (provider === 'oca') {
     return Boolean(str(config.username) && str(config.password));
   }
+  if (provider === 'correo') {
+    return Boolean(
+      str(config.customerId) &&
+        (str(config.token) || (str(config.userToken ?? config.username) && str(config.passwordToken ?? config.password))),
+    );
+  }
+  if (provider === 'mercadolibre') {
+    return Boolean(str(config.itemId) && (str(config.token) || str(config.apiKey)));
+  }
   if (provider === 'dhl') {
     return Boolean(str(config.apiKey) || str(config.token));
   }
@@ -155,6 +171,7 @@ async function quoteAndreani(
   config: Record<string, unknown>,
   weight: number,
   destination: string,
+  province?: string,
 ): Promise<ShippingQuote | null> {
   const baseUrl = baseUrlOf(config, 'https://api.andreani.com');
   let token = str(config.token);
@@ -181,7 +198,7 @@ async function quoteAndreani(
       peso: weight,
       volumen: 0,
       cpDestino: destination,
-      provinciaDestino: str(config.provinciaDestino),
+      provinciaDestino: str(province ?? config.provinciaDestino),
     }),
   });
   if (!res.ok) return null;
@@ -235,6 +252,88 @@ async function quoteOca(
   return { provider: 'oca', cost: Math.round(cost), currency: 'ARS', days: null, source: 'provider', raw: text };
 }
 
+async function quoteCorreo(
+  config: Record<string, unknown>,
+  weight: number,
+  destination: string,
+): Promise<ShippingQuote | null> {
+  const baseUrl = baseUrlOf(config, 'https://api.correoargentino.com.ar/micorreo/v1');
+  const customerId = str(config.customerId);
+  const postalCodeOrigin = str(config.postalCodeOrigin ?? config.originPostalCode, '1000');
+  if (!customerId || !destination) return null;
+
+  // JWT: token preexistente o Basic auth con userToken/passwordToken (MiCorreo).
+  let token = str(config.token);
+  if (!token) {
+    const userToken = str(config.userToken ?? config.username);
+    const passwordToken = str(config.passwordToken ?? config.password);
+    if (!userToken || !passwordToken) return null;
+    const login = await fetchWithTimeout(`${baseUrl}/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Basic ${toBase64(`${userToken}:${passwordToken}`)}`,
+      },
+    });
+    if (!login.ok) return null;
+    const loginData = (await login.json()) as Record<string, unknown>;
+    token = str(loginData.token ?? loginData.accessToken ?? loginData.access_token);
+    if (!token) return null;
+  }
+
+  // Peso en gramos (límite MiCorreo 1–25000 g); dimensiones por defecto.
+  const weightGrams = Math.max(1, Math.min(25000, Math.round(weight * 1000)));
+  const res = await fetchWithTimeout(`${baseUrl}/rates`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      customerId,
+      postalCodeOrigin,
+      postalCodeDestination: destination,
+      dimensions: [{ length: 30, width: 20, height: 10, weight: weightGrams, quantity: 1 }],
+    }),
+  });
+  if (!res.ok) return null;
+
+  const data = (await res.json()) as unknown;
+  const cost = firstNumber(data, /price|cost|total|tarifa|importe/i);
+  if (cost === null) return null;
+  return { provider: 'correo', cost: Math.round(cost), currency: 'ARS', days: null, source: 'provider', raw: data };
+}
+
+async function quoteMercadolibre(
+  config: Record<string, unknown>,
+  destination: string,
+  city: string,
+): Promise<ShippingQuote | null> {
+  const token = str(config.token ?? config.apiKey);
+  const itemId = str(config.itemId);
+  if (!token || !itemId) return null;
+
+  const baseUrl = baseUrlOf(config, 'https://api.mercadolibre.com');
+  const query = destination
+    ? `zip_code=${encodeURIComponent(destination)}`
+    : city
+      ? `city_to=${encodeURIComponent(city)}`
+      : '';
+  if (!query) return null;
+
+  const res = await fetchWithTimeout(`${baseUrl}/items/${encodeURIComponent(itemId)}/shipping_options?${query}`, {
+    method: 'GET',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return null;
+
+  const data = (await res.json()) as Record<string, unknown>;
+  const options = Array.isArray(data.options) ? (data.options as Array<Record<string, unknown>>) : [];
+  const option = options.find((o) => o.shipping_option_type === 'address') ?? options[0];
+  if (!option) return null;
+  const cost = toFinite(option.list_cost ?? option.cost ?? option.base_cost);
+  if (cost === null) return null;
+  const currency = str(option.currency_id, 'ARS');
+  return { provider: 'mercadolibre', cost: Math.round(cost), currency, days: null, source: 'provider', raw: data };
+}
+
 async function quoteDhl(
   config: Record<string, unknown>,
   weight: number,
@@ -282,19 +381,21 @@ export async function quoteShipping(
   rates: ShippingRate[] = [],
 ): Promise<ShippingQuote> {
   const weight = Number(input.weight ?? 0);
-  const destination = str(input.destination);
+  const destination = str(input.postalCode ?? input.destination);
+  const province = str(input.province);
+  const city = str(input.city);
   const fallback = (): ShippingQuote => localQuote(provider, weight, rates);
 
   if (!REAL_PROVIDERS.has(provider)) return fallback();
   if (!hasCredentials(provider, config)) return fallback();
 
   try {
-    const quote =
-      provider === 'andreani'
-        ? await quoteAndreani(config, weight, destination)
-        : provider === 'oca'
-          ? await quoteOca(config, weight, destination)
-          : await quoteDhl(config, weight, destination);
+    let quote: ShippingQuote | null;
+    if (provider === 'andreani') quote = await quoteAndreani(config, weight, destination, province);
+    else if (provider === 'oca') quote = await quoteOca(config, weight, destination);
+    else if (provider === 'correo') quote = await quoteCorreo(config, weight, destination);
+    else if (provider === 'mercadolibre') quote = await quoteMercadolibre(config, destination, city);
+    else quote = await quoteDhl(config, weight, destination);
     return quote ?? fallback();
   } catch {
     return fallback();

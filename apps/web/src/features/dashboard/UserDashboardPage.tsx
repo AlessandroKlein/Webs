@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
@@ -7,7 +7,7 @@ import type { AuthUser } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { QrCode } from '../../components/ui/QrCode';
 
 // ── Tipos de datos de los bloques/endpoints ─────────────────────────────
 
@@ -37,8 +37,22 @@ interface PaymentRow {
   currency: string;
   status: string;
   userId: string | null;
+  externalReference: string | null;
   createdAt: string;
   paidAt: string | null;
+}
+
+interface PaymentProvider {
+  id: string;
+  displayName: string;
+}
+
+interface CheckoutResult {
+  id: string;
+  transactionId: string;
+  status: string;
+  paymentUrl?: string | null;
+  qr?: string | null;
 }
 
 interface InvoiceRow {
@@ -88,6 +102,13 @@ interface Subscription {
   startDate: string;
   endDate: string | null;
   createdAt: string;
+}
+
+interface SubscribeResult {
+  ok: boolean;
+  subscription?: Subscription;
+  requirePayment?: boolean;
+  currency?: string;
 }
 
 // ── Estado local de navegación del panel ────────────────────────────────
@@ -436,6 +457,209 @@ function BookingsSection() {
 
 // ── Pagos pendientes ────────────────────────────────────────────────────
 
+function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onClose: () => void }) {
+  const [providers, setProviders] = useState<PaymentProvider[] | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(payment.provider || null);
+  const [result, setResult] = useState<CheckoutResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [paying, setPaying] = useState(false);
+
+  const loadProviders = async () => {
+    setLoadingProviders(true);
+    setError(null);
+    try {
+      const list = await api.get<PaymentProvider[]>('/api/v1/payments/providers');
+      if (!list || list.length === 0) {
+        setProviders(null);
+        setError('No hay métodos de pago configurados');
+        return;
+      }
+      setProviders(list);
+      setSelectedProvider((prev) => (prev && list.some((p) => p.id === prev) ? prev : list[0]?.id ?? null));
+    } catch {
+      setProviders(null);
+      setError('No hay métodos de pago configurados');
+    } finally {
+      setLoadingProviders(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadProviders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pay = async () => {
+    if (!selectedProvider) return;
+    setPaying(true);
+    setError(null);
+    try {
+      const res = await api.post<CheckoutResult>('/api/v1/payments/checkout', {
+        provider: selectedProvider,
+        amount: payment.amount,
+        currency: payment.currency,
+        description: `Retomar pago · ${payment.transactionId || payment.id}`,
+        externalReference: payment.externalReference ?? `retomar-${payment.id}`,
+      });
+      setResult(res);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al iniciar el pago');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const hasReference = Boolean(payment.externalReference || payment.transactionId);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 'var(--ws-space-4)',
+        zIndex: 1000,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: 'var(--ws-surface)',
+          border: '1px solid var(--ws-border)',
+          borderRadius: 'var(--ws-radius-lg)',
+          boxShadow: 'var(--ws-shadow-lg)',
+          maxWidth: 480,
+          width: '100%',
+          maxHeight: '88vh',
+          overflow: 'auto',
+          padding: 'var(--ws-space-5)',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
+          <h3 style={{ margin: 0 }}>{hasReference ? 'Retomar pago' : 'Continuar pago'}</h3>
+
+          <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
+            <p style={{ margin: 0 }}>
+              <strong>ID:</strong> <code>{payment.id}</code>
+            </p>
+            {payment.transactionId && (
+              <p style={{ margin: 0 }}>
+                <strong>Transacción:</strong> <code>{payment.transactionId}</code>
+              </p>
+            )}
+            <p style={{ margin: 0 }}>
+              <strong>Monto:</strong> {money(payment.amount, payment.currency)}
+            </p>
+          </div>
+
+          {error && (
+            <div
+              style={{
+                padding: 'var(--ws-space-2) var(--ws-space-3)',
+                background: 'rgba(220, 38, 38, 0.12)',
+                color: 'var(--ws-danger)',
+                borderRadius: 'var(--ws-radius-md)',
+                fontSize: 'var(--ws-font-size-sm)',
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          {result ? (
+            <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
+              {result.paymentUrl ? (
+                <a
+                  href={result.paymentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 'var(--ws-space-2)',
+                    padding: 'var(--ws-space-3)',
+                    background: 'var(--ws-primary)',
+                    color: 'var(--ws-on-primary)',
+                    borderRadius: 'var(--ws-radius-md)',
+                    textDecoration: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  <i className="bi bi-box-arrow-up-right" /> Pagar ahora
+                </a>
+              ) : result.qr ? (
+                <div className="stack" style={{ gap: 'var(--ws-space-2)', alignItems: 'center' }}>
+                  <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
+                    Escaneá el código QR para completar el pago:
+                  </span>
+                  <QrCode value={result.qr} />
+                </div>
+              ) : (
+                <div style={{ padding: 'var(--ws-space-3)', background: 'var(--ws-primary-soft)', borderRadius: 'var(--ws-radius-md)' }}>
+                  <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+                    <i className="bi bi-hourglass-split" /> Pago pendiente
+                  </strong>
+                  <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
+                    Código de transacción: <code>{result.transactionId}</code>
+                  </p>
+                </div>
+              )}
+
+              <Button variant="secondary" style={{ width: '100%' }} onClick={onClose}>
+                Entendido
+              </Button>
+            </div>
+          ) : loadingProviders ? (
+            <Spinner label="Buscando métodos de pago…" />
+          ) : providers ? (
+            <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
+              <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Elegí un método de pago:</span>
+              {providers.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedProvider(p.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 'var(--ws-space-2)',
+                    padding: 'var(--ws-space-3)',
+                    border: selectedProvider === p.id ? '2px solid var(--ws-primary)' : '1px solid var(--ws-border)',
+                    borderRadius: 'var(--ws-radius-md)',
+                    background: selectedProvider === p.id ? 'var(--ws-primary-soft)' : 'var(--ws-surface)',
+                    color: 'var(--ws-text)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  <i className="bi bi-credit-card" />
+                  <span style={{ flex: 1 }}>{p.displayName}</span>
+                  {selectedProvider === p.id && <i className="bi bi-check-circle-fill" style={{ color: 'var(--ws-primary)' }} />}
+                </button>
+              ))}
+              <div className="row" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
+                <Button variant="ghost" style={{ flex: 1 }} onClick={onClose}>
+                  Cancelar
+                </Button>
+                <Button style={{ flex: 1 }} onClick={pay} disabled={paying || !selectedProvider}>
+                  {paying ? 'Iniciando pago…' : 'Pagar'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="muted" style={{ margin: 0 }}>No hay métodos de pago configurados.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PendingPaymentsSection() {
   const [selected, setSelected] = useState<PaymentRow | null>(null);
   const { data: payments, isLoading, isError } = useQuery({
@@ -453,56 +677,36 @@ function PendingPaymentsSection() {
       ) : (payments ?? []).length === 0 ? (
         <p className="muted">Sin datos: no tenés pagos pendientes.</p>
       ) : (
-        <>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Referencia</th>
-                <th>Monto</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(payments ?? []).map((p) => (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Referencia</th>
+              <th>Monto</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {(payments ?? []).map((p) => {
+              const hasReference = Boolean(p.externalReference || p.transactionId);
+              return (
                 <tr key={p.id}>
                   <td>
-                    <code style={{ fontSize: '0.85em' }}>{p.id}</code>
+                    <code style={{ fontSize: '0.85em' }}>{p.transactionId || p.id}</code>
                   </td>
                   <td>{money(p.amount, p.currency)}</td>
                   <td>
                     <Button variant="secondary" onClick={() => setSelected(p)}>
-                      Continuar pago
+                      {hasReference ? 'Retomar pago' : 'Continuar pago'}
                     </Button>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className="muted" style={{ marginTop: 'var(--ws-space-3)' }}>
-            El cobro se completa a través de la pasarela de pagos (Mercado Pago u otro proveedor). Esta vista solo muestra la referencia.
-          </p>
-        </>
+              );
+            })}
+          </tbody>
+        </table>
       )}
 
-      <ConfirmDialog
-        open={selected !== null}
-        title="Continuar pago"
-        confirmLabel="Entendido"
-        onConfirm={() => setSelected(null)}
-        onCancel={() => setSelected(null)}
-      >
-        <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
-          <p style={{ margin: 0 }}>
-            <strong>ID:</strong> <code>{selected?.id}</code>
-          </p>
-          <p style={{ margin: 0 }}>
-            <strong>Monto:</strong> {selected ? money(selected.amount, selected.currency) : ''}
-          </p>
-          <p className="muted" style={{ margin: 0 }}>
-            El flujo de pago se realiza por la pasarela (redirección externa). Esta vista solo muestra la referencia del pago pendiente.
-          </p>
-        </div>
-      </ConfirmDialog>
+      {selected && <ContinuePaymentDialog payment={selected} onClose={() => setSelected(null)} />}
     </SectionCard>
   );
 }
@@ -672,7 +876,7 @@ function PlansSection({ user }: { user: AuthUser | null }) {
 
   const subscribe = useMutation({
     mutationFn: (planId: string) =>
-      api.post('/api/v1/blocks/suscripciones/subscribe', { userId, planId }),
+      api.post<SubscribeResult>('/api/v1/blocks/suscripciones/subscribe', { userId, planId }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['user-suscripciones-my'] });
     },
@@ -779,6 +983,11 @@ function PlansSection({ user }: { user: AuthUser | null }) {
       {subscribe.isError && (
         <p className="muted" style={{ color: 'var(--ws-danger)', marginTop: 'var(--ws-space-3)' }}>
           No se pudo contratar el plan.
+        </p>
+      )}
+      {subscribe.data?.requirePayment && (
+        <p className="muted" style={{ color: 'var(--ws-primary)', marginTop: 'var(--ws-space-3)' }}>
+          <i className="bi bi-credit-card" /> Este plan requiere pago. Completalo desde “Pagos pendientes”.
         </p>
       )}
     </SectionCard>

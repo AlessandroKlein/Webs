@@ -23,6 +23,37 @@ export default defineBlock(manifest, {
       return db.inventoryItem.findMany({ where, orderBy: { name: 'asc' } });
     });
 
+    // Consulta de stock por SKU en TODAS las sucursales: devuelve el ítem con
+    // ese SKU en cada organización (para saber dónde hay stock disponible).
+    fastify.get('/inventory/search', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { query } = request as { query?: { sku?: string } };
+      const sku = (query?.sku ?? '').trim();
+      if (!sku) return [];
+      const items = await db.inventoryItem.findMany({
+        where: { sku },
+        orderBy: [{ organizationId: 'asc' }, { name: 'asc' }],
+      });
+      // Enriquece cada ítem con el nombre de su sucursal.
+      const orgIds = [
+        ...new Set(
+          (items as Array<{ organizationId: string | null }>)
+            .map((i) => i.organizationId)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
+      const orgs = orgIds.length
+        ? await db.organization.findMany({
+            where: { id: { in: orgIds } },
+            select: { id: true, name: true },
+          })
+        : [];
+      const orgMap = new Map((orgs as Array<{ id: string; name: string }>).map((o) => [o.id, o.name]));
+      return (items as Array<{ organizationId: string | null }>).map((i) => ({
+        ...i,
+        organizationName: i.organizationId ? (orgMap.get(i.organizationId) ?? i.organizationId) : null,
+      }));
+    });
+
     fastify.post('/inventory', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as {
         body?: { sku?: string; name?: string; quantity?: number; minQuantity?: number; unitPrice?: number; category?: string; organizationId?: string | null; productId?: string | null };

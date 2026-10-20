@@ -42,6 +42,10 @@ interface AdjustResult {
   error?: string;
 }
 
+interface StockSearchItem extends InventoryItem {
+  organizationName?: string | null;
+}
+
 type View = 'list' | 'low';
 
 /** Extrae el talle del nombre de un ítem generado por ecommerce ("Título (S)"). */
@@ -70,6 +74,15 @@ export function InventoryPage() {
   const { data: lowItems } = useQuery({
     queryKey: ['inventory-low'],
     queryFn: () => api.get<InventoryItem[]>(`${INV_BASE}/inventory/low`),
+  });
+
+  // Consulta de stock por SKU en todas las sucursales.
+  const [skuInput, setSkuInput] = useState('');
+  const [skuQuery, setSkuQuery] = useState('');
+  const { data: skuResults, isFetching: skuFetching } = useQuery({
+    queryKey: ['inventory-search', skuQuery],
+    queryFn: () => api.get<StockSearchItem[]>(`${INV_BASE}/inventory/search?sku=${encodeURIComponent(skuQuery)}`),
+    enabled: skuQuery.trim().length > 0,
   });
 
   const [formOpen, setFormOpen] = useState(false);
@@ -209,6 +222,53 @@ export function InventoryPage() {
                 </div>
               </Card>
             )}
+
+            <Card>
+              <h3 style={{ margin: 0 }}>Consultar stock por SKU</h3>
+              <form
+                className="row"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setSkuQuery(skuInput.trim());
+                }}
+                style={{ alignItems: 'flex-end', gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}
+              >
+                <div style={{ flex: 1, maxWidth: 320 }}>
+                  <TextField
+                    label={t('admin.inventory.sku')}
+                    value={skuInput}
+                    onChange={(e) => setSkuInput(e.target.value)}
+                    placeholder="SKU"
+                  />
+                </div>
+                <Button type="submit" disabled={!skuInput.trim()}>
+                  {t('common.search')}
+                </Button>
+              </form>
+
+              {skuFetching && <Spinner />}
+
+              {skuQuery.trim().length > 0 && !skuFetching && (
+                <div className="stack" style={{ marginTop: 'var(--ws-space-3)' }}>
+                  {(skuResults ?? []).map((it) => (
+                    <div
+                      key={it.id}
+                      className="row"
+                      style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}
+                    >
+                      <span>
+                        <strong>{it.name}</strong> <span className="muted">({it.sku})</span>
+                      </span>
+                      <span>
+                        <strong>{it.organizationName ?? t('admin.inventory.noOrganization')}</strong>
+                        {' · '}{t('admin.inventory.quantity')}: {it.quantity}
+                      </span>
+                    </div>
+                  ))}
+                  {(skuResults ?? []).length === 0 && <p className="muted">{t('common.noResults')}</p>}
+                </div>
+              )}
+            </Card>
 
             <Card>
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>

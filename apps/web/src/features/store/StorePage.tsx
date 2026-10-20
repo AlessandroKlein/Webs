@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
+import { QrCode } from '../../components/ui/QrCode';
 
 const EC_BASE = '/api/v1/blocks/ecommerce';
 const PAY_BASE = '/api/v1/payments';
@@ -40,6 +41,43 @@ interface CheckoutResult {
   qr?: string | null;
 }
 
+interface ShippingAddress {
+  street: string;
+  number: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+}
+
+interface ShippingQuote {
+  provider: string;
+  cost: number;
+  days: number | null;
+  currency: string;
+  source: 'provider' | 'local';
+}
+
+const EMPTY_ADDRESS: ShippingAddress = {
+  street: '',
+  number: '',
+  city: '',
+  province: '',
+  postalCode: '',
+  country: 'Argentina',
+};
+
+const SHIPPING_LABELS: Record<string, string> = {
+  local: 'Envío local',
+  andreani: 'Andreani',
+  oca: 'OCA',
+  correo: 'Correo Argentino',
+  mercadolibre: 'Mercado Envíos',
+  dhl: 'DHL',
+};
+
+const shippingLabel = (provider: string) => SHIPPING_LABELS[provider] ?? provider;
+
 const asStringArray = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 
@@ -65,6 +103,29 @@ const closeBtnStyle: CSSProperties = {
   color: 'var(--ws-text-muted)',
   fontSize: '1.2rem',
   lineHeight: 1,
+};
+
+const addrFieldStyle: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--ws-space-1)',
+  minWidth: 0,
+};
+
+const addrInputStyle: CSSProperties = {
+  width: '100%',
+  boxSizing: 'border-box',
+  padding: 'var(--ws-space-2) var(--ws-space-3)',
+  border: '1px solid var(--ws-border)',
+  borderRadius: 'var(--ws-radius-md)',
+  background: 'var(--ws-surface-2)',
+  color: 'var(--ws-text)',
+  fontSize: 'var(--ws-font-size-sm)',
+};
+
+const addrLabelStyle: CSSProperties = {
+  fontSize: 'var(--ws-font-size-sm)',
+  color: 'var(--ws-text-muted)',
 };
 
 function ProductImage({ product, height = 180 }: { product: RawProduct; height?: number }) {
@@ -114,9 +175,16 @@ export function StorePage() {
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [paying, setPaying] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
+  const [address, setAddress] = useState<ShippingAddress>(EMPTY_ADDRESS);
+  const [shippingQuotes, setShippingQuotes] = useState<ShippingQuote[] | null>(null);
+  const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
+  const [loadingQuotes, setLoadingQuotes] = useState(false);
 
   const count = cart.reduce((s, l) => s + l.qty, 0);
   const total = cart.reduce((s, l) => s + l.price * l.qty, 0);
+  const selectedQuote = shippingQuotes?.find((q) => q.provider === selectedShipping) ?? null;
+  const shippingCost = selectedQuote?.cost ?? 0;
+  const grandTotal = total + shippingCost;
 
   const openProduct = (p: RawProduct) => {
     setSelected(p);
@@ -141,6 +209,38 @@ export function StorePage() {
   const changeQty = (key: string, delta: number) =>
     setCart((prev) => prev.map((l) => (l.key === key ? { ...l, qty: Math.max(1, l.qty + delta) } : l)));
 
+  const updateAddress = (field: keyof ShippingAddress, value: string) =>
+    setAddress((prev) => ({ ...prev, [field]: value }));
+
+  const loadQuotes = async () => {
+    const postalCode = address.postalCode.trim();
+    if (!postalCode) {
+      setCartError('Ingresá tu código postal para cotizar el envío');
+      return;
+    }
+    setLoadingQuotes(true);
+    setCartError(null);
+    try {
+      // Peso estimado: 1 kg por unidad (los productos no declaran peso).
+      const weight = Math.max(1, count);
+      const qs =
+        `provider=all&weight=${encodeURIComponent(String(weight))}` +
+        `&postalCode=${encodeURIComponent(postalCode)}` +
+        `&province=${encodeURIComponent(address.province.trim())}` +
+        `&city=${encodeURIComponent(address.city.trim())}`;
+      const res = await api.get<{ ok: boolean; quotes: ShippingQuote[] }>(`${EC_BASE}/shipping/quotes?${qs}`);
+      const quotes = res?.quotes ?? [];
+      setShippingQuotes(quotes);
+      setSelectedShipping(quotes[0]?.provider ?? null);
+    } catch {
+      setShippingQuotes(null);
+      setSelectedShipping(null);
+      setCartError('No se pudo cotizar el envío. Revisá la dirección e intentá de nuevo.');
+    } finally {
+      setLoadingQuotes(false);
+    }
+  };
+
   const resetCheckout = () => {
     setProviders(null);
     setSelectedProvider(null);
@@ -149,6 +249,10 @@ export function StorePage() {
   };
 
   const startCheckout = async () => {
+    if (!selectedShipping) {
+      setCartError('Completá la dirección y elegí un método de envío');
+      return;
+    }
     setCartError(null);
     setNotice(null);
     setLoadingProviders(true);
@@ -172,15 +276,26 @@ export function StorePage() {
 
   const pay = async () => {
     if (!selectedProvider) return;
+    if (!selectedShipping) {
+      setCartError('Elegí un método de envío antes de pagar');
+      return;
+    }
     setPaying(true);
     setCartError(null);
     setNotice(null);
     try {
-      // Los precios ya vienen en centavos (`price`/`total`), por lo que el
-      // monto entero se envía tal cual como exige `POST /payments/checkout`.
+      // 1) Registra el pedido con la dirección y el costo de envío.
+      await api.post(`${EC_BASE}/orders`, {
+        items: cart.map((l) => ({ id: l.id, qty: l.qty, size: l.size })),
+        shippingAddress: address,
+        shippingMethod: selectedShipping,
+        shippingCost,
+      });
+      // 2) Inicia el pago. Los precios ya vienen en centavos (`price`/`total`),
+      // por lo que el monto entero (subtotal + envío) se envía tal cual.
       const result = await api.post<CheckoutResult>(`${PAY_BASE}/checkout`, {
         provider: selectedProvider,
-        amount: total,
+        amount: grandTotal,
         currency: 'ARS',
         description: `Compra en la tienda · ${cart.length} producto${cart.length === 1 ? '' : 's'}`,
         externalReference: `store-${Date.now()}`,
@@ -196,6 +311,9 @@ export function StorePage() {
 
   const finalizeCheckout = () => {
     setCart([]);
+    setAddress(EMPTY_ADDRESS);
+    setShippingQuotes(null);
+    setSelectedShipping(null);
     resetCheckout();
     setCartOpen(false);
     setNotice('Pago iniciado. Completá el pago en la pasarela para confirmar tu compra.');
@@ -544,6 +662,112 @@ export function StorePage() {
                       </div>
                     </div>
                   ))}
+
+                  {/* Dirección de envío */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ws-space-2)' }}>
+                    <strong style={{ fontSize: 'var(--ws-font-size-sm)' }}>Dirección de envío</strong>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--ws-space-2)' }}>
+                      <div style={{ ...addrFieldStyle, gridColumn: '1 / -1' }}>
+                        <label style={addrLabelStyle} htmlFor="ship-street">Calle</label>
+                        <input
+                          id="ship-street"
+                          style={addrInputStyle}
+                          value={address.street}
+                          onChange={(e) => updateAddress('street', e.target.value)}
+                          placeholder="Av. Corrientes"
+                        />
+                      </div>
+                      <div style={addrFieldStyle}>
+                        <label style={addrLabelStyle} htmlFor="ship-number">Número</label>
+                        <input
+                          id="ship-number"
+                          style={addrInputStyle}
+                          value={address.number}
+                          onChange={(e) => updateAddress('number', e.target.value)}
+                          placeholder="1234"
+                        />
+                      </div>
+                      <div style={addrFieldStyle}>
+                        <label style={addrLabelStyle} htmlFor="ship-city">Ciudad</label>
+                        <input
+                          id="ship-city"
+                          style={addrInputStyle}
+                          value={address.city}
+                          onChange={(e) => updateAddress('city', e.target.value)}
+                          placeholder="Buenos Aires"
+                        />
+                      </div>
+                      <div style={addrFieldStyle}>
+                        <label style={addrLabelStyle} htmlFor="ship-province">Provincia</label>
+                        <input
+                          id="ship-province"
+                          style={addrInputStyle}
+                          value={address.province}
+                          onChange={(e) => updateAddress('province', e.target.value)}
+                          placeholder="Buenos Aires"
+                        />
+                      </div>
+                      <div style={addrFieldStyle}>
+                        <label style={addrLabelStyle} htmlFor="ship-cp">Código postal</label>
+                        <input
+                          id="ship-cp"
+                          style={addrInputStyle}
+                          value={address.postalCode}
+                          onChange={(e) => updateAddress('postalCode', e.target.value)}
+                          placeholder="1406"
+                          inputMode="numeric"
+                        />
+                      </div>
+                      <div style={addrFieldStyle}>
+                        <label style={addrLabelStyle} htmlFor="ship-country">País</label>
+                        <input
+                          id="ship-country"
+                          style={addrInputStyle}
+                          value={address.country}
+                          onChange={(e) => updateAddress('country', e.target.value)}
+                          placeholder="Argentina"
+                        />
+                      </div>
+                    </div>
+                    <Button variant="secondary" style={{ width: '100%' }} onClick={loadQuotes} disabled={loadingQuotes}>
+                      {loadingQuotes ? 'Cotizando…' : 'Cotizar envío'}
+                    </Button>
+                  </div>
+
+                  {/* Método de envío */}
+                  {shippingQuotes && shippingQuotes.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ws-space-2)' }}>
+                      <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Método de envío:</span>
+                      {shippingQuotes.map((q) => (
+                        <button
+                          key={q.provider}
+                          onClick={() => setSelectedShipping(q.provider)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--ws-space-2)',
+                            padding: 'var(--ws-space-2) var(--ws-space-3)',
+                            border: selectedShipping === q.provider ? '2px solid var(--ws-primary)' : '1px solid var(--ws-border)',
+                            borderRadius: 'var(--ws-radius-md)',
+                            background: selectedShipping === q.provider ? 'var(--ws-primary-soft)' : 'var(--ws-surface)',
+                            color: 'var(--ws-text)',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <i className="bi bi-truck" />
+                          <span style={{ flex: 1 }}>
+                            {shippingLabel(q.provider)}
+                            {q.days != null ? ` · ${q.days} días` : ''}
+                          </span>
+                          <strong>{money(q.cost)}</strong>
+                          {selectedShipping === q.provider && (
+                            <i className="bi bi-check-circle-fill" style={{ color: 'var(--ws-primary)' }} />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div
@@ -562,11 +786,11 @@ export function StorePage() {
                   </div>
                   <div className="row" style={{ justifyContent: 'space-between' }}>
                     <span className="muted">Envío</span>
-                    <span>—</span>
+                    <span>{selectedShipping ? money(shippingCost) : '—'}</span>
                   </div>
                   <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
                     <strong>Total</strong>
-                    <strong style={{ fontSize: '1.15rem' }}>{money(total)}</strong>
+                    <strong style={{ fontSize: '1.15rem' }}>{money(grandTotal)}</strong>
                   </div>
 
                   {cartError && (
@@ -585,16 +809,7 @@ export function StorePage() {
 
                   {checkout ? (
                     <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
-                      <div style={{ padding: 'var(--ws-space-3)', background: 'var(--ws-primary-soft)', borderRadius: 'var(--ws-radius-md)' }}>
-                        <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
-                          <i className="bi bi-hourglass-split" /> Pago pendiente
-                        </strong>
-                        <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
-                          Referencia: <code>{checkout.transactionId}</code>
-                        </p>
-                      </div>
-
-                      {checkout.paymentUrl && (
+                      {checkout.paymentUrl ? (
                         <a
                           href={checkout.paymentUrl}
                           target="_blank"
@@ -612,23 +827,24 @@ export function StorePage() {
                             fontWeight: 600,
                           }}
                         >
-                          <i className="bi bi-box-arrow-up-right" /> Completar pago
+                          <i className="bi bi-box-arrow-up-right" /> Pagar ahora
                         </a>
-                      )}
-
-                      {checkout.qr && (
-                        <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
-                          <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Código QR generado para cobrar:</span>
-                          <a href={checkout.qr} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ws-primary)' }}>
-                            <i className="bi bi-qr-code" /> Abrir código QR
-                          </a>
+                      ) : checkout.qr ? (
+                        <div className="stack" style={{ gap: 'var(--ws-space-2)', alignItems: 'center' }}>
+                          <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
+                            Escaneá el código QR para completar el pago:
+                          </span>
+                          <QrCode value={checkout.qr} />
                         </div>
-                      )}
-
-                      {!checkout.paymentUrl && !checkout.qr && (
-                        <p className="muted" style={{ margin: 0 }}>
-                          Se creó la intención de pago; seguí las instrucciones del proveedor para completarla.
-                        </p>
+                      ) : (
+                        <div style={{ padding: 'var(--ws-space-3)', background: 'var(--ws-primary-soft)', borderRadius: 'var(--ws-radius-md)' }}>
+                          <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+                            <i className="bi bi-hourglass-split" /> Pago pendiente
+                          </strong>
+                          <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
+                            Código de transacción: <code>{checkout.transactionId}</code>
+                          </p>
+                        </div>
                       )}
 
                       <Button variant="secondary" style={{ width: '100%' }} onClick={finalizeCheckout}>
@@ -670,7 +886,7 @@ export function StorePage() {
                       </div>
                     </div>
                   ) : (
-                    <Button style={{ width: '100%' }} onClick={startCheckout} disabled={loadingProviders || cart.length === 0}>
+                    <Button style={{ width: '100%' }} onClick={startCheckout} disabled={loadingProviders || cart.length === 0 || !selectedShipping}>
                       {loadingProviders ? 'Buscando métodos de pago…' : 'Comprar'}
                     </Button>
                   )}

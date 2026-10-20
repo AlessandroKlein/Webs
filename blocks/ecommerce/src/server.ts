@@ -7,7 +7,7 @@ const manifest = manifestJson as unknown as BlockManifest;
 type OrderStatus = 'pending' | 'paid' | 'preparing' | 'shipped' | 'cancelled';
 
 /** Proveedores de envío soportados (terceros + local). */
-const SHIPPING_PROVIDERS = ['local', 'andreani', 'oca', 'correo', 'dhl'] as const;
+const SHIPPING_PROVIDERS = ['local', 'andreani', 'oca', 'correo', 'mercadolibre', 'dhl'] as const;
 
 /** Tarifas por defecto si `settings.shippingRates` está vacío. */
 const DEFAULT_SHIPPING_RATES = [
@@ -15,6 +15,7 @@ const DEFAULT_SHIPPING_RATES = [
   { provider: 'andreani', baseCost: 1200, costPerKg: 150, days: 3 },
   { provider: 'oca', baseCost: 1300, costPerKg: 160, days: 4 },
   { provider: 'correo', baseCost: 900, costPerKg: 120, days: 5 },
+  { provider: 'mercadolibre', baseCost: 1100, costPerKg: 140, days: 3 },
   { provider: 'dhl', baseCost: 3000, costPerKg: 300, days: 2 },
 ];
 
@@ -150,9 +151,13 @@ export default defineBlock(manifest, {
     const cfg = config as Record<string, unknown>;
     const products = (Array.isArray(cfg.products) ? cfg.products : []) as Array<{ id: string; title: string; price: number; stock: number; category?: string }>;
     const shippingFlat = Number(cfg.shippingFlat ?? 0);
-    const defaultProvider = typeof cfg.shippingProviders === 'string' && (SHIPPING_PROVIDERS as readonly string[]).includes(cfg.shippingProviders)
-      ? cfg.shippingProviders
+    const configuredProvider =
+      (typeof cfg.shippingProvider === 'string' ? cfg.shippingProvider : undefined) ??
+      (typeof cfg.shippingProviders === 'string' ? cfg.shippingProviders : undefined);
+    const defaultProvider = configuredProvider && (SHIPPING_PROVIDERS as readonly string[]).includes(configuredProvider)
+      ? configuredProvider
       : 'local';
+    const enableShippingProviders = cfg.enableShippingProviders === true;
     const configuredRates = (Array.isArray(cfg.shippingRates) ? cfg.shippingRates : []) as Array<{ provider?: string; baseCost?: number; costPerKg?: number; days?: number }>;
     const shippingRates = configuredRates.length
       ? configuredRates.map((r) => ({
@@ -166,12 +171,24 @@ export default defineBlock(manifest, {
     // Credenciales de los proveedores de envío (leídas de los settings; ninguna
     // hardcodeada). Se pasan al adaptador con claves genéricas (`apiKey`, etc.).
     const shippingConfig: Record<string, unknown> = {
-      apiKey: cfg.shippingApiKey,
+      apiKey: cfg.shippingApiKey ?? cfg.shippingProviderKey,
       apiSecret: cfg.shippingApiSecret,
-      username: cfg.shippingUsername,
-      password: cfg.shippingPassword,
-      token: cfg.shippingToken,
+      username: cfg.shippingUsername ?? cfg.shippingProviderUser,
+      password: cfg.shippingPassword ?? cfg.shippingProviderKey,
+      token: cfg.shippingToken ?? cfg.shippingProviderKey,
+      userToken: cfg.shippingProviderUser ?? cfg.shippingUsername,
+      passwordToken: cfg.shippingProviderKey ?? cfg.shippingPassword,
+      customerId: cfg.shippingProviderCustomerId,
+      itemId: cfg.shippingProviderItemId,
+      postalCodeOrigin: cfg.shippingOriginPostalCode,
       baseUrl: cfg.shippingBaseUrl,
+    };
+
+    /** Proveedores que se muestran en el cotizador del checkout. */
+    const listProviders = (): string[] => {
+      const out = new Set<string>(['local']);
+      if (enableShippingProviders && defaultProvider !== 'local') out.add(defaultProvider);
+      return [...out];
     };
 
     // Datos persistentes (tablas `orders`/`shipments`/`coupons` del esquema principal).
@@ -269,7 +286,14 @@ export default defineBlock(manifest, {
     fastify.get('/orders', async () => db.order.findMany({ orderBy: { createdAt: 'desc' } }));
 
     fastify.post('/orders', async (request: unknown) => {
-      const { body } = request as { body?: { items?: Array<{ id: string; qty?: number; size?: string | null }> } };
+      const { body } = request as {
+        body?: {
+          items?: Array<{ id: string; qty?: number; size?: string | null }>;
+          shippingAddress?: { street?: string; number?: string; city?: string; province?: string; postalCode?: string; country?: string };
+          shippingMethod?: string | null;
+          shippingCost?: number;
+        };
+      };
       const requested = (Array.isArray(body?.items) ? body.items : []).filter((i) => typeof i?.id === 'string');
       const persisted = await db.product.findMany({ where: { id: { in: requested.map((i) => i.id) } } });
       const byId = new Map<string, { title: string; price: number }>(
@@ -280,8 +304,29 @@ export default defineBlock(manifest, {
         const qty = Math.max(1, Number(i.qty ?? 1));
         return { id: i.id, title: p?.title ?? i.id, price: p?.price ?? 0, qty, size: i.size ?? null };
       });
-      const total = items.reduce((s, i) => s + i.price * i.qty, 0) + shippingFlat;
-      return db.order.create({ data: { items, total, status: 'pending' } });
+      const shippingCost = Math.max(0, Number(body?.shippingCost ?? shippingFlat));
+      const total = items.reduce((s, i) => s + i.price * i.qty, 0) + shippingCost;
+
+      // Dirección de envío y método guardados como un objeto extra `_shipping`
+      // dentro del array `items` (el modelo `Order` solo tiene `items` Json).
+      const address = body?.shippingAddress;
+      const shippingMeta = {
+        _shipping: {
+          address: address
+            ? {
+                street: address.street ?? '',
+                number: address.number ?? '',
+                city: address.city ?? '',
+                province: address.province ?? '',
+                postalCode: address.postalCode ?? '',
+                country: address.country ?? '',
+              }
+            : null,
+          method: body?.shippingMethod ?? null,
+          cost: shippingCost,
+        },
+      };
+      return db.order.create({ data: { items: [...items, shippingMeta], total, status: 'pending' } });
     });
 
     fastify.patch('/orders/:id', async (request: unknown) => {
@@ -320,17 +365,44 @@ export default defineBlock(manifest, {
     // ------------------------------------------------------------------
     fastify.get('/shipping/quotes', async (request: unknown) => {
       const { body, query } = request as {
-        body?: { provider?: string; weight?: number; destination?: string };
-        query?: { provider?: string; weight?: string; destination?: string };
+        body?: { provider?: string; weight?: number; destination?: string; postalCode?: string; province?: string; city?: string };
+        query?: { provider?: string; weight?: string; destination?: string; postalCode?: string; province?: string; city?: string };
       };
-      const provider = body?.provider ?? query?.provider ?? defaultProvider;
       const weight = Number(body?.weight ?? query?.weight ?? 1);
-      const destination = body?.destination ?? query?.destination ?? null;
+      const destination = body?.postalCode ?? query?.postalCode ?? body?.destination ?? query?.destination ?? '';
+      const province = body?.province ?? query?.province ?? '';
+      const city = body?.city ?? query?.city ?? '';
+
+      const requested = body?.provider ?? query?.provider;
+      // Sin `provider`, o con `provider=all`/`list`, se devuelven todas las
+      // opciones visibles del checkout (local + el proveedor activo, si aplica).
+      const listMode = !requested || requested === 'all' || requested === 'list';
+
+      const quoteOne = async (provider: string) => {
+        if (!(SHIPPING_PROVIDERS as readonly string[]).includes(provider)) return null;
+        const quote = await quoteShipping(provider, shippingConfig, { weight, destination, province, city }, shippingRates);
+        return {
+          provider,
+          cost: quote.cost,
+          days: quote.days,
+          currency: quote.currency,
+          source: quote.source,
+        };
+      };
+
+      if (listMode) {
+        const quotes = (await Promise.all(listProviders().map(quoteOne))).filter(
+          (q): q is NonNullable<typeof q> => q !== null,
+        );
+        return { ok: true, quotes };
+      }
+
+      const provider = requested;
       if (!(SHIPPING_PROVIDERS as readonly string[]).includes(provider)) {
         return { ok: false, error: 'Proveedor no soportado', providers: SHIPPING_PROVIDERS };
       }
       // Cotización real contra el proveedor configurado; con fallback local.
-      const quote = await quoteShipping(provider, shippingConfig, { weight, destination }, shippingRates);
+      const quote = await quoteShipping(provider, shippingConfig, { weight, destination, province, city }, shippingRates);
       return {
         provider,
         cost: quote.cost,
