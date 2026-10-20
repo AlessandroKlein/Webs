@@ -45,15 +45,16 @@ export default defineBlock(manifest, {
       return db.course.delete({ where: { id: params?.id } });
     });
 
-    // Inscripciones (requieren autenticación).
+    // Inscripciones (el alta es público para visitantes; la lectura exige auth).
     fastify.get('/enrollments', { preHandler: [authenticate] }, async () =>
       db.enrollment.findMany({ orderBy: { createdAt: 'desc' } }),
     );
 
-    fastify.post('/enrollments', { preHandler: [authenticate] }, async (request: unknown) => {
+    fastify.post('/enrollments', async (request: unknown) => {
       const { body } = request as { body?: { courseId?: string; student?: string } };
+      if (!body?.courseId || !body?.student) return { ok: false, error: 'courseId y student son requeridos' };
       return db.enrollment.create({
-        data: { courseId: body?.courseId ?? '', student: body?.student ?? '', progress: 0 },
+        data: { courseId: body.courseId, student: body.student, progress: 0 },
       });
     });
 

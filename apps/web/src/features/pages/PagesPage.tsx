@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type DragEvent, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
@@ -17,6 +17,24 @@ interface Page {
 
 type Size = 'full' | 'half' | 'third';
 
+interface CatalogBlock {
+  id: string;
+  name: string;
+  displayName?: Record<string, string>;
+}
+
+const SIZE_WIDTH: Record<Size, string> = {
+  full: '100%',
+  half: 'calc(50% - 4px)',
+  third: 'calc(33.333% - 5.5px)',
+};
+
+const SIZE_LABEL: Record<Size, string> = {
+  full: 'Completo',
+  half: 'Mitad',
+  third: 'Tercio',
+};
+
 export function PagesPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
@@ -27,6 +45,20 @@ export function PagesPage() {
     queryKey: ['blocks'],
     queryFn: () => api.get<{ installed: Array<{ blockId: string; name: string }> }>('/api/v1/blocks'),
   });
+  const { data: catalogData } = useQuery({
+    queryKey: ['blocks-catalog'],
+    queryFn: () => api.get<{ local: CatalogBlock[] }>('/api/v1/blocks/catalog'),
+  });
+
+  // Mapa id → nombre legible (displayName.es || name).
+  const blockNames = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const b of catalogData?.local ?? []) {
+      m.set(b.id, b.displayName?.es ?? b.name);
+    }
+    return m;
+  }, [catalogData]);
+  const blockLabel = (id: string) => blockNames.get(id) ?? id;
 
   const create = useMutation({
     mutationFn: (body: { slug: string; title: string; layout?: unknown; redirectUrl?: string | null; isHome?: boolean }) =>
@@ -56,6 +88,12 @@ export function PagesPage() {
   const [saved, setSaved] = useState(false);
   const [view, setView] = useState<'editor' | 'list'>('editor');
 
+  // Estado para drag & drop nativo.
+  const [dragSection, setDragSection] = useState<number | null>(null);
+  const [dragOverSection, setDragOverSection] = useState<number | null>(null);
+  const [dragBlock, setDragBlock] = useState<{ section: number; index: number } | null>(null);
+  const [dragOverBlock, setDragOverBlock] = useState<{ section: number; index: number } | null>(null);
+
   const resetForm = () => {
     setSlug(''); setTitle(''); setRedirectUrl(''); setSections([]); setIsHome(false); setEditingId(null);
   };
@@ -74,7 +112,35 @@ export function PagesPage() {
   const removeSection = (i: number) => setSections((s) => s.filter((_, idx) => idx !== i));
   const setSize = (i: number, size: Size) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, size } : sec)));
   const addBlock = (i: number, blockId: string) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: [...sec.blocks, blockId] } : sec)));
-  const removeBlock = (i: number, blockId: string) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: sec.blocks.filter((b) => b !== blockId) } : sec)));
+  const removeBlock = (i: number, index: number) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: sec.blocks.filter((_, bi) => bi !== index) } : sec)));
+
+  const moveSection = (from: number, to: number) =>
+    setSections((s) => {
+      if (from < 0 || to < 0 || from >= s.length || to >= s.length) return s;
+      const next = [...s];
+      const [moved] = next.splice(from, 1);
+      if (moved === undefined) return s;
+      next.splice(to, 0, moved);
+      return next;
+    });
+
+  const moveBlock = (from: { section: number; index: number } | null, to: { section: number; index: number }) => {
+    if (!from) return;
+    setSections((s) => {
+      if (from.section < 0 || from.section >= s.length || to.section < 0 || to.section >= s.length) return s;
+      const next = s.map((sec) => ({ ...sec, blocks: [...sec.blocks] }));
+      const src = next[from.section];
+      const dst = next[to.section];
+      if (!src || !dst) return s;
+      if (from.index < 0 || from.index >= src.blocks.length) return s;
+      const [moved] = src.blocks.splice(from.index, 1);
+      if (moved === undefined) return s;
+      dst.blocks.splice(Math.min(to.index, dst.blocks.length), 0, moved);
+      return next;
+    });
+    setDragBlock(null);
+    setDragOverBlock(null);
+  };
 
   if (isLoading) return <Spinner />;
 
@@ -88,6 +154,8 @@ export function PagesPage() {
       resetForm();
     }
   };
+
+  const homePage = (data ?? []).find((p) => p.isHome);
 
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
@@ -118,22 +186,63 @@ export function PagesPage() {
           <h3 style={{ margin: 0 }}>Secciones (bloques + tamaño)</h3>
           <Button variant="secondary" onClick={addSection}>+ Agregar sección</Button>
         </div>
+        <p className="muted" style={{ margin: 'var(--ws-space-1) 0 var(--ws-space-3)' }}>
+          Arrastrá el icono ⠿ para reordenar secciones, o los bloques para reordenarlos.
+        </p>
 
         <div className="stack" style={{ marginTop: 'var(--ws-space-3)' }}>
           {sections.map((sec, i) => (
-            <div key={i} style={{ border: '1px solid var(--ws-border)', borderRadius: 'var(--ws-radius-md)', padding: 'var(--ws-space-3)' }}>
-              <div className="row" style={{ justifyContent: 'space-between', marginBottom: 'var(--ws-space-2)' }}>
-                <strong>Sección {i + 1}</strong>
-                <Button variant="ghost" onClick={() => removeSection(i)}>✕</Button>
+            <div
+              key={i}
+              onDragOver={(e: DragEvent) => {
+                if (dragSection === null) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragSection !== i) setDragOverSection(i);
+              }}
+              onDrop={(e: DragEvent) => {
+                if (dragSection === null) return;
+                e.preventDefault();
+                if (dragSection !== i) moveSection(dragSection, i);
+                setDragSection(null);
+                setDragOverSection(null);
+              }}
+              style={{
+                border: '1px solid var(--ws-border)',
+                borderRadius: 'var(--ws-radius-md)',
+                padding: 'var(--ws-space-3)',
+                background: dragOverSection === i ? 'var(--ws-primary-soft)' : undefined,
+              }}
+            >
+              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--ws-space-2)', gap: 'var(--ws-space-2)' }}>
+                <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+                  <span
+                    draggable
+                    onDragStart={(e: DragEvent) => {
+                      e.dataTransfer.setData('text/plain', String(i));
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDragSection(i);
+                    }}
+                    onDragEnd={() => { setDragSection(null); setDragOverSection(null); }}
+                    title="Arrastrar para reordenar la sección"
+                    style={{ cursor: 'grab', fontSize: '1.2rem', color: 'var(--ws-muted)', lineHeight: 1, display: 'inline-flex' }}
+                  >
+                    <i className="bi bi-grip-vertical" />
+                  </span>
+                  <strong>Sección {i + 1}</strong>
+                  <Button variant="ghost" onClick={() => moveSection(i, i - 1)} disabled={i === 0} title="Subir sección" style={{ padding: '2px 6px', lineHeight: 1 }}>↑</Button>
+                  <Button variant="ghost" onClick={() => moveSection(i, i + 1)} disabled={i === sections.length - 1} title="Bajar sección" style={{ padding: '2px 6px', lineHeight: 1 }}>↓</Button>
+                </div>
+                <Button variant="ghost" onClick={() => removeSection(i)} title="Eliminar sección">✕</Button>
               </div>
-              <div className="row" style={{ marginBottom: 'var(--ws-space-2)' }}>
+              <div className="row" style={{ marginBottom: 'var(--ws-space-2)', flexWrap: 'wrap', gap: 'var(--ws-space-1)' }}>
                 {(['full', 'half', 'third'] as Size[]).map((size) => (
                   <Button key={size} variant={sec.size === size ? 'secondary' : 'ghost'} onClick={() => setSize(i, size)}>
-                    {size === 'full' ? 'Completo' : size === 'half' ? 'Mitad' : 'Tercio'}
+                    {SIZE_LABEL[size]}
                   </Button>
                 ))}
               </div>
-              <div className="row" style={{ flexWrap: 'wrap' }}>
+              <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-1)' }}>
                 <select
                   className="input"
                   style={{ width: 'auto' }}
@@ -145,13 +254,48 @@ export function PagesPage() {
                 >
                   <option value="">+ Agregar bloque…</option>
                   {installedBlocks.map((b) => (
-                    <option key={b} value={b}>{b}</option>
+                    <option key={b} value={b}>{blockLabel(b)}</option>
                   ))}
                 </select>
-                {sec.blocks.map((b) => (
-                  <span key={b} className="badge" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                    {b}
-                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }} onClick={() => removeBlock(i, b)}>✕</button>
+                {sec.blocks.map((b, bi) => (
+                  <span
+                    key={bi}
+                    className="badge"
+                    draggable
+                    onDragStart={(e: DragEvent) => {
+                      e.dataTransfer.setData('text/plain', b);
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDragBlock({ section: i, index: bi });
+                    }}
+                    onDragEnd={() => { setDragBlock(null); setDragOverBlock(null); }}
+                    onDragOver={(e: DragEvent) => {
+                      if (dragBlock === null) return;
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.dataTransfer.dropEffect = 'move';
+                      setDragOverBlock({ section: i, index: bi });
+                    }}
+                    onDrop={(e: DragEvent) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      moveBlock(dragBlock, { section: i, index: bi });
+                    }}
+                    title="Arrastrar para reordenar el bloque"
+                    style={{
+                      display: 'inline-flex',
+                      gap: 6,
+                      alignItems: 'center',
+                      cursor: 'grab',
+                      outline: dragOverBlock && dragOverBlock.section === i && dragOverBlock.index === bi ? '1px dashed var(--ws-primary)' : undefined,
+                    }}
+                  >
+                    {blockLabel(b)}
+                    <button
+                      type="button"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0, lineHeight: 1 }}
+                      onClick={() => removeBlock(i, bi)}
+                      title="Quitar bloque"
+                    >✕</button>
                   </span>
                 ))}
               </div>
@@ -159,12 +303,58 @@ export function PagesPage() {
           ))}
           {sections.length === 0 && <p className="muted">Sin secciones. Agregá una o dejá la redirección para una página externa.</p>}
         </div>
+
+        <hr style={{ border: 'none', borderTop: '1px solid var(--ws-border)', margin: 'var(--ws-space-4) 0' }} />
+        <h3 style={{ margin: '0 0 var(--ws-space-2)' }}>Vista previa</h3>
+        <div style={{ border: '1px dashed var(--ws-border)', borderRadius: 'var(--ws-radius-md)', padding: 'var(--ws-space-4)', background: 'var(--ws-surface-2)' }}>
+          {sections.length === 0 ? (
+            <p className="muted" style={{ margin: 0 }}>La página está vacía. Agregá secciones para ver la vista previa.</p>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }}>
+              {sections.map((sec, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: SIZE_WIDTH[sec.size],
+                    boxSizing: 'border-box',
+                    border: '1px solid var(--ws-border)',
+                    borderRadius: 'var(--ws-radius-sm)',
+                    padding: 'var(--ws-space-2)',
+                    background: 'var(--ws-surface)',
+                  }}
+                >
+                  <div className="muted" style={{ fontSize: '0.75rem', marginBottom: 4 }}>
+                    Sección {i + 1} · {SIZE_LABEL[sec.size]}
+                  </div>
+                  <div className="row" style={{ flexWrap: 'wrap', gap: 4 }}>
+                    {sec.blocks.length === 0 ? (
+                      <span className="muted" style={{ fontSize: '0.8rem' }}>Sin bloques</span>
+                    ) : (
+                      sec.blocks.map((b, bi) => (
+                        <span key={bi} className="badge">{blockLabel(b)}</span>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </Card>
       )}
 
       {view === 'list' && (
       <Card>
         <h3>Páginas existentes</h3>
+        <div style={{ marginBottom: 'var(--ws-space-3)' }}>
+          {homePage ? (
+            <Button onClick={() => { editPage(homePage); setView('editor'); }} style={{ gap: 'var(--ws-space-1)' }}>
+              <i className="bi bi-house" /> Editar página de inicio
+            </Button>
+          ) : (
+            <p className="muted" style={{ margin: 0 }}>No hay una página de inicio configurada.</p>
+          )}
+        </div>
         <div className="stack">
           {(data ?? []).map((p) => (
             <div key={p.id} className="row" style={{ justifyContent: 'space-between' }}>

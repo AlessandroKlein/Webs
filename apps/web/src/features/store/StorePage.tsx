@@ -222,7 +222,7 @@ export function StorePage() {
         <div>
           <h1 style={{ margin: 0, fontSize: 'var(--ws-font-size-lg)' }}>Tienda</h1>
           <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>
-            Elegí tus productos con talles e imágenes
+            Productos, ofertas y más
           </p>
         </div>
         <button
