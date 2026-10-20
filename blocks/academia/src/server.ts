@@ -93,15 +93,35 @@ export default defineBlock(manifest, {
       const { body } = request as {
         body?: { trainerId?: string; memberId?: string; name?: string; description?: string | null; exercises?: unknown; status?: string };
       };
-      if (!body?.trainerId || !body?.memberId) return { ok: false, error: 'trainerId y memberId son requeridos' };
+      if (!body?.trainerId) return { ok: false, error: 'trainerId es requerido' };
       return db.routine.create({
         data: {
           trainerId: body.trainerId,
-          memberId: body.memberId,
+          // memberId vacío = plantilla reutilizable (sin asignar).
+          memberId: body?.memberId ?? '',
           name: body.name ?? 'Rutina',
           description: body.description ?? null,
           exercises: Array.isArray(body.exercises) ? body.exercises : [],
           status: body.status ?? 'active',
+        },
+      });
+    });
+
+    // Asigna (copia) una rutina/plantilla a otro miembro.
+    fastify.post('/routines/:id/assign', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { params, body } = request as { params?: { id?: string }; body?: { memberId?: string } };
+      const memberId = body?.memberId?.trim();
+      if (!memberId) return { ok: false, error: 'memberId es requerido' };
+      const src = await db.routine.findUnique({ where: { id: params?.id } });
+      if (!src) return { ok: false, error: 'Rutina no encontrada' };
+      return db.routine.create({
+        data: {
+          trainerId: src.trainerId,
+          memberId,
+          name: src.name,
+          description: src.description ?? null,
+          exercises: src.exercises ?? [],
+          status: 'active',
         },
       });
     });
@@ -123,5 +143,13 @@ export default defineBlock(manifest, {
       const { params } = request as { params?: { id?: string } };
       return db.routine.delete({ where: { id: params?.id } });
     });
+
+    // Usuarios para autocompletar (entrenadores asignan rutinas a miembros).
+    fastify.get('/users', async () =>
+      db.user.findMany({
+        select: { id: true, displayName: true, username: true, email: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+    );
   },
 });

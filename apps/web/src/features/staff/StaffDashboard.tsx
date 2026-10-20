@@ -293,6 +293,110 @@ function AttendanceSection() {
 
 // ── Rutinas (entrenador) ────────────────────────────────────────────────
 
+interface MemberUser {
+  id: string;
+  displayName: string | null;
+  username: string | null;
+  email: string;
+}
+
+function memberLabel(u: MemberUser) {
+  return u.displayName ?? u.username ?? u.email;
+}
+
+/** Autocompletado de miembros (predicción por nombre/email/username). */
+function MemberAutocomplete({
+  value,
+  onSelect,
+  placeholder = 'Buscar miembro…',
+}: {
+  value: string;
+  onSelect: (id: string) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const { data: users } = useQuery({
+    queryKey: ['staff-members-users'],
+    queryFn: () => api.get<MemberUser[]>('/api/v1/blocks/academia/users'),
+    retry: 0,
+  });
+
+  const selected = (users ?? []).find((u) => u.id === value);
+  const q = value.trim().toLowerCase();
+  const matches = (users ?? [])
+    .filter((u) => {
+      if (!q) return true;
+      return (
+        (u.displayName ?? '').toLowerCase().includes(q) ||
+        (u.username ?? '').toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q)
+      );
+    })
+    .slice(0, 6);
+
+  return (
+    <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+      <label style={fieldLabelStyle}>Miembro</label>
+      <input
+        className="input"
+        value={selected ? memberLabel(selected) : value}
+        onChange={(e) => {
+          onSelect(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        style={{ width: '100%' }}
+      />
+      {open && matches.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            background: 'var(--ws-surface)',
+            border: '1px solid var(--ws-border)',
+            borderRadius: 'var(--ws-radius-md)',
+            boxShadow: 'var(--ws-shadow-lg)',
+            zIndex: 30,
+            maxHeight: 220,
+            overflowY: 'auto',
+          }}
+        >
+          {matches.map((u) => (
+            <button
+              key={u.id}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                onSelect(u.id);
+                setOpen(false);
+              }}
+              style={{
+                display: 'block',
+                width: '100%',
+                textAlign: 'left',
+                padding: 'var(--ws-space-2) var(--ws-space-3)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--ws-text)',
+              }}
+            >
+              <strong>{memberLabel(u)}</strong>
+              <span className="muted" style={{ marginLeft: 6, fontSize: 'var(--ws-font-size-sm)' }}>
+                {u.username ? `@${u.username} · ` : ''}{u.email}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function RoutinesSection() {
   const user = useAuthStore((s) => s.user);
   const qc = useQueryClient();
@@ -332,6 +436,18 @@ function RoutinesSection() {
     },
   });
 
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [assignMemberId, setAssignMemberId] = useState('');
+  const assign = useMutation({
+    mutationFn: (routineId: string) =>
+      api.post(`/api/v1/blocks/academia/routines/${routineId}/assign`, { memberId: assignMemberId.trim() }),
+    onSuccess: () => {
+      setAssigningId(null);
+      setAssignMemberId('');
+      void qc.invalidateQueries({ queryKey: ['staff-routines'] });
+    },
+  });
+
   return (
     <div className="stack">
       <h2 style={{ marginTop: 0 }}>Rutinas</h2>
@@ -348,10 +464,7 @@ function RoutinesSection() {
           }}
         >
           <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={fieldLabelStyle}>Miembro (ID de usuario)</label>
-              <input className="input" value={memberId} onChange={(e) => setMemberId(e.target.value)} placeholder="ID del miembro" />
-            </div>
+            <MemberAutocomplete value={memberId} onSelect={setMemberId} placeholder="Buscar miembro por nombre/email…" />
             <div style={{ flex: 1, minWidth: 200 }}>
               <label style={fieldLabelStyle}>Nombre de la rutina</label>
               <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Tren superior" />
@@ -411,6 +524,26 @@ function RoutinesSection() {
                 </div>
               ))}
             </div>
+            <div className="row" style={{ marginTop: 'var(--ws-space-2)', gap: 'var(--ws-space-2)' }}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setAssigningId(assigningId === r.id ? null : r.id);
+                  setAssignMemberId('');
+                }}
+              >
+                <i className="bi bi-person-plus" /> Asignar a miembro
+              </Button>
+            </div>
+            {assigningId === r.id && (
+              <div className="row" style={{ marginTop: 'var(--ws-space-2)', alignItems: 'flex-end', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
+                <MemberAutocomplete value={assignMemberId} onSelect={setAssignMemberId} placeholder="Buscar miembro…" />
+                <Button disabled={assign.isPending || !assignMemberId.trim()} onClick={() => assign.mutate(r.id)}>
+                  {assign.isPending ? 'Asignando…' : 'Asignar'}
+                </Button>
+                <Button variant="ghost" onClick={() => setAssigningId(null)}>Cancelar</Button>
+              </div>
+            )}
           </div>
         ))}
       </Card>
