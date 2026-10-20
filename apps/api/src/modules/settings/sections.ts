@@ -291,4 +291,24 @@ export function registerDefaultSections(): void {
     },
     defaults: { pendingExpiryMinutes: 60, requireWebhookSignature: true },
   });
+
+  // Inventario: controla si el stock de productos y de inventario es el mismo.
+  registerSettingSection({
+    key: 'inventory',
+    group: 'general',
+    schema: {
+      type: 'object',
+      title: 'Inventario',
+      properties: {
+        unifiedWithCommerce: {
+          type: 'boolean',
+          title: 'Unificar inventario y tienda',
+          description:
+            'Si está activado, el stock de productos y de inventario es el MISMO: el POS (Ventas) y la tienda descuentan ambos. Si lo desactivás, cada uno mantiene su stock por separado.',
+          default: true,
+        },
+      },
+    },
+    defaults: { unifiedWithCommerce: true },
+  });
 }

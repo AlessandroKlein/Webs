@@ -27,6 +27,7 @@ interface Product {
   imageUrl: string | null;
   images: string[];
   sizes: string[];
+  barcode?: string | null;
 }
 
 interface InventoryItem {
@@ -144,6 +145,7 @@ export function CommercePage() {
   const [pImageUrl, setPImageUrl] = useState('');
   const [pImages, setPImages] = useState('');
   const [pSizes, setPSizes] = useState('');
+  const [pBarcode, setPBarcode] = useState('');
   const [pStockBySize, setPStockBySize] = useState<Record<string, string>>({});
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
 
@@ -175,6 +177,7 @@ export function CommercePage() {
     setPImageUrl('');
     setPImages('');
     setPSizes('');
+    setPBarcode('');
     setPStockBySize({});
   };
 
@@ -188,6 +191,7 @@ export function CommercePage() {
     setPImageUrl(p.imageUrl ?? '');
     setPImages((p.images ?? []).join(', '));
     setPSizes((p.sizes ?? []).join(', '));
+    setPBarcode(p.barcode ?? '');
     const bySize: Record<string, string> = {};
     for (const s of p.sizes ?? []) {
       const item = (inventoryItems ?? []).find((it) => it.productId === p.id && it.name === `${p.title} (${s})`);
@@ -216,6 +220,7 @@ export function CommercePage() {
       images: parseList(pImages),
       sizes,
       stockBySize,
+      barcode: pBarcode.trim() || undefined,
     };
     saveProduct.mutate({ id: editingProduct?.id ?? null, body });
   };
@@ -390,6 +395,7 @@ export function CommercePage() {
                     <TextField label={t('admin.commerce.price')} type="number" value={pPrice} onChange={(e) => setPPrice(e.target.value)} required />
                     <TextField label={t('admin.commerce.stock')} type="number" value={pStock} onChange={(e) => setPStock(e.target.value)} required />
                     <TextField label={t('admin.commerce.categoryOptional')} value={pCategory} onChange={(e) => setPCategory(e.target.value)} />
+                    <TextField label="Código de barras" value={pBarcode} onChange={(e) => setPBarcode(e.target.value)} placeholder="7790000000000" />
                   </div>
                   <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
                     <TextField label="URL de imagen" value={pImageUrl} onChange={(e) => setPImageUrl(e.target.value)} placeholder="https://…" />

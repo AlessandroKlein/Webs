@@ -103,6 +103,8 @@ interface ProductRow {
   title: string;
   price: number;
   stock?: number;
+  imageUrl?: string | null;
+  barcode?: string | null;
 }
 
 interface InventoryItem {
@@ -159,19 +161,121 @@ const membershipStatusColor = (status: string): string => {
   return 'var(--ws-text-muted)';
 };
 
-function routineExercises(v: unknown): Array<{ name: string; detail: string }> {
+interface RoutineExercise {
+  name: string;
+  sets?: string;
+  reps?: string;
+  day?: string;
+  notes?: string;
+  machineUrl?: string;
+  machineImage?: string;
+}
+
+const exerciseField = (x: unknown): string =>
+  typeof x === 'string' ? x.trim() : x !== undefined && x !== null && x !== '' ? String(x).trim() : '';
+
+/** Normaliza el Json de ejercicios a una lista enriquecida para mostrar. */
+function routineExerciseList(v: unknown): RoutineExercise[] {
   if (!Array.isArray(v)) return [];
-  const out: Array<{ name: string; detail: string }> = [];
+  const out: RoutineExercise[] = [];
   for (const raw of v) {
     if (typeof raw !== 'object' || raw === null) continue;
     const ex = raw as Record<string, unknown>;
-    const name = typeof ex.name === 'string' && ex.name.trim() ? ex.name.trim() : 'Ejercicio';
-    const parts: string[] = [];
-    if (ex.sets !== undefined && ex.sets !== null && ex.sets !== '') parts.push(`Series: ${String(ex.sets)}`);
-    if (ex.reps !== undefined && ex.reps !== null && ex.reps !== '') parts.push(`Reps: ${String(ex.reps)}`);
-    out.push({ name, detail: parts.length ? parts.join(' · ') : '—' });
+    out.push({
+      name: exerciseField(ex.name) || 'Ejercicio',
+      day: exerciseField(ex.day),
+      sets: exerciseField(ex.sets),
+      reps: exerciseField(ex.reps),
+      notes: exerciseField(ex.notes),
+      machineUrl: exerciseField(ex.machineUrl),
+      machineImage: exerciseField(ex.machineImage),
+    });
   }
   return out;
+}
+
+/** Parse del textarea: `nombre | día | series | reps | notas | url de máquina | foto(opcional)`. */
+function parseExercisesText(text: string): RoutineExercise[] {
+  return text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, day, sets, reps, notes, machineUrl, machineImage] = line.split('|').map((p) => p.trim());
+      const ex: RoutineExercise = { name: name || 'Ejercicio' };
+      if (day) ex.day = day;
+      if (sets) ex.sets = sets;
+      if (reps) ex.reps = reps;
+      if (notes) ex.notes = notes;
+      if (machineUrl) ex.machineUrl = machineUrl;
+      if (machineImage) ex.machineImage = machineImage;
+      return ex;
+    });
+}
+
+/** Serializa los ejercicios enriquecidos de vuelta al formato del textarea. */
+function serializeExercises(v: unknown): string {
+  if (!Array.isArray(v)) return '';
+  return v
+    .map((raw) => {
+      if (typeof raw !== 'object' || raw === null) return '';
+      const ex = raw as Record<string, unknown>;
+      return [
+        exerciseField(ex.name),
+        exerciseField(ex.day),
+        exerciseField(ex.sets),
+        exerciseField(ex.reps),
+        exerciseField(ex.notes),
+        exerciseField(ex.machineUrl),
+        exerciseField(ex.machineImage),
+      ].join(' | ');
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function RoutineExerciseItem({ ex }: { ex: RoutineExercise }) {
+  return (
+    <div
+      style={{
+        background: 'var(--ws-surface-2)',
+        border: '1px solid var(--ws-border)',
+        borderRadius: 'var(--ws-radius-md)',
+        padding: 'var(--ws-space-3)',
+      }}
+    >
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
+        <strong>{ex.name}</strong>
+        {ex.day && <span className="badge">{ex.day}</span>}
+      </div>
+      {(ex.sets || ex.reps) && (
+        <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>
+          {ex.sets ? `Series: ${ex.sets}` : ''}
+          {ex.sets && ex.reps ? ' · ' : ''}
+          {ex.reps ? `Reps: ${ex.reps}` : ''}
+        </p>
+      )}
+      {ex.notes && (
+        <p style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
+          <i className="bi bi-chat-left-text" /> {ex.notes}
+        </p>
+      )}
+      {ex.machineUrl && (
+        <p style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
+          <a href={ex.machineUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--ws-primary)' }}>
+            <i className="bi bi-box-arrow-up-right" /> Ver máquina
+          </a>
+        </p>
+      )}
+      {ex.machineImage && (
+        <img
+          src={ex.machineImage}
+          alt={ex.name}
+          style={{ display: 'block', maxWidth: 240, maxHeight: 180, marginTop: 'var(--ws-space-2)', borderRadius: 'var(--ws-radius-md)' }}
+        />
+      )}
+    </div>
+  );
 }
 
 const fieldLabelStyle = {
@@ -308,10 +412,12 @@ function memberLabel(u: MemberUser) {
 function MemberAutocomplete({
   value,
   onSelect,
+  onPick,
   placeholder = 'Buscar miembro…',
 }: {
   value: string;
   onSelect: (id: string) => void;
+  onPick?: (id: string) => void;
   placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -372,6 +478,7 @@ function MemberAutocomplete({
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => {
                 onSelect(u.id);
+                onPick?.(u.id);
                 setOpen(false);
               }}
               style={{
@@ -400,11 +507,21 @@ function MemberAutocomplete({
 function RoutinesSection() {
   const user = useAuthStore((s) => s.user);
   const qc = useQueryClient();
-  const [memberId, setMemberId] = useState('');
+
+  // Formulario crear/editar plantilla.
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [exercisesText, setExercisesText] = useState('');
-  const [created, setCreated] = useState(false);
+  const [formMsg, setFormMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // Asignar plantilla a un miembro.
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [assignMemberId, setAssignMemberId] = useState('');
+
+  // Buscar rutinas de un usuario.
+  const [lookupDraft, setLookupDraft] = useState('');
+  const [lookupMemberId, setLookupMemberId] = useState('');
 
   const { data: routines, isLoading, isError } = useQuery({
     queryKey: ['staff-routines'],
@@ -412,32 +529,64 @@ function RoutinesSection() {
     retry: 0,
   });
 
+  // Solo plantillas (memberId vacío).
+  const templates = (routines ?? []).filter((r) => !r.memberId);
+
+  const { data: memberRoutines, isLoading: memberLoading, isError: memberError } = useQuery({
+    queryKey: ['staff-routines-member', lookupMemberId],
+    queryFn: () => api.get<RoutineRow[]>(`/api/v1/blocks/academia/routines?memberId=${encodeURIComponent(lookupMemberId)}`),
+    enabled: !!lookupMemberId,
+    retry: 0,
+  });
+
+  const resetForm = () => {
+    setEditingId(null);
+    setName('');
+    setDescription('');
+    setExercisesText('');
+    setFormMsg(null);
+  };
+
+  const startEdit = (r: RoutineRow) => {
+    setEditingId(r.id);
+    setName(r.name);
+    setDescription(r.description ?? '');
+    setExercisesText(serializeExercises(r.exercises));
+    setFormMsg(null);
+  };
+
   const create = useMutation({
     mutationFn: () =>
       api.post('/api/v1/blocks/academia/routines', {
         trainerId: user?.id ?? '',
-        memberId: memberId.trim(),
+        memberId: '',
         name: name.trim() || 'Rutina',
         description: description.trim() || null,
-        exercises: exercisesText
-          .split('\n')
-          .map((l) => l.trim())
-          .filter(Boolean)
-          .map((n) => ({ name: n })),
+        exercises: parseExercisesText(exercisesText),
         status: 'active',
       }),
     onSuccess: () => {
-      setName('');
-      setMemberId('');
-      setDescription('');
-      setExercisesText('');
-      setCreated(true);
+      resetForm();
+      setFormMsg({ ok: true, text: 'Rutina creada.' });
       void qc.invalidateQueries({ queryKey: ['staff-routines'] });
     },
   });
 
-  const [assigningId, setAssigningId] = useState<string | null>(null);
-  const [assignMemberId, setAssignMemberId] = useState('');
+  const update = useMutation({
+    mutationFn: () =>
+      api.patch(`/api/v1/blocks/academia/routines/${editingId}`, {
+        name: name.trim() || 'Rutina',
+        description: description.trim() || null,
+        exercises: parseExercisesText(exercisesText),
+      }),
+    onSuccess: () => {
+      resetForm();
+      setFormMsg({ ok: true, text: 'Rutina guardada.' });
+      void qc.invalidateQueries({ queryKey: ['staff-routines'] });
+      void qc.invalidateQueries({ queryKey: ['staff-routines-member'] });
+    },
+  });
+
   const assign = useMutation({
     mutationFn: (routineId: string) =>
       api.post(`/api/v1/blocks/academia/routines/${routineId}/assign`, { memberId: assignMemberId.trim() }),
@@ -445,60 +594,67 @@ function RoutinesSection() {
       setAssigningId(null);
       setAssignMemberId('');
       void qc.invalidateQueries({ queryKey: ['staff-routines'] });
+      void qc.invalidateQueries({ queryKey: ['staff-routines-member'] });
     },
   });
+
+  const saving = create.isPending || update.isPending;
+  const saveError = create.error ?? update.error;
 
   return (
     <div className="stack">
       <h2 style={{ marginTop: 0 }}>Rutinas</h2>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Nueva rutina</h3>
+        <h3 style={{ marginTop: 0 }}>{editingId ? 'Editar rutina' : 'Nueva rutina (plantilla)'}</h3>
         <form
           className="stack"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!memberId.trim()) return;
-            setCreated(false);
-            create.mutate();
+            setFormMsg(null);
+            if (editingId) update.mutate();
+            else create.mutate();
           }}
         >
-          <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-            <MemberAutocomplete value={memberId} onSelect={setMemberId} placeholder="Buscar miembro por nombre/email…" />
-            <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={fieldLabelStyle}>Nombre de la rutina</label>
-              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Tren superior" />
-            </div>
+          <div>
+            <label style={fieldLabelStyle}>Nombre de la rutina</label>
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Tren superior" style={{ width: '100%' }} />
           </div>
           <div>
             <label style={fieldLabelStyle}>Descripción (opcional)</label>
-            <input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notas para el miembro" />
+            <input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notas para la rutina" style={{ width: '100%' }} />
           </div>
           <div>
             <label style={fieldLabelStyle}>Ejercicios (uno por línea)</label>
             <textarea
               className="input"
-              rows={4}
+              rows={6}
               value={exercisesText}
               onChange={(e) => setExercisesText(e.target.value)}
-              placeholder={'Sentadillas\nPress de banca'}
+              placeholder={'Formato por ejercicio (separado por |):\nnombre | día | series | reps | notas | url de máquina\n\nEjemplos:\nPress de banca | Lunes | 4 | 10 | Controlar la bajada | https://…\nSentadilla | Martes | 3 | 12 | |'}
               style={{ width: '100%' }}
             />
+            <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
+              Una línea por ejercicio: <code>nombre | día | series | reps | notas | url de máquina</code>. El día puede ser un número o texto libre (Lunes, Martes…). La URL es el link de la máquina; podés agregar una 7ª columna opcional con la URL de una foto.
+            </p>
           </div>
           <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)' }}>
-            <Button type="submit" disabled={create.isPending || !memberId.trim()}>Crear rutina</Button>
-            {created && <span style={{ color: 'var(--ws-success)' }}>Rutina creada.</span>}
+            <Button type="submit" disabled={saving}>
+              {editingId ? (update.isPending ? 'Guardando…' : 'Guardar cambios') : (create.isPending ? 'Creando…' : 'Crear rutina')}
+            </Button>
+            {editingId && <Button variant="ghost" type="button" onClick={resetForm}>Cancelar</Button>}
+            {formMsg && <span style={{ color: formMsg.ok ? 'var(--ws-success)' : 'var(--ws-danger)' }}>{formMsg.text}</span>}
           </div>
-          {create.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{create.error.message}</p>}
+          {saveError && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{saveError.message}</p>}
         </form>
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Rutinas existentes</h3>
+        <h3 style={{ marginTop: 0 }}>Rutinas existentes (plantillas)</h3>
         {isLoading && <Spinner label="Cargando rutinas…" />}
         {isError && !isLoading && <p className="muted">No disponible: el bloque de academia no está instalado.</p>}
-        {!isLoading && !isError && (routines ?? []).length === 0 && <p className="muted">Todavía no hay rutinas.</p>}
-        {!isLoading && !isError && (routines ?? []).map((r) => (
+        {!isLoading && !isError && templates.length === 0 && <p className="muted">Todavía no hay plantillas.</p>}
+        {!isLoading && !isError && templates.map((r) => (
           <div key={r.id} style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)', marginTop: 'var(--ws-space-3)' }}>
             <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--ws-space-1)' }}>
               <strong>{r.name}</strong>
@@ -506,25 +662,17 @@ function RoutinesSection() {
             </div>
             {r.description && <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>{r.description}</p>}
             <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
-              Miembro: <code>{r.memberId}</code>
+              Tipo: Plantilla
             </p>
             <div className="stack" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
-              {routineExercises(r.exercises).map((ex, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: 'var(--ws-surface-2)',
-                    border: '1px solid var(--ws-border)',
-                    borderRadius: 'var(--ws-radius-md)',
-                    padding: 'var(--ws-space-3)',
-                  }}
-                >
-                  <strong>{ex.name}</strong>
-                  <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>{ex.detail}</p>
-                </div>
+              {routineExerciseList(r.exercises).map((ex, i) => (
+                <RoutineExerciseItem key={i} ex={ex} />
               ))}
             </div>
-            <div className="row" style={{ marginTop: 'var(--ws-space-2)', gap: 'var(--ws-space-2)' }}>
+            <div className="row" style={{ marginTop: 'var(--ws-space-2)', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
+              <Button variant="ghost" onClick={() => startEdit(r)}>
+                <i className="bi bi-pencil" /> Editar
+              </Button>
               <Button
                 variant="ghost"
                 onClick={() => {
@@ -546,6 +694,56 @@ function RoutinesSection() {
             )}
           </div>
         ))}
+      </Card>
+
+      <Card>
+        <h3 style={{ marginTop: 0 }}>Rutinas de un usuario</h3>
+        <p className="muted" style={{ margin: '0 0 var(--ws-space-2)' }}>Buscá por nombre o email para ver qué rutinas tiene asignadas.</p>
+        <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+          <MemberAutocomplete
+            value={lookupDraft}
+            onSelect={setLookupDraft}
+            onPick={(id) => {
+              setLookupDraft(id);
+              setLookupMemberId(id);
+            }}
+            placeholder="Buscar por nombre/email…"
+          />
+          {lookupMemberId && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setLookupDraft('');
+                setLookupMemberId('');
+              }}
+            >
+              Limpiar
+            </Button>
+          )}
+        </div>
+        {lookupMemberId && (
+          <div style={{ marginTop: 'var(--ws-space-3)' }}>
+            {memberLoading && <Spinner label="Buscando rutinas…" />}
+            {memberError && !memberLoading && <p className="muted">No se pudieron cargar las rutinas del miembro.</p>}
+            {!memberLoading && !memberError && (memberRoutines ?? []).length === 0 && (
+              <p className="muted">Este usuario no tiene rutinas asignadas.</p>
+            )}
+            {!memberLoading && !memberError && (memberRoutines ?? []).map((r) => (
+              <div key={r.id} style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)', marginTop: 'var(--ws-space-3)' }}>
+                <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--ws-space-1)' }}>
+                  <strong>{r.name}</strong>
+                  <span className="badge">{r.status}</span>
+                </div>
+                {r.description && <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>{r.description}</p>}
+                <div className="stack" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
+                  {routineExerciseList(r.exercises).map((ex, i) => (
+                    <RoutineExerciseItem key={i} ex={ex} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );
@@ -843,14 +1041,19 @@ function CollectionSection() {
 
 function SalesSection() {
   const qc = useQueryClient();
-  const [productId, setProductId] = useState('');
+  const [search, setSearch] = useState('');
+  const [barcode, setBarcode] = useState('');
   const [qty, setQty] = useState('1');
   const [cart, setCart] = useState<CartLine[]>([]);
   const [saleMsg, setSaleMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [barcodeMsg, setBarcodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const { data: products } = useQuery({
-    queryKey: ['staff-pos-products'],
-    queryFn: () => api.get<ProductRow[]>('/api/v1/blocks/pos/products'),
+  const { data: products, isLoading: productsLoading } = useQuery({
+    queryKey: ['staff-pos-products', search.trim()],
+    queryFn: () =>
+      api.get<ProductRow[]>(
+        `/api/v1/blocks/pos/products${search.trim() ? `?q=${encodeURIComponent(search.trim())}` : ''}`,
+      ),
     retry: 0,
   });
   const { data: sales, isLoading, isError } = useQuery({
@@ -876,18 +1079,33 @@ function SalesSection() {
     },
   });
 
-  const addToCart = () => {
-    const product = (products ?? []).find((p) => p.id === productId);
-    if (!product) return;
+  const addToCart = (product: ProductRow) => {
     const q = Math.max(1, Math.floor(Number(qty) || 1));
     setCart((prev) => {
       const existing = prev.find((l) => l.id === product.id);
       if (existing) return prev.map((l) => (l.id === product.id ? { ...l, qty: l.qty + q } : l));
       return [...prev, { id: product.id, title: product.title, price: product.price, qty: q }];
     });
-    setProductId('');
     setQty('1');
   };
+
+  // Al pegar/escanear un código de barras y presionar Enter, se busca el
+  // producto por `barcode` (o por título como respaldo) y se agrega al carrito.
+  const barcodeLookup = useMutation({
+    mutationFn: (code: string) => api.get<ProductRow[]>(`/api/v1/blocks/pos/products?q=${encodeURIComponent(code)}`),
+    onSuccess: (list, code) => {
+      const match =
+        (list ?? []).find((p) => (p.barcode ?? '').trim() === code.trim()) ?? (list ?? [])[0];
+      if (!match) {
+        setBarcodeMsg({ ok: false, text: 'No se encontró un producto con ese código' });
+        return;
+      }
+      addToCart(match);
+      setBarcode('');
+      setBarcodeMsg({ ok: true, text: `${match.title} agregado al carrito` });
+    },
+    onError: () => setBarcodeMsg({ ok: false, text: 'No se pudo buscar el producto' }),
+  });
 
   const cartTotal = cart.reduce((sum, l) => sum + l.price * l.qty, 0);
 
@@ -897,21 +1115,109 @@ function SalesSection() {
 
       <Card>
         <h3 style={{ marginTop: 0 }}>Cobrar (POS)</h3>
-        <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <label style={fieldLabelStyle}>Producto</label>
-            <select className="input" value={productId} onChange={(e) => setProductId(e.target.value)}>
-              <option value="">Seleccionar producto…</option>
-              {(products ?? []).map((p) => (
-                <option key={p.id} value={p.id}>{p.title} — ${p.price.toFixed(2)}</option>
-              ))}
-            </select>
+
+        <form
+          className="row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!barcode.trim()) return;
+            setBarcodeMsg(null);
+            barcodeLookup.mutate(barcode.trim());
+          }}
+          style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}
+        >
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <label style={fieldLabelStyle}>Código de barras (escáner)</label>
+            <input
+              className="input"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              placeholder="Escanear o pegar el código de barras"
+              autoFocus
+            />
+          </div>
+          <Button type="submit" disabled={barcodeLookup.isPending || !barcode.trim()}>
+            {barcodeLookup.isPending ? 'Buscando…' : 'Agregar'}
+          </Button>
+        </form>
+        {barcodeMsg && (
+          <p style={{ margin: 'var(--ws-space-2) 0 0', color: barcodeMsg.ok ? 'var(--ws-success)' : 'var(--ws-danger)' }}>
+            {barcodeMsg.ok ? '✓' : '✗'} {barcodeMsg.text}
+          </p>
+        )}
+
+        <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-3)' }}>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <label style={fieldLabelStyle}>Buscar producto</label>
+            <input
+              className="input"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre o código de barras…"
+              style={{ width: '100%' }}
+            />
           </div>
           <div style={{ width: 90 }}>
             <label style={fieldLabelStyle}>Cantidad</label>
             <input className="input" type="number" min={1} value={qty} onChange={(e) => setQty(e.target.value)} />
           </div>
-          <Button onClick={addToCart} disabled={!productId}>Agregar</Button>
+        </div>
+
+        <div className="stack" style={{ marginTop: 'var(--ws-space-3)', gap: 'var(--ws-space-2)' }}>
+          {productsLoading && <Spinner label="Cargando productos…" />}
+          {!productsLoading && (products ?? []).length === 0 && (
+            <p className="muted">No se encontraron productos.</p>
+          )}
+          {!productsLoading &&
+            (products ?? []).map((p) => (
+              <div
+                key={p.id}
+                className="row"
+                style={{
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 'var(--ws-space-2)',
+                  border: '1px solid var(--ws-border)',
+                  borderRadius: 'var(--ws-radius-md)',
+                  padding: 'var(--ws-space-2)',
+                }}
+              >
+                <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)', minWidth: 0 }}>
+                  {p.imageUrl ? (
+                    <img
+                      src={p.imageUrl}
+                      alt={p.title}
+                      style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 'var(--ws-radius-md)' }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 'var(--ws-radius-md)',
+                        background: 'var(--ws-surface-2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--ws-text-muted)',
+                      }}
+                    >
+                      <i className="bi bi-box-seam" />
+                    </div>
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={{ display: 'block' }}>{p.title}</strong>
+                    <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
+                      ${p.price.toFixed(2)} · Stock: {p.stock ?? 0}
+                      {p.barcode ? ` · ${p.barcode}` : ''}
+                    </span>
+                  </div>
+                </div>
+                <Button variant="secondary" onClick={() => addToCart(p)} disabled={(p.stock ?? 0) <= 0}>
+                  Agregar
+                </Button>
+              </div>
+            ))}
         </div>
 
         {cart.length > 0 && (

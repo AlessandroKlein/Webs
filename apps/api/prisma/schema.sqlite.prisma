@@ -189,6 +189,7 @@ model Product {
   imageUrl    String?
   images      Json    @default("[]")
   sizes       Json    @default("[]")
+  barcode     String?
 
   @@map("products")
 }
@@ -440,11 +441,13 @@ model InventoryItem {
   unitPrice      Int      @default(0)
   category       String?
   productId      String?
+  barcode        String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@index([organizationId])
   @@index([sku])
+  @@index([barcode])
   @@map("inventory_items")
 }
 

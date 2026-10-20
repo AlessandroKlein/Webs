@@ -189,6 +189,7 @@ export default defineBlock(manifest, {
           images?: unknown;
           sizes?: unknown;
           stockBySize?: unknown;
+          barcode?: string | null;
         };
       };
       const title = body?.title ?? '';
@@ -204,6 +205,7 @@ export default defineBlock(manifest, {
           imageUrl: body?.imageUrl ?? null,
           images: stringArray(body?.images),
           sizes,
+          barcode: body?.barcode ?? null,
         },
       });
       // Stock por talle: crea un ítem de inventario por cada talle del producto.
@@ -228,6 +230,7 @@ export default defineBlock(manifest, {
           images?: unknown;
           sizes?: unknown;
           stockBySize?: unknown;
+          barcode?: string | null;
         };
       };
       const data: Record<string, unknown> = {};
@@ -239,6 +242,7 @@ export default defineBlock(manifest, {
       if (body?.imageUrl !== undefined) data.imageUrl = body.imageUrl;
       if (body?.images !== undefined) data.images = stringArray(body.images);
       if (body?.sizes !== undefined) data.sizes = stringArray(body.sizes);
+      if (body?.barcode !== undefined) data.barcode = body.barcode;
       const product = await db.product.update({ where: { id: params?.id }, data });
       // Stock por talle: actualiza los ítems de inventario si cambiaron los talles.
       if (body?.sizes !== undefined) {

@@ -61,23 +61,43 @@ export default defineBlock(manifest, {
 
     // ── POS / cobro presencial ────────────────────────────────────────────
     // Productos disponibles para vender (tabla `products`).
-    fastify.get('/products', { preHandler: [authenticate] }, async () =>
-      db.product.findMany({ orderBy: { title: 'asc' } }),
-    );
+    // `?q=` filtra por título (contiene) o por código de barras (igual), insensible a mayúsculas.
+    fastify.get('/products', { preHandler: [authenticate] }, async (request: unknown) => {
+      const { query } = request as { query?: { q?: string } };
+      const q = (query?.q ?? '').trim();
+      if (!q) return db.product.findMany({ orderBy: { title: 'asc' } });
+      return db.product.findMany({
+        where: {
+          OR: [
+            { title: { contains: q, mode: 'insensitive' } },
+            { barcode: { equals: q, mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { title: 'asc' },
+      });
+    });
 
     // Cobro: crea la orden pagada + el pago y descuenta stock.
     fastify.post('/checkout', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as {
-        body?: { items?: Array<{ id?: string; qty?: number }>; userId?: string; method?: string };
+        body?: { items?: Array<{ id?: string; qty?: number; barcode?: string }>; userId?: string; method?: string };
       };
-      const rawItems = (body?.items ?? []).filter((i) => i && typeof i.id === 'string' && i.id);
+      const rawItems = (body?.items ?? []).filter(
+        (i) => i && ((typeof i.id === 'string' && i.id) || (typeof i.barcode === 'string' && i.barcode.trim())),
+      );
       if (rawItems.length === 0) return { ok: false, error: 'No se indicaron ítems para cobrar' };
 
       const lines: Array<{ id: string; title: string; qty: number; unitPrice: number }> = [];
       let total = 0;
       for (const it of rawItems) {
-        const product = await db.product.findUnique({ where: { id: it.id } });
-        if (!product) return { ok: false, error: `Producto no encontrado: ${it.id}` };
+        let product: Record<string, any> | null = null;
+        if (typeof it.id === 'string' && it.id) {
+          product = await db.product.findUnique({ where: { id: it.id } });
+        }
+        if (!product && typeof it.barcode === 'string' && it.barcode.trim()) {
+          product = await db.product.findFirst({ where: { barcode: it.barcode.trim() } });
+        }
+        if (!product) return { ok: false, error: `Producto no encontrado: ${it.id ?? it.barcode}` };
         const qty = Math.max(1, Math.floor(Number(it.qty) || 1));
         total += product.price * qty;
         lines.push({ id: product.id, title: product.title, qty, unitPrice: product.price });

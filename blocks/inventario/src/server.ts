@@ -23,14 +23,19 @@ export default defineBlock(manifest, {
       return db.inventoryItem.findMany({ where, orderBy: { name: 'asc' } });
     });
 
-    // Consulta de stock por SKU en TODAS las sucursales: devuelve el ítem con
-    // ese SKU en cada organización (para saber dónde hay stock disponible).
+    // Consulta de stock por SKU (o código de barras) en TODAS las sucursales:
+    // devuelve el ítem con ese SKU/barcode en cada organización (para saber
+    // dónde hay stock disponible).
     fastify.get('/inventory/search', { preHandler: [authenticate] }, async (request: unknown) => {
-      const { query } = request as { query?: { sku?: string } };
+      const { query } = request as { query?: { sku?: string; barcode?: string } };
       const sku = (query?.sku ?? '').trim();
-      if (!sku) return [];
+      const barcode = (query?.barcode ?? '').trim();
+      if (!sku && !barcode) return [];
+      const or: Array<Record<string, unknown>> = [];
+      if (sku) or.push({ sku });
+      if (barcode) or.push({ barcode });
       const items = await db.inventoryItem.findMany({
-        where: { sku },
+        where: { OR: or },
         orderBy: [{ organizationId: 'asc' }, { name: 'asc' }],
       });
       // Enriquece cada ítem con el nombre de su sucursal.
@@ -56,7 +61,7 @@ export default defineBlock(manifest, {
 
     fastify.post('/inventory', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as {
-        body?: { sku?: string; name?: string; quantity?: number; minQuantity?: number; unitPrice?: number; category?: string; organizationId?: string | null; productId?: string | null };
+        body?: { sku?: string; name?: string; quantity?: number; minQuantity?: number; unitPrice?: number; category?: string; organizationId?: string | null; productId?: string | null; barcode?: string | null };
       };
       return db.inventoryItem.create({
         data: {
@@ -68,6 +73,7 @@ export default defineBlock(manifest, {
           category: body?.category || null,
           organizationId: body?.organizationId || null,
           productId: body?.productId || null,
+          barcode: body?.barcode || null,
         },
       });
     });
@@ -75,7 +81,7 @@ export default defineBlock(manifest, {
     fastify.patch('/inventory/:id', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params, body } = request as {
         params?: { id?: string };
-        body?: { sku?: string; name?: string; quantity?: number; minQuantity?: number; unitPrice?: number; category?: string | null; organizationId?: string | null; productId?: string | null };
+        body?: { sku?: string; name?: string; quantity?: number; minQuantity?: number; unitPrice?: number; category?: string | null; organizationId?: string | null; productId?: string | null; barcode?: string | null };
       };
       const data: Record<string, unknown> = {};
       if (body?.sku !== undefined) data.sku = body.sku;
@@ -86,6 +92,7 @@ export default defineBlock(manifest, {
       if (body?.category !== undefined) data.category = body.category;
       if (body?.organizationId !== undefined) data.organizationId = body.organizationId;
       if (body?.productId !== undefined) data.productId = body.productId;
+      if (body?.barcode !== undefined) data.barcode = body.barcode;
       return db.inventoryItem.update({ where: { id: params?.id }, data });
     });
 

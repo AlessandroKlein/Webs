@@ -21,6 +21,7 @@ interface InventoryItem {
   category: string | null;
   organizationId: string | null;
   productId: string | null;
+  barcode?: string | null;
 }
 
 interface Organization {
@@ -93,6 +94,7 @@ export function InventoryPage() {
   const [minQuantity, setMinQuantity] = useState('0');
   const [unitPrice, setUnitPrice] = useState('0');
   const [category, setCategory] = useState('');
+  const [itemBarcode, setItemBarcode] = useState('');
   const [itemOrgId, setItemOrgId] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<InventoryItem | null>(null);
 
@@ -153,6 +155,7 @@ export function InventoryPage() {
     setMinQuantity('0');
     setUnitPrice('0');
     setCategory('');
+    setItemBarcode('');
     setItemOrgId('');
   };
 
@@ -170,6 +173,7 @@ export function InventoryPage() {
     setMinQuantity(String(it.minQuantity));
     setUnitPrice(String(it.unitPrice));
     setCategory(it.category ?? '');
+    setItemBarcode(it.barcode ?? '');
     setItemOrgId(it.organizationId ?? '');
     setFormOpen(true);
   };
@@ -184,6 +188,7 @@ export function InventoryPage() {
       unitPrice: Number(unitPrice),
       category: category.trim() || undefined,
       organizationId: itemOrgId || undefined,
+      barcode: itemBarcode.trim() || undefined,
     };
     if (editing) update.mutate({ id: editing.id, body });
     else create.mutate(body);
@@ -296,6 +301,7 @@ export function InventoryPage() {
                       <TextField label={t('admin.inventory.minimum')} type="number" value={minQuantity} onChange={(e) => setMinQuantity(e.target.value)} required />
                       <TextField label={t('admin.inventory.unitPrice')} type="number" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} required />
                       <TextField label={t('admin.inventory.category')} value={category} onChange={(e) => setCategory(e.target.value)} placeholder={t('admin.blog.optional')} />
+                      <TextField label="Código de barras" value={itemBarcode} onChange={(e) => setItemBarcode(e.target.value)} placeholder="7790000000000" />
                       <div className="field">
                         <label>{t('admin.organizations.organization')}</label>
                         <select className="input" style={{ width: 'auto' }} value={itemOrgId} onChange={(e) => setItemOrgId(e.target.value)}>
@@ -324,6 +330,7 @@ export function InventoryPage() {
                     <th>{t('admin.inventory.minimum')}</th>
                     <th>{t('admin.inventory.unitPrice')}</th>
                     <th>{t('admin.inventory.category')}</th>
+                    <th>Código de barras</th>
                     <th>Producto / Talle</th>
                     <th>{t('common.actions')}</th>
                   </tr>
@@ -337,6 +344,7 @@ export function InventoryPage() {
                       <td>{it.minQuantity}</td>
                       <td>{it.unitPrice}</td>
                       <td>{it.category ?? '—'}</td>
+                      <td>{it.barcode ? <code>{it.barcode}</code> : '—'}</td>
                       <td>
                         {it.productId ? (
                           <span>
@@ -359,7 +367,7 @@ export function InventoryPage() {
                     </tr>
                   ))}
                   {itemList.length === 0 && (
-                    <tr><td colSpan={8}><p className="muted">{t('admin.inventory.noItems')}</p></td></tr>
+                    <tr><td colSpan={9}><p className="muted">{t('admin.inventory.noItems')}</p></td></tr>
                   )}
                 </tbody>
               </table>
@@ -397,6 +405,7 @@ export function InventoryPage() {
                   <th>{t('common.name')}</th>
                   <th>{t('admin.inventory.quantity')}</th>
                   <th>{t('admin.inventory.minimum')}</th>
+                  <th>Código de barras</th>
                   <th>Producto / Talle</th>
                 </tr>
               </thead>
@@ -407,6 +416,7 @@ export function InventoryPage() {
                     <td>{it.name}</td>
                     <td style={{ color: 'var(--ws-danger)', fontWeight: 600 }}>{it.quantity}</td>
                     <td>{it.minQuantity}</td>
+                    <td>{it.barcode ? <code>{it.barcode}</code> : '—'}</td>
                     <td>
                       {it.productId ? (
                         <span>
@@ -420,7 +430,7 @@ export function InventoryPage() {
                   </tr>
                 ))}
                 {lowList.length === 0 && (
-                  <tr><td colSpan={5}><p className="muted">{t('admin.inventory.noLowStock')}</p></td></tr>
+                  <tr><td colSpan={6}><p className="muted">{t('admin.inventory.noLowStock')}</p></td></tr>
                 )}
               </tbody>
             </table>
