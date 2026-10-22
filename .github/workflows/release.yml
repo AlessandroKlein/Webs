@@ -12,6 +12,10 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Crear release (con notas generadas, si no existe)
         run: |
           if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
@@ -21,3 +25,4 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
