@@ -231,22 +231,26 @@ Todas las rutas de esta sección están bajo **`/api/v1`**.
 Secciones base: `site`, `appearance`, `seo`, `legal`, `contact`, `social`
 (ver `apps/api/src/modules/settings/sections.ts`).
 
-### blocks
+### plugins
 
 | Método | Ruta                      | Permiso         | Descripción                                                         |
 | ------ | ------------------------- | --------------- | ------------------------------------------------------------------- |
-| GET    | `/blocks`                 | `block.read`    | Instalaciones (`installed`) y catálogo (`catalog`).                 |
-| POST   | `/blocks/install`         | `block.manage`  | Instala un bloque. Body: `{ id }`.                                  |
-| POST   | `/blocks/:id/activate`    | `block.manage`  | Activa un bloque instalado.                                          |
-| POST   | `/blocks/:id/deactivate`  | `block.manage`  | Desactiva un bloque instalado.                                       |
-| DELETE | `/blocks/:id`             | `block.manage`  | Desinstala un bloque. Devuelve `204`.                                |
-| GET    | `/blocks/:id/settings`    | `setting.read`  | Devuelve el esquema y el valor de configuración del bloque.          |
-| PUT    | `/blocks/:id/settings`    | `setting.write` | Guarda la configuración del bloque (validada contra su `settings`). |
+| GET    | `/plugins`                | `block.read`    | Instalaciones (`installed`) y catálogo (`catalog`).                 |
+| POST   | `/plugins/install`        | `block.manage`  | Instala un plugin. Body: `{ id }`.                                  |
+| POST   | `/plugins/:id/activate`   | `block.manage`  | Activa un plugin instalado.                                          |
+| POST   | `/plugins/:id/deactivate` | `block.manage`  | Desactiva un plugin instalado.                                       |
+| DELETE | `/plugins/:id`            | `block.manage`  | Desinstala un plugin. Devuelve `204`.                                |
+| GET    | `/plugins/:id/settings`   | `setting.read`  | Devuelve el esquema y el valor de configuración del plugin.          |
+| PUT    | `/plugins/:id/settings`   | `setting.write` | Guarda la configuración del plugin (validada contra su `settings`). |
 | GET    | `/slots`                  | `block.read`    | Lista los slots (regiones) disponibles.                              |
 | GET    | `/placements`             | `block.read`    | Lista colocaciones. Filtro opcional `?slotId=`.                      |
 | PUT    | `/placements`             | `block.manage`  | Reemplaza las colocaciones de un slot. Body: `{ slotId, blocks[] }`. |
 
 Slots base: `header`, `content`, `sidebar`, `footer`.
+
+> Las rutas canónicas son `/plugins/*`; el shim `/blocks/*` se conserva por
+> retrocompatibilidad. Los permisos internos siguen siendo `block.read`/`block.manage`
+> (ver `docs/architecture/plugin-system.md`, sección «Estado transitorio del rename»).
 
 ### content
 

@@ -112,19 +112,56 @@ export default fp(async (fastify) => {
       socket.close(4001, 'unauthorized');
       return;
     }
+    const uid = userId;
 
-    const set = userSockets.get(userId) ?? new Set<WebSocket>();
+    const set = userSockets.get(uid) ?? new Set<WebSocket>();
     set.add(socket);
-    userSockets.set(userId, set);
+    userSockets.set(uid, set);
 
     const cleanup = () => {
       set.delete(socket);
-      if (set.size === 0) userSockets.delete(userId);
+      if (set.size === 0) userSockets.delete(uid);
       channels.forEach((socks, channel) => {
         socks.delete(socket);
         if (socks.size === 0) channels.delete(channel);
       });
     };
+
+    // F7 (P1): ACL de canales. `user:<id>` es siempre el propio usuario; `org:<id>`
+    // exige membresía (o admin/super_admin); `admin:*` solo admin/super_admin;
+    // cualquier otro canal se deniega. Los roles/membresías se cargan de forma
+    // asíncrona y se mantiene fail-closed (solo `user:<self>` se permite) hasta
+    // que estén listos.
+    let roles = new Set<string>();
+    let orgIds = new Set<string>();
+
+    const canAccess = (channel: string): boolean => {
+      if (channel === `user:${uid}`) return true;
+      if (channel.startsWith('admin:')) return roles.has('admin') || roles.has('super_admin');
+      if (channel.startsWith('org:')) {
+        const orgId = channel.slice(4);
+        if (roles.has('admin') || roles.has('super_admin')) return true;
+        return orgIds.has(orgId);
+      }
+      return false;
+    };
+
+    void (async () => {
+      try {
+        const userRoles = await fastify.prisma.userRole.findMany({
+          where: { userId: uid },
+          select: { role: { select: { key: true } } },
+        });
+        roles = new Set(userRoles.map((ur) => ur.role.key));
+        const memberships = await fastify.prisma.membership.findMany({
+          where: { userId: uid, status: 'active' },
+          select: { organizationId: true },
+        });
+        orgIds = new Set(memberships.map((m) => m.organizationId));
+      } catch {
+        /* mantiene roles/orgIds vacíos → fail-closed */
+      }
+    })();
 
     socket.on('message', (raw) => {
       let msg: IncomingMessage;
@@ -140,12 +177,20 @@ export default fp(async (fastify) => {
           socket.send(JSON.stringify({ type: 'pong' }));
           break;
         case 'subscribe':
+          if (!canAccess(msg.channel)) {
+            socket.send(JSON.stringify({ error: 'forbidden', channel: msg.channel }));
+            break;
+          }
           subscribe(msg.channel, socket);
           break;
         case 'unsubscribe':
           unsubscribe(msg.channel, socket);
           break;
         case 'publish':
+          if (!canAccess(msg.channel)) {
+            socket.send(JSON.stringify({ error: 'forbidden', channel: msg.channel }));
+            break;
+          }
           broadcast(msg.channel, msg.payload);
           break;
         default:

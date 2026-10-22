@@ -21,6 +21,20 @@ import readline from 'node:readline';
 const WS_PORT = Number(process.env.WS_PORT ?? 4599);
 const PORT_NAME = process.env.PORT_NAME ?? '';
 const BAUD_RATE = Number(process.env.BAUD_RATE ?? 9600);
+const VERSION = '1.0.0';
+const BRIDGE_PROTOCOL = 'webs-desktop-bridge/1.0';
+
+/**
+ * Normaliza códigos de lectores externos (AIM/GS1): quita saltos de línea y
+ * prefijos `]C0`/`]E0`. Idéntico a `normalizeBarcode` de la PWA
+ * (apps/mobile/src/barcode.js) y de apps/web/src/components/ui/BarcodeScanner.tsx.
+ */
+function normalizeBarcode(raw) {
+  return String(raw ?? '')
+    .replace(/[\r\n\t]/g, '')
+    .replace(/^\]\w\d/, '')
+    .trim();
+}
 
 // ---------------------------------------------------------------------------
 // 1) Dependencias opcionales (carga dinámica para degradar con mensaje claro).
@@ -61,8 +75,10 @@ function broadcast(payload) {
   }
 }
 
-/** Emite un evento de lectura de código. */
-function emitScan(code, source, extra = {}) {
+/** Emite un evento de lectura de código, normalizado (AIM/GS1, saltos de línea). */
+function emitScan(rawCode, source, extra = {}) {
+  const code = normalizeBarcode(rawCode);
+  if (!code) return; // ignorá lecturas vacías tras normalizar
   const event = {
     type: 'scan',
     data: { code, source, at: new Date().toISOString(), ...extra },
@@ -90,6 +106,8 @@ function startWebSocketServer() {
     socket.send(JSON.stringify({
       type: 'ready',
       data: {
+        protocol: BRIDGE_PROTOCOL,
+        version: VERSION,
         source: activeSource(),
         port: PORT_NAME || null,
         server: `ws://localhost:${WS_PORT}`,

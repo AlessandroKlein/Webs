@@ -1,7 +1,7 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface ReservasConfig {
   provider?: string;
@@ -58,9 +58,9 @@ function normalizeStatus(raw?: string): BookingStatus | null {
 }
 
 /**
- * Bloque de reservas y turnos. Rutas bajo `/api/v1/blocks/reservas`.
+ * Plugin de reservas y turnos. Rutas bajo `/api/v1/plugins/reservas`.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const cfg = config as ReservasConfig;
     const provider = String(cfg.provider ?? 'local');

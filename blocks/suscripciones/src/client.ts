@@ -1,7 +1,7 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface Plan {
   id: string;
@@ -13,11 +13,11 @@ interface Plan {
 /**
  * suscripciones — cliente.
  *
- * Renderiza los planes activos dentro del slot en el que se coloque el bloque.
+ * Renderiza los planes activos dentro del slot en el que se coloque el plugin.
  * La contratación/cancelación completa se hace desde el panel del usuario
  * (`/dashboard` → Planes).
  */
-export default defineClientBlock(manifest, ({ container, api, config }) => {
+export default defineClientPlugin(manifest, ({ container, api, config }) => {
   const currency = String(config.currency ?? 'ARS');
   const el = document.createElement('div');
   el.innerHTML = `<div class="stack" style="gap: var(--ws-space-3)">
@@ -30,7 +30,7 @@ export default defineClientBlock(manifest, ({ container, api, config }) => {
 
   void (async () => {
     try {
-      const plans = await api.get<Plan[]>('/api/v1/blocks/suscripciones/plans');
+      const plans = await api.get<Plan[]>('/api/v1/plugins/suscripciones/plans');
       target.innerHTML = plans
         .map(
           (p) => `<div class="row" style="justify-content:space-between;align-items:center;gap:var(--ws-space-2)">

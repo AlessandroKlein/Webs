@@ -68,10 +68,10 @@ echo "CODIGO-QR-DE-PRUEBA" | pnpm --filter @webs/desktop start
 El servidor escucha en `ws://localhost:4599` y envía mensajes JSON:
 
 ```jsonc
-// Al conectarse (informa qué fuente está activa)
-{ "type": "ready", "data": { "source": "serial", "port": "COM3", "server": "ws://localhost:4599" } }
+// Al conectarse (informa qué fuente está activa y la versión del protocolo)
+{ "type": "ready", "data": { "protocol": "webs-desktop-bridge/1.0", "version": "1.0.0", "source": "serial", "port": "COM3", "server": "ws://localhost:4599" } }
 
-// Cada lectura de código
+// Cada lectura de código (normalizado: sin saltos de línea ni prefijos AIM/GS1)
 { "type": "scan", "data": { "code": "uuid-del-qr", "source": "serial", "port": "COM3", "at": "2026-01-01T00:00:00.000Z" } }
 
 // Keepalive: el cliente envía "ping" y el server responde
@@ -87,8 +87,8 @@ ws.addEventListener('message', (event) => {
   const msg = JSON.parse(event.data);
   if (msg.type === 'scan') {
     console.log('Código leído:', msg.data.code);
-    // Podrías completar el input de asistencia (o del POS) y llamar a
-    // POST /api/v1/blocks/organizaciones/attendance/scan
+    // Completá el input de asistencia (o del POS) y llamá a
+    // POST /api/v1/plugins/organizaciones/attendance/scan
     // con { qrcode: msg.data.code }.
   }
 });
@@ -96,8 +96,10 @@ ws.addEventListener('message', (event) => {
 
 ## Notas
 
-- **Sin integración todavía**: este scaffold solo expone el WebSocket; la web
-  puede consumirlo luego (asistencia, POS, etc.).
+- La PWA **@webs/mobile** (asistencia) consume este WebSocket a través de
+  `connectDesktopBridge()` (apps/mobile/src/barcode.js), con reconexión con
+  backoff. El endpoint canónico de asistencia es
+  `POST /api/v1/plugins/organizaciones/attendance/scan`.
 - El proceso se mantiene vivo aunque no haya entrada por stdin.
 - En Windows, un lector «keyboard wedge» escribe en la ventana con foco; este
   companion lo captura cuando se ejecuta en una consola con el foco activo.

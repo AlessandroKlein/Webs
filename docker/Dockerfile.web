@@ -9,6 +9,7 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json .npmrc .
 COPY apps ./apps
 COPY packages ./packages
 COPY blocks ./blocks
+COPY templates ./templates
 RUN pnpm install --frozen-lockfile
 RUN pnpm -r build
 RUN pnpm --filter @webs/web build

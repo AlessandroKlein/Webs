@@ -246,10 +246,10 @@ fastify.get('/users', {
 `apps/api/src/modules/users/service.ts` — `syncRoles()` reemplaza los roles del usuario
 de forma transaccional; por defecto un usuario nuevo recibe `['user']`.
 
-### Los bloques declaran permisos
+### Los plugins declaran permisos
 
-Un bloque lista claves de permiso en `manifest.permissions`; el loader las persiste en la
-tabla `Permission` vía `registerBlockPermissions()` (ver `docs/architecture/block-system.md`).
+Un plugin lista claves de permiso en `manifest.permissions`; el loader las persiste en la
+tabla `Permission` vía `registerPluginPermissions()` (ver `docs/architecture/plugin-system.md`).
 Luego pueden asignarse a roles.
 
 ## Discrepancias observadas

@@ -1,21 +1,21 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque Marketing — cliente.
+ * Plugin Marketing — cliente.
  *
  * Monta un listado básico de cupones activos en el slot. La administración
  * real (alta/baja/edición) se hace vía las rutas del servidor.
  */
-export default defineClientBlock(manifest, ({ container, i18n }) => {
+export default defineClientPlugin(manifest, ({ container, i18n }) => {
   const el = document.createElement('div');
   el.innerHTML = `<p class="muted">${i18n.t('marketing')}</p><div id="coupons" class="stack"></div>`;
   container.appendChild(el);
 
   const list = el.querySelector('#coupons')!;
-  void fetch('/api/v1/blocks/marketing/coupons')
+  void fetch('/api/v1/plugins/marketing/coupons')
     .then((r) => r.json())
     .then((coupons: Array<{ id: string; code: string; discountPercent: number; active: boolean }>) => {
       const active = coupons.filter((c) => c.active);

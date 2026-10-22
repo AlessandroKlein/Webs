@@ -44,3 +44,6 @@ Thumbs.db
 *.local
 .tmp/
 tmp/
+
+# Estado interno del equipo (AgentTeams)
+.agent-teams/

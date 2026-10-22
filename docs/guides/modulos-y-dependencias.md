@@ -1,11 +1,11 @@
 # Módulos y dependencias
 
-Catálogo de bloques y qué habilita cada uno. Al activar un bloque, si depende de
+Catálogo de plugins y qué habilita cada uno. Al activar un plugin, si depende de
 otro, la app lo recomienda en el diálogo de instalación.
 
-## Bloques disponibles (v1.1.0)
+## Plugins disponibles (v1.1.0)
 
-| Bloque | Función | Depende de |
+| Plugin | Función | Depende de |
 | ------ | ------- | ---------- |
 | `notificaciones` | Centro de notificaciones en-app (campana + marcar leída) | — |
 | `chat` | Chat en tiempo real (WebSocket) | `@fastify/websocket` (núcleo) |
@@ -33,7 +33,7 @@ otro, la app lo recomienda en el diálogo de instalación.
 - **Chat IA** requiere un endpoint OpenAI-compatible (URL + API key) en sus ajustes;
   sin él devuelve un mensaje de configuración.
 - **Red social** (`social`) guarda URLs de media; para subir archivos reales usá el
-  bloque `media`/storage (núcleo) en conjunto.
+  plugin `media`/storage (núcleo) en conjunto.
 - **Tienda/ecommerce** + **carrito** se integran con las pasarelas de pago
   (`mercadopago`, `stripe`, `paypal`, etc.).
 
@@ -42,18 +42,18 @@ otro, la app lo recomienda en el diálogo de instalación.
 Dos mecanismos:
 
 1. **`blockDependencies`** (ids fijos): se instalan automáticamente.
-2. **`provides` / `requiresProviders`** (grupos): el bloque declara qué grupo de
+2. **`provides` / `requiresProviders`** (grupos): el plugin declara qué grupo de
    proveedores necesita y el sistema muestra un **selector** para que el usuario
    elija cuál(es) instalar.
 
 Ejemplo: `ecommerce` y `carrito` declaran `requiresProviders: ["payment"]`. Los
-bloques `mercadopago`, `modo`, `payway`, `stripe`, `paypal`, `ebanx`, `pos`
+plugins `mercadopago`, `modo`, `payway`, `stripe`, `paypal`, `ebanx`, `pos`
 declaran `provides: ["payment"]`. Al instalar `ecommerce`, aparece un selector con
 esos métodos y el usuario elige uno o varios.
 
-- `GET /blocks/providers/:group` lista los proveedores de un grupo.
-- `POST /blocks/install` con `providers: { payment: ["stripe", "paypal"] }`
-  instala el bloque y los proveedores elegidos.
+- `GET /plugins/providers/:group` lista los proveedores de un grupo.
+- `POST /plugins/install` con `providers: { payment: ["stripe", "paypal"] }`
+  instala el plugin y los proveedores elegidos.
 - Sin `providers`, si falta un grupo requerido, devuelve `needsProviderSelection`
   con las opciones para mostrar el diálogo.
 

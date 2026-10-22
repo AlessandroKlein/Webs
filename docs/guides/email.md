@@ -39,7 +39,7 @@ usuario"**. Eventos base incluidos:
 | `user.email_verified` | Verifica su correo |
 | `user.password_changed` | Restablece su contraseña |
 
-Los bloques pueden emitir sus propios eventos (ej. `order.created`) mediante el
+Los plugins pueden emitir sus propios eventos (ej. `order.created`) mediante el
 servicio `events` del contexto (`ctx.services.events`), lo que permite, por
 ejemplo, confirmaciones de compra automáticas.
 
@@ -76,14 +76,14 @@ Se puede **cancelar** antes de que se ejecute.
   JSON y con `?format=xlsx` genera un Excel.
 - **Serie temporal**: el reporte incluye `timeSeries` (aperturas/clics por día).
 
-## Eventos desde bloques
+## Eventos desde plugins
 
-Los bloques pueden emitir eventos de negocio (ej. `order.created`) que disparan
-automatizaciones. El bloque declara sus eventos en `block.json` (`"events"`), y
+Los plugins pueden emitir eventos de negocio (ej. `order.created`) que disparan
+automatizaciones. El plugin declara sus eventos en `plugin.json` (`"events"`), y
 se listan automáticamente en el selector de eventos de las automatizaciones.
 
 ```ts
-// dentro del register de un bloque
+// dentro del register de un plugin
 fastify.post('/order', async () => {
   await fastify.events.emit('order.created', {
     user: { email: 'cliente@ejemplo.com' },
@@ -92,8 +92,8 @@ fastify.post('/order', async () => {
 });
 ```
 
-El bloque de ejemplo (`@webs/block-example`) incluye un endpoint `POST
-/api/v1/blocks/example/order` que emite `order.created`.
+El plugin de ejemplo (`@webs/block-example`) incluye un endpoint `POST
+/api/v1/plugins/example/order` que emite `order.created`.
 
 ## Permisos
 

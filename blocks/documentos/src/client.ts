@@ -1,11 +1,11 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('webs_access_token') ?? ''}` });
 
-export default defineClientBlock(manifest, ({ container }) => {
+export default defineClientPlugin(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = `<h4>Documentos</h4>
     <div class="row"><input class="input" id="d-name" placeholder="Nombre" /><input class="input" id="d-content" placeholder="Contenido" /></div>
@@ -13,7 +13,7 @@ export default defineClientBlock(manifest, ({ container }) => {
   container.appendChild(el);
 
   const refresh = async () => {
-    const res = await fetch('/api/v1/blocks/documentos/documents');
+    const res = await fetch('/api/v1/plugins/documentos/documents');
     const list = (await res.json()) as Array<{ id: string; name: string; signed: boolean }>;
     const target = el.querySelector('#d-list')!;
     target.innerHTML = list
@@ -21,14 +21,14 @@ export default defineClientBlock(manifest, ({ container }) => {
       .join('');
     target.querySelectorAll<HTMLButtonElement>('[data-sign]').forEach((btn) => {
       btn.addEventListener('click', async () => {
-        await fetch(`/api/v1/blocks/documentos/documents/${btn.dataset.sign}/sign`, { method: 'POST', headers: authHeaders() });
+        await fetch(`/api/v1/plugins/documentos/documents/${btn.dataset.sign}/sign`, { method: 'POST', headers: authHeaders() });
         refresh();
       });
     });
   };
 
   el.querySelector('#d-send')!.addEventListener('click', async () => {
-    await fetch('/api/v1/blocks/documentos/documents', {
+    await fetch('/api/v1/plugins/documentos/documents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({

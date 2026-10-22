@@ -1,9 +1,9 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
@@ -23,7 +23,7 @@ export default defineBlock(manifest, {
           orderBy: { createdAt: 'asc' },
         });
       }
-      // Retrocompatibilidad con el widget standalone del bloque (sin filtro).
+      // Retrocompatibilidad con el widget standalone del plugin (sin filtro).
       return db.chatMessage.findMany({ orderBy: { createdAt: 'desc' }, take: 100 });
     });
 

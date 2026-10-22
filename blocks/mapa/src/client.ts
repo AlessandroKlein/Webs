@@ -1,9 +1,9 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-export default defineClientBlock(manifest, ({ container, config, i18n }) => {
+export default defineClientPlugin(manifest, ({ container, config, i18n }) => {
   const address = String(config.address ?? '');
   const phone = String(config.phone ?? '');
   const email = String(config.email ?? '');

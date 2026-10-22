@@ -1,0 +1,81 @@
+{
+  "name": "@webs/block-ebanx",
+  "id": "ebanx",
+  "version": "0.1.0",
+  "type": "plugin",
+  "category": "pagos",
+  "displayName": {
+    "en": "EBANX",
+    "es": "EBANX"
+  },
+  "description": {
+    "en": "Payments via EBANX (Latam).",
+    "es": "Pagos con EBANX (Latam)."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "provides": [
+    "payment"
+  ],
+  "slots": [
+    "payment"
+  ],
+  "translations": {
+    "es": {
+      "pay": "Pagar con EBANX"
+    },
+    "en": {
+      "pay": "Pay with EBANX"
+    }
+  },
+  "settings": {
+    "type": "object",
+    "title": "Configuración de EBANX",
+    "properties": {
+      "integrationKey": {
+        "type": "string",
+        "title": "Integration Key",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Integration Key de EBANX para autenticar las llamadas a la API. Se usa solo en el servidor.",
+            "url": "https://ebanx.github.io/dev-academy/"
+          }
+        }
+      },
+      "webhookSecret": {
+        "type": "string",
+        "title": "Secreto del webhook",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Secreto para validar la firma del webhook. Si desactivás la verificación en Ajustes → Pagos, no se usa.",
+            "url": "https://ebanx.github.io/dev-academy/"
+          }
+        }
+      },
+      "environment": {
+        "type": "string",
+        "title": "Entorno",
+        "enum": [
+          "sandbox",
+          "production"
+        ],
+        "default": "sandbox"
+      },
+      "primaryColor": {
+        "type": "string",
+        "title": "Color del botón",
+        "x-ui": {
+          "widget": "color"
+        },
+        "default": "#004c97"
+      }
+    }
+  }
+}

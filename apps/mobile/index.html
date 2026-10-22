@@ -36,9 +36,11 @@
         <label for="qrcode">Código QR</label>
         <div class="field-row">
           <input id="qrcode" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Escaneá o pegá el qrcode" />
+          <button id="camera-scan" type="button" class="ghost" aria-label="Escanear con cámara">Cámara</button>
           <button id="scan" type="button" class="primary">Registrar</button>
         </div>
-        <p class="hint">Un lector «keyboard wedge» escribe el código y envía Enter: se registra solo.</p>
+        <p id="bridge-status" class="hint bridge-status" hidden>lector externo desactivado</p>
+        <p class="hint">Un lector «keyboard wedge» o el companion de escritorio (WebSocket) envía el código y se registra solo.</p>
       </section>
 
       <section id="result" class="card" hidden></section>
@@ -49,6 +51,9 @@
           <label for="api-base">Servidor API (opcional)</label>
           <input id="api-base" type="url" placeholder="https://api.tudominio.com (vacío = mismo origen)" />
           <p class="hint">Dejalo vacío si la PWA se sirve en el mismo dominio que la API.</p>
+          <label for="bridge-url">Companion de escritorio (WebSocket)</label>
+          <input id="bridge-url" type="text" placeholder="ws://localhost:4599 (vacío = desactivado)" />
+          <p class="hint">Conecta a @webs/desktop para recibir lecturas de lectores seriales/keyboard-wedge. Dejalo vacío para desactivar.</p>
         </details>
       </section>
 

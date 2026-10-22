@@ -3,8 +3,8 @@ import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
 import { NotFoundError } from '@webs/core';
-import { installBlock, loadAndActivate } from '../blocks/loader';
-import { blockRegistry } from '../blocks/registry';
+import { installPlugin, loadAndActivate } from '../plugins/loader';
+import { pluginRegistry } from '../plugins/registry';
 import { templatesDir } from '../lib/paths';
 import { audit } from '../lib/audit';
 
@@ -18,14 +18,29 @@ import { audit } from '../lib/audit';
  *   "id": "gym", "name": "Gimnasio", "description": "…",
  *   "blocks": [{ "id": "example", "config": { "greeting": "Hola" } }],
  *   "settings": { "site": { "name": "Mi Gimnasio" }, "appearance": { "primaryColor": "#16a34a" } },
- *   "menu": [{ "label": "Inicio", "path": "/", "order": 0 }]
+ *   "menu": [{ "label": "Inicio", "path": "/", "order": 0 }],
+ *   "pages": [{ "slug": "inicio", "title": "Inicio", "isHome": true,
+ *     "layout": [{ "size": "full", "blocks": [
+ *       { "type": "heading", "content": "Bienvenido", "level": 1 },
+ *       "example"
+ *     ] }] }]
  * }
  * ```
+ * En `pages[].layout[].blocks`, un string es el id de un plugin y un objeto es un
+ * elemento de contenido (`type`: heading/text/image/divider/spacer/html).
  */
 
 interface TemplateBlock {
   id: string;
   config?: Record<string, unknown>;
+}
+/** Página que la plantilla crea/actualiza al aplicarse (instalación rápida). */
+interface TemplatePage {
+  slug: string;
+  title: string;
+  isHome?: boolean;
+  redirectUrl?: string | null;
+  layout?: Array<{ size?: string; blocks: Array<string | { type: string; content?: string; level?: number }> }>;
 }
 interface Template {
   id: string;
@@ -34,6 +49,7 @@ interface Template {
   blocks?: TemplateBlock[];
   settings?: Record<string, Record<string, unknown>>;
   menu?: Array<{ label: string; path: string; order?: number }>;
+  pages?: TemplatePage[];
 }
 
 function readTemplates(): Template[] {
@@ -70,13 +86,13 @@ export async function applyTemplate(fastify: FastifyInstance, id: string) {
 
   // 1) Instalar + configurar + activar bloques (best-effort).
   for (const b of template.blocks ?? []) {
-    if (!blockRegistry.getAvailableManifest(b.id)) {
+    if (!pluginRegistry.getAvailableManifest(b.id)) {
       fastify.log.warn({ blockId: b.id, template: id }, 'bloque no disponible; se omite');
       continue;
     }
     const existing = await fastify.prisma.blockInstallation.findUnique({ where: { blockId: b.id } });
     if (!existing) {
-      await installBlock(fastify, b.id);
+      await installPlugin(fastify, b.id);
       blocksInstalled += 1;
     }
     if (b.config) {
@@ -85,7 +101,7 @@ export async function applyTemplate(fastify: FastifyInstance, id: string) {
         data: { config: b.config as Prisma.InputJsonValue, enabled: true },
       });
     }
-    if (!blockRegistry.getLoadedBlocks().some((l) => l.manifest.id === b.id)) {
+    if (!pluginRegistry.getLoadedPlugins().some((l) => l.manifest.id === b.id)) {
       const inst = await fastify.prisma.blockInstallation.findUnique({ where: { blockId: b.id } });
       if (inst) await loadAndActivate(fastify, inst);
     }
@@ -109,7 +125,28 @@ export async function applyTemplate(fastify: FastifyInstance, id: string) {
     });
   }
 
-  return { ok: true, template: template.id, blocksInstalled };
+  // 4) Crear/actualizar las páginas definidas por la plantilla (instalación rápida).
+  let pagesApplied = 0;
+  for (const p of template.pages ?? []) {
+    if (p.isHome) {
+      // Una sola página puede ser la de inicio: desmarcamos las anteriores.
+      await fastify.prisma.page.updateMany({ where: { isHome: true }, data: { isHome: false } });
+    }
+    const data = {
+      title: p.title,
+      layout: (p.layout ?? []) as Prisma.InputJsonValue,
+      redirectUrl: p.redirectUrl ?? null,
+      isHome: p.isHome ?? false,
+    };
+    await fastify.prisma.page.upsert({
+      where: { slug: p.slug },
+      update: data,
+      create: { slug: p.slug, ...data },
+    });
+    pagesApplied += 1;
+  }
+
+  return { ok: true, template: template.id, blocksInstalled, pagesApplied };
 }
 
 export default async function templatesRoutes(fastify: FastifyInstance): Promise<void> {

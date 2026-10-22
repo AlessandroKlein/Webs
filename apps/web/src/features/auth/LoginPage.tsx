@@ -86,7 +86,7 @@ export function LoginPage() {
   // consulta falla en silencio y no se muestran botones).
   const { data: socialProviders } = useQuery({
     queryKey: ['social-providers'],
-    queryFn: () => api.get<SocialProvider[]>('/api/v1/blocks/social-login/providers'),
+    queryFn: () => api.get<SocialProvider[]>('/api/v1/plugins/social-login/providers'),
     retry: 0,
   });
 
@@ -227,7 +227,7 @@ export function LoginPage() {
     try {
       // TODO(OAuth real): acá iría el redirect → callback → exchange del
       // proveedor. Por ahora se simula el vínculo con un providerId manual.
-      const res = await api.post<SocialVerifyResult>('/api/v1/blocks/social-login/verify', {
+      const res = await api.post<SocialVerifyResult>('/api/v1/plugins/social-login/verify', {
         provider,
         providerId,
         ...(email ? { email } : {}),

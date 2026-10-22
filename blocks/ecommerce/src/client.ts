@@ -1,11 +1,11 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface Product { id: string; title: string; price: number; stock: number; category?: string }
 
-export default defineClientBlock(manifest, ({ container, config }) => {
+export default defineClientPlugin(manifest, ({ container, config }) => {
   const products = (Array.isArray(config.products) ? config.products : []) as Product[];
   const el = document.createElement('div');
   el.innerHTML = '<div class="stack" id="list"></div><hr/><p id="total"></p>';
@@ -22,7 +22,7 @@ export default defineClientBlock(manifest, ({ container, config }) => {
   };
   el.insertAdjacentHTML('afterbegin', '<button id="buy" class="btn">Comprar</button>');
   el.querySelector('#buy')!.addEventListener('click', async () => {
-    await fetch('/api/v1/blocks/ecommerce/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart }) });
+    await fetch('/api/v1/plugins/ecommerce/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items: cart }) });
     cart = [];
     el.querySelector('#total')!.textContent = 'Pedido creado ✓';
   });

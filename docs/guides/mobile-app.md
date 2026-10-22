@@ -103,7 +103,7 @@ consumir desde un cliente móvil TypeScript:
 | Paquete                 | Qué aporta                                                                 | Útil para móvil |
 | ----------------------- | -------------------------------------------------------------------------- | --------------- |
 | `@webs/core`            | Constantes de negocio (`API_PREFIX`, `Permission`, locales), tipos (`Page`, `Result`, `ErrorBody`), códigos de error (`ErrorCode`). | ✅ Tipos/constantes de la API y errores. |
-| `@webs/plugin-sdk`      | Contrato de bloques (`BlockManifest`, JSON Schema, slots).                  | ⚠️ Si el móvil renderiza bloques. |
+| `@webs/plugin-sdk`      | Contrato de plugins (`PluginManifest`, JSON Schema, slots, menú).        | ⚠️ Si el móvil renderiza plugins. |
 | `@webs/i18n`            | Recursos base de traducción (`es`/`en`) e instancia i18next.                | ✅ Localización. |
 | `@webs/ui`              | Tema y tokens CSS del frontend React.                                       | ❌ Específico de web/React. |
 

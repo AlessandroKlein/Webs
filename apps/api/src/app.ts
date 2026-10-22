@@ -44,7 +44,7 @@ import { getSectionValue } from './modules/settings/service';
 import contentRoutes from './modules/content';
 import translationsRoutes from './modules/translations';
 import auditRoutes from './modules/audit';
-import blocksRoutes from './modules/blocks';
+import pluginsRoutes, { pluginCrudRoutes } from './modules/plugins';
 import setupRoutes from './modules/setup';
 import emailRoutes, { startQueueProcessor } from './modules/email';
 import i18nRoutes from './modules/i18n';
@@ -52,7 +52,7 @@ import apiTokensRoutes from './modules/api-tokens';
 import trackingRoutes from './modules/email/tracking';
 import { startScheduler } from './modules/email/scheduler';
 
-import { registerBlocks } from './blocks/loader';
+import { registerPlugins } from './plugins/loader';
 import { seedDefaultEmailTemplates } from './modules/email/seed';
 
 export interface BuildAppOptions {
@@ -148,14 +148,16 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(contentRoutes, { prefix: API_PREFIX });
   await app.register(translationsRoutes, { prefix: API_PREFIX });
   await app.register(auditRoutes, { prefix: API_PREFIX });
-  await app.register(blocksRoutes, { prefix: API_PREFIX });
+  await app.register(pluginsRoutes, { prefix: API_PREFIX });
+  // Retrocompatibilidad M1: /api/v1/blocks/* → mismas rutas CRUD de plugins.
+  await app.register(pluginCrudRoutes, { prefix: `${API_PREFIX}/blocks` });
   await app.register(emailRoutes, { prefix: API_PREFIX });
   await app.register(i18nRoutes, { prefix: API_PREFIX });
   await app.register(apiTokensRoutes, { prefix: API_PREFIX });
   await app.register(trackingRoutes, { prefix: API_PREFIX });
 
-  // 6. Bloques instalados (cargan sus plugins, rutas, settings, slots y permisos).
-  await registerBlocks(app);
+  // 6. Plugins instalados (cargan sus plugins, rutas, settings, slots y permisos).
+  await registerPlugins(app);
 
   // 6a. Siembra plantillas de correo por defecto (verificación, reset, bienvenida).
   await seedDefaultEmailTemplates(app);

@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Bloque de chat en tiempo real.",
+  "description": "Plugin de chat en tiempo real.",
   "exports": { "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js" }, "./client": { "types": "./dist/client.d.ts", "import": "./dist/client.js" } },
-  "files": ["dist", "block.json"],
+  "files": ["dist", "plugin.json"],
   "scripts": { "build": "tsup src/server.ts src/client.ts --format esm --dts --clean", "typecheck": "tsc --noEmit", "clean": "rimraf dist" },
   "dependencies": { "@webs/plugin-sdk": "workspace:*" },
   "devDependencies": { "@webs/config": "workspace:*", "eslint": "^9.13.0", "rimraf": "^6.0.1", "tsup": "^8.3.0", "typescript": "^5.6.3" }

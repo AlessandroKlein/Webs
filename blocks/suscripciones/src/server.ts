@@ -1,7 +1,7 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -12,7 +12,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * `Membership` (suscripción) — el mismo modelo que el gimnasio multi-sucursal.
  * Así, una suscripción pertenece a una organización/sucursal (organizationId).
  *
- * Rutas bajo `/api/v1/blocks/suscripciones`:
+ * Rutas bajo `/api/v1/plugins/suscripciones`:
  *  - GET  /plans                       → planes activos (membershipPlan)
  *  - GET  /subscriptions?userId=&organizationId= → suscripciones (membership)
  *  - GET  /my?userId=                  → suscripción activa del usuario (o null)
@@ -20,7 +20,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *  - PATCH /subscriptions/:id {status} (auth) → cancela/reactiva
  *  - DELETE /subscriptions/:id         (auth)
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (

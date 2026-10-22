@@ -45,4 +45,10 @@ versionado y ligero, y un mecanismo para colocar bloques en regiones del sitio.
 
 ## Notas
 
-Detalles completos en `docs/architecture/block-system.md`.
+Detalles completos en `docs/architecture/plugin-system.md` (renombrado desde
+`block-system.md`).
+
+> **Supersedido en superficie por ADR-0005:** el rename «Bloques» → «Plugins»
+> renombra la unidad de extensión y añade integración nativa al menú. La
+> decisión de este ADR (contrato manifiesto + SDK + slots/placements) sigue
+> vigente; el *naming interno* `block` se conserva de forma transitoria.

@@ -20,8 +20,10 @@ Ejemplos: `user.read`, `user.write`, `role.read`, `block.manage`,
 `content.publish`, `translation.write`.
 
 > Los permisos se definen en `packages/core/src/constants.ts` (constante
-> `Permission`) y se siembran en `apps/api/prisma/seed.ts`. Los bloques pueden
+> `Permission`) y se siembran en `apps/api/prisma/seed.ts`. Los plugins pueden
 > registrar permisos adicionales vía su manifiesto (`manifest.permissions`).
+> Los permisos internos del sistema de plugins conservan el prefijo `block.*`
+> de forma transitoria (ver `docs/architecture/plugin-system.md`).
 
 ---
 
@@ -34,7 +36,7 @@ El seed crea estos 20 permisos:
 | Usuarios     | `user.read`, `user.write`                                  |
 | Roles        | `role.read`, `role.write`                                  |
 | Ajustes      | `setting.read`, `setting.write`                            |
-| Bloques      | `block.read`, `block.manage`                               |
+| Plugins      | `block.read`, `block.manage`                               |
 | Contenido    | `content.read`, `content.write`, `content.publish`         |
 | Traducciones | `translation.read`, `translation.write`                    |
 | Tema         | `theme.read`, `theme.write`                                |
@@ -144,16 +146,16 @@ Se puede hacer desde la UI (**Roles y permisos**, `/roles`) o vía API.
 
 ---
 
-## Convenciones recomendadas para permisos de bloques
+## Convenciones recomendadas para permisos de plugins
 
-Si tu bloque necesita permisos propios, seguí la misma convención:
+Si tu plugin necesita permisos propios, seguí la misma convención:
 
 ```json
-// block.json
+// plugin.json
 { "permissions": ["store.admin", "store.read"] }
 ```
 
-- Prefijá con el `id` del bloque (`store.*`) para evitar colisiones.
+- Prefijá con el `id` del plugin (`store.*`) para evitar colisiones.
 - Usá acciones semánticas (`read`, `write`, `manage`).
 
 ---
@@ -161,4 +163,4 @@ Si tu bloque necesita permisos propios, seguí la misma convención:
 ## Ver también
 
 - [`docs/api/overview.md`](../api/overview.md) — endpoints de `roles` y `permissions`.
-- [`docs/guides/crear-un-bloque.md`](./crear-un-bloque.md) — permisos de bloques.
+- [`docs/guides/crear-un-plugin.md`](./crear-un-plugin.md) — permisos de plugins.

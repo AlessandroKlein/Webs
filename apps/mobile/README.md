@@ -8,13 +8,16 @@ frameworks pesados) que reutiliza el backend existente de Webs.
 
 - Pantalla única de asistencia: campo para pegar el `access token` y campo para
   escanear/pegar el `qrcode`.
-- Botón **Registrar** → `POST /api/v1/blocks/organizaciones/attendance/scan`
+- Botón **Registrar** → `POST /api/v1/plugins/organizaciones/attendance/scan`
   con cuerpo `{ "qrcode": "..." }` y encabezado `Authorization: Bearer <token>`.
 - Muestra el resultado `{ ok, organization, membership }` (éxito) o el error.
 - Guarda en `localStorage` el token, la URL de la API y el historial de los
   últimos registros.
 - Un lector «keyboard wedge» que tipea el código y envía `Enter` dispara el
   registro automáticamente.
+- Escaneo por **cámara** (API `BarcodeDetector`, mejora progresiva).
+- Puente con el **companion de escritorio** (`@webs/desktop`) vía WebSocket para
+  lectores seriales/keyboard-wedge: campo `bridge-url` en Ajustes.
 
 ## Requisitos
 
@@ -94,5 +97,6 @@ apps/mobile/
 │   └── icons/            # iconos placeholder (192 / 512 / maskable)
 └── src/
     ├── main.js           # lógica de la app + llamada a la API
+    ├── barcode.js        # normalizeBarcode + puente WebSocket con @webs/desktop
     └── style.css
 ```

@@ -3,10 +3,10 @@
   "name": "Gimnasio",
   "description": "Plataforma para gimnasios y cadenas: membresías, clases/reservas, tienda, inventario, rutinas, chat, red social y analíticas.",
   "blocks": [
-    { "id": "organizaciones", "config": { "multiTenant": true, "shareInventory": false, "shareMembers": false } },
+    { "id": "organizaciones", "config": { "defaultPlan": "free", "requireApproval": false, "shareInventoryByDefault": false } },
     { "id": "reservas", "config": { "provider": "local", "reminderEmail": true, "leadTimeHours": 1, "cancelPolicyHours": 12 } },
     { "id": "calendario", "config": { "provider": "local", "timezone": "America/Argentina/Buenos_Aires" } },
-    { "id": "ecommerce", "config": { "shippingProvider": "flat", "originCountry": "AR" } },
+    { "id": "ecommerce", "config": { "shippingProvider": "local" } },
     { "id": "inventario", "config": { "lowStockThreshold": 5, "trackBySku": true } },
     { "id": "carrito", "config": {} },
     { "id": "mercadopago", "config": {} },
@@ -29,5 +29,107 @@
     { "label": "Tienda", "path": "/tienda", "order": 3 },
     { "label": "Rutinas", "path": "/rutinas", "order": 4 },
     { "label": "Comunidad", "path": "/comunidad", "order": 5 }
+  ],
+  "pages": [
+    {
+      "slug": "inicio",
+      "title": "Inicio",
+      "isHome": true,
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Mi Gimnasio", "level": 1 },
+            { "type": "text", "content": "Reservá clases, seguí tus rutinas y comprá en la tienda del gimnasio." }
+          ]
+        },
+        {
+          "size": "third",
+          "blocks": [
+            { "type": "heading", "content": "Clases", "level": 3 },
+            { "type": "text", "content": "Reservá tu lugar en las clases y recibí recordatorios." }
+          ]
+        },
+        {
+          "size": "third",
+          "blocks": [
+            { "type": "heading", "content": "Planes", "level": 3 },
+            { "type": "text", "content": "Elegí el plan de membresía que mejor se adapte a vos." }
+          ]
+        },
+        {
+          "size": "third",
+          "blocks": [
+            { "type": "heading", "content": "Rutinas", "level": 3 },
+            { "type": "text", "content": "Accedé a tus rutinas y entrenamientos personalizados." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "clases",
+      "title": "Clases",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Clases", "level": 1 },
+            { "type": "text", "content": "Consultá el calendario y reservá tus clases." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "planes",
+      "title": "Planes",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Planes", "level": 1 },
+            { "type": "text", "content": "Conocé nuestros planes de membresía." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "tienda",
+      "title": "Tienda",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Tienda", "level": 1 },
+            { "type": "text", "content": "Productos y suplementos del gimnasio." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "rutinas",
+      "title": "Rutinas",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Rutinas", "level": 1 },
+            { "type": "text", "content": "Tus rutinas y entrenamientos." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "comunidad",
+      "title": "Comunidad",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Comunidad", "level": 1 },
+            { "type": "text", "content": "Conectate con otros miembros del gimnasio." }
+          ]
+        }
+      ]
+    }
   ]
 }

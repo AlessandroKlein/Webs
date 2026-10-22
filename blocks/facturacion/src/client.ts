@@ -1,9 +1,9 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-export default defineClientBlock(manifest, ({ container, i18n }) => {
+export default defineClientPlugin(manifest, ({ container, i18n }) => {
   const el = document.createElement('div');
   el.innerHTML = `<p class="muted">${i18n.t('invoicing')}</p>`;
   container.appendChild(el);

@@ -1,14 +1,14 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque Twilio: registra un proveedor de notificaciones (SMS/WhatsApp) en el
+ * Plugin Twilio: registra un proveedor de notificaciones (SMS/WhatsApp) en el
  * núcleo. Usa la API REST de Twilio con basic auth; el auth token se cifra en
  * reposo (x-ui.secret).
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, options) => {
     const config = options as Record<string, unknown>;
 

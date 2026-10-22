@@ -59,7 +59,7 @@ export function createRedis(url?: string): Redis | null {
 ```
 
 El cliente se expone como `fastify.redis` (`apps/api/src/plugins/redis.ts`) y también a
-los bloques como `services.cache` / `services.events`.
+los plugins como `services.cache` / `services.events`.
 
 `apps/api/src/plugins/rate-limit.ts` usa `@fastify/rate-limit` con un store **en memoria
 por proceso** (`max: 300`, `timeWindow: '1 minute'`, clave por IP). El propio plugin
@@ -142,7 +142,7 @@ export function audit(fastify, request, entry): void {
 
 Cada entrada (`AuditLog`) captura `actorId`, `action`, `resource`, `resourceId`,
 `metadata`, `ip` y `createdAt` (índices en `actorId` y `createdAt`). Los módulos la usan
-en acciones sensibles (login, cambios de settings, bloques, roles, contenido,
+en acciones sensibles (login, cambios de settings, plugins, roles, contenido,
 traducciones).
 
 ### Errores y request-id

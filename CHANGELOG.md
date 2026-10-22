@@ -3,6 +3,234 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [1.58.0] - 2026-10-22
+
+### Cambiado
+
+- **Rename integral «Bloques» → «Plugins»** (breaking change con shim de transición):
+  manifiesto `plugin.json` (ex `block.json`, `type: "plugin"`), SDK
+  `definePlugin`/`defineClientPlugin` (con alias deprecados `defineBlock`/
+  `defineClientBlock`), rutas `/api/v1/plugins/*` (ex `/api/v1/blocks/*`), permisos
+  `plugin.read`/`plugin.manage`, modelos Prisma `PluginInstallation`/
+  `PluginPlacement`, componentes `<PluginSlot>`/`<PluginConfigPage>`/
+  `<PluginSettingsPage>` e i18n `nav.plugins`. La shim `/api/v1/blocks/*` cubre
+  también las sub-rutas custom de cada plugin (no solo el CRUD).
+
+### Añadido
+
+- **Menú nativo de plugins**: cada plugin instalado se registra como un ítem
+  nativo del menú principal (admin y público) vía `GET /menu` / `GET /public/menu`,
+  sin categoría «Plugins» separada; `AdminLayout` consume el menú dirigido por API
+  y filtra por permisos.
+- **Personalización de páginas**: constructor con elementos de contenido propios
+  (heading, text, image, divider, spacer, html) que conviven con plugins en el
+  layout; drag&drop, editor inline, cambio de sección/tamaño y preview.
+- **Templates de instalación rápida**: nuevos `logistica` y `supermercado`;
+  ampliados `gym`, `tienda` y `market` con páginas; `applyTemplate` crea/actualiza
+  las páginas definidas por la plantilla en un clic.
+- **ADRs de Milestone 1**: rename (0005), multi-tenant (0006), licencias (0007),
+  escalabilidad (0008) y UI styling (0009).
+
+### Corregido
+
+- **CI (typecheck)**: los paquetes compartidos (`@webs/core`, `@webs/i18n`,
+  `@webs/plugin-sdk`, `@webs/ui`, `@webs/block-example`) se compilan antes del
+  typecheck para resolver los `dist/*.d.ts` ignorados por git.
+- **Release**: el workflow hace `checkout` (fetch-depth 0) y define `GH_REPO`;
+  la release se crea con las notas extraídas del `CHANGELOG.md`.
+- **Docker**: `templates/` se copia a ambos contenedores; `GET /api/v1/setup/templates`
+  devuelve las plantillas en Docker (antes `[]`).
+- **Inventario ↔ tienda (B1)**: `shareInventory` sincroniza `Product.stock` con la
+  suma de los `InventoryItem` vinculados; sin efectos cruzados cuando está deshabilitado.
+- **Social-login (B2)**: `/providers` lee la configuración vigente (BD) y filtra
+  `enabled:false`; con todos los proveedores deshabilitados no se renderiza ningún botón.
+- **Lint**: errores de `plugin-sdk` y varios `unused` en `apps/web`/`apps/api`
+  resueltos; config de ESLint para los bloques que publican `lint`.
+
+## [1.57.0] - 2026-10-20
+
+### Añadido
+
+- **Rutinas**: plantillas, búsqueda, edición, multi-día y notas.
+- **Código de barras** en POS/inventario/tienda y toggle «unificar inventario».
+
+## [1.56.0] - 2026-10-20
+
+### Añadido
+
+- **Rutinas**: autocompletado de miembro y asignación de una rutina a múltiples
+  personas (plantilla/copia).
+
+## [1.55.0] - 2026-10-20
+
+### Añadido
+
+- **super_admin** con todos los permisos dinámicos; roles nuevos (entrenador,
+  contador, cajero, soporte, recepcionista); auditoría de `block.json`
+  (permissions + help icons).
+
+## [1.54.0] - 2026-10-20
+
+### Añadido
+
+- **Proveedores de envío como bloques** (andreani, oca, correo, mercadolibre) +
+  registro central de shipping.
+
+## [1.53.0] - 2026-10-20
+
+### Añadido
+
+- **Carrito persistente** + redirección al login; área personal `/staff` por rol;
+  reservas/clases con cupos y recurrencia; calendario con vencimiento; rutinas de
+  entrenador; comprobantes; datos médicos; toggle webhook + help icons.
+
+## [1.52.0] - 2026-10-20
+
+### Añadido
+
+- **Unificación de suscripciones/membresías**; multi-sucursal (analíticas +
+  inventario); pagos accesibles; envíos con dirección + cotización (Correo/OCA/
+  Mercado Envío).
+
+## [1.51.0] - 2026-10-19
+
+### Añadido
+
+- **Editor visual del index** (drag&drop + preview); inscripción pública a cursos;
+  pulido general.
+
+## [1.50.0] - 2026-10-19
+
+### Añadido
+
+- **Soporte** (tickets + widget); rutina de usuario; POS/cobro; asistencia externa;
+  editor de menú; cancelación de compra; actualizaciones + backups; proveedores de
+  chat-ia; se quitó la autenticación de `block-settings`.
+
+## [1.49.0] - 2026-10-19
+
+### Añadido
+
+- **Tiempo real vía WebSocket**: notificaciones y chat sin recargar.
+
+## [1.48.0] - 2026-10-19
+
+### Añadido
+
+- **Suscripciones** (planes/contratar/cancelar); checkout con métodos de pago;
+  carrito pulido; facturación PDF por HTML; calendario mensual; preferencias de
+  notificación.
+
+## [1.47.0] - 2026-10-19
+
+### Añadido
+
+- **Red social completa** (historias/feed/direct/follow); blog con paginación +
+  «leer más»; home desarrollada.
+
+## [1.46.0] - 2026-10-19
+
+### Añadido
+
+- **Configuración de bloques agrupada por categoría** + ayuda (?) en los campos de
+  APIs de terceros.
+
+## [1.45.0] - 2026-10-19
+
+### Añadido
+
+- Dashboard de usuario; social público; chat DM; registro completo + social login;
+  pagos auto-cancel + eliminar; notificaciones con iconos; form builder visual;
+  stock por talle + inventario.
+
+### Corregido
+
+- i18n.
+
+## [1.44.0] - 2026-10-19
+
+### Añadido
+
+- **Red social** (feed con media + follow); chat DM; tienda completa (imágenes/
+  talles/carrito); blog público; clases; dashboard de usuario; perfil ampliado
+  (avatar upload + datos + campos personalizados).
+
+## [1.43.0] - 2026-10-19
+
+### Añadido
+
+- Header/footer en account/store; campaña de notificación; página `/clases`;
+  registro en el login; dashboard de usuario; traducciones de claves fijas;
+  sidebar de bloques instalados; dashboard admin; auth editable; permisos enterprise.
+
+## [1.42.0] - 2026-10-19
+
+### Añadido
+
+- **i18n completa** (es/en/pt); integraciones de terceros (envíos/IA/analytics/
+  calendario/fiscal); app móvil PWA + companion de escritorio.
+
+## [1.41.0] - 2026-10-19
+
+### Añadido
+
+- **Diseño de la página de inicio** (header con menú + icono de usuario + hero por
+  defecto).
+
+## [1.40.0] - 2026-10-19
+
+### Añadido
+
+- **Fase 2 gym**: rutinas de entrenador/cliente (modelo `Routine` + rutas de
+  academia + UI).
+
+## [1.39.0] - 2026-10-19
+
+### Añadido
+
+- **Notificaciones con prioridad/caducidad** + marcar leídas en campaña + estilo de
+  `/account`.
+
+## [1.38.0] - 2026-10-19
+
+### Añadido
+
+- **Panel admin para los bloques** (blog, social, chat, calendario, formularios,
+  comercio, facturación, analítica, notificaciones, registro/login).
+
+## [1.37.1] - 2026-10-19
+
+### Corregido
+
+- **Seguridad**: autenticación en mutaciones de notificaciones/afiliados/chat-ia.
+
+## [1.37.0] - 2026-10-19
+
+### Añadido
+
+- **Desarrollo de 20 bloques** (blog, social, chat, academia, calendario, reservas,
+  formularios, documentos, ecommerce envíos, marketing, facturación, analytics,
+  search, social-login, register, notificaciones, chat-ia, afiliados, seo) +
+  modelos `Invoice`/`Shipment`/`Coupon` + investigación de APIs.
+
+## [1.36.0] - 2026-10-19
+
+### Añadido
+
+- **Fase 1 gym multi-tenant** (organizaciones/membresías/asistencia QR/inventario).
+
+## [1.35.0] - 2026-10-19
+
+### Añadido
+
+- **Pulido del admin**: navegación por categorías, side-nav users/email/account,
+  traducciones por idioma, editor Tiptap, páginas de error, cambio de contraseña.
+- **Plantillas** gym (multi-tenant) y tienda (ecommerce) con bloques reales.
+
+### Corregido
+
+- Roles admin/editor/user ya no son «system» (permiten editar/eliminar).
+
 ## [1.34.1] - 2026-10-19
 
 ### Corregido

@@ -1,12 +1,12 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
  * afiliados — servidor.
  *
- * CRUD de afiliados y referidos bajo `/api/v1/blocks/afiliados`:
+ * CRUD de afiliados y referidos bajo `/api/v1/plugins/afiliados`:
  *  - GET    /affiliates
  *  - POST   /affiliates {userId, code?, commission?}
  *  - PATCH  /affiliates/:id
@@ -15,7 +15,7 @@ const manifest = manifestJson as unknown as BlockManifest;
  *  - POST   /referrals {affiliateId, email}
  *  - PATCH  /referrals/:id {status}
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const defaultCommission = Number((config as Record<string, unknown>).defaultCommission ?? 0) || 0;

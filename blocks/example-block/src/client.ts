@@ -1,17 +1,17 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque de ejemplo — cliente.
+ * Plugin de ejemplo — cliente.
  *
  * Monta un nodo DOM en el contenedor del slot usando su configuración. El
  * `mount` puede ser React, Vue o DOM puro: el contrato solo pide recibir el
  * contenedor y devolver (opcionalmente) una función de limpieza.
  */
-export default defineClientBlock(manifest, ({ container, config, i18n }) => {
-  // La configuración tiene prioridad; si no, se usa la traducción del bloque.
+export default defineClientPlugin(manifest, ({ container, config, i18n }) => {
+  // La configuración tiene prioridad; si no, se usa la traducción del plugin.
   const greeting = typeof config.greeting === 'string' ? config.greeting : i18n.t('greeting');
   const showTime = Boolean(config.showTime);
 

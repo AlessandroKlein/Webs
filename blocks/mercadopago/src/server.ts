@@ -1,7 +1,7 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface MpConfig {
   publicKey?: string;
@@ -22,17 +22,17 @@ async function hmacSha256Hex(secret: string, data: string): Promise<string> {
 }
 
 /**
- * Bloque Mercado Pago: se registra como proveedor en el núcleo de pagos
+ * Plugin Mercado Pago: se registra como proveedor en el núcleo de pagos
  * (checkout y webhook genéricos) y expone su config pública al cliente.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, options) => {
     const config = options as MpConfig;
 
     fastify.payments?.register({
       id: 'mercadopago',
       displayName: 'Mercado Pago',
-      createTransaction: async (input) => {
+      createTransaction: async (_input) => {
         const paymentId = `mp_${crypto.randomUUID()}`;
         // (Producción) POST https://api.mercadopago.com/checkout/preferences con
         // config.accessToken; la respuesta trae init_point / sandbox_init_point.
@@ -68,7 +68,7 @@ export default defineBlock(manifest, {
     }));
   },
   hooks: {
-    onInstall: async (ctx) => ctx.logger.info('bloque Mercado Pago instalado'),
-    onUninstall: async (ctx) => ctx.logger.info('bloque Mercado Pago desinstalado'),
+    onInstall: async (ctx) => ctx.logger.info('plugin Mercado Pago instalado'),
+    onUninstall: async (ctx) => ctx.logger.info('plugin Mercado Pago desinstalado'),
   },
 });

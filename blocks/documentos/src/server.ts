@@ -1,7 +1,7 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface DocumentosConfig {
   requireSignature?: boolean;
@@ -10,10 +10,10 @@ interface DocumentosConfig {
 }
 
 /**
- * Bloque de documentos y firma electrónica. Rutas bajo
- * `/api/v1/blocks/documentos`.
+ * Plugin de documentos y firma electrónica. Rutas bajo
+ * `/api/v1/plugins/documentos`.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const cfg = config as DocumentosConfig;
 

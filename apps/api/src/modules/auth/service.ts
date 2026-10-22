@@ -17,6 +17,13 @@ export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15; // 15 minutos
 export const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
 export const REMEMBER_ME_TTL_MS = 1000 * 60 * 60 * 24 * 90; // 90 días
 
+/**
+ * Roles que una invitación/registro público puede conceder (F4 — P1).
+ * `super_admin` y `admin` quedan excluidos para impedir la escalada de privilegios
+ * cuando el rol por defecto del plugin de registro está mal configurado.
+ */
+export const SAFE_INVITE_ROLES = new Set(['user', 'editor']);
+
 export function generateRefreshToken(): string {
   return randomBytes(48).toString('hex');
 }
@@ -189,7 +196,7 @@ export async function registerUser(
     },
   });
 
-  const roleKey = invitedRole ?? 'user';
+  const roleKey = invitedRole && SAFE_INVITE_ROLES.has(invitedRole) ? invitedRole : 'user';
   const userRole = await fastify.prisma.role.findUnique({ where: { key: roleKey } });
   if (userRole) {
     await fastify.prisma.userRole.create({ data: { userId: user.id, roleId: userRole.id } });

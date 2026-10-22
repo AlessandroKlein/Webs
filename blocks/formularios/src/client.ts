@@ -1,11 +1,11 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('webs_access_token') ?? ''}` });
 
-export default defineClientBlock(manifest, ({ container }) => {
+export default defineClientPlugin(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = `<h4>Formularios</h4>
     <div class="row"><input class="input" id="f-title" placeholder="Título" /></div>
@@ -13,14 +13,14 @@ export default defineClientBlock(manifest, ({ container }) => {
   container.appendChild(el);
 
   const refresh = async () => {
-    const res = await fetch('/api/v1/blocks/formularios/forms');
+    const res = await fetch('/api/v1/plugins/formularios/forms');
     const list = (await res.json()) as Array<{ id: string; title: string; fields: unknown }>;
     const target = el.querySelector('#f-list')!;
     target.innerHTML = list.map((f) => `<p><strong>${f.title}</strong></p>`).join('');
   };
 
   el.querySelector('#f-send')!.addEventListener('click', async () => {
-    await fetch('/api/v1/blocks/formularios/forms', {
+    await fetch('/api/v1/plugins/formularios/forms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({

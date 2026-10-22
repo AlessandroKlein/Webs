@@ -1,16 +1,16 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque Mercado Pago — cliente.
+ * Plugin Mercado Pago — cliente.
  *
  * Renderiza el botón de pago en el slot `payment`. Al hacer clic llama al
  * checkout genérico del núcleo de pagos. En producción se montaría el SDK de
  * Mercado Pago con la `publicKey` para tokenizar la tarjeta (sin tocar el PAN).
  */
-export default defineClientBlock(manifest, ({ container, config, i18n }) => {
+export default defineClientPlugin(manifest, ({ container, config, i18n }) => {
   const primaryColor = typeof config.primaryColor === 'string' ? config.primaryColor : '#009ee3';
   const label = i18n.t('pay');
   const amount = Number(container.dataset.amount ?? 100);

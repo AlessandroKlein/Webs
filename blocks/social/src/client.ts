@@ -1,7 +1,7 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface Post {
   id: string;
@@ -12,7 +12,7 @@ interface Post {
   likes: number;
 }
 
-export default defineClientBlock(manifest, ({ container }) => {
+export default defineClientPlugin(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = `<div class="stack"><input class="input" id="author" placeholder="Tu nombre" /><textarea class="input" id="text" placeholder="¿Qué estás pensando?"></textarea><input class="input" id="media" placeholder="URL de imagen/video (opcional)" /><button class="btn" id="post">Publicar</button></div><div id="feed" class="stack" style="margin-top:12px"></div>`;
   container.appendChild(el);
@@ -20,7 +20,7 @@ export default defineClientBlock(manifest, ({ container }) => {
   const feed = el.querySelector('#feed') as HTMLElement;
 
   const refresh = async () => {
-    const r = await fetch('/api/v1/blocks/social/posts');
+    const r = await fetch('/api/v1/plugins/social/posts');
     const data = (await r.json()) as Post[];
     feed.innerHTML =
       data
@@ -32,7 +32,7 @@ export default defineClientBlock(manifest, ({ container }) => {
         .join('') || '<p class="muted">Sin publicaciones</p>';
     el.querySelectorAll('#feed .card button').forEach((b) => {
       b.addEventListener('click', async () => {
-        await fetch(`/api/v1/blocks/social/posts/${b.getAttribute('data-id')}/like`, { method: 'PATCH' });
+        await fetch(`/api/v1/plugins/social/posts/${b.getAttribute('data-id')}/like`, { method: 'PATCH' });
         refresh();
       });
     });
@@ -41,7 +41,7 @@ export default defineClientBlock(manifest, ({ container }) => {
   (el.querySelector('#post') as HTMLElement).onclick = async () => {
     const mediaUrl = (el.querySelector('#media') as HTMLInputElement).value;
     const mediaType = /\.(mp4|webm|mov)(\?|$)/i.test(mediaUrl) ? 'video' : mediaUrl ? 'image' : null;
-    await fetch('/api/v1/blocks/social/posts', {
+    await fetch('/api/v1/plugins/social/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Bloque de referencia de la plataforma Webs.",
+  "description": "Plugin de referencia de la plataforma Webs.",
   "exports": {
     "./server": {
       "types": "./dist/server.d.ts",
@@ -14,7 +14,7 @@
       "import": "./dist/client.js"
     }
   },
-  "files": ["dist", "block.json"],
+  "files": ["dist", "plugin.json"],
   "scripts": {
     "build": "tsup src/server.ts src/client.ts --format esm --dts --clean",
     "dev": "tsup src/server.ts src/client.ts --format esm --dts --watch",

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { baseResources } from '@webs/i18n';
-import { blockRegistry } from '../../blocks/registry';
+import { pluginRegistry } from '../../plugins/registry';
 
 /**
  * Recursos de traducción bajo demanda: se sirven únicamente los idiomas que el
@@ -59,14 +59,14 @@ export async function buildResources(
     result[t.locale] = localeResources;
   }
 
-  // Traducciones de los bloques instalados (namespace = id del bloque), solo
+  // Traducciones de los plugins instalados (namespace = id del plugin), solo
   // para los idiomas habilitados.
-  for (const { blockId, translations } of blockRegistry.getTranslations()) {
+  for (const { pluginId, translations } of pluginRegistry.getTranslations()) {
     for (const locale of locales) {
       const blockLocale = translations[locale];
       if (!blockLocale) continue;
       const localeResources = result[locale] ?? {};
-      localeResources[blockId] = { ...(localeResources[blockId] ?? {}), ...blockLocale };
+      localeResources[pluginId] = { ...(localeResources[pluginId] ?? {}), ...blockLocale };
       result[locale] = localeResources;
     }
   }

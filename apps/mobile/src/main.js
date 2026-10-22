@@ -1,8 +1,9 @@
 // @webs/mobile — Asistencia por QR (PWA instalable).
-// Consume el endpoint existente POST /api/v1/blocks/organizaciones/attendance/scan
+// Consume el endpoint POST /api/v1/plugins/organizaciones/attendance/scan
 // del backend de Webs, enviando el token de acceso como Authorization: Bearer.
 
 import './style.css';
+import { normalizeBarcode, connectDesktopBridge } from './barcode.js';
 
 // ---------------------------------------------------------------------------
 // Configuración
@@ -11,7 +12,12 @@ import './style.css';
 // que la API). Se puede sobrescribir compilando con VITE_API_BASE o en la UI.
 const ENV_API_BASE = import.meta.env.VITE_API_BASE || '';
 const BASE_URL = import.meta.env.BASE_URL; // p. ej. '/asistencia/'
-const ATTENDANCE_PATH = '/api/v1/blocks/organizaciones/attendance/scan';
+// Ruta canónica del plugin `organizaciones`. El loader registra cada plugin bajo
+// `/api/v1/plugins/<id>`; el shim `/api/v1/blocks/*` solo cubre el CRUD de
+// plugins (install/catalog/settings), NO las sub-rutas de cada plugin, así que
+// la ruta antigua `/api/v1/blocks/organizaciones/...` quedó rota tras el rename.
+const ATTENDANCE_PATH = '/api/v1/plugins/organizaciones/attendance/scan';
+const DEFAULT_BRIDGE_URL = 'ws://localhost:4599';
 
 // ---------------------------------------------------------------------------
 // Estado persistente (localStorage)
@@ -26,6 +32,8 @@ const store = {
     catch { return []; }
   },
   set log(v) { localStorage.setItem('webs.mobile.log', JSON.stringify(v.slice(0, 50))); },
+  get bridgeUrl() { return localStorage.getItem('webs.mobile.bridgeUrl') ?? DEFAULT_BRIDGE_URL; },
+  set bridgeUrl(v) { localStorage.setItem('webs.mobile.bridgeUrl', v); },
 };
 
 // ---------------------------------------------------------------------------
@@ -41,6 +49,9 @@ const resultEl = $('result');
 const logEl = $('log');
 const clearLogBtn = $('clear-log');
 const installBadge = $('install-hint');
+const cameraBtn = $('camera-scan');
+const bridgeStatusEl = $('bridge-status');
+const bridgeUrlInput = $('bridge-url');
 
 // ---------------------------------------------------------------------------
 // Utilidades
@@ -110,7 +121,7 @@ function pushLog(code, name) {
 // Registrar asistencia
 // ---------------------------------------------------------------------------
 async function registrar() {
-  const code = qrInput.value.trim();
+  const code = normalizeBarcode(qrInput.value);
   const token = tokenInput.value.trim();
 
   if (!code) {
@@ -165,6 +176,110 @@ async function registrar() {
 }
 
 // ---------------------------------------------------------------------------
+// Códigos desde lectores externos (companion de escritorio o cámara)
+// ---------------------------------------------------------------------------
+function onExternalCode(code) {
+  if (scanBtn.disabled) return; // evitá disparos superpuestos
+  qrInput.value = code;
+  registrar();
+}
+
+// ---------------------------------------------------------------------------
+// Escaneo por cámara (BarcodeDetector API, mejora progresiva)
+// ---------------------------------------------------------------------------
+let barcodeDetector = null;
+try {
+  if ('BarcodeDetector' in window) {
+    barcodeDetector = new window.BarcodeDetector({
+      formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'itf', 'pdf417', 'data_matrix'],
+    });
+  }
+} catch { barcodeDetector = null; }
+
+let cameraStream = null;
+let cameraVideo = null;
+let cameraRaf = 0;
+
+async function startCameraScan() {
+  if (!barcodeDetector) return; // botón oculto cuando no hay soporte
+  if (cameraStream) { stopCameraScan(); return; }
+  if (!navigator.mediaDevices?.getUserMedia) {
+    showResult({ ok: false, error: 'Cámara no disponible. Usá un lector externo o pegá el código.' });
+    return;
+  }
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+  } catch (err) {
+    showResult({ ok: false, error: `No se pudo acceder a la cámara: ${err.message}` });
+    return;
+  }
+  cameraBtn.textContent = 'Detener';
+  cameraVideo = document.createElement('video');
+  cameraVideo.muted = true;
+  cameraVideo.playsInline = true;
+  cameraVideo.autoplay = true;
+  cameraVideo.srcObject = cameraStream;
+  cameraVideo.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:9;background:#000;';
+  document.body.appendChild(cameraVideo);
+  await cameraVideo.play().catch(() => {});
+  const tick = async () => {
+    if (!cameraStream || !cameraVideo) return;
+    try {
+      const codes = await barcodeDetector.detect(cameraVideo);
+      if (codes?.length) {
+        stopCameraScan();
+        onExternalCode(codes[0].rawValue);
+        return;
+      }
+    } catch { /* frame sin lectura */ }
+    cameraRaf = requestAnimationFrame(tick);
+  };
+  cameraRaf = requestAnimationFrame(tick);
+}
+
+function stopCameraScan() {
+  cancelAnimationFrame(cameraRaf);
+  cameraRaf = 0;
+  if (cameraStream) {
+    cameraStream.getTracks().forEach((t) => t.stop());
+    cameraStream = null;
+  }
+  if (cameraVideo) { cameraVideo.remove(); cameraVideo = null; }
+  if (cameraBtn) cameraBtn.textContent = 'Cámara';
+}
+
+// ---------------------------------------------------------------------------
+// Puente con el companion de escritorio (@webs/desktop)
+// ---------------------------------------------------------------------------
+let bridge = null;
+
+function setBridgeStatus(status) {
+  if (!bridgeStatusEl) return;
+  const map = {
+    connecting: ['conectando…', ''],
+    open: ['lector externo conectado', 'ok'],
+    closed: ['desconectado (reintentando…)', ''],
+    error: ['error de conexión', 'err'],
+    disabled: ['desactivado', ''],
+  };
+  const [label, cls] = map[status] || [status, ''];
+  bridgeStatusEl.hidden = false;
+  bridgeStatusEl.textContent = label;
+  bridgeStatusEl.className = `hint bridge-status ${cls}`.trim();
+}
+
+function syncBridge() {
+  if (bridge) { bridge.close(); bridge = null; }
+  const url = store.bridgeUrl.trim();
+  if (!url) { setBridgeStatus('disabled'); return; }
+  bridge = connectDesktopBridge({
+    url,
+    onCode: (code) => onExternalCode(code),
+    onStatus: (status) => setBridgeStatus(status),
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Eventos de UI
 // ---------------------------------------------------------------------------
 scanBtn.addEventListener('click', registrar);
@@ -190,6 +305,9 @@ clearLogBtn.addEventListener('click', () => {
 
 tokenInput.addEventListener('input', () => { store.token = tokenInput.value.trim(); });
 apiBaseInput.addEventListener('input', () => { store.apiBase = apiBaseInput.value.trim(); });
+cameraBtn?.addEventListener('click', startCameraScan);
+bridgeUrlInput?.addEventListener('input', () => { store.bridgeUrl = bridgeUrlInput.value.trim(); });
+bridgeUrlInput?.addEventListener('change', () => { syncBridge(); });
 
 // ---------------------------------------------------------------------------
 // Instalación PWA (botón "Instalar" opcional)
@@ -224,5 +342,8 @@ if ('serviceWorker' in navigator) {
 // ---------------------------------------------------------------------------
 tokenInput.value = store.token;
 apiBaseInput.value = store.apiBase;
+bridgeUrlInput.value = store.bridgeUrl;
 renderLog();
 qrInput.focus();
+if (!barcodeDetector && cameraBtn) cameraBtn.hidden = true;
+syncBridge();

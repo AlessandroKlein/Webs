@@ -81,7 +81,6 @@ const formatDate = (s: string | null | undefined) => (s ? new Date(s).toLocaleDa
 
 export function OrganizationsPage() {
   const { t } = useTranslation();
-  const qc = useQueryClient();
   const [view, setView] = useState<View>('organizations');
 
   const { data: organizations, isLoading: orgLoading } = useQuery({

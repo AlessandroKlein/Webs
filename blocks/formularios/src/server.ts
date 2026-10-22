@@ -1,7 +1,7 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface FormulariosConfig {
   allowAnonymous?: boolean;
@@ -10,9 +10,9 @@ interface FormulariosConfig {
 }
 
 /**
- * Bloque de formularios. Rutas bajo `/api/v1/blocks/formularios`.
+ * Plugin de formularios. Rutas bajo `/api/v1/plugins/formularios`.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const cfg = config as FormulariosConfig;
     const allowAnonymous = cfg.allowAnonymous !== false;

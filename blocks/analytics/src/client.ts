@@ -1,11 +1,11 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-export default defineClientBlock(manifest, ({ container, config }) => {
+export default defineClientPlugin(manifest, ({ container, config }) => {
   if (config.enabled !== false) {
-    void fetch('/api/v1/blocks/analytics/track', {
+    void fetch('/api/v1/plugins/analytics/track', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ path: window.location.pathname }),

@@ -9,7 +9,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
 
 const REGISTER = '/api/v1/blocks/register';
-const SOCIAL_LOGIN = '/api/v1/blocks/social-login';
+const SOCIAL_LOGIN = '/api/v1/plugins/social-login';
 
 interface RegisterSettings {
   mode: 'open' | 'invite' | 'both' | string;

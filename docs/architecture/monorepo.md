@@ -1,7 +1,7 @@
 # Monorepo (pnpm workspaces)
 
 Webs se organiza como un **monorepo** gestionado con **pnpm workspaces**. Todas las apps,
-paquetes compartidos y bloques viven en un único repositorio y comparten dependencias,
+paquetes compartidos y plugins viven en un único repositorio y comparten dependencias,
 tooling y convenciones.
 
 ## Configuración
@@ -32,10 +32,10 @@ packages:
 | `apps/web/` | Frontend React + Vite (`@webs/web`) | Panel de administración y sitio público. |
 | `packages/core/` | `@webs/core` | Tipos, errores (`AppError`), constantes (`Permission`, `SystemRole`, `API_PREFIX`) y utilidades. |
 | `packages/config/` | `@webs/config` | Configuración compartida de ESLint (`/eslint`) y Prettier (`/prettier`). |
-| `packages/plugin-sdk/` | `@webs/plugin-sdk` | SDK y contrato de bloques (`defineBlock`, `defineClientBlock`, manifiesto, hooks, slots). |
+| `packages/plugin-sdk/` | `@webs/plugin-sdk` | SDK y contrato de plugins (`definePlugin`, `defineClientPlugin`, manifiesto, hooks, slots, menú). |
 | `packages/i18n/` | `@webs/i18n` | Locales base `es`/`en` y fábrica `createI18n()`. |
 | `packages/ui/` | `@webs/ui` | `ThemeProvider`, `useTheme` y tokens CSS (`styles.css`). |
-| `blocks/example-block/` | `@webs/block-example` | Bloque de referencia que demuestra el contrato completo. |
+| `blocks/example-block/` | `@webs/block-example` | Plugin de referencia que demuestra el contrato completo. |
 | `docker/` | `Dockerfile.api`, `Dockerfile.web`, `docker-compose.yml`, `nginx.conf` | Contenedores locales y de producción. |
 | `infra/` | `README.md` | Notas de infraestructura (escalado, Kubernetes futuro). |
 | `.github/workflows/` | `ci.yml` | CI (install → prisma generate → typecheck → lint → build). |
@@ -51,7 +51,8 @@ packages:
 - `@webs/ui` añade un export de estilos: `./styles.css` → `./src/styles/styles.css`.
 - Las dependencias entre paquetes usan el protocolo **`workspace:*`** (por ejemplo,
   `apps/api` depende de `@webs/core`, `@webs/i18n`, `@webs/plugin-sdk`).
-- Los **bloques** son paquetes que viven en `blocks/*` y exponen entradas `./server` y
+- Los **plugins** son paquetes que viven en `blocks/*` (directorio físico con nombre
+  interno transitorio) y exponen entradas `./server` y
   `./client` (ver `blocks/example-block/package.json`).
 
 ```jsonc

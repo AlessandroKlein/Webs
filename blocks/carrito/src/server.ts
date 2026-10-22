@@ -1,7 +1,7 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface CartItem {
   itemId: string;
@@ -19,9 +19,9 @@ function makeId(): string {
 
 /**
  * Carrito simple en memoria, keyeado por usuario. Se persiste como `Order`
- * cuando el cliente confirma la compra vía `POST /api/v1/blocks/ecommerce/orders`.
+ * cuando el cliente confirma la compra vía `POST /api/v1/plugins/ecommerce/orders`.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const currency = String((config as Record<string, unknown>).currency ?? 'ARS');

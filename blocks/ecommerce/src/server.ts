@@ -1,7 +1,7 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 type OrderStatus = 'pending' | 'paid' | 'preparing' | 'shipped' | 'cancelled';
 
@@ -45,7 +45,7 @@ const stockBySize = (value: unknown): Record<string, number> => {
 
 /**
  * Crea/actualiza un `InventoryItem` por cada talle del producto, de modo que el
- * stock por talle se comparte con el bloque de inventario (`/admin/inventory`).
+ * stock por talle se comparte con el plugin de inventario (`/admin/inventory`).
  * - sku: `slug(title)-slug(size)`
  * - name: `"title (size)"`
  * - quantity: stock de ese talle
@@ -145,7 +145,7 @@ const restockOrder = async (
   }
 };
 
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const cfg = config as Record<string, unknown>;
     const products = (Array.isArray(cfg.products) ? cfg.products : []) as Array<{ id: string; title: string; price: number; stock: number; category?: string }>;

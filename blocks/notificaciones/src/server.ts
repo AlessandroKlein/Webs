@@ -1,14 +1,14 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 type Provider = { id: string; name: string; enabled?: boolean };
 
 /**
  * notificaciones — servidor.
  *
- * Centro de notificaciones in-app. Rutas bajo `/api/v1/blocks/notificaciones`:
+ * Centro de notificaciones in-app. Rutas bajo `/api/v1/plugins/notificaciones`:
  *  - GET    /inbox?userId=   → lista Notification (de un usuario o todas).
  *  - POST   /send            → crea Notification y emite `notification.created`.
  *  - PATCH  /read/:id        → marca una como leída.
@@ -16,7 +16,7 @@ type Provider = { id: string; name: string; enabled?: boolean };
  *  - DELETE /:id             → elimina una.
  *  - GET    /providers       → proveedores del settings (sms/whatsapp/push/email).
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const providers = (Array.isArray(config.providers) ? config.providers : []) as Provider[];

@@ -16,10 +16,33 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Crear release (con notas generadas, si no existe)
+      - name: Extraer notas del CHANGELOG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          node -e '
+            const fs = require("fs");
+            const v = process.argv[1];
+            const lines = fs.readFileSync("CHANGELOG.md", "utf8").split("\n");
+            const start = lines.findIndex((l) => l.startsWith("## [" + v + "]"));
+            if (start < 0) process.exit(0);
+            let end = lines.findIndex((l, i) => i > start && /^## \[/.test(l));
+            if (end < 0) end = lines.length;
+            process.stdout.write(lines.slice(start, end).join("\n").trim() + "\n");
+          ' "$VERSION" > release-notes.md
+          if [ -s release-notes.md ]; then
+            echo "Notas extraídas del CHANGELOG ($(wc -l < release-notes.md) líneas)."
+          else
+            echo "Sin entrada en el CHANGELOG para $GITHUB_REF_NAME; se usarán notas generadas."
+          fi
+
+      - name: Crear release (con notas del CHANGELOG, si no existe)
         run: |
           if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release create "$GITHUB_REF_NAME" --generate-notes --latest
+            if [ -s release-notes.md ]; then
+              gh release create "$GITHUB_REF_NAME" --notes-file release-notes.md --latest
+            else
+              gh release create "$GITHUB_REF_NAME" --generate-notes --latest
+            fi
           else
             echo "Release $GITHUB_REF_NAME ya existe; se omite."
           fi

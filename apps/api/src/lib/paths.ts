@@ -17,8 +17,14 @@ export function dataDir(): string {
   return process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : path.join(appDir(), 'data');
 }
 
-export function blocksDir(configured?: string): string {
+/** Directorio de plugins locales (antes `blocks`). Se mantiene `BLOCK_DIR` como clave de config. */
+export function pluginsDir(configured?: string): string {
   return path.resolve(appDir(), configured ?? '../../blocks');
+}
+
+/** @deprecated Usar {@link pluginsDir}. Alias por retrocompatibilidad. */
+export function blocksDir(configured?: string): string {
+  return pluginsDir(configured);
 }
 
 /** Directorio de plantillas (presets) de sitios. */

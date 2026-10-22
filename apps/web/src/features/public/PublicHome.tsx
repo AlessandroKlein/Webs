@@ -1,7 +1,9 @@
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BlockSlot, BlockById } from '../../blocks/BlockSlot';
+import { PluginSlot } from '../../plugins/PluginSlot';
+import { PageLayoutView } from '../pages/PageRenderer';
+import type { PageSection } from '../pages/pageTypes';
 import { useAuthStore } from '../../lib/auth-store';
 import { api } from '../../lib/api';
 import { SiteFooter } from '../../components/SiteFooter';
@@ -11,7 +13,7 @@ import { SupportWidget } from '../../components/SupportWidget';
 interface HomePage {
   slug: string;
   title: string;
-  layout: Array<{ blocks: string[]; size?: 'full' | 'half' | 'third' }>;
+  layout: PageSection[];
   redirectUrl: string | null;
 }
 
@@ -56,8 +58,6 @@ interface Subscription {
   planName: string;
   endDate: string | null;
 }
-
-const sizeClass = (size?: string) => (size === 'half' ? 'grid-2' : size === 'third' ? 'grid-3' : '');
 
 const asStringArray = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
@@ -254,13 +254,7 @@ export function PublicHome() {
           {pageSections && (
             <section style={{ marginBottom: 'var(--ws-space-6)' }}>
               {page?.title && <h2 style={{ marginTop: 0 }}>{page.title}</h2>}
-              {pageSections.map((section, i) => (
-                <div key={i} className={sizeClass(section.size)} style={{ marginBottom: 'var(--ws-space-4)' }}>
-                  {section.blocks.map((blockId) => (
-                    <BlockById key={blockId} blockId={blockId} />
-                  ))}
-                </div>
-              ))}
+              <PageLayoutView sections={pageSections} />
             </section>
           )}
 
@@ -376,12 +370,12 @@ export function PublicHome() {
         </div>
 
         <aside style={{ padding: 'var(--ws-space-6)' }}>
-          <BlockSlot slotId="sidebar" />
+          <PluginSlot slotId="sidebar" />
         </aside>
       </main>
 
       <footer style={{ borderTop: '1px solid var(--ws-border)' }}>
-        <BlockSlot slotId="footer" />
+        <PluginSlot slotId="footer" />
         <SiteFooter />
         <SupportWidget />
       </footer>

@@ -5,7 +5,7 @@ se describe aquí se hace desde el panel de administración (frontend React), si
 necesidad de editar archivos ni tocar código.
 
 Después de iniciar sesión (`/login`), el panel (`/`) ofrece las secciones:
-Panel, Contenido, Bloques, Usuarios, Roles y permisos, Ajustes, Apariencia,
+Panel, Contenido, Plugins, Usuarios, Roles y permisos, Ajustes, Apariencia,
 Traducciones y Auditoría.
 
 ---
@@ -29,7 +29,7 @@ Pulsá **Guardar** en cada tarjeta. Internamente se llama a
 sección.
 
 > Las secciones base viven en el registro de ajustes
-> (`apps/api/src/modules/settings`). Los bloques instalados pueden aportar su
+> (`apps/api/src/modules/settings`). Los plugins instalados pueden aportar su
 > propia configuración (ver sección 3).
 
 ---
@@ -58,37 +58,37 @@ Pulsá **Guardar** para persistir (`PUT /api/v1/settings/appearance`).
 
 ---
 
-## 3. Bloques (instalar, configurar y colocar en slots)
+## 3. Plugins (instalar, configurar y colocar en slots)
 
-Ve a **Bloques** (`/blocks`). La pantalla muestra dos listas:
+Ve a **Plugins** (`/admin/plugins`). La pantalla muestra dos listas:
 
 ### Instalados
 
-Cada bloque instalado permite:
+Cada plugin instalado permite:
 
-- **Editar**: abre un formulario generado desde el `settings` del bloque
+- **Editar**: abre un formulario generado desde el `settings` del plugin
   (JSON Schema) para cambiar su configuración. Guarda con
-  `PUT /api/v1/blocks/:id/settings`.
-- **Deshabilitar / Habilitar**: activa o desactiva el bloque
-  (`POST /api/v1/blocks/:id/deactivate` / `activate`).
-- **Eliminar**: desinstala el bloque (`DELETE /api/v1/blocks/:id`).
+  `PUT /api/v1/plugins/:id/settings`.
+- **Deshabilitar / Habilitar**: activa o desactiva el plugin
+  (`POST /api/v1/plugins/:id/deactivate` / `activate`).
+- **Eliminar**: desinstala el plugin (`DELETE /api/v1/plugins/:id`).
 
 ### Catálogo
 
-Lista los bloques **disponibles** (descubiertos en `blocks/*`) que aún no
+Lista los plugins **disponibles** (descubiertos en `blocks/*`) que aún no
 están instalados. Pulsá **Crear** para instalar
-(`POST /api/v1/blocks/install` con `{ "id": <blockId> }`).
+(`POST /api/v1/plugins/install` con `{ "id": <pluginId> }`).
 
-### Colocar bloques en slots
+### Colocar plugins en slots
 
 Los **slots** son regiones del sitio (`header`, `content`, `sidebar`,
-`footer`) donde se renderizan los bloques. Las colocaciones se gestionan con:
+`footer`) donde se renderizan los plugins. Las colocaciones se gestionan con:
 
 - `GET /api/v1/slots` — lista de slots.
 - `GET /api/v1/placements?slotId=<slot>` — colocaciones actuales de un slot.
 - `PUT /api/v1/placements` — reemplaza las colocaciones de un slot.
 
-Ejemplo de body para colocar dos bloques en `content`:
+Ejemplo de body para colocar dos plugins en `content`:
 
 ```json
 {
@@ -100,8 +100,12 @@ Ejemplo de body para colocar dos bloques en `content`:
 }
 ```
 
+> El body de `PUT /placements` conserva la key `blocks` y el campo `blockId` de
+> forma transitoria (ver `docs/architecture/plugin-system.md`, sección «Estado
+> transitorio del rename»).
+
 > El frontend renderiza las colocaciones de cada slot a través del componente
-> `BlockSlot` (`apps/web/src/blocks/BlockSlot.tsx`). La página pública de
+> `PluginSlot` (`apps/web/src/plugins/PluginSlot.tsx`). La página pública de
 > ejemplo (`/site`) demuestra los cuatro slots.
 
 ---
@@ -120,7 +124,7 @@ traducibles de la plataforma:
   ```
 
 Las traducciones guardadas aquí **sobrescriben** los recursos base compilados
-(`packages/i18n`) y pueden incluir claves aportadas por bloques.
+(`packages/i18n`) y pueden incluir claves aportadas por plugins.
 
 ---
 
@@ -129,17 +133,19 @@ Las traducciones guardadas aquí **sobrescriben** los recursos base compilados
 | Acción                    | Permiso(s) requerido(s)                        |
 | ------------------------- | ---------------------------------------------- |
 | Ver/editar ajustes        | `setting.read` / `setting.write`               |
-| Ver catálogo de bloques   | `block.read`                                   |
-| Instalar/colocar bloques  | `block.manage`                                 |
-| Configurar un bloque      | `setting.write`                                |
+| Ver catálogo de plugins   | `block.read`                                   |
+| Instalar/colocar plugins  | `block.manage`                                 |
+| Configurar un plugin      | `setting.write`                                |
 | Ver/editar traducciones   | `translation.read` / `translation.write`       |
 
-> Los permisos los asigna un administrador desde **Roles y permisos**. Ver
+> Los permisos internos `block.read`/`block.manage` se conservan de forma
+> transitoria (ver `docs/architecture/plugin-system.md`). Los asigna un
+> administrador desde **Roles y permisos**. Ver
 > [`docs/guides/roles-permisos.md`](./roles-permisos.md).
 
 ---
 
 ## Ver también
 
-- [`docs/guides/crear-un-bloque.md`](./crear-un-bloque.md) — crear bloques.
+- [`docs/guides/crear-un-plugin.md`](./crear-un-plugin.md) — crear plugins.
 - [`docs/api/overview.md`](../api/overview.md) — referencia de endpoints.

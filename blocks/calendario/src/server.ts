@@ -1,8 +1,8 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
 import { createExternalEvent } from '../../../apps/api/src/integrations/calendar';
-import manifestJson from '../block.json';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface CalendarConfig {
   provider?: string;
@@ -25,9 +25,9 @@ const CALENDAR_PROVIDERS = ['local', 'google', 'caldav'] as const;
 type CalendarProvider = (typeof CALENDAR_PROVIDERS)[number];
 
 /**
- * Bloque de calendario. Rutas bajo `/api/v1/blocks/calendario`.
+ * Plugin de calendario. Rutas bajo `/api/v1/plugins/calendario`.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const cfg = config as CalendarConfig;
     const provider = (CALENDAR_PROVIDERS as readonly string[]).includes(String(cfg.provider))

@@ -1,7 +1,7 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface Post {
   id: string;
@@ -11,12 +11,12 @@ interface Post {
   tags: unknown;
 }
 
-export default defineClientBlock(manifest, ({ container }) => {
+export default defineClientPlugin(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = '<div class="stack" id="list"></div><hr/><article id="article"></article>';
   container.appendChild(el);
 
-  void fetch('/api/v1/blocks/blog/posts?status=published')
+  void fetch('/api/v1/plugins/blog/posts?status=published')
     .then(async (r) => {
       const data = (await r.json()) as Post[];
       const list = el.querySelector('#list')!;

@@ -1,13 +1,13 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque de organizaciones multi-tenant + membresías + asistencia por QR.
- * Rutas bajo `/api/v1/blocks/organizaciones`. Requiere sesión (authenticate).
+ * Plugin de organizaciones multi-tenant + membresías + asistencia por QR.
+ * Rutas bajo `/api/v1/plugins/organizaciones`. Requiere sesión (authenticate).
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (

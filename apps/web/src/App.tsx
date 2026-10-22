@@ -6,7 +6,7 @@ import { useAuthStore } from './lib/auth-store';
 import { api } from './lib/api';
 import { applyRemoteResources, type RemoteI18nPayload } from './lib/i18n';
 import { useLocaleStore, type LocaleInfo } from './lib/locale-store';
-import './blocks';
+import './plugins';
 
 import { AdminLayout } from './layouts/AdminLayout';
 import { LoginPage } from './features/auth/LoginPage';
@@ -16,9 +16,9 @@ import { ResetPasswordPage } from './features/auth/ResetPasswordPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { AppearancePage } from './features/appearance/AppearancePage';
-import { BlocksPage } from './features/blocks/BlocksPage';
-import { BlockConfigPage } from './features/blocks/BlockConfigPage';
-import { BlockSettingsPage } from './features/blocks/BlockSettingsPage';
+import { PluginsPage } from './features/plugins/PluginsPage';
+import { PluginConfigPage } from './features/plugins/PluginConfigPage';
+import { PluginSettingsPage } from './features/plugins/PluginSettingsPage';
 import { TemplatesPage } from './features/templates/TemplatesPage';
 import { PaymentsPage } from './features/payments/PaymentsPage';
 import { StorePage } from './features/store/StorePage';
@@ -166,10 +166,10 @@ function MainApp() {
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="auth" element={<AuthConfigPage />} />
           <Route path="email" element={<EmailPage />} />
-          <Route path="blocks" element={<BlocksPage />} />
-          <Route path="blocks/:blockId" element={<BlockConfigPage />} />
-          <Route path="block-settings" element={<BlockSettingsPage />} />
-          <Route path="block-settings/:category" element={<BlockSettingsPage />} />
+          <Route path="plugins" element={<PluginsPage />} />
+          <Route path="plugins/:pluginId" element={<PluginConfigPage />} />
+          <Route path="plugin-settings" element={<PluginSettingsPage />} />
+          <Route path="plugin-settings/:category" element={<PluginSettingsPage />} />
           <Route path="templates" element={<TemplatesPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="users" element={<UsersPage />} />

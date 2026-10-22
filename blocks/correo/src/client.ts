@@ -1,10 +1,10 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-/** Bloque Correo Argentino — cliente: solo indica dónde configurar el proveedor. */
-export default defineClientBlock(manifest, ({ container }) => {
+/** Plugin Correo Argentino — cliente: solo indica dónde configurar el proveedor. */
+export default defineClientPlugin(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = '<p style="margin:0;color:#667">Proveedor de envío Correo Argentino — configurá en /admin/block-settings.</p>';
   container.appendChild(el);

@@ -1,11 +1,11 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface Product { id: string; title: string; price: number; stock: number }
 
-export default defineClientBlock(manifest, ({ container, config, i18n }) => {
+export default defineClientPlugin(manifest, ({ container, config, i18n }) => {
   const catalog = (Array.isArray(config.catalog) ? config.catalog : []) as Product[];
   const title = String(config.title ?? i18n.t('cart'));
 

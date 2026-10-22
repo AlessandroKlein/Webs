@@ -1,8 +1,8 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
 import { chatCompletion } from '../../../apps/api/src/integrations/ai';
-import manifestJson from '../block.json';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 const AVAILABLE = ['openai', 'anthropic', 'gemini', 'ollama', 'mistral', 'groq', 'openrouter'] as const;
 const DEFAULT_SYSTEM = 'Sos un asistente útil y conciso.';
@@ -73,7 +73,7 @@ async function resolveChat(
  *
  * No se usa ninguna API key real en el código: se lee de `config`.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const provider = String(config.provider ?? 'openai');

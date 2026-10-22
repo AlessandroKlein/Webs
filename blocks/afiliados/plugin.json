@@ -1,0 +1,54 @@
+{
+  "name": "@webs/block-afiliados",
+  "id": "afiliados",
+  "version": "0.1.0",
+  "type": "plugin",
+  "displayName": {
+    "en": "Affiliates",
+    "es": "Afiliados"
+  },
+  "description": {
+    "en": "Affiliates and referrals.",
+    "es": "Afiliados y referidos."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": [
+    "content"
+  ],
+  "category": "marketing",
+  "settings": {
+    "type": "object",
+    "title": "Afiliados",
+    "properties": {
+      "defaultCommission": {
+        "type": "number",
+        "title": "Comisión por defecto",
+        "default": 0
+      },
+      "commissionPercent": {
+        "type": "number",
+        "title": "Comisión porcentual",
+        "default": 10
+      },
+      "commissionFixed": {
+        "type": "number",
+        "title": "Comisión fija",
+        "default": 0
+      },
+      "minWithdrawal": {
+        "type": "number",
+        "title": "Retiro mínimo",
+        "default": 50
+      },
+      "cookieDays": {
+        "type": "number",
+        "title": "Días de cookie",
+        "default": 30
+      }
+    }
+  }
+}

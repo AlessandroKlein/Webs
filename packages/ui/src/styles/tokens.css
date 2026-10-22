@@ -40,6 +40,13 @@
   --ws-danger: #dc2626;
   --ws-info: #2563eb;
 
+  /* Estados semánticos (fondos suaves para badges, alertas y etiquetas) */
+  --ws-success-soft: rgba(22, 163, 74, 0.14);
+  --ws-warning-soft: rgba(217, 119, 6, 0.14);
+  --ws-danger-soft: rgba(220, 38, 38, 0.14);
+  --ws-info-soft: rgba(37, 99, 235, 0.14);
+  --ws-on-danger: #ffffff;
+
   /* Escala de espaciado */
   --ws-space-1: 0.25rem;
   --ws-space-2: 0.5rem;
@@ -97,6 +104,12 @@
   --ws-warning: #f59e0b;
   --ws-danger: #f87171;
   --ws-info: #60a5fa;
+
+  --ws-success-soft: rgba(34, 197, 94, 0.18);
+  --ws-warning-soft: rgba(245, 158, 11, 0.18);
+  --ws-danger-soft: rgba(248, 113, 113, 0.18);
+  --ws-info-soft: rgba(96, 165, 250, 0.18);
+  --ws-on-danger: #0b0f19;
 
   --ws-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --ws-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);

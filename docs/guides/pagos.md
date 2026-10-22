@@ -1,6 +1,6 @@
 # Pagos (arquitectura de pasarelas)
 
-Webs incluye un **núcleo de pagos** en la base y **cada pasarela como un bloque**
+Webs incluye un **núcleo de pagos** en la base y **cada pasarela como un plugin**
 que se registra como proveedor. El usuario activa solo las pasarelas que usa.
 
 ## Núcleo (base)
@@ -24,12 +24,12 @@ pago aprobado o **marcar pagado** uno pendiente (contra entrega).
 ## Tienda demo
 
 La ruta pública **`/store`** incluye un carrito y un checkout que integra los
-bloques de pasarela: elegís el proveedor y se crea la transacción con
+plugins de pasarela: elegís el proveedor y se crea la transacción con
 `POST /payments/checkout`.
 
-## Proveedores (bloques)
+## Proveedores (plugins)
 
-| Bloque | Método | Secretos |
+| Plugin | Método | Secretos |
 | ------ | ------ | -------- |
 | `mercadopago` | SDK oficial / API REST | `accessToken`, `webhookSecret` |
 | `modo` | SDK / API REST (QR) | `clientSecret`, `webhookSecret` |
@@ -39,12 +39,12 @@ bloques de pasarela: elegís el proveedor y se crea la transacción con
 | `ebanx` | API REST | `integrationKey`, `webhookSecret` |
 | `pos` | Contra entrega / terminal (mPOS, Point, Payway) | `apiKey`, `webhookSecret` |
 
-Cada bloque expone un endpoint `GET /public-config` (sin secretos) para el
-cliente y se configura en **Bloques → <proveedor> → Configurar**.
+Cada plugin expone un endpoint `GET /public-config` (sin secretos) para el
+cliente y se configura en **Plugins → <proveedor> → Configurar**.
 
 ## Contrato de proveedor (SDK)
 
-Un bloque de pasarela registra un `PaymentProviderAdapter`:
+Un plugin de pasarela registra un `PaymentProviderAdapter`:
 
 ```ts
 fastify.payments?.register({
@@ -69,4 +69,4 @@ fastify.payments?.register({
 ## Activar
 
 La plantilla **Mercado/E-commerce** (`templates/market.json`) instala todos los
-bloques de pago y crea la página **Pago** (slot `payment`).
+plugins de pago y crea la página **Pago** (slot `payment`).

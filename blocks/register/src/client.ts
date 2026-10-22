@@ -1,9 +1,9 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-export default defineClientBlock(manifest, ({ container }) => {
+export default defineClientPlugin(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = `<input class="input" id="reg-email" type="email" placeholder="Email" />
     <input class="input" id="reg-name" placeholder="Nombre" />
@@ -22,7 +22,7 @@ export default defineClientBlock(manifest, ({ container }) => {
     const inviteToken = (el.querySelector('#reg-invite') as HTMLInputElement).value;
     const msg = el.querySelector('#reg-msg') as HTMLParagraphElement;
 
-    const res = await fetch('/api/v1/blocks/register/register', {
+    const res = await fetch('/api/v1/plugins/register/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -39,8 +39,6 @@ interface BaseKeysResponse {
 /** Clave compuesta para indexar sobrescrituras: `${locale}\u0000${key}`. */
 const overrideId = (locale: string, key: string) => `${locale}\u0000${key}`;
 
-const EMPTY_VALUES: Record<string, string> = {};
-
 export function TranslationsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();

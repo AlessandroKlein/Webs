@@ -3,14 +3,14 @@
   "name": "Tienda online",
   "description": "E-commerce completo: productos, carrito, pagos, facturación y analíticas. Reutiliza el mismo núcleo que el gimnasio.",
   "blocks": [
-    { "id": "ecommerce", "config": { "shippingProvider": "flat", "originCountry": "AR" } },
+    { "id": "ecommerce", "config": { "shippingProvider": "local" } },
     { "id": "inventario", "config": { "lowStockThreshold": 5, "trackBySku": true } },
     { "id": "carrito", "config": {} },
     { "id": "mercadopago", "config": {} },
     { "id": "stripe", "config": {} },
     { "id": "paypal", "config": {} },
     { "id": "facturacion", "config": { "afipMode": "factura", "arcaEnvironment": "homol" } },
-    { "id": "marketing", "config": { "enableCoupons": true } },
+    { "id": "marketing", "config": { "defaultDiscountPercent": 10 } },
     { "id": "analytics", "config": { "provider": "internal", "trackPageViews": true } },
     { "id": "social", "config": { "allowImages": true, "enableLikes": true } },
     { "id": "search", "config": {} },
@@ -25,5 +25,74 @@
     { "label": "Productos", "path": "/productos", "order": 1 },
     { "label": "Carrito", "path": "/carrito", "order": 2 },
     { "label": "Ofertas", "path": "/ofertas", "order": 3 }
+  ],
+  "pages": [
+    {
+      "slug": "inicio",
+      "title": "Inicio",
+      "isHome": true,
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Mi Tienda", "level": 1 },
+            { "type": "text", "content": "Productos de calidad con envío y pago integrado." }
+          ]
+        },
+        {
+          "size": "half",
+          "blocks": [
+            { "type": "heading", "content": "Catálogo", "level": 3 },
+            { "type": "text", "content": "Publicá productos y gestioná el stock por SKU." }
+          ]
+        },
+        {
+          "size": "half",
+          "blocks": [
+            { "type": "heading", "content": "Pagos", "level": 3 },
+            { "type": "text", "content": "Mercado Pago, Stripe y PayPal con facturación AFIP." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "productos",
+      "title": "Productos",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Productos", "level": 1 },
+            { "type": "text", "content": "Explorá nuestro catálogo de productos." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "carrito",
+      "title": "Carrito",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Carrito", "level": 1 },
+            { "type": "text", "content": "Tu carrito de compras." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "ofertas",
+      "title": "Ofertas",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Ofertas", "level": 1 },
+            { "type": "text", "content": "Descuentos y promociones vigentes." }
+          ]
+        }
+      ]
+    }
   ]
 }

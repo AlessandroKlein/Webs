@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { REFRESH_TOKEN_COOKIE, ConflictError, UnauthorizedError } from '@webs/core';
 import { findUserWithPermissions, toPublicUser } from '../../lib/user';
 import { audit } from '../../lib/audit';
@@ -25,7 +25,7 @@ import { sendSmsOtp, verifySmsOtp } from './sms-otp';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   const setRefreshCookie = (
-    reply: import('fastify').FastifyReply,
+    reply: FastifyReply,
     token: string,
     ttlMs: number = REFRESH_TOKEN_TTL_MS,
   ) => {

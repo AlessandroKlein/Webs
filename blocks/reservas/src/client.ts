@@ -1,11 +1,11 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('webs_access_token') ?? ''}` });
 
-export default defineClientBlock(manifest, ({ container, config }) => {
+export default defineClientPlugin(manifest, ({ container, config }) => {
   const services = (Array.isArray(config.services) ? config.services : []) as Array<{ id: string; name: string; duration: number; price: number }>;
   const el = document.createElement('div');
   el.innerHTML = `<select class="input" id="svc">${services.map((s) => `<option value="${s.id}">${s.name} (${s.duration} min · $${s.price})</option>`).join('')}</select>
@@ -13,7 +13,7 @@ export default defineClientBlock(manifest, ({ container, config }) => {
     <button class="btn" id="book">Reservar</button><p class="muted" id="msg"></p>`;
   container.appendChild(el);
   el.querySelector('#book')!.addEventListener('click', async () => {
-    await fetch('/api/v1/blocks/reservas/bookings', {
+    await fetch('/api/v1/plugins/reservas/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ serviceId: (el.querySelector('#svc') as HTMLSelectElement).value, name: (el.querySelector('#name') as HTMLInputElement).value, date: (el.querySelector('#date') as HTMLInputElement).value }),

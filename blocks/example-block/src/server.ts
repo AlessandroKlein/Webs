@@ -1,19 +1,19 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque de ejemplo — servidor.
+ * Plugin de ejemplo — servidor.
  *
- * Registra una ruta bajo `/api/v1/blocks/example` y ejecuta hooks de ciclo de
- * vida. Es la referencia mínima para crear un bloque con el SDK.
+ * Registra una ruta bajo `/api/v1/plugins/example` y ejecuta hooks de ciclo de
+ * vida. Es la referencia mínima para crear un plugin con el SDK.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify) => {
     fastify.get('/', async () => ({
       block: 'example',
-      message: 'hola desde el bloque de ejemplo',
+      message: 'hola desde el plugin de ejemplo',
       ts: new Date().toISOString(),
     }));
 
@@ -31,7 +31,7 @@ export default defineBlock(manifest, {
     });
   },
   hooks: {
-    onInstall: async (ctx) => ctx.logger.info('bloque de ejemplo instalado'),
-    onUninstall: async (ctx) => ctx.logger.info('bloque de ejemplo desinstalado'),
+    onInstall: async (ctx) => ctx.logger.info('plugin de ejemplo instalado'),
+    onUninstall: async (ctx) => ctx.logger.info('plugin de ejemplo desinstalado'),
   },
 });

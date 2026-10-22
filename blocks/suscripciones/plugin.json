@@ -1,0 +1,42 @@
+{
+  "name": "@webs/block-suscripciones",
+  "id": "suscripciones",
+  "version": "0.1.0",
+  "type": "plugin",
+  "category": "negocio",
+  "permissions": [
+    "membership.manage"
+  ],
+  "displayName": {
+    "en": "Subscriptions",
+    "es": "Suscripciones"
+  },
+  "description": {
+    "en": "Membership plans with expiry and payment.",
+    "es": "Planes de suscripción con vencimiento y pago."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": [
+    "content"
+  ],
+  "settings": {
+    "type": "object",
+    "title": "Suscripciones",
+    "properties": {
+      "currency": {
+        "type": "string",
+        "title": "Moneda",
+        "default": "ARS"
+      },
+      "requirePayment": {
+        "type": "boolean",
+        "title": "Requiere pago",
+        "default": true
+      }
+    }
+  }
+}

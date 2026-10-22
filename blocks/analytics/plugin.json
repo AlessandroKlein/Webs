@@ -1,0 +1,130 @@
+{
+  "name": "@webs/block-analytics",
+  "id": "analytics",
+  "version": "0.1.0",
+  "type": "plugin",
+  "displayName": {
+    "en": "Analytics",
+    "es": "Analítica"
+  },
+  "description": {
+    "en": "Business metrics, revenue and page view tracking.",
+    "es": "Métricas de negocio, ingresos y seguimiento de visitas."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": [
+    "footer"
+  ],
+  "category": "seo",
+  "menu": [
+    {
+      "id": "admin",
+      "label": {
+        "en": "Analytics",
+        "es": "Analítica"
+      },
+      "path": "/admin/analytics",
+      "order": 8,
+      "target": "admin"
+    }
+  ],
+  "permissions": [
+    "analytics.read"
+  ],
+  "settings": {
+    "type": "object",
+    "title": "Analítica",
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "title": "Registrar visitas",
+        "default": true
+      },
+      "provider": {
+        "type": "string",
+        "title": "Proveedor",
+        "enum": [
+          "internal",
+          "google-analytics",
+          "plausible",
+          "matomo"
+        ],
+        "default": "internal",
+        "x-ui": {
+          "help": {
+            "text": "GA4 (Measurement Protocol), Plausible, Matomo o el interno. El interno no envía datos a terceros.",
+            "url": "https://developers.google.com/analytics/devguides/collection/protocol/ga4"
+          }
+        }
+      },
+      "trackingId": {
+        "type": "string",
+        "title": "ID de seguimiento",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "ID de medición de Google Analytics 4 (formato G-XXXXXXX) para el Measurement Protocol.",
+            "url": "https://developers.google.com/analytics/devguides/collection/protocol/ga4"
+          }
+        }
+      },
+      "apiSecret": {
+        "type": "string",
+        "title": "API Secret (GA4)",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "API Secret de GA4 para autenticar el Measurement Protocol. Se usa solo en el servidor.",
+            "url": "https://developers.google.com/analytics/devguides/collection/protocol/ga4"
+          }
+        }
+      },
+      "domain": {
+        "type": "string",
+        "title": "Dominio (Plausible)",
+        "x-ui": {
+          "help": {
+            "text": "Dominio registrado en Plausible (ej. midominio.com).",
+            "url": "https://plausible.io/docs"
+          }
+        }
+      },
+      "serverUrl": {
+        "type": "string",
+        "title": "URL del servidor (Plausible/Matomo)",
+        "x-ui": {
+          "help": {
+            "text": "URL del servidor de Plausible (ej. https://plausible.io) o de tu instancia Matomo.",
+            "url": "https://plausible.io/docs"
+          }
+        }
+      },
+      "siteId": {
+        "type": "string",
+        "title": "ID de sitio (Matomo)",
+        "x-ui": {
+          "help": {
+            "text": "ID numérico del sitio en Matomo.",
+            "url": "https://matomo.org/docs/"
+          }
+        }
+      },
+      "trackPageViews": {
+        "type": "boolean",
+        "title": "Registrar vistas de página",
+        "default": true
+      },
+      "anonymizeIp": {
+        "type": "boolean",
+        "title": "Anonimizar IP",
+        "default": true
+      }
+    }
+  }
+}

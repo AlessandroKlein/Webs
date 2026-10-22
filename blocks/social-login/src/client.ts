@@ -1,15 +1,15 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-export default defineClientBlock(manifest, ({ container, config }) => {
+export default defineClientPlugin(manifest, ({ container, config }) => {
   const configured = (Array.isArray(config.providers) ? config.providers : []) as Array<{
     id: string;
     name: string;
     enabled?: boolean;
   }>;
-  const enabled = configured.filter((p) => p.enabled);
+  const enabled = configured.filter((p) => Boolean(p.enabled));
 
   const el = document.createElement('div');
   el.innerHTML = `<div id="social-btns"></div><p class="muted" id="social-msg"></p>`;
@@ -28,7 +28,7 @@ export default defineClientBlock(manifest, ({ container, config }) => {
     b.addEventListener('click', async () => {
       // Referencia: en un flujo real aquí se redirige al proveedor OAuth (TODO).
       // Se simula el callback con un providerId dummy y un email.
-      const res = await fetch('/api/v1/blocks/social-login/verify', {
+      const res = await fetch('/api/v1/plugins/social-login/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

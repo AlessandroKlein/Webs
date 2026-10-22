@@ -1,7 +1,7 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 interface SearchResults {
   results: {
@@ -11,7 +11,7 @@ interface SearchResults {
   };
 }
 
-export default defineClientBlock(manifest, ({ container }) => {
+export default defineClientPlugin(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = `<input class="input" placeholder="Buscar…" /><div id="res" class="stack" style="margin-top:4px"></div>`;
   container.appendChild(el);
@@ -25,7 +25,7 @@ export default defineClientBlock(manifest, ({ container }) => {
       return;
     }
     try {
-      const r = await fetch(`/api/v1/blocks/search/search?q=${encodeURIComponent(q)}`);
+      const r = await fetch(`/api/v1/plugins/search/search?q=${encodeURIComponent(q)}`);
       const data = (await r.json()) as SearchResults;
       const { content, posts, products } = data.results;
       const items = [

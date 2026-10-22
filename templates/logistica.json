@@ -1,0 +1,108 @@
+{
+  "id": "logistica",
+  "name": "Centro de logística",
+  "description": "Gestión de depósitos y envíos: inventario por SKU, órdenes, transportistas (Andreani, OCA, Correo Argentino, MercadoLibre), POS/código de barras, remitos con firma, flujos de trabajo, facturación y analíticas.",
+  "blocks": [
+    { "id": "organizaciones", "config": { "defaultPlan": "free", "requireApproval": false, "shareInventoryByDefault": true } },
+    { "id": "inventario", "config": { "lowStockThreshold": 5, "trackBySku": true } },
+    { "id": "ecommerce", "config": { "enableShippingProviders": true, "shippingProvider": "local" } },
+    { "id": "pos", "config": { "mode": "terminal" } },
+    { "id": "documentos", "config": { "requireSignature": true, "auditTrail": true } },
+    { "id": "workflows", "config": { "defaultEnabled": true } },
+    { "id": "andreani" },
+    { "id": "oca" },
+    { "id": "correo" },
+    { "id": "mercadolibre" },
+    { "id": "storage-s3" },
+    { "id": "facturacion", "config": { "afipMode": "factura", "arcaEnvironment": "homol" } },
+    { "id": "notificaciones" },
+    { "id": "analytics", "config": { "provider": "internal", "trackPageViews": true } },
+    { "id": "support" }
+  ],
+  "settings": {
+    "site": { "name": "Mi Logística", "tagline": "Depósitos y envíos bajo control" },
+    "appearance": { "primaryColor": "#0f766e", "defaultTheme": "light" }
+  },
+  "menu": [
+    { "label": "Inicio", "path": "/", "order": 0 },
+    { "label": "Inventario", "path": "/inventario", "order": 1 },
+    { "label": "Envíos", "path": "/envios", "order": 2 },
+    { "label": "Remitos", "path": "/remitos", "order": 3 }
+  ],
+  "pages": [
+    {
+      "slug": "inicio",
+      "title": "Inicio",
+      "isHome": true,
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Centro de logística", "level": 1 },
+            { "type": "text", "content": "Gestioná inventario, órdenes y envíos desde un único panel. Integrá Andreani, OCA, Correo Argentino y MercadoLibre." }
+          ]
+        },
+        {
+          "size": "third",
+          "blocks": [
+            { "type": "heading", "content": "Inventario", "level": 3 },
+            { "type": "text", "content": "Control de stock por SKU con alertas de stock bajo." }
+          ]
+        },
+        {
+          "size": "third",
+          "blocks": [
+            { "type": "heading", "content": "Envíos", "level": 3 },
+            { "type": "text", "content": "Cotización y seguimiento con los principales transportistas." }
+          ]
+        },
+        {
+          "size": "third",
+          "blocks": [
+            { "type": "heading", "content": "Remitos", "level": 3 },
+            { "type": "text", "content": "Documentos con firma digital y trazabilidad de auditoría." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "inventario",
+      "title": "Inventario",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Inventario", "level": 1 },
+            { "type": "text", "content": "Administrá el stock de tus depósitos desde el panel de inventario." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "envios",
+      "title": "Envíos",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Envíos", "level": 1 },
+            { "type": "text", "content": "Cotizá y seguí tus envíos con los transportistas integrados." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "remitos",
+      "title": "Remitos",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Remitos", "level": 1 },
+            { "type": "text", "content": "Generá remitos con firma digital y auditoría completa." }
+          ]
+        }
+      ]
+    }
+  ]
+}

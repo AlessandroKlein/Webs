@@ -26,7 +26,7 @@ export const pt: Record<string, string> = {
   'nav.dashboard': 'Painel',
   'nav.content': 'Conteúdo',
   'nav.email': 'E-mails',
-  'nav.blocks': 'Blocos',
+  'nav.plugins': 'Plugins',
   'nav.templates': 'Modelos',
   'nav.payments': 'Pagamentos',
   'nav.media': 'Mídia',
@@ -40,7 +40,7 @@ export const pt: Record<string, string> = {
   'nav.api': 'Tokens de API',
   'nav.account': 'Minha conta',
   'nav.pages': 'Páginas',
-  'nav.installedBlocks': 'Blocos instalados',
+  'nav.installedPlugins': 'Plugins instalados',
   'nav.catalog': 'Catálogo',
   'dashboard.quickAccess': 'Acessos rápidos',
 

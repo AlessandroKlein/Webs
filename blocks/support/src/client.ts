@@ -1,18 +1,18 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 function applyStyle(el: HTMLElement, styles: Partial<CSSStyleDeclaration>): void {
   Object.assign(el.style, styles);
 }
 
 /**
- * Bloque de soporte — cliente. Renderiza un botón flotante (esquina inferior
+ * Plugin de soporte — cliente. Renderiza un botón flotante (esquina inferior
  * derecha) con ícono de auriculares que abre un mini-formulario para crear un
- * ticket público vía `POST /api/v1/blocks/support/tickets`. Sin `alert/prompt`.
+ * ticket público vía `POST /api/v1/plugins/support/tickets`. Sin `alert/prompt`.
  */
-export default defineClientBlock(manifest, ({ config }) => {
+export default defineClientPlugin(manifest, ({ config }) => {
   if (config.enabled === false) return;
 
   const root = document.createElement('div');
@@ -101,7 +101,7 @@ export default defineClientBlock(manifest, ({ config }) => {
     statusEl.textContent = 'Enviando…';
     statusEl.style.color = '';
     if (submitBtn) submitBtn.disabled = true;
-    void fetch('/api/v1/blocks/support/tickets', {
+    void fetch('/api/v1/plugins/support/tickets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subject, message }),

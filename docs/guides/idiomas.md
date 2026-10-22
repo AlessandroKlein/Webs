@@ -29,12 +29,12 @@ Los recursos se fusionan así (en ese orden de precedencia):
 2. Sobrescrituras del administrador (tabla `Translation`, editables en
    **Ajustes → Traducciones**).
 
-## Mismo patrón para módulos/bloques
+## Mismo patrón para módulos/plugins
 
-Los bloques aportan sus propias traducciones declarándolas en `block.json`
+Los plugins aportan sus propias traducciones declarándolas en `plugin.json`
 (campo `translations`: locale → clave → texto). Al instalarse, el backend las
 registra y `/public/i18n` las incluye en un **namespace propio (el id del
-bloque)**, solo si el idioma está habilitado **y** el bloque está instalado. Así,
+plugin)**, solo si el idioma está habilitado **y** el plugin está instalado. Así,
 ni idiomas ni módulos no usados añaden peso al cliente.
 
 ```json
@@ -47,5 +47,5 @@ ni idiomas ni módulos no usados añaden peso al cliente.
 }
 ```
 
-En el `mount` del bloque, `i18n.t('greeting')` resuelve automáticamente en su
+En el `mount` del plugin, `i18n.t('greeting')` resuelve automáticamente en su
 propio namespace.

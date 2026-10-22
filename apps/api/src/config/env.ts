@@ -7,6 +7,14 @@ import { z } from 'zod';
  */
 const boolFromEnv = z.preprocess((v) => v === 'true' || v === true || v === 1 || v === '1', z.boolean());
 
+/**
+ * Defaults de desarrollo SOLO para entornos no productivos. En producción
+ * `loadEnv` falla (fail-fast) si los secretos JWT faltan o coinciden con estos
+ * valores, para evitar tokens forgeables.
+ */
+const DEFAULT_JWT_SECRET = 'dev-secret-change-me-please-0123456789';
+const DEFAULT_JWT_REFRESH_SECRET = 'dev-refresh-secret-change-me-0123456789';
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   HOST: z.string().default('0.0.0.0'),
@@ -15,11 +23,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().url().optional(),
 
-  JWT_SECRET: z.string().min(16).default('dev-secret-change-me-please-0123456789'),
-  JWT_REFRESH_SECRET: z
-    .string()
-    .min(16)
-    .default('dev-refresh-secret-change-me-0123456789'),
+  JWT_SECRET: z.string().min(32).default(DEFAULT_JWT_SECRET),
+  JWT_REFRESH_SECRET: z.string().min(32).default(DEFAULT_JWT_REFRESH_SECRET),
 
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   LOG_LEVEL: z
@@ -52,7 +57,29 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     console.error('Variables de entorno inválidas:\n' + JSON.stringify(parsed.error.issues, null, 2));
     throw new Error('Configuración de entorno inválida');
   }
-  return parsed.data;
+  const env = parsed.data;
+
+  // F1 (P0): en producción los secretos JWT deben ser fuertes y propios. Si
+  // faltan (default aplicado) o coinciden con el default de desarrollo, la app
+  // NO arranca: de lo contrario cualquier atacante podría forjar tokens.
+  // Rotación: regenerar con `openssl rand -base64 48` y actualizar las variables
+  // de entorno (todas las instancias), invalidando sesiones/refresh previos.
+  if (env.NODE_ENV === 'production') {
+    const insecure: string[] = [];
+    if (!env.JWT_SECRET || env.JWT_SECRET === DEFAULT_JWT_SECRET) insecure.push('JWT_SECRET');
+    if (!env.JWT_REFRESH_SECRET || env.JWT_REFRESH_SECRET === DEFAULT_JWT_REFRESH_SECRET) {
+      insecure.push('JWT_REFRESH_SECRET');
+    }
+    if (insecure.length) {
+      console.error(
+        `Secretos JWT inseguros en producción (${insecure.join(', ')}): ` +
+          'definí valores fuertes (>=32 caracteres) distintos del default de desarrollo.',
+      );
+      throw new Error('Configuración de seguridad inválida: secretos JWT inseguros');
+    }
+  }
+
+  return env;
 }
 
 export function corsOrigins(env: Env): string[] {

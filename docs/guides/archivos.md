@@ -18,10 +18,10 @@ Límite: 5 MB, solo imágenes.
 El almacenamiento usa un **registro de drivers** (análogo a pagos):
 
 - **`local`** (núcleo, por defecto): guarda en `data/uploads/`.
-- **`s3`** (bloque `storage-s3`): Amazon S3, Cloudflare R2 o MinIO.
+- **`s3`** (plugin `storage-s3`): Amazon S3, Cloudflare R2 o MinIO.
 
 Configurás el driver activo con la variable `STORAGE_DRIVER` (por defecto
-`local`). El bloque `storage-s3` se configura en **Bloques → Storage S3/R2/MinIO**
+`local`). El plugin `storage-s3` se configura en **Plugins → Storage S3/R2/MinIO**
 (con `accessKeyId`/`secretAccessKey` cifrados vía `x-ui.secret`).
 
 ```env

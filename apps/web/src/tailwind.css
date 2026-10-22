@@ -24,6 +24,11 @@
   --color-warning: var(--ws-warning);
   --color-danger: var(--ws-danger);
   --color-info: var(--ws-info);
+  --color-success-soft: var(--ws-success-soft);
+  --color-warning-soft: var(--ws-warning-soft);
+  --color-danger-soft: var(--ws-danger-soft);
+  --color-info-soft: var(--ws-info-soft);
+  --color-on-danger: var(--ws-on-danger);
 
   --radius-sm: var(--ws-radius-sm);
   --radius-md: var(--ws-radius-md);

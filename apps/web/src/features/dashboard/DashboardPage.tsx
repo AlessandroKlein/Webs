@@ -32,7 +32,7 @@ export function DashboardPage() {
   const metrics = [
     { key: 'users', label: t('nav.users'), icon: 'bi-people' },
     { key: 'content', label: t('nav.content'), icon: 'bi-file-earmark-text' },
-    { key: 'blocks', label: t('nav.installedBlocks'), icon: 'bi-grid-3x3-gap' },
+    { key: 'blocks', label: t('nav.installedPlugins'), icon: 'bi-grid-3x3-gap' },
     { key: 'payments', label: t('nav.payments'), icon: 'bi-credit-card' },
   ] as const;
 

@@ -1,8 +1,8 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
 import { issueInvoice } from '../../../apps/api/src/integrations/tax';
-import manifestJson from '../block.json';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /** Número de factura autoincremental simulado: `F-<timestamp>-<4 dígitos>`. */
 function buildInvoiceNumber(): string {
@@ -79,7 +79,7 @@ function renderInvoiceHtml(template: string, invoice: Record<string, any>): stri
   );
 }
 
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const cfg = config as Record<string, unknown>;
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;

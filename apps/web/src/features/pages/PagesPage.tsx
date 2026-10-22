@@ -5,23 +5,31 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { Spinner } from '../../components/ui/Spinner';
-
-interface Page {
-  id: string;
-  slug: string;
-  title: string;
-  layout: Array<{ blocks: string[]; size?: string }>;
-  redirectUrl: string | null;
-  isHome: boolean;
-}
-
-type Size = 'full' | 'half' | 'third';
+import {
+  ELEMENT_TYPES,
+  createElement,
+  itemLabel,
+  isPageElement,
+  type Page,
+  type PageElement,
+  type PageElementType,
+  type PageItem,
+  type Size,
+} from './pageTypes';
+import { ElementView } from './PageRenderer';
 
 interface CatalogBlock {
   id: string;
   name: string;
   displayName?: Record<string, string>;
 }
+
+interface InstalledBlock {
+  blockId: string;
+  name: string;
+}
+
+type Section = { blocks: PageItem[]; size: Size };
 
 const SIZE_WIDTH: Record<Size, string> = {
   full: '100%',
@@ -35,29 +43,87 @@ const SIZE_LABEL: Record<Size, string> = {
   third: 'Tercio',
 };
 
+/** Editor inline de un elemento de contenido (título, texto, …). */
+function ElementEditor({
+  element,
+  onChange,
+  onClose,
+}: {
+  element: PageElement;
+  onChange: (patch: Partial<PageElement>) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="stack"
+      style={{
+        gap: 'var(--ws-space-2)',
+        padding: 'var(--ws-space-3)',
+        border: '1px dashed var(--ws-border)',
+        borderRadius: 'var(--ws-radius-sm)',
+        background: 'var(--ws-surface-2)',
+        marginTop: 'var(--ws-space-2)',
+      }}
+    >
+      {element.type === 'heading' && (
+        <label className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'center' }}>
+          Nivel
+          <select
+            className="input"
+            style={{ width: 'auto' }}
+            value={String(element.level ?? 2)}
+            onChange={(e) => onChange({ level: Number(e.target.value) })}
+          >
+            {[1, 2, 3, 4].map((l) => (
+              <option key={l} value={l}>H{l}</option>
+            ))}
+          </select>
+        </label>
+      )}
+      {element.type === 'text' || element.type === 'html' ? (
+        <textarea
+          className="input"
+          rows={element.type === 'html' ? 4 : 2}
+          value={element.content ?? ''}
+          onChange={(e) => onChange({ content: e.target.value })}
+          placeholder={element.type === 'html' ? '<div>HTML…</div>' : 'Texto…'}
+        />
+      ) : element.type !== 'divider' ? (
+        <TextField
+          label={element.type === 'spacer' ? 'Alto (px)' : element.type === 'image' ? 'URL de la imagen' : 'Contenido'}
+          value={element.content ?? ''}
+          onChange={(e) => onChange({ content: e.target.value })}
+        />
+      ) : (
+        <p className="muted" style={{ margin: 0 }}>El separador no tiene contenido editable.</p>
+      )}
+      <div className="row" style={{ justifyContent: 'flex-end' }}>
+        <Button variant="secondary" onClick={onClose}>Listo</Button>
+      </div>
+    </div>
+  );
+}
+
 export function PagesPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['pages'],
     queryFn: () => api.get<Page[]>('/api/v1/pages'),
   });
-  const { data: blocksData } = useQuery({
-    queryKey: ['blocks'],
-    queryFn: () => api.get<{ installed: Array<{ blockId: string; name: string }> }>('/api/v1/blocks'),
-  });
-  const { data: catalogData } = useQuery({
-    queryKey: ['blocks-catalog'],
-    queryFn: () => api.get<{ local: CatalogBlock[] }>('/api/v1/blocks/catalog'),
+  const { data: pluginsData } = useQuery({
+    queryKey: ['plugins'],
+    queryFn: () =>
+      api.get<{ installed: InstalledBlock[]; catalog: CatalogBlock[] }>('/api/v1/plugins'),
   });
 
   // Mapa id → nombre legible (displayName.es || name).
   const blockNames = useMemo(() => {
     const m = new Map<string, string>();
-    for (const b of catalogData?.local ?? []) {
+    for (const b of pluginsData?.catalog ?? []) {
       m.set(b.id, b.displayName?.es ?? b.name);
     }
     return m;
-  }, [catalogData]);
+  }, [pluginsData]);
   const blockLabel = (id: string) => blockNames.get(id) ?? id;
 
   const create = useMutation({
@@ -83,7 +149,7 @@ export function PagesPage() {
   const [title, setTitle] = useState('');
   const [redirectUrl, setRedirectUrl] = useState('');
   const [isHome, setIsHome] = useState(false);
-  const [sections, setSections] = useState<Array<{ blocks: string[]; size: Size }>>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [view, setView] = useState<'editor' | 'list'>('editor');
@@ -91,11 +157,15 @@ export function PagesPage() {
   // Estado para drag & drop nativo.
   const [dragSection, setDragSection] = useState<number | null>(null);
   const [dragOverSection, setDragOverSection] = useState<number | null>(null);
-  const [dragBlock, setDragBlock] = useState<{ section: number; index: number } | null>(null);
-  const [dragOverBlock, setDragOverBlock] = useState<{ section: number; index: number } | null>(null);
+  const [dragItem, setDragItem] = useState<{ section: number; index: number } | null>(null);
+  const [dragOverItem, setDragOverItem] = useState<{ section: number; index: number } | null>(null);
+
+  // Elemento que se está editando inline (índice de sección + índice de item).
+  const [editingItem, setEditingItem] = useState<{ section: number; index: number } | null>(null);
 
   const resetForm = () => {
     setSlug(''); setTitle(''); setRedirectUrl(''); setSections([]); setIsHome(false); setEditingId(null);
+    setEditingItem(null);
   };
   const editPage = (p: Page) => {
     setEditingId(p.id);
@@ -103,16 +173,46 @@ export function PagesPage() {
     setTitle(p.title);
     setRedirectUrl(p.redirectUrl ?? '');
     setIsHome(p.isHome);
-    setSections((p.layout ?? []).map((s) => ({ blocks: s.blocks ?? [], size: (s.size as Size) ?? 'full' })));
+    setEditingItem(null);
+    setSections(
+      (p.layout ?? []).map((s) => ({
+        blocks: (s.blocks ?? []) as PageItem[],
+        size: (s.size as Size) ?? 'full',
+      })),
+    );
   };
 
-  const installedBlocks = (blocksData?.installed ?? []).map((b) => b.blockId);
+  const installedBlocks = (pluginsData?.installed ?? []).map((b) => b.blockId);
 
   const addSection = () => setSections((s) => [...s, { blocks: [], size: 'full' }]);
-  const removeSection = (i: number) => setSections((s) => s.filter((_, idx) => idx !== i));
+  const removeSection = (i: number) => {
+    setSections((s) => s.filter((_, idx) => idx !== i));
+    setEditingItem(null);
+  };
   const setSize = (i: number, size: Size) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, size } : sec)));
-  const addBlock = (i: number, blockId: string) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: [...sec.blocks, blockId] } : sec)));
-  const removeBlock = (i: number, index: number) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: sec.blocks.filter((_, bi) => bi !== index) } : sec)));
+
+  const addBlock = (i: number, blockId: string) =>
+    setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: [...sec.blocks, blockId] } : sec)));
+
+  const addElement = (i: number, type: PageElementType) =>
+    setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: [...sec.blocks, createElement(type)] } : sec)));
+
+  const updateElement = (i: number, index: number, patch: Partial<PageElement>) =>
+    setSections((s) =>
+      s.map((sec, idx) => {
+        if (idx !== i) return sec;
+        const blocks = sec.blocks.map((item, bi) => {
+          if (bi !== index || !isPageElement(item)) return item;
+          return { ...item, ...patch };
+        });
+        return { ...sec, blocks };
+      }),
+    );
+
+  const removeItem = (i: number, index: number) => {
+    setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: sec.blocks.filter((_, bi) => bi !== index) } : sec)));
+    setEditingItem(null);
+  };
 
   const moveSection = (from: number, to: number) =>
     setSections((s) => {
@@ -124,7 +224,8 @@ export function PagesPage() {
       return next;
     });
 
-  const moveBlock = (from: { section: number; index: number } | null, to: { section: number; index: number }) => {
+  /** Mueve un item entre secciones (y dentro de la misma). */
+  const moveItem = (from: { section: number; index: number } | null, to: { section: number; index: number }) => {
     if (!from) return;
     setSections((s) => {
       if (from.section < 0 || from.section >= s.length || to.section < 0 || to.section >= s.length) return s;
@@ -138,8 +239,9 @@ export function PagesPage() {
       dst.blocks.splice(Math.min(to.index, dst.blocks.length), 0, moved);
       return next;
     });
-    setDragBlock(null);
-    setDragOverBlock(null);
+    setEditingItem(null);
+    setDragItem(null);
+    setDragOverItem(null);
   };
 
   if (isLoading) return <Spinner />;
@@ -183,11 +285,11 @@ export function PagesPage() {
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--ws-border)', margin: 'var(--ws-space-4) 0' }} />
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>Secciones (bloques + tamaño)</h3>
+          <h3 style={{ margin: 0 }}>Secciones (bloques + elementos + tamaño)</h3>
           <Button variant="secondary" onClick={addSection}>+ Agregar sección</Button>
         </div>
         <p className="muted" style={{ margin: 'var(--ws-space-1) 0 var(--ws-space-3)' }}>
-          Arrastrá el icono ⠿ para reordenar secciones, o los bloques para reordenarlos.
+          Arrastrá el icono ⠿ para reordenar secciones o elementos. Usá ↑/↓ para mover un elemento, o el selector «Mover a» para cambiarlo de sección.
         </p>
 
         <div className="stack" style={{ marginTop: 'var(--ws-space-3)' }}>
@@ -242,62 +344,118 @@ export function PagesPage() {
                   </Button>
                 ))}
               </div>
-              <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-1)' }}>
-                <select
-                  className="input"
-                  style={{ width: 'auto' }}
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) addBlock(i, e.target.value);
-                    e.target.value = '';
-                  }}
-                >
-                  <option value="">+ Agregar bloque…</option>
-                  {installedBlocks.map((b) => (
-                    <option key={b} value={b}>{blockLabel(b)}</option>
-                  ))}
-                </select>
-                {sec.blocks.map((b, bi) => (
-                  <span
+
+              <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
+                {sec.blocks.map((item, bi) => (
+                  <div
                     key={bi}
-                    className="badge"
+                    className="stack"
                     draggable
                     onDragStart={(e: DragEvent) => {
-                      e.dataTransfer.setData('text/plain', b);
+                      e.dataTransfer.setData('text/plain', 'item');
                       e.dataTransfer.effectAllowed = 'move';
-                      setDragBlock({ section: i, index: bi });
+                      setDragItem({ section: i, index: bi });
                     }}
-                    onDragEnd={() => { setDragBlock(null); setDragOverBlock(null); }}
+                    onDragEnd={() => { setDragItem(null); setDragOverItem(null); }}
                     onDragOver={(e: DragEvent) => {
-                      if (dragBlock === null) return;
+                      if (dragItem === null) return;
                       e.preventDefault();
                       e.stopPropagation();
                       e.dataTransfer.dropEffect = 'move';
-                      setDragOverBlock({ section: i, index: bi });
+                      setDragOverItem({ section: i, index: bi });
                     }}
                     onDrop={(e: DragEvent) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      moveBlock(dragBlock, { section: i, index: bi });
+                      moveItem(dragItem, { section: i, index: bi });
                     }}
-                    title="Arrastrar para reordenar el bloque"
+                    title="Arrastrar para reordenar o mover de sección"
                     style={{
-                      display: 'inline-flex',
-                      gap: 6,
-                      alignItems: 'center',
+                      border: '1px solid var(--ws-border)',
+                      borderRadius: 'var(--ws-radius-sm)',
+                      padding: 'var(--ws-space-2)',
+                      background: 'var(--ws-surface)',
                       cursor: 'grab',
-                      outline: dragOverBlock && dragOverBlock.section === i && dragOverBlock.index === bi ? '1px dashed var(--ws-primary)' : undefined,
+                      outline: dragOverItem && dragOverItem.section === i && dragOverItem.index === bi ? '1px dashed var(--ws-primary)' : undefined,
                     }}
                   >
-                    {blockLabel(b)}
-                    <button
-                      type="button"
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0, lineHeight: 1 }}
-                      onClick={() => removeBlock(i, bi)}
-                      title="Quitar bloque"
-                    >✕</button>
-                  </span>
+                    <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-1)', flexWrap: 'wrap' }}>
+                      <i className="bi bi-grip-vertical" style={{ color: 'var(--ws-muted)' }} />
+                      <span className="badge" style={{ cursor: 'grab' }}>
+                        {isPageElement(item) ? 'Elemento' : 'Plugin'}
+                      </span>
+                      <span style={{ flex: 1, minWidth: 120 }}>{itemLabel(item, blockLabel)}</span>
+                      <Button variant="ghost" onClick={() => moveItem({ section: i, index: bi }, { section: i, index: bi - 1 })} disabled={bi === 0} title="Subir elemento" style={{ padding: '2px 6px', lineHeight: 1 }}>↑</Button>
+                      <Button variant="ghost" onClick={() => moveItem({ section: i, index: bi }, { section: i, index: bi + 1 })} disabled={bi === sec.blocks.length - 1} title="Bajar elemento" style={{ padding: '2px 6px', lineHeight: 1 }}>↓</Button>
+                      {isPageElement(item) && (
+                        <Button variant="ghost" onClick={() => setEditingItem(editingItem?.section === i && editingItem.index === bi ? null : { section: i, index: bi })} title="Editar elemento" style={{ padding: '2px 6px', lineHeight: 1 }}>✎</Button>
+                      )}
+                      <select
+                        className="input"
+                        style={{ width: 'auto', padding: '2px 6px' }}
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value !== '') moveItem({ section: i, index: bi }, { section: Number(e.target.value), index: 9999 });
+                          e.target.value = '';
+                        }}
+                        title="Mover a otra sección"
+                      >
+                        <option value="">Mover a…</option>
+                        {sections.map((_, si) => (
+                          <option key={si} value={si}>Sección {si + 1}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ws-danger)', padding: 0, lineHeight: 1 }}
+                        onClick={() => removeItem(i, bi)}
+                        title="Quitar elemento"
+                      >✕</button>
+                    </div>
+                    {editingItem?.section === i && editingItem.index === bi && isPageElement(item) && (
+                      <ElementEditor
+                        element={item}
+                        onChange={(patch) => updateElement(i, bi, patch)}
+                        onClose={() => setEditingItem(null)}
+                      />
+                    )}
+                  </div>
                 ))}
+
+                {sec.blocks.length === 0 && (
+                  <p className="muted" style={{ margin: 0 }}>Sin elementos en esta sección.</p>
+                )}
+
+                <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-1)' }}>
+                  <select
+                    className="input"
+                    style={{ width: 'auto' }}
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) addBlock(i, e.target.value);
+                      e.target.value = '';
+                    }}
+                  >
+                    <option value="">+ Agregar plugin…</option>
+                    {installedBlocks.map((b) => (
+                      <option key={b} value={b}>{blockLabel(b)}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="input"
+                    style={{ width: 'auto' }}
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) addElement(i, e.target.value as PageElementType);
+                      e.target.value = '';
+                    }}
+                  >
+                    <option value="">+ Agregar elemento…</option>
+                    {ELEMENT_TYPES.map((el) => (
+                      <option key={el.type} value={el.type}>{el.label}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           ))}
@@ -326,15 +484,19 @@ export function PagesPage() {
                   <div className="muted" style={{ fontSize: '0.75rem', marginBottom: 4 }}>
                     Sección {i + 1} · {SIZE_LABEL[sec.size]}
                   </div>
-                  <div className="row" style={{ flexWrap: 'wrap', gap: 4 }}>
-                    {sec.blocks.length === 0 ? (
-                      <span className="muted" style={{ fontSize: '0.8rem' }}>Sin bloques</span>
-                    ) : (
-                      sec.blocks.map((b, bi) => (
-                        <span key={bi} className="badge">{blockLabel(b)}</span>
-                      ))
-                    )}
-                  </div>
+                  {sec.blocks.length === 0 ? (
+                    <span className="muted" style={{ fontSize: '0.8rem' }}>Sin elementos</span>
+                  ) : (
+                    sec.blocks.map((item, bi) =>
+                      isPageElement(item) ? (
+                        <div key={bi} style={{ marginBottom: 4 }}>
+                          <ElementView element={item} />
+                        </div>
+                      ) : (
+                        <span key={bi} className="badge" style={{ marginRight: 4 }}>{blockLabel(item)}</span>
+                      ),
+                    )
+                  )}
                 </div>
               ))}
             </div>

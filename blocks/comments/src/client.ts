@@ -1,9 +1,9 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-export default defineClientBlock(manifest, ({ container }) => {
+export default defineClientPlugin(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = `<h4>Valoración</h4>
     <div class="row"><input class="input" id="c-author" placeholder="Tu nombre" /><input class="input" id="c-rating" type="number" min="1" max="5" value="5" style="width:80px" /></div>
@@ -12,14 +12,14 @@ export default defineClientBlock(manifest, ({ container }) => {
   container.appendChild(el);
 
   const refresh = async () => {
-    const res = await fetch('/api/v1/blocks/comments/comments');
+    const res = await fetch('/api/v1/plugins/comments/comments');
     const list = (await res.json()) as Array<{ author: string; body: string; rating: number }>;
     const target = el.querySelector('#c-list')!;
     target.innerHTML = list.map((c) => `<p><strong>${'★'.repeat(c.rating)}${'☆'.repeat(5 - c.rating)} ${c.author}</strong><br/>${c.body}</p>`).join('');
   };
 
   el.querySelector('#c-send')!.addEventListener('click', async () => {
-    await fetch('/api/v1/blocks/comments/comments', {
+    await fetch('/api/v1/plugins/comments/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

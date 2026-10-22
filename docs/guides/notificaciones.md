@@ -9,10 +9,10 @@
 
 El envío exitoso emite el evento `notification.sent` (automatizaciones/auditoría).
 
-## Bloque Twilio (SMS/WhatsApp)
+## Plugin Twilio (SMS/WhatsApp)
 
 `blocks/twilio` registra el proveedor `twilio` con canales `sms` y `whatsapp`.
-Configurá en **Bloques → Twilio**: `accountSid`, `authToken` (cifrado), `fromNumber`
+Configurá en **Plugins → Twilio**: `accountSid`, `authToken` (cifrado), `fromNumber`
 (SMS) y `whatsappFrom` (WhatsApp).
 
 ```bash
@@ -23,7 +23,7 @@ curl -X POST /api/v1/notifications/send \
 
 ## Contrato (SDK)
 
-Un bloque de notificación registra un `NotificationProviderAdapter`:
+Un plugin de notificación registra un `NotificationProviderAdapter`:
 
 ```ts
 fastify.notifications?.register({
@@ -39,6 +39,6 @@ fastify.notifications?.register({
 
 ## 2FA por SMS (OTP)
 
-El bloque Twilio habilita **2FA por SMS**: en **Mi cuenta → 2FA por SMS** se
+El plugin Twilio habilita **2FA por SMS**: en **Mi cuenta → 2FA por SMS** se
 configura el teléfono (se envía un OTP y se verifica). Al iniciar sesión, si el
 SMS 2FA está activo, se envía el código y se valida con `smsCode`.

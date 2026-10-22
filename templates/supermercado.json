@@ -1,0 +1,84 @@
+{
+  "id": "supermercado",
+  "name": "Supermercado",
+  "description": "Tienda de autoservicio: inventario por SKU, POS/código de barras en caja, carrito, pagos, cupones de marketing, búsqueda de productos, facturación y analíticas.",
+  "blocks": [
+    { "id": "inventario", "config": { "lowStockThreshold": 10, "trackBySku": true } },
+    { "id": "ecommerce", "config": { "shippingProvider": "local" } },
+    { "id": "carrito", "config": { "title": "Mi Supermercado", "currency": "ARS" } },
+    { "id": "pos", "config": { "mode": "terminal" } },
+    { "id": "mercadopago" },
+    { "id": "marketing", "config": { "defaultDiscountPercent": 10, "pointsPerPurchase": 1 } },
+    { "id": "search", "config": { "minChars": 2, "maxResults": 20, "indexProducts": true } },
+    { "id": "facturacion", "config": { "afipMode": "factura", "arcaEnvironment": "homol" } },
+    { "id": "analytics", "config": { "provider": "internal", "trackPageViews": true } },
+    { "id": "social", "config": { "allowImages": true, "enableLikes": true } },
+    { "id": "notificaciones" },
+    { "id": "support" }
+  ],
+  "settings": {
+    "site": { "name": "Mi Supermercado", "tagline": "Todo lo que necesitás, en un solo lugar" },
+    "appearance": { "primaryColor": "#dc2626", "defaultTheme": "light" }
+  },
+  "menu": [
+    { "label": "Inicio", "path": "/", "order": 0 },
+    { "label": "Productos", "path": "/productos", "order": 1 },
+    { "label": "Ofertas", "path": "/ofertas", "order": 2 }
+  ],
+  "pages": [
+    {
+      "slug": "inicio",
+      "title": "Inicio",
+      "isHome": true,
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Mi Supermercado", "level": 1 },
+            { "type": "text", "content": "Catálogo completo, ofertas por cupón y pago en caja con código de barras." }
+          ]
+        },
+        {
+          "size": "half",
+          "blocks": [
+            { "type": "heading", "content": "Productos", "level": 3 },
+            { "type": "text", "content": "Controlá el stock por SKU y publicá tu catálogo." }
+          ]
+        },
+        {
+          "size": "half",
+          "blocks": [
+            { "type": "heading", "content": "Caja", "level": 3 },
+            { "type": "text", "content": "Cobrá con POS, lector de código de barras y Mercado Pago." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "productos",
+      "title": "Productos",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Productos", "level": 1 },
+            { "type": "text", "content": "Explorá nuestro catálogo de productos." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "ofertas",
+      "title": "Ofertas",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Ofertas", "level": 1 },
+            { "type": "text", "content": "Aprovechá los descuentos y cupones de la semana." }
+          ]
+        }
+      ]
+    }
+  ]
+}

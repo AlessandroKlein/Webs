@@ -1,9 +1,9 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
     const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (

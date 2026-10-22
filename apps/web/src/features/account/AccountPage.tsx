@@ -1270,14 +1270,14 @@ interface SocialVerifyResult {
 /**
  * Conexiones — proveedores de login social habilitados y vínculo de cuentas.
  *
- * Lista `GET /api/v1/blocks/social-login/providers` y permite "Conectar" con un
+ * Lista `GET /api/v1/plugins/social-login/providers` y permite "Conectar" con un
  * flujo SIMULADO (providerId/email por PromptDialog) que llama a
- * `POST /api/v1/blocks/social-login/verify`.
+ * `POST /api/v1/plugins/social-login/verify`.
  */
 function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
   const { data: providers } = useQuery({
     queryKey: ['social-providers'],
-    queryFn: () => api.get<SocialProvider[]>('/api/v1/blocks/social-login/providers'),
+    queryFn: () => api.get<SocialProvider[]>('/api/v1/plugins/social-login/providers'),
     retry: 0,
   });
   const [provider, setProvider] = useState<SocialProvider | null>(null);
@@ -1311,7 +1311,7 @@ function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
     try {
       // TODO(OAuth real): acá iría el redirect → callback → exchange del
       // proveedor. Por ahora se simula el vínculo con un providerId manual.
-      const res = await api.post<SocialVerifyResult>('/api/v1/blocks/social-login/verify', {
+      const res = await api.post<SocialVerifyResult>('/api/v1/plugins/social-login/verify', {
         provider: provider.id,
         providerId: pid,
         ...(email ? { email } : {}),

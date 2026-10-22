@@ -103,7 +103,7 @@ Cuando alguien publica en un canal, todos los suscriptores reciben:
 ## Semántica de canales
 
 - Los canales son cadenas arbitrarias definidas por la aplicación o los
-  bloques (ej. `orders`, `notifications`, `site.<id>`).
+  plugins (ej. `orders`, `notifications`, `site.<id>`).
 - La suscripción es **por conexión** (`Map<channel, Set<WebSocket>>`), no hay
   ACL por canal en esta base: cualquier usuario autenticado puede suscribirse
   y publicar en cualquier canal. Si necesitás autorización por canal, agregá

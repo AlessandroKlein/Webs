@@ -1,9 +1,9 @@
-import { defineClientBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { defineClientPlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
-export default defineClientBlock(manifest, ({ container }) => {
+export default defineClientPlugin(manifest, ({ container }) => {
   const el = document.createElement('div');
   el.innerHTML = `<h4>Inventario</h4>
     <div class="row">
@@ -16,7 +16,7 @@ export default defineClientBlock(manifest, ({ container }) => {
   container.appendChild(el);
 
   const refresh = async () => {
-    const res = await fetch('/api/v1/blocks/inventario/inventory', { headers: { Authorization: `Bearer ${localStorage.getItem('webs_access_token') ?? ''}` } });
+    const res = await fetch('/api/v1/plugins/inventario/inventory', { headers: { Authorization: `Bearer ${localStorage.getItem('webs_access_token') ?? ''}` } });
     const list = (await res.json()) as Array<{ id: string; sku: string; name: string; quantity: number }>;
     const target = el.querySelector('#i-list')!;
     target.innerHTML = list
@@ -25,7 +25,7 @@ export default defineClientBlock(manifest, ({ container }) => {
   };
 
   el.querySelector('#i-send')!.addEventListener('click', async () => {
-    await fetch('/api/v1/blocks/inventario/inventory', {
+    await fetch('/api/v1/plugins/inventario/inventory', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('webs_access_token') ?? ''}` },
       body: JSON.stringify({

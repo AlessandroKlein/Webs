@@ -3,8 +3,8 @@ import type { JsonSchema } from '@webs/plugin-sdk';
 /**
  * Registro de "secciones de ajustes". Cada sección es un objeto de configuración
  * con un esquema JSON que la UI de administración usa para generar formularios
- * automáticamente. Los bloques registran aquí sus propios ajustes (ver
- * `apps/api/src/blocks/loader.ts`).
+ * automáticamente. Los plugins registran aquí sus propios ajustes (ver
+ * `apps/api/src/plugins/loader.ts`).
  */
 export interface SettingSection {
   /** Clave única de la sección (ej. `site`, `appearance`). */

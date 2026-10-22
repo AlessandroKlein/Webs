@@ -1,13 +1,43 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque de control de inventario. Rutas bajo `/api/v1/blocks/inventario`.
+ * Mantiene `Product.stock` como fuente de verdad única cuando la organización
+ * dueña del ítem tiene `shareInventory` habilitado: el stock del producto pasa
+ * a ser la suma de las cantidades de sus ítems vinculados (`InventoryItem.productId`).
+ * Con `shareInventory=false` (o sin organización) no hay efectos cruzados: el
+ * inventario y la tienda siguen siendo fuentes independientes.
+ */
+const syncProductStock = async (
+  db: Record<string, any>,
+  item: { productId?: string | null; organizationId?: string | null },
+): Promise<void> => {
+  if (!item?.productId) return;
+  let shared = false;
+  if (item.organizationId) {
+    const org = await db.organization.findUnique({
+      where: { id: item.organizationId },
+      select: { shareInventory: true },
+    });
+    shared = Boolean(org?.shareInventory);
+  }
+  if (!shared) return;
+  const linked = (await db.inventoryItem.findMany({
+    where: { productId: item.productId },
+    select: { quantity: true },
+  })) as Array<{ quantity: number }>;
+  const stock = linked.reduce((sum, i) => sum + Number(i.quantity ?? 0), 0);
+  // `updateMany` (no `update`) evita fallar si el producto ya no existe.
+  await db.product.updateMany({ where: { id: item.productId }, data: { stock } });
+};
+
+/**
+ * Plugin de control de inventario. Rutas bajo `/api/v1/plugins/inventario`.
  * Se vincula al stock de la tienda (`Product.stock`) vía `productId`.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const cfg = config as Record<string, unknown>;
     const lowThreshold = Number(cfg.lowStockThreshold ?? 5);
@@ -63,7 +93,7 @@ export default defineBlock(manifest, {
       const { body } = request as {
         body?: { sku?: string; name?: string; quantity?: number; minQuantity?: number; unitPrice?: number; category?: string; organizationId?: string | null; productId?: string | null; barcode?: string | null };
       };
-      return db.inventoryItem.create({
+      const created = await db.inventoryItem.create({
         data: {
           sku: body?.sku ?? '',
           name: body?.name ?? '',
@@ -76,6 +106,8 @@ export default defineBlock(manifest, {
           barcode: body?.barcode || null,
         },
       });
+      await syncProductStock(db, created);
+      return created;
     });
 
     fastify.patch('/inventory/:id', { preHandler: [authenticate] }, async (request: unknown) => {
@@ -93,12 +125,23 @@ export default defineBlock(manifest, {
       if (body?.organizationId !== undefined) data.organizationId = body.organizationId;
       if (body?.productId !== undefined) data.productId = body.productId;
       if (body?.barcode !== undefined) data.barcode = body.barcode;
-      return db.inventoryItem.update({ where: { id: params?.id }, data });
+      const existing = await db.inventoryItem.findUnique({ where: { id: params?.id } });
+      const updated = await db.inventoryItem.update({ where: { id: params?.id }, data });
+      // Si el ítem cambió de producto, re-sincroniza también el producto anterior.
+      if (existing?.productId && existing.productId !== updated.productId) {
+        await syncProductStock(db, existing);
+      }
+      await syncProductStock(db, updated);
+      return updated;
     });
 
     fastify.delete('/inventory/:id', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params } = request as { params?: { id?: string } };
-      return db.inventoryItem.delete({ where: { id: params?.id } });
+      const existing = await db.inventoryItem.findUnique({ where: { id: params?.id } });
+      if (!existing) return { ok: false, error: 'Ítem no encontrado' };
+      await db.inventoryItem.delete({ where: { id: params?.id } });
+      await syncProductStock(db, existing);
+      return existing;
     });
 
     // Ajuste de stock (entrada/salida) con validación de no quedar en negativo.
@@ -110,6 +153,7 @@ export default defineBlock(manifest, {
       const next = item.quantity + delta;
       if (next < 0) return { ok: false, error: 'Stock insuficiente' };
       const updated = await db.inventoryItem.update({ where: { id: item.id }, data: { quantity: next } });
+      await syncProductStock(db, item);
       return { ok: true, item: updated, reason: body?.reason ?? null };
     });
 

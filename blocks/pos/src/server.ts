@@ -1,7 +1,7 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 async function hmacSha256Hex(secret: string, data: string): Promise<string> {
   const enc = new TextEncoder();
@@ -11,16 +11,16 @@ async function hmacSha256Hex(secret: string, data: string): Promise<string> {
 }
 
 /**
- * Bloque de cobro presencial (POS).
+ * Plugin de cobro presencial (POS).
  *
  * Mantiene el registro como proveedor de pagos (`payment`) y agrega rutas de
- * venta/cobro bajo `/api/v1/blocks/pos`.
+ * venta/cobro bajo `/api/v1/plugins/pos`.
  *
  * ⚠️ Permiso requerido: `sales.manage`. Estas rutas usan SOLO `authenticate`
  * (no `authorize`) a propósito: se documenta el requisito de permiso pero no se
  * impone acá, para no bloquear flujos de cobro.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, options) => {
     const config = options as Record<string, unknown>;
     const mode = String(config.mode ?? 'cash');

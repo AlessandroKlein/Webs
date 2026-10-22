@@ -593,7 +593,6 @@ function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onCl
 
   useEffect(() => {
     void loadProviders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const pay = async () => {

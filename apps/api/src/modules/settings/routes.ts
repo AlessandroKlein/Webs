@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { audit } from '../../lib/audit';
 import { sendMail } from '../mail/service';
 import { ensureDefaultSections, getSectionValue, listSections, setSectionValue } from './service';
-import { decryptSecretFields } from '../../lib/crypto';
+import { collectPluginMenuItems } from '../../lib/plugin-menu';
 
 export default async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
   ensureDefaultSections();
@@ -39,10 +39,13 @@ export default async function settingsRoutes(fastify: FastifyInstance): Promise<
     };
   });
 
-  // Menú principal público (items guardados en la tabla `menu`, clave `main`).
+  // Menú principal público (items guardados en la tabla `menu`, clave `main`,
+  // más los items de menú nativos declarados por los plugins instalados).
   fastify.get('/public/menu', { schema: { tags: ['settings'] } }, async () => {
     const menu = await fastify.prisma.menu.findUnique({ where: { key: 'main' } });
-    return { items: (menu?.items as Array<{ label: string; path: string }>) ?? [] };
+    const coreItems = (menu?.items as Array<{ label: string; path: string; order?: number }>) ?? [];
+    const pluginItems = collectPluginMenuItems('public');
+    return { items: [...coreItems, ...pluginItems] };
   });
 
   // Campos personalizados del perfil de usuario (definidos por el administrador).

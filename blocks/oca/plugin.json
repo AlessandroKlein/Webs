@@ -1,0 +1,79 @@
+{
+  "name": "@webs/block-envio-oca",
+  "id": "oca",
+  "version": "0.1.0",
+  "type": "plugin",
+  "category": "envios",
+  "displayName": {
+    "en": "OCA",
+    "es": "OCA"
+  },
+  "description": {
+    "en": "Shipping quotes via OCA (SOAP Tarifar_Envio_Corporativo).",
+    "es": "Cotización de envíos con OCA (SOAP Tarifar_Envio_Corporativo)."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "provides": [
+    "shipping"
+  ],
+  "settings": {
+    "type": "object",
+    "title": "Configuración de OCA",
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "title": "Habilitado",
+        "default": false
+      },
+      "username": {
+        "type": "string",
+        "title": "Usuario",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Usuario del servicio SOAP de OCA.",
+            "url": "https://www.oca.com.ar/"
+          }
+        }
+      },
+      "password": {
+        "type": "string",
+        "title": "Contraseña",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Contraseña del servicio SOAP de OCA.",
+            "url": "https://www.oca.com.ar/"
+          }
+        }
+      },
+      "cuit": {
+        "type": "string",
+        "title": "CUIT",
+        "x-ui": {
+          "help": {
+            "text": "CUIT del cliente corporativo de OCA.",
+            "url": "https://www.oca.com.ar/"
+          }
+        }
+      },
+      "baseUrl": {
+        "type": "string",
+        "title": "URL base (webservice)",
+        "default": "https://webservice.oca.com.ar/ePak_tracking/Oep_TrackEPak.asmx",
+        "x-ui": {
+          "help": {
+            "text": "URL del webservice SOAP de OCA.",
+            "url": "https://www.oca.com.ar/"
+          }
+        }
+      }
+    }
+  }
+}

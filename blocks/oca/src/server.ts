@@ -1,14 +1,14 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
 import { quoteShipping } from '../../../apps/api/src/integrations/shipping';
-import manifestJson from '../block.json';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque de envío OCA. Registra un adaptador en el registro central de envíos
- * (`fastify.shipping.register`); el bloque de ecommerce lo consulta.
+ * Plugin de envío OCA. Registra un adaptador en el registro central de envíos
+ * (`fastify.shipping.register`); el plugin de ecommerce lo consulta.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, options) => {
     const config = options as Record<string, unknown>;
 

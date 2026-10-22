@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { randomBytes } from 'node:crypto';
 import type { Redis } from 'ioredis';
 import {
@@ -58,7 +58,7 @@ async function takeChallenge(redis: Redis | null, id: string): Promise<string | 
 const toB64 = (u: Uint8Array): string => Buffer.from(u).toString('base64url');
 const fromB64 = (s: string): Uint8Array => new Uint8Array(Buffer.from(s, 'base64url'));
 
-function setRefreshCookie(fastify: FastifyInstance, reply: import('fastify').FastifyReply, token: string) {
+function setRefreshCookie(fastify: FastifyInstance, reply: FastifyReply, token: string) {
   const secure = fastify.securitySettings?.secureCookies ?? reply.request.protocol === 'https';
   reply.setCookie(REFRESH_TOKEN_COOKIE, token, {
     httpOnly: true,

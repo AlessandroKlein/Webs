@@ -1,21 +1,21 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque SEO: genera `sitemap.xml`, `robots.txt` y metadatos.
+ * Plugin SEO: genera `sitemap.xml`, `robots.txt` y metadatos.
  *
  * Se integra con el ajuste "SEO global" de /admin/settings (clave `seo`) y con
  * el ajuste de sitio (clave `site`, para la URL base). El sitemap es dinámico:
  * incluye páginas, contenido publicado, entradas de blog y productos.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const cfg = config as Record<string, unknown>;
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
 
-    // Resuelve la URL base: ajuste de sitio > configuración del bloque.
+    // Resuelve la URL base: ajuste de sitio > configuración del plugin.
     async function resolveSiteUrl(): Promise<string> {
       const site = await db.setting.findUnique({ where: { key: 'site' } }).catch(() => null);
       const url = (site?.value as { url?: string } | null)?.url ?? String(cfg.siteUrl ?? '');
@@ -65,7 +65,7 @@ export default defineBlock(manifest, {
       const directive = await resolveRobotsDirective();
       const [allow, follow] = directive.split(',');
       reply.header('Content-Type', 'text/plain');
-      return `User-agent: *\nAllow: /\n${follow === 'nofollow' ? 'NoFollow' : ''}${siteUrl ? `\nSitemap: ${siteUrl}/api/v1/blocks/seo/sitemap.xml` : ''}`.replace(/\n\n+/, '\n');
+      return `User-agent: *\nAllow: /\n${follow === 'nofollow' ? 'NoFollow' : ''}${siteUrl ? `\nSitemap: ${siteUrl}/api/v1/plugins/seo/sitemap.xml` : ''}`.replace(/\n\n+/, '\n');
     });
 
     fastify.get('/meta', async () => {

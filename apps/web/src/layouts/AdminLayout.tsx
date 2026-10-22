@@ -9,6 +9,18 @@ import { useLocaleStore } from '../lib/locale-store';
 import { api } from '../lib/api';
 import { useRealtime } from '../lib/realtime';
 
+/** Item de menú devuelto por `GET /menu` (núcleo + plugins). Los items de plugin llevan `id`. */
+interface AdminMenuItem {
+  id?: string;
+  label: string;
+  path: string;
+  order?: number;
+  section?: string;
+  icon?: string;
+  parent?: string;
+  permissions?: string[];
+}
+
 export function AdminLayout() {
   const { t, i18n } = useTranslation();
   const { mode, setMode } = useTheme();
@@ -20,7 +32,6 @@ export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
-  const [blocksOpen, setBlocksOpen] = useState(true);
 
   const { data: inbox } = useQuery({
     queryKey: ['notifications-inbox'],
@@ -52,12 +63,26 @@ export function AdminLayout() {
   const priorityColor = (p: string) =>
     p === 'alta' ? 'var(--ws-danger)' : p === 'media' ? '#d97706' : 'var(--ws-muted, #6b7280)';
 
+  // Menú nativo integrado: items de menú declarados por los plugins instalados
+  // (sin categoría "Plugins" separada). El endpoint requiere `setting.read`.
+  const { data: menuData } = useQuery({
+    queryKey: ['admin-menu'],
+    queryFn: () => api.get<{ items: AdminMenuItem[] }>('/api/v1/menu'),
+    enabled: hasPermission('setting.read'),
+    retry: false,
+  });
+  const pluginNav = (menuData?.items ?? [])
+    .filter((item) => typeof item.id === 'string' && item.id !== '')
+    .filter((item) => !item.permissions || item.permissions.every((p) => hasPermission(p)))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
   const coreNav = [
     { to: '/admin', label: t('nav.dashboard'), end: true, perm: null as string | null },
     { to: '/admin/content', label: t('nav.content'), perm: 'content.read' },
     { to: '/admin/pages', label: t('nav.pages'), perm: 'content.read' },
     { to: '/admin/email', label: t('nav.email'), perm: 'email.read' },
-    { to: '/admin/blocks', label: t('nav.blocks'), perm: 'block.read' },
+    { to: '/admin/plugins', label: t('nav.plugins'), perm: 'block.read' },
+    { to: '/admin/plugin-settings', label: 'Configuración de plugins', perm: 'block.read' },
     { to: '/admin/templates', label: t('nav.templates'), perm: 'setting.write' },
     { to: '/admin/payments', label: t('nav.payments'), perm: 'user.read' },
     { to: '/admin/users', label: t('nav.users'), perm: 'user.read' },
@@ -71,7 +96,8 @@ export function AdminLayout() {
     { to: '/admin/support', label: 'Soporte', perm: 'support.read' },
   ].filter((item) => item.perm === null || hasPermission(item.perm));
 
-  const blockNav = [
+  // Módulos core del panel que antes figuraban como "Bloques instalados".
+  const featureNav = [
     { to: '/admin/blog', label: t('admin.blog.title') },
     { to: '/admin/social', label: t('admin.social.title') },
     { to: '/admin/chat', label: t('admin.chat.title') },
@@ -103,54 +129,27 @@ export function AdminLayout() {
             </NavLink>
           ))}
 
-          {collapsed ? (
-            blockNav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                title={item.label}
-                className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-              >
-                {item.label.charAt(0)}
-              </NavLink>
-            ))
-          ) : (
-            <div>
-              <button
-                type="button"
-                className="nav-link"
-                style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
-                onClick={() => setBlocksOpen((o) => !o)}
-                title={t('nav.installedBlocks')}
-              >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <i className={`bi bi-chevron-${blocksOpen ? 'down' : 'right'}`} style={{ fontSize: '0.8em' }} />
-                  {t('nav.installedBlocks')}
-                </span>
-              </button>
-              {blocksOpen && (
-                <div className="stack" style={{ gap: 'var(--ws-space-1)', paddingLeft: 'var(--ws-space-4)' }}>
-                  {blockNav.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      title={item.label}
-                      className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                    >
-                      {item.label}
-                    </NavLink>
-                  ))}
-                  <NavLink
-                    to="/admin/block-settings"
-                    title="Configuración de bloques"
-                    className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                  >
-                    Configuración de bloques
-                  </NavLink>
-                </div>
-              )}
-            </div>
-          )}
+          {featureNav.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              title={item.label}
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              {collapsed ? item.label.charAt(0) : item.label}
+            </NavLink>
+          ))}
+
+          {pluginNav.map((item) => (
+            <NavLink
+              key={item.id ?? item.path}
+              to={item.path}
+              title={item.label}
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              {collapsed ? item.label.charAt(0) : item.label}
+            </NavLink>
+          ))}
         </nav>
       </aside>
 

@@ -12,6 +12,7 @@ COPY apps ./apps
 COPY packages ./packages
 COPY blocks ./blocks
 COPY scripts ./scripts
+COPY templates ./templates
 RUN pnpm install --frozen-lockfile
 
 # Generar cliente Prisma (PostgreSQL por defecto) y compilar todo el monorepo

@@ -21,5 +21,74 @@
     { "label": "Catálogo", "path": "/catalogo", "order": 1 },
     { "label": "Carrito", "path": "/carrito", "order": 2 },
     { "label": "Pago", "path": "/pago", "order": 3 }
+  ],
+  "pages": [
+    {
+      "slug": "inicio",
+      "title": "Inicio",
+      "isHome": true,
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Mi Tienda", "level": 1 },
+            { "type": "text", "content": "Comprá fácil y seguro con múltiples medios de pago." }
+          ]
+        },
+        {
+          "size": "half",
+          "blocks": [
+            { "type": "heading", "content": "Medios de pago", "level": 3 },
+            { "type": "text", "content": "Mercado Pago, MODO, Payway, Stripe, PayPal y EBANX." }
+          ]
+        },
+        {
+          "size": "half",
+          "blocks": [
+            { "type": "heading", "content": "Contra entrega", "level": 3 },
+            { "type": "text", "content": "Cobrá en efectivo o con terminal POS al momento de la entrega." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "catalogo",
+      "title": "Catálogo",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Catálogo", "level": 1 },
+            { "type": "text", "content": "Explorá nuestros productos." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "carrito",
+      "title": "Carrito",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Carrito", "level": 1 },
+            { "type": "text", "content": "Tu carrito de compras." }
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "pago",
+      "title": "Pago",
+      "layout": [
+        {
+          "size": "full",
+          "blocks": [
+            { "type": "heading", "content": "Pago", "level": 1 },
+            { "type": "text", "content": "Elegí tu medio de pago." }
+          ]
+        }
+      ]
+    }
   ]
 }

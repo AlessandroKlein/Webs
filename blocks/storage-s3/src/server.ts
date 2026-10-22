@@ -1,14 +1,14 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
-import manifestJson from '../block.json';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 /**
- * Bloque de almacenamiento de objetos (Amazon S3, Cloudflare R2, MinIO).
+ * Plugin de almacenamiento de objetos (Amazon S3, Cloudflare R2, MinIO).
  * Registra el driver `s3` en el núcleo de media; activalo con `STORAGE_DRIVER=s3`.
  */
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, options) => {
     const config = options as Record<string, unknown>;
     const bucket = String(config.bucket ?? '');

@@ -1,14 +1,14 @@
-import { defineBlock, type BlockManifest } from '@webs/plugin-sdk';
+import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
 import * as analytics from '../../../apps/api/src/integrations/analytics';
-import manifestJson from '../block.json';
+import manifestJson from '../plugin.json';
 
-const manifest = manifestJson as unknown as BlockManifest;
+const manifest = manifestJson as unknown as PluginManifest;
 
 // Referencia: contador en memoria. En producción usar una tabla persistente.
 const pages = new Map<string, number>();
 let total = 0;
 
-export default defineBlock(manifest, {
+export default definePlugin(manifest, {
   register: async (fastify, config) => {
     const cfg = config as Record<string, unknown>;
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
@@ -42,7 +42,7 @@ export default defineBlock(manifest, {
     //
     // Heurística de pertenencia de un pago a una organización:
     //   1. `payment.metadata.organizationId` === organizationId, cuando el
-    //      bloque de pagos persiste la sucursal en el JSON de metadatos; o
+    //      plugin de pagos persiste la sucursal en el JSON de metadatos; o
     //   2. el `userId` del pago tiene una `membership` en esa organización.
     //
     // Nota (límites del modelo actual):
