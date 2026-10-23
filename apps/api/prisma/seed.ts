@@ -76,6 +76,10 @@ const PERMISSIONS: Array<{ key: string; description: string }> = [
   // Informes / auditoría
   { key: 'report.export', description: 'Exportar informes' },
   { key: 'audit.export', description: 'Exportar auditoría' },
+
+  // Generador de APIs (ADR-0020)
+  { key: 'generated.read', description: 'Ver recursos generados' },
+  { key: 'generated.manage', description: 'Crear/editar recursos generados' },
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);

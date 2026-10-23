@@ -3,6 +3,43 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.5.0] - 2026-10-23
+
+### Añadido
+
+- **Motor generador de APIs (ADR-0020)**: define un recurso desde la UI y obtenés
+  un modelo + 10 endpoints CRUD bajo `/api/v1/generated` (recursos globales y
+  registros scoped por organización). Modelos `GeneratedResource`/`GeneratedRecord`
+  (migración `0007_generated`), validación Ajv draft-2020-12 (422 con detalles),
+  sanitización HTML recursiva (`format:"html"`), scoping fail-closed por tenant,
+  gate por feature (`generator`, 10ª feature premium) y permisos dinámicos
+  `gen.<key>.read/write` (aparecen en `GET /permissions` bajo el área `generated`).
+- **SDK tipado para web y móvil**: cliente runtime `createGeneratedClient<T>(key)`
+  (Bearer + refresh + tenant-scope) y codegen estático `pnpm run gen:api` que emite
+  módulos `.ts` tipados (`apps/web/src/lib/generated/resources/*`); el host Capacitor
+  hereda el SDK. Guía `docs/guides/generador-sdk.md`.
+- **UI "Acceso rápido"** (`/admin/generated`): botón "Generar API", builder de campos
+  (tipo/required/unique/html/enum + preview de JSON Schema), `ResourceFormDialog`
+  (patrón "crear") y `SdkDialog` (endpoint + tabla CRUD + SDK tipado copiable/
+  descargable). Nav item en Integraciones (perm `generated.read`, feature `generator`).
+- **i18n M7 (ES/EN/PT)**: namespace `generated.*` (62 claves con paridad) + etiquetas
+  de features y comentarios del SDK generado.
+- **Docs M7**: `docs/guides/generador-de-apis.md` (flujo, formato de definición,
+  10 endpoints, SDK, integraciones web/móvil) y `docs/guides/generador-sdk.md`.
+
+### Deuda técnica
+
+- **MENOR (t110)**: `DELETE /generated/:key` borra registros + recurso + cachés pero
+  no limpia los permisos `gen.<key>.read/write` del catálogo (quedan huérfanos).
+- **MENOR (t108)**: los errores del motor (`apps/api/src/modules/generated/`) son
+  cadenas en español hardcodeadas devueltas tal cual vía `ApiClientError.message`
+  (sin mapeo error-code→clave i18n).
+- MEDIUM (t101): caché `blocks:catalog` 60s sin invalidar en activate/deactivate de
+  licencia (fix pendiente en `licenses/routes.ts`).
+- Heredada: F12 (rename residual `blockId` + shim `/api/v1/blocks/*` + prosa
+  "bloque"), F4 (docs `block.read`/`block.manage` históricas), F10 (`GET /setup/status`
+  versión real), F17 (wrapper Capacitor real).
+
 ## [2.4.0] - 2026-10-23
 
 ### Añadido

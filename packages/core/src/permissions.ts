@@ -33,6 +33,7 @@ export const PERMISSION_AREAS = [
   'sales',
   'academy',
   'reports',
+  'generated',
 ] as const;
 
 export type PermissionArea = (typeof PERMISSION_AREAS)[number];
@@ -127,6 +128,9 @@ export const PERMISSION_CATALOG: PermissionDefinition[] = [
   { key: 'course.manage', description: 'Gestionar cursos y capacitaciones', area: 'academy' },
   // reports
   { key: 'report.export', description: 'Exportar informes', area: 'reports' },
+  // generated
+  { key: 'generated.read', description: 'Ver recursos generados', area: 'generated' },
+  { key: 'generated.manage', description: 'Crear/editar recursos generados', area: 'generated' },
 ];
 
 const BASE_KEYS = new Set(PERMISSION_CATALOG.map((p) => p.key));
@@ -145,7 +149,9 @@ export function groupPermissionCatalog(
     ...pluginOnly.map((p) => ({
       key: p.key,
       description: p.description ?? 'Permiso de plugin',
-      area: 'plugins' as PermissionArea,
+      // Los permisos por recurso del generador (`gen.<key>.read|write`) se agrupan
+      // en `generated`; el resto de permisos de plugin caen en `plugins`.
+      area: (p.key.startsWith('gen.') ? 'generated' : 'plugins') as PermissionArea,
     })),
   ];
 

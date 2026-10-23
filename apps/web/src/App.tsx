@@ -57,6 +57,7 @@ import { SupportPage } from './features/support/SupportPage';
 import { UpdatesPage } from './features/updates/UpdatesPage';
 import { LicensePage } from './features/license/LicensePage';
 import { LicenseKeysPage } from './features/license/LicenseKeysPage';
+import { GeneratedPage } from './features/generated/GeneratedPage';
 import { SiteLayout } from './components/SiteLayout';
 import { StaffDashboard } from './features/staff/StaffDashboard';
 import { SetupWizard } from './features/setup/SetupWizard';
@@ -193,6 +194,7 @@ function MainApp() {
           <Route path="updates" element={<UpdatesPage />} />
           <Route path="license" element={<LicensePage />} />
           <Route path="license/keys" element={<LicenseKeysPage />} />
+          <Route path="generated" element={<GeneratedPage />} />
         </Route>
 
         <Route path="/legal/terms" element={<SiteLayout><LegalPage slug="terms" /></SiteLayout>} />

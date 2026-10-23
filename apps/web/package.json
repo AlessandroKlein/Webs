@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "clean": "rimraf dist"
+    "clean": "rimraf dist",
+    "gen:api": "pnpm --filter @webs/api exec tsx scripts/gen-api-sdk.mts"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^10.0.0",

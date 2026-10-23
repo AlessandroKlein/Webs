@@ -15,10 +15,10 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
       <main style={{ flex: 1 }}>{children}</main>
 
-      <footer style={{ borderTop: '1px solid var(--ws-border)' }}>
+      <div>
         <PluginSlot slotId="footer" />
         <SiteFooter />
-      </footer>
+      </div>
     </div>
   );
 }

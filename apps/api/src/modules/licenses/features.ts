@@ -82,6 +82,13 @@ export const LICENSE_FEATURES: LicenseFeature[] = [
     area: 'extensions',
     core: false,
   },
+  {
+    key: 'generator',
+    label: 'Generador de APIs',
+    description: 'Motor de colecciones de datos personalizadas (ADR-0020).',
+    area: 'extensions',
+    core: false,
+  },
 ];
 
 const BY_KEY = new Map(LICENSE_FEATURES.map((feature) => [feature.key, feature]));

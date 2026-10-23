@@ -58,21 +58,27 @@ export function SiteFooter() {
   }, [siteName]);
 
   return (
-    <footer className="footer" style={{ padding: 'var(--ws-space-5) var(--ws-space-6)' }}>
-      <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
-        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-4)', justifyContent: 'space-between' }}>
-          <span>© {range} {siteName}. {rights}</span>
+    <footer className="footer">
+      <div className="footer-inner">
+        <span className="footer-copy">© {range} {siteName}. {rights}</span>
 
-          {hasContact && (
-            <span className="muted">
-              {data?.footer.contactEmail && <a href={`mailto:${data.footer.contactEmail}`}><i className="bi bi-envelope" /> {data.footer.contactEmail}</a>}
-              {data?.footer.contactPhone && <span style={{ marginLeft: 'var(--ws-space-3)' }}><i className="bi bi-telephone" /> {data.footer.contactPhone}</span>}
-              {data?.footer.contactAddress && <span style={{ marginLeft: 'var(--ws-space-3)' }}><i className="bi bi-geo-alt" /> {data.footer.contactAddress}</span>}
-            </span>
-          )}
-        </div>
+        {hasContact && (
+          <div className="footer-contact">
+            {data?.footer.contactEmail && (
+              <a href={`mailto:${data.footer.contactEmail}`}>
+                <i className="bi bi-envelope" /> {data.footer.contactEmail}
+              </a>
+            )}
+            {data?.footer.contactPhone && (
+              <span><i className="bi bi-telephone" /> {data.footer.contactPhone}</span>
+            )}
+            {data?.footer.contactAddress && (
+              <span><i className="bi bi-geo-alt" /> {data.footer.contactAddress}</span>
+            )}
+          </div>
+        )}
 
-        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-4)' }}>
+        <div className="footer-links">
           {builtInLegal.map((l) => (
             <Link key={l.url} to={l.url}>{l.label}</Link>
           ))}
@@ -80,7 +86,9 @@ export function SiteFooter() {
             <a key={l.url} href={l.url} target="_blank" rel="noopener">{l.label}</a>
           ))}
           {social.map(([name, url]) => (
-            <a key={name} href={url} target="_blank" rel="noopener" title={name}><i className={`bi bi-${name === 'x' ? 'twitter-x' : name}`} /> {name}</a>
+            <a key={name} href={url} target="_blank" rel="noopener" title={name}>
+              <i className={`bi bi-${name === 'x' ? 'twitter-x' : name}`} /> {name}
+            </a>
           ))}
         </div>
       </div>

@@ -141,6 +141,7 @@ export function AdminLayout() {
     { to: '/admin/translations', label: t('nav.translations'), section: 'apariencia', perm: 'translation.read' },
     { to: '/admin/menu', label: t('nav.menu'), section: 'apariencia', perm: 'setting.read' },
     { to: '/admin/plugins', label: t('nav.plugins'), section: 'integraciones', perm: 'plugin.read' },
+    { to: '/admin/generated', label: t('nav.generated'), section: 'integraciones', perm: 'generated.read', feature: 'generator' },
     { to: '/admin/api-tokens', label: t('nav.api'), section: 'integraciones', perm: null },
     { to: '/admin/settings', label: t('nav.settings'), section: 'configuracion', perm: 'setting.read' },
     { to: '/admin/templates', label: t('nav.templates'), section: 'configuracion', perm: 'setting.write' },
@@ -185,6 +186,7 @@ export function AdminLayout() {
 
   const isVisible = (item: NavItem) =>
     (item.perm === null || hasPermission(item.perm)) &&
+    hasFeature(item.feature) &&
     !(PLUGIN_MANAGEMENT_PATHS.has(item.to) && !hasInstalledPlugins);
 
   const grouped = SECTION_ORDER.map((section) => ({

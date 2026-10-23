@@ -1,12 +1,12 @@
-# Backlog de producto — Webs v2.3.0+
+# Backlog de producto — Webs v2.4.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.3.0'`
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.4.0'`
 >   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** · **M5 v2.3.0**
->   liberados). Roadmap planificado hasta **v2.11.0** (M13 — IoT: serie temporal
->   local + plugins invernadero/sema).
+>   · **M6 v2.4.0** liberados). Roadmap planificado hasta **v2.11.0** (M13 — IoT:
+>   serie temporal local + plugins invernadero/sema).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -31,7 +31,7 @@ escalabilidad.
 | **M4 — Operación** | Pulido admin/UX (categorías del menú `/admin`, buscador, actualizaciones unificadas) · plugin fiscal ARCA (facturación electrónica) · comprobantes/facturas por pago + impresión térmica ESC/POS · checkout unificado + pago en sucursal. |
 | **M5 — Marketplace** | Plugins con fuente remota GitHub + botón "Instalar" · nginx allowlist + multi-sucursal por subdominio · roles/permisos completos · app de claves de licencia para venta · finalización de plugins. |
 | **M6 — Licencias** | Feature-gating por licencia (integración `@licensify/core` con features premium). |
-| **M7 — Acceso rápido** | Generador de APIs de acceso rápido (recurso → modelo + rutas CRUD + SDK tipado web/móvil). |
+| **M7 — Acceso rápido** | Generador de APIs de acceso rápido (recurso → modelo + rutas CRUD + SDK tipado web/móvil) con validación/sanitización, permisos RBAC, scoping multi-tenant y feature-gating por licencia (premium). |
 | **M8 — Soporte** | Rediseño de `/admin/menu` · sistema de tickets/soporte con estados · chat de usuarios en tiempo real + ventana flotante. |
 | **M9 — Inventario** | Inventario completo: variantes de producto (SKU, código de barras EAN/UPC), categorías/marcas/proveedores, multi-almacén por sucursal, movimientos de stock con ledger auditable, alertas de stock bajo, valoración (costo promedio/FIFO), reportes y export/import CSV, soporte de código de barras/QR integrable con impresoras térmicas (M4). |
 | **M10 — Red social** | Compositor de publicación enriquecido en `SocialPublicPage.tsx`: galería multi-media (imágenes/video con pie, reordenar/eliminar), menciones `@usuario`, hashtags `#tema`, encuestas, selector de visibilidad (Público/Seguidores/Solo yo), selector de emoji, contador de caracteres con límite, vista previa de enlaces, autoguardado de borrador. |
@@ -822,7 +822,112 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
   quedan en verde.
 - **Métrica:** tag `v2.4.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.9 Milestone 9 (M9) — Inventario completo
+### 3.9 Milestone 7 (M7) — Generador de APIs de acceso rápido
+
+> **M7** se libera en **v2.5.0** (bump menor). Añade el caso de uso **"template de
+> acceso rápido"**: el administrador presiona un botón y el sistema **genera
+> automáticamente** la API de un recurso de negocio (endpoints CRUD + SDK tipado
+> TypeScript) para consumir desde la app web o móvil, **sin escribir código a
+> mano**. Se ancla en el **ADR-0020** (generador de APIs + SDK, `t104`).
+> Trazabilidad: `t103`–`t111`; `t103` es este documento.
+>
+> **Alcance del generador (referencia para ADR-0020):**
+> - **Recursos generables:** cualquier recurso de negocio definido por su nombre
+>   (singular/plural) y una lista de campos. No hay catálogo cerrado: el
+>   administrador define el esquema.
+> - **Tipos de campo:** `string`, `number`, `boolean`, `date`, `enum`, `json` y
+>   `reference` (FK a otro recurso generado). Por campo: `required`, `unique`,
+>   `default`, longitud/rango.
+> - **Validaciones y sanitización:** tipos, obligatoriedad, unicidad, rangos y
+>   sanitización de entrada (anti XSS/inyección) en el motor, no solo en la UI.
+> - **Permisos:** RBAC por recurso generado (`<recurso>.read/create/update/delete`)
+>   + scoping multi-tenant automático (`organizationId` en cada registro, siguiendo
+>   el contrato fail-closed de M2).
+> - **Relación con plugins:** el generador es un módulo de la plataforma; los
+>   recursos generados se registran como rutas dinámicas (mismo patrón del loader
+>   de plugins) y el SDK se alinea con `packages/plugin-sdk`.
+> - **Feature-gating (M6):** el generador se expone como feature **premium** (a
+>   decidir en ADR-0020: nueva feature `developer`/`api-generator` en el área
+>   `scale`/`extensions`, o reutilizar `marketplace`), gateado por
+>   `LicenseService.hasFeature()`.
+
+#### WB-114 · P0 (M7) — ADR-0020 + spec del generador de APIs — `t104`
+- **Dado** la decisión de cómo materializar recursos generados (tabla dinámica vs
+  código vs plantillas), el formato de definición (JSON-schema/UI-builder), el
+  codegen (estático vs runtime) y la seguridad,
+- **Cuando** se registra la decisión de arquitectura,
+- **Entonces** existe `docs/adr/0020-api-generator.md` + una spec que define
+  alcance, tipos de campo, validaciones, permisos, integración con plugins y
+  feature-gating, sin contradicciones con la implementación.
+- **Métrica:** ADR-0020 + spec presentes; decisión explícita sobre persistencia,
+  formato de definición, codegen y feature premium.
+
+#### WB-115 · P0 (M7) — Motor: recurso → modelo + rutas CRUD — `t105`
+- **Dado** un recurso definido (nombre + campos tipo/requerido/único),
+- **Cuando** el administrador lo crea desde la UI o el endpoint
+  `POST /api/v1/generated`,
+- **Entonces** el motor persiste el esquema y expone `GET /api/v1/generated`
+  (list), `GET /api/v1/generated/:id` (detail) y `POST/PATCH/DELETE
+  /api/v1/generated/:id` bajo un prefijo seguro, con CRUD funcional.
+- **Métrica:** crear el recurso `clientes` (≥2 campos) → CRUD completo sin
+  escribir código a mano.
+
+#### WB-116 · P0 (M7) — Validación, sanitización, permisos y scoping — `t105`
+- **Dado** un recurso generado con campos y permisos,
+- **Cuando** un cliente hace una petición (crear/leer/actualizar/borrar),
+- **Entonces** el motor valida tipos/obligatorios/unicidad, sanitiza la entrada, y
+  aplica permisos RBAC (`<recurso>.*`) y scoping multi-tenant: cada registro lleva
+  `organizationId` y un usuario de la org A **no** accede a datos de la org B.
+- **Métrica:** petición inválida o cross-tenant devuelve 400/403/404, nunca 200.
+
+#### WB-117 · P0 (M7) — SDK/API client tipado TypeScript (web + móvil) — `t106`
+- **Dado** un recurso generado,
+- **Cuando** el administrador pide el SDK,
+- **Entonces** se entrega un cliente tipado TS (tipos de entidad + métodos con
+  `fetch` y header de auth) descargable como `.ts` (codegen estático) y/o módulo
+  runtime, usable desde web y móvil (Capacitor).
+- **Métrica:** generar el SDK de `clientes` → el tipado autocompleta y compila sin
+  errores de tipos.
+
+#### WB-118 · P0 (M7) — UI "Acceso rápido" (botón → recurso → endpoint + SDK) — `t107`
+- **Dado** un administrador con el permiso del generador (y la feature premium
+  activa),
+- **Cuando** abre "Acceso rápido" y define un recurso (patrón "crear" de M5:
+  página/modal con todos los campos),
+- **Entonces** ve el endpoint generado + el CRUD + el SDK, con acciones de
+  copiar/descargar, y el feature-gating oculta/deshabilita la sección sin licencia.
+- **Métrica:** definir un recurso desde la UI produce endpoint + SDK copiables.
+
+#### WB-119 · P1 (M7) — i18n ES/EN/PT — `t108`
+- **Dado** la interfaz y los textos del generador,
+- **Cuando** el usuario cambia de idioma,
+- **Entonces** la pantalla "Acceso rápido", los errores y el SDK generado están
+  localizados en ES/EN/PT (paridad de claves).
+- **Métrica:** los 3 idiomas sin claves faltantes (`i18next` sin warnings).
+
+#### WB-120 · P1 (M7) — Documentación — `t109`
+- **Dado** el generador liberado,
+- **Cuando** se consulta la documentación,
+- **Entonces** existe una guía operativa (cómo crear un recurso, permisos, SDK,
+  feature premium) sincronizada en `docs/` y en Docs.git.
+- **Métrica:** build de docs en verde; guía anclada en archivos reales.
+
+#### WB-121 · P0 (M7) — QA end-to-end — `t110`
+- **Dado** el entorno Docker aislado,
+- **Cuando** se ejecuta la QA de M7,
+- **Entonces** el flujo completo (crear recurso → CRUD → SDK → permisos → scoping
+  → feature-gating) pasa en verde y la regresión de M1–M6 no se rompe.
+- **Métrica:** QA LIBERABLE (sin hallazgos bloqueantes).
+
+#### WB-122 · P1 (M7) — Release v2.5.0 + CHANGELOG + workflows verdes — `t111`
+- **Dado** M7 completo y verificado (QA LIBERABLE),
+- **Cuando** se bumpa `SYSTEM_VERSION` a `2.5.0`, se actualiza `CHANGELOG.md`
+  (`[2.5.0]`) y se taggea `v2.5.0`,
+- **Entonces** el release se publica y los workflows (CI typecheck + release)
+  quedan en verde.
+- **Métrica:** tag `v2.5.0` público; workflows CI/release ✓; changelog coherente.
+
+### 3.10 Milestone 9 (M9) — Inventario completo
 
 > **M9** se libera en **v2.7.0** (bump menor). Convierte el inventario básico
 > actual (`blocks/inventario`, modelo `InventoryItem`) en un sistema de gestión de
@@ -922,7 +1027,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
   quedan en verde.
 - **Métrica:** tag `v2.7.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.10 Milestone 10 (M10) — Compositor de publicación enriquecido
+### 3.11 Milestone 10 (M10) — Compositor de publicación enriquecido
 
 > **M10** se libera en **v2.8.0** (bump menor). Enriquece el compositor "Nueva
 > publicación" de la red social (`apps/web/src/features/public/SocialPublicPage.tsx`).
@@ -1010,7 +1115,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 - **Métrica:** escribir, cerrar y reabrir el compositor restaura el texto/adjuntos;
   publicar limpia el borrador.
 
-### 3.11 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
+### 3.12 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
 
 > **M11** se libera en **v2.9.0** (bump menor). Permite al usuario **elegir** el
 > tipo de escalabilidad Kubernetes por workload desde un panel `/admin/scaling`.
@@ -1103,7 +1208,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 - **Métrica:** exportar un workload en modo VPA `Recommender` produce un YAML con
   `updateMode: Off` y los `minAllowed`/`maxAllowed` configurados.
 
-### 3.12 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
+### 3.13 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
 
 > **M13** se libera en **v2.11.0** (bump menor). Cronológicamente es **posterior a
 > M12 (v2.10.0, backlog pendiente — vista RAW/Code de actualizaciones)**, cuya
@@ -1235,8 +1340,8 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 | **R4 — Consolidación** | **v2.1.0** ✓ | WB-25→WB-34: cierre de deuda (F12/F4/F10/F17), visual page builder (GrapesJS + página de inicio configurable), i18n ES/EN/PT, documentos legales (ToS/Disclaimer/Privacy/Cookies), mobile Capacitor nativo + desktop, fix de login en Docker, política "todo nativo / sin componentes de pago", QA + docs + release. |
 | **R5 — Operación** | **v2.2.0** ✓ | M4: WB-63→WB-77 — pulido admin/UX (categorías `/admin`, fix CSS templates, buscador, actualizaciones unificadas, limpieza de plugins), plugin fiscal `arca` (ARCA/AFIP), comprobantes/facturas por pago (template editable + impresión térmica ESC/POS + "Mis comprobantes"), checkout unificado + pago en sucursal (suscripción→pago, POS). |
 | **R6 — Marketplace** | **v2.3.0** ✓ | M5: WB-90→WB-103 — plugins con fuente remota GitHub + botón "Instalar" (badge de origen), nginx allowlist + multi-sucursal por subdominio, roles/permisos completos + patrón "crear", app de claves de licencia para venta + E2E local, finalización de plugins, ADRs (0016/0017/0018) + i18n + docs + QA + release. |
-| **R7 — Licencias** | **v2.4.0** | M6: WB-104→WB-113 — feature-gating por licencia en UI (catálogo de features core+premium ya expuesto por `/api/v1/license`, mapeo feature→menú/plugin/datos, filtro server-side de menú/catálogo/instalación, `LicenseProvider`+`hasFeature` en frontend, upsell, i18n + docs + QA + release). |
-| **R8 — Acceso rápido** | **v2.5.0** | M7: generador de APIs de acceso rápido (recurso → modelo + rutas CRUD + SDK tipado web/móvil). |
+| **R7 — Licencias** | **v2.4.0** ✓ | M6: WB-104→WB-113 — feature-gating por licencia en UI (catálogo de features core+premium ya expuesto por `/api/v1/license`, mapeo feature→menú/plugin/datos, filtro server-side de menú/catálogo/instalación, `LicenseProvider`+`hasFeature` en frontend, upsell, i18n + docs + QA + release). |
+| **R8 — Acceso rápido** | **v2.5.0** | M7: WB-114→WB-122 — generador de APIs de acceso rápido (recurso → modelo + rutas CRUD con validación/sanitización + permisos RBAC + scoping multi-tenant, SDK/API client tipado TS web/móvil, UI "Acceso rápido" con copiar/descargar, ADR-0020 + spec + i18n + docs + QA + release). |
 | **R9 — Soporte** | **v2.6.0** | M8: rediseño de `/admin/menu`, sistema de tickets/soporte con estados, chat de usuarios en tiempo real + ventana flotante. |
 | **R10 — Inventario** | **v2.7.0** | M9: WB-35→WB-44 — inventario completo (variantes/SKU/EAN-UPC, catálogo, multi-almacén por sucursal, movimientos con ledger auditable, alertas de stock bajo, valoración costo promedio/FIFO, reportes + export/import CSV, código de barras/QR + impresión térmica). |
 | **R11 — Red social** | **v2.8.0** | M10: WB-45→WB-53 — compositor de publicación enriquecido (galería multi-media, menciones, hashtags, encuestas, visibilidad, emoji, contador de caracteres, vista previa de enlaces, autoguardado de borrador). |
@@ -1336,6 +1441,15 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t100-docs-m6 | WB-111 |
 | t101-qa-m6 | WB-112 |
 | t102-release-m6 | WB-113 |
+| t103-backlog-m7 | WB-114→WB-122 (este documento) |
+| t104-adr-m7 | WB-114 (ADR-0020 + spec generador + SDK) |
+| t105-generador-back | WB-115, WB-116 (motor CRUD + validación + permisos + scoping) |
+| t106-sdk | WB-117 (SDK/API client tipado TS web/móvil) |
+| t107-generador-front | WB-118 (UI "Acceso rápido") |
+| t108-i18n-m7 | WB-119 |
+| t109-docs-m7 | WB-120 |
+| t110-qa-m7 | WB-121 |
+| t111-release-m7 | WB-122 |
 | t125-backlog-m9 | WB-35→WB-44 (este documento) |
 | t126-adr-inventario | WB-35→WB-42 (ADR-0023 + spec) |
 | t127-modelo-inventario | WB-35, WB-36, WB-37 (modelo de datos) |

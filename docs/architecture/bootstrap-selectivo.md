@@ -51,14 +51,15 @@ choca, y donde choca se neutraliza en `styles.css`:
 
 - **`.row`** (colisión real: helper de toolbar a medida vs fila de grid de
   Bootstrap). Decisión: se conserva `.row` como helper flex de toolbar
-  (`display:flex; align-items:center; gap; flex-wrap:nowrap; margin:0`),
-  neutralizando el margen negativo y el wrap de Bootstrap. Las **columnas**
-  `.col` (equivalente a `flex:1 0 0%`) funcionan dentro de `.row` respetando el
-  `gap`. **Limitación documentada:** `.col-md-*`/`.col-*` fijos (`width:50%`,
-  etc.) no combinan con el `gap` de `.row` (ancho + gap desbordan y la fila
-  envuelve de a uno); para rejilla con ancho fijo usar `.g-*` + `.row` con el
-  modelo de gutters estándar de Bootstrap (sin `gap`) o columnas `.col`
-  equitativas.
+  (`display:flex; align-items:center; gap; flex-wrap:wrap; margin:0`) y se
+  anulan los gutters de Bootstrap (`--bs-gutter-x:0; --bs-gutter-y:0`) para que
+  las columnas `.col` **no** sumen el padding del gutter además del `gap`
+  (evita el doble espaciado). Las columnas `.col` (equivalente a `flex:1 0 0%`)
+  funcionan dentro de `.row` respetando únicamente el `gap`. **Limitación
+  documentada:** `.col-md-*`/`.col-*` fijos (`width:50%`, etc.) no combinan con
+  el `gap` de `.row` (ancho + gap desbordan); para rejilla con ancho fijo usar
+  un contenedor `.row` con `--bs-gutter-x` restaurado (sin `gap`) o columnas
+  `.col` equitativas.
 - **`.table`**: Bootstrap aporta `striped`/`hover`/`active`/`responsive`; la
   `.table` a medida (border-collapse + borde inferior por celda) se conserva y
   los colores de Bootstrap se mapean a los tokens `--ws-*`.
@@ -70,8 +71,14 @@ En `styles.css` se reasignan las variables CSS de Bootstrap a los tokens Webs:
 
 - `.table`: `--bs-table-color/bg/border-color/striped-*/hover-*/active-*` → `--ws-*`.
 - `.form-control` / `.form-select`: color/fondo/borde → `--ws-*`; foco
-  `box-shadow: 0 0 0 0.25rem var(--ws-primary-soft)`.
-- `.form-label` → `--ws-text-muted`; `.form-text` → `--ws-text-subtle`.
+  `box-shadow: 0 0 0 0.25rem var(--ws-primary-soft)`; además se compactan las
+  métricas de Bootstrap (`padding`, `border-radius`, `min-height:auto`,
+  `line-height:normal`, `font-size:inherit`) para igualar la altura de `.input`.
+- `.form-label` → `--ws-text-muted` + `font-size:sm`; `.form-text` → `--ws-text-subtle`.
+- `.form-check` (wrapper) → flex (`display:flex; align-items:center; gap`),
+  quitando el `padding-left`/`float` de Bootstrap; `.form-check-input` →
+  `1rem × 1rem`, `float:none`, `margin:0`, `flex:0 0 auto`; `.form-check-label`
+  → `font-size:inherit`.
 - `.form-check-input:checked/:focus` → `--ws-primary`.
 - `.is-invalid`/`.is-valid` + `.invalid-feedback`/`.valid-feedback` → `--ws-danger`/`--ws-success`.
 
@@ -90,6 +97,37 @@ Esto garantiza coherencia con el dark mode y con el tema existente.
 Se **mantiene `bootstrap-icons`** (`bi bi-*`). No se introduce `lucide-react`
 (los componentes Shadcn/Radix que ya lo usan siguen funcionando con él; la
 regla es no añadir una segunda familia para los iconos del admin).
+
+La clase `.bi` se normaliza en `styles.css` para que el tamaño sea **consistente
+y proporcional al texto que lo rodea** (antes heredaba `font-size` y en `h1`/
+`btn-lg` crecía o desbordaba, y en tablas quedaba diminuto):
+
+```css
+.bi { display:inline-block; width:1em; height:1em; font-size:1.25em;
+      line-height:1; vertical-align:middle; flex:0 0 auto; }
+```
+
+`flex: 0 0 auto` evita que los iconos dentro de `.btn`/`.dropdown`/`.site-*` se
+estiren o deformen.
+
+## Footer (SaaS)
+
+El pie público usa `.footer` (borde superior + fondo `--ws-surface` + tipografía
+`--ws-font-size-sm`) y un contenedor `.footer-inner` (máx. 1200px, flex-wrap,
+`justify-content:space-between`) con tres zonas: `.footer-copy` (copyright),
+`.footer-contact` (email/teléfono/dirección, iconos `bi`) y `.footer-links`
+(legales + redes). `SiteFooter.tsx` ya no usa estilos inline; los wrappers de
+`SiteLayout`/`PublicHome` son `<div>` (sin `borderTop` inline) y el borde lo
+aporta la propia `.footer`. El footer admin (`AdminLayout`) reutiliza la misma
+clase `.footer` para coherencia.
+
+## Responsive
+
+- `.row` es `flex-wrap: wrap` por defecto (antes `nowrap`), por lo que las
+  toolbars envuelven en pantallas chicas sin media query.
+- En `@media (max-width:768px)`, las `.table` (que NO están envueltas en
+  `.table-responsive`) pasan a `display:block; overflow-x:auto; white-space:nowrap`
+  para evitar overflow horizontal.
 
 ## Verificación
 

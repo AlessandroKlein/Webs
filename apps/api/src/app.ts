@@ -54,6 +54,7 @@ import emailRoutes, { startQueueProcessor } from './modules/email';
 import i18nRoutes from './modules/i18n';
 import apiTokensRoutes from './modules/api-tokens';
 import licenseRoutes from './modules/licenses';
+import generatedRoutes from './modules/generated';
 import trackingRoutes from './modules/email/tracking';
 import { startScheduler } from './modules/email/scheduler';
 
@@ -169,6 +170,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(i18nRoutes, { prefix: API_PREFIX });
   await app.register(apiTokensRoutes, { prefix: API_PREFIX });
   await app.register(licenseRoutes, { prefix: API_PREFIX });
+  await app.register(generatedRoutes, { prefix: API_PREFIX });
   await app.register(trackingRoutes, { prefix: API_PREFIX });
 
   // 6. Plugins instalados (cargan sus plugins, rutas, settings, slots y permisos).

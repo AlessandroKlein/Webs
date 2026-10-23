@@ -961,3 +961,33 @@ model LicenseKey {
   @@index([productId])
   @@map("license_keys")
 }
+
+// Recurso generado por el motor de APIs (ADR-0020): define el schema (JSON Schema)
+// de una colección de datos creada por el usuario sin código.
+model GeneratedResource {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  schema      Json
+  description String?
+  feature     String   @default("generator")
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("generated_resources")
+}
+
+// Registro de datos de un recurso generado (scoped por organización, ADR-0006).
+// `resourceId` referencia el `key` de un GeneratedResource (relación lógica, sin FK).
+model GeneratedRecord {
+  id             String   @id @default(uuid())
+  resourceId     String
+  organizationId String
+  data           Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([resourceId, organizationId])
+  @@map("generated_records")
+}

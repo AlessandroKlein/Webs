@@ -376,11 +376,11 @@ export function PublicHome() {
         </aside>
       </main>
 
-      <footer style={{ borderTop: '1px solid var(--ws-border)' }}>
+      <div>
         <PluginSlot slotId="footer" />
         <SiteFooter />
         <SupportWidget />
-      </footer>
+      </div>
     </div>
   );
 }

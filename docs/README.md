@@ -21,6 +21,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Licencias locales (Licensify)](architecture/licensing-integration.md) | Módulo `apps/api/src/modules/licenses`: activación offline, node-locking, feature-gating, modelo de venta y anti-reloj. |
 | [Claves de licencia para la venta](architecture/claves-de-venta.md) | **Spec**: generación/validación/revocación de claves de activación (`LicenseSale`/`LicenseKey`), flujo de venta local y offline (sin servidor ni pasarela de pago). |
 | [Feature-gating por licencia](architecture/feature-gating.md) | **Spec técnica (ADR-0019)**: mapeo feature→(menú, plugins, dashboard), contrato server-side (`feature`/`licensed`, 403 en instalación) y UX de upsell vs ocultar. |
+| [Generador de APIs](architecture/api-generator.md) | **Spec técnica (ADR-0020)**: recurso declarativo (JSON Schema) → CRUD en caliente vía router genérico `/api/v1/generated/:resource` + SDK tipado (codegen + schema runtime). |
 | [Multi-tenant por cadenas](architecture/multi-tenant.md) | Organización padre/hija, scoping por filas, finanzas separadas + vista consolidada y contexto de tenant en runtime. |
 | [Actualización zero-downtime](architecture/update-system.md) | Módulo `apps/api/src/modules/update`: check/apply/rollback, swap atómico y actualización de plugins. |
 | [Base universal](architecture/base-universal.md) | De la base + plugins + plantilla a la app final (blog/tienda/gimnasio/logística), definiendo la página de inicio. |
@@ -58,6 +59,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [ADR-0017 — Reverse-proxy + multi-sucursal](adr/0017-nginx-allowlist-multi-sucursal.md) | nginx con allowlist de rutas por tenant y URL propia por sucursal (resolución de organización por hostname). |
 | [ADR-0018 — Permisos y roles completos](adr/0018-roles-permisos.md) | Catálogo canónico de permisos agrupado por dominio + integración de permisos de plugins + edición de roles desde UI. |
 | [ADR-0019 — Feature-gating por licencia](adr/0019-feature-gating.md) | `LICENSE_FEATURES` + `hasFeature()` como única puerta; `feature` declarativa en menú/plugin/dashboard; server 403 en instalación; UI con LicenseProvider + upsell. |
+| [ADR-0020 — Generador de APIs](adr/0020-api-generator.md) | Recursos declarativos (JSON Schema) en tablas JSONB + router genérico en caliente + SDK tipado codegen/runtime; feature premium `generator`. |
 | [ADR-0023 — Modelo de inventario](adr/0023-inventory.md) | Inventario completo: variantes SKU/EAN-UPC, multi-almacén, ledger inmutable, valoración promedio/FIFO y alertas. |
 | [ADR-0024 — Compositor social enriquecido](adr/0024-compositor-social-enriquecido.md) | Galería multi-media, menciones/hashtags, encuestas, visibilidad y preview de enlaces (nativo, retrocompatible). |
 | [ADR-0025 — Escalabilidad selectable](adr/0025-scalable-selectable.md) | Selector HPA vs VPA por workload con modos verticales Auto/Recommender/Initial y guarda de exclusión. |
@@ -86,5 +88,6 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 Además de este índice, el repositorio de documentación incluye:
 
 - `docs/guides/` — guías operativas (arranque, crear un plugin, configuración desde UI,
-  roles y permisos, despliegue, feature-gating por licencia, claves de licencia para la venta).
+  roles y permisos, despliegue, feature-gating por licencia, claves de licencia para la venta,
+  generador de APIs de acceso rápido, generador de SDK/API client).
 - `docs/api/` — referencia de la API (visión general, flujo de autenticación, WebSocket).
