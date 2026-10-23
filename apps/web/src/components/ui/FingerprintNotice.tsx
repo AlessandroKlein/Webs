@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from './cn';
 import { Button } from './Button';
 import { copyText } from './clipboard';
@@ -24,6 +25,7 @@ export function FingerprintNotice({
   className?: string;
 }) {
   const [copied, setCopied] = useState(false);
+  const { t } = useTranslation();
 
   async function handleCopy() {
     const ok = await copyText(fingerprint);
@@ -41,21 +43,18 @@ export function FingerprintNotice({
       <div className="flex items-start gap-2 text-warning">
         <i className="bi bi-fingerprint leading-none" aria-hidden="true" />
         <div className="flex flex-col gap-1">
-          <p className="font-semibold">Fingerprint de nodo</p>
-          <p className="opacity-90">
-            La licencia queda vinculada a este nodo. Si cambia el hardware o el entorno, el
-            fingerprint cambia y la licencia deja de ser válida.
-          </p>
+          <p className="font-semibold">{t('license.fingerprintTitle')}</p>
+          <p className="opacity-90">{t('license.fingerprintDesc')}</p>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <code className="break-all rounded bg-surface px-2 py-1 font-mono text-xs">{fingerprint}</code>
         <Button type="button" variant="secondary" size="sm" onClick={handleCopy}>
           <i className={cn('bi', copied ? 'bi-check' : 'bi-copy')} aria-hidden="true" />
-          {copied ? 'Copiado' : 'Copiar'}
+          {copied ? t('license.copied') : t('common.copy')}
         </Button>
       </div>
-      {algorithm && <p className="text-xs text-muted">Algoritmo: {algorithm}</p>}
+      {algorithm && <p className="text-xs text-muted">{t('license.algorithm', { algorithm })}</p>}
     </div>
   );
 }

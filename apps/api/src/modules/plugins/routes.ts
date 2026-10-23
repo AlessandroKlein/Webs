@@ -7,6 +7,7 @@ import { installPluginWithDependencies, installRemotePlugin, uninstallPlugin, up
 import { findRemotePlugin, getCatalog } from '../../plugins/catalog';
 import { audit } from '../../lib/audit';
 import { decryptSecretFields, encryptSecretFields, redactSecretFields, restoreMaskedSecrets } from '../../lib/crypto';
+import { resolveFeature } from '../../lib/feature-gating';
 
 const ajv = new Ajv({ allErrors: true, strict: false });
 
@@ -107,6 +108,20 @@ export async function pluginCrudRoutes(fastify: FastifyInstance): Promise<void> 
       const body = request.body as { id: string; source?: 'git' | 'npm'; url?: string; subdir?: string; sha256?: string; publicKey?: string; signature?: string; autoDependencies?: boolean; providers?: Record<string, string[]> };
       const id = body.id;
       const autoDeps = body.autoDependencies !== false;
+
+      // ADR-0019 (feature-gating): la instalación es la frontera autoritativa.
+      // Un plugin con `feature` premium no licenciada se rechaza con 403, sin
+      // importar lo que el cliente haya filtrado en su catálogo.
+      const gatingManifest = pluginRegistry.getAvailableManifest(id);
+      const gatingEntry = gatingManifest ? undefined : await findRemotePlugin(id);
+      const feature = resolveFeature(gatingManifest?.feature ?? gatingEntry?.feature);
+      if (!fastify.license.hasFeature(feature)) {
+        return reply.code(403).send({
+          error: 'feature_not_licensed',
+          feature,
+          message: `Este plugin requiere la feature premium "${feature}", que no está incluida en tu licencia.`,
+        });
+      }
 
       // Si no queremos autoinstalar dependencias, devolvemos las que faltan (diálogo).
       if (!autoDeps) {

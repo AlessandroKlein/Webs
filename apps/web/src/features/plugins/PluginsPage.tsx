@@ -5,6 +5,7 @@ import type { PluginManifest } from '@webs/plugin-sdk';
 import { useTranslation } from 'react-i18next';
 import i18next from '../../lib/i18n';
 import { api } from '../../lib/api';
+import { useLicense } from '../../lib/use-license';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
@@ -43,6 +44,10 @@ interface CatalogItem {
   category?: string;
   installedVersion?: string | null;
   hasUpdate?: boolean;
+  /** Feature premium que habilita el plugin (t97). `core`/ausente = sin gate. */
+  feature?: string;
+  /** `false` cuando el plugin premium no está cubierto por la licencia activa. */
+  licensed?: boolean;
 }
 
 interface CatalogResponse {
@@ -113,6 +118,7 @@ function SourceBadge({ source }: { source: 'local' | 'git' | 'npm' }) {
 export function PluginsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const { hasFeature } = useLicense();
 
   const { data, isLoading } = useQuery({
     queryKey: ['plugins'],
@@ -249,28 +255,42 @@ export function PluginsPage() {
               <div key={category}>
                 <h4 style={{ textTransform: 'capitalize', margin: 'var(--ws-space-3) 0 var(--ws-space-2)' }}>{category}</h4>
                 <div className="stack">
-                  {items.map((b) => (
-                    <div key={b.id} className="row" style={{ justifyContent: 'space-between' }}>
-                      <div>
-                        <strong>{catName(b)}</strong>
-                        <span className="muted"> v{b.version}</span>
-                        {b.author && <span className="muted"> · {b.author}</span>}
-                        <SourceBadge source={b.source} />
-                        {b.verified && (
-                          <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-success)', color: '#fff' }}>✔ {t('plugins.verified')}</span>
+                  {items.map((b) => {
+                    const gated = !hasFeature(b.feature);
+                    return (
+                      <div key={b.id} className="row" style={{ justifyContent: 'space-between' }}>
+                        <div>
+                          <strong>{catName(b)}</strong>
+                          <span className="muted"> v{b.version}</span>
+                          {b.author && <span className="muted"> · {b.author}</span>}
+                          <SourceBadge source={b.source} />
+                          {gated && (
+                            <span className="badge" style={{ marginLeft: 8, background: 'var(--ws-warning)', color: '#111' }}>
+                              <i className="bi bi-gem" aria-hidden="true" /> {t('plugins.premium')}
+                            </span>
+                          )}
+                          {b.verified && (
+                            <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-success)', color: '#fff' }}>✔ {t('plugins.verified')}</span>
+                          )}
+                          {b.icon && (
+                            <img src={b.icon} alt="" style={{ width: 28, height: 28, borderRadius: 6, marginLeft: 8, verticalAlign: 'middle' }} />
+                          )}
+                          <p className="muted" style={{ margin: 0 }}>
+                            {catDescription(b)}
+                          </p>
+                        </div>
+                        {gated ? (
+                          <Button disabled title={t('plugins.upsellTitle')}>
+                            <i className="bi bi-gem" aria-hidden="true" /> {t('plugins.premium')}
+                          </Button>
+                        ) : (
+                          <Button onClick={() => install.mutate({ id: b.id })} disabled={install.isPending}>
+                            {t('common.install')}
+                          </Button>
                         )}
-                        {b.icon && (
-                          <img src={b.icon} alt="" style={{ width: 28, height: 28, borderRadius: 6, marginLeft: 8, verticalAlign: 'middle' }} />
-                        )}
-                        <p className="muted" style={{ margin: 0 }}>
-                          {catDescription(b)}
-                        </p>
                       </div>
-                      <Button onClick={() => install.mutate({ id: b.id })} disabled={install.isPending}>
-                        {t('common.install')}
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}

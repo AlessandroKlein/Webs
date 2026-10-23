@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from './cn';
 import { Badge } from './Badge';
 
@@ -6,17 +7,17 @@ export type LicenseState = 'licensed' | 'trial' | 'expired' | 'unlicensed' | 'gr
 type Tone = 'neutral' | 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
 interface StateMeta {
-  label: string;
+  labelKey: string;
   tone: Tone;
   icon: string;
 }
 
 const STATES: Record<LicenseState, StateMeta> = {
-  licensed: { label: 'Licenciado', tone: 'success', icon: 'bi-patch-check' },
-  trial: { label: 'Prueba', tone: 'warning', icon: 'bi-hourglass-split' },
-  expired: { label: 'Vencida', tone: 'danger', icon: 'bi-x-octagon' },
-  unlicensed: { label: 'Sin licencia', tone: 'neutral', icon: 'bi-dash-circle' },
-  grace: { label: 'Periodo de gracia', tone: 'info', icon: 'bi-clock-history' },
+  licensed: { labelKey: 'license.statusLicensed', tone: 'success', icon: 'bi-patch-check' },
+  trial: { labelKey: 'license.statusTrial', tone: 'warning', icon: 'bi-hourglass-split' },
+  expired: { labelKey: 'license.statusExpired', tone: 'danger', icon: 'bi-x-octagon' },
+  unlicensed: { labelKey: 'license.statusUnlicensed', tone: 'neutral', icon: 'bi-dash-circle' },
+  grace: { labelKey: 'license.statusGrace', tone: 'info', icon: 'bi-clock-history' },
 };
 
 /**
@@ -32,12 +33,13 @@ export function LicenseStatus({
   detail?: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const meta = STATES[state];
   return (
     <span className={cn('inline-flex flex-wrap items-center gap-2', className)}>
       <Badge variant={meta.tone}>
         <i className={cn('bi', meta.icon)} aria-hidden="true" />
-        {meta.label}
+        {t(meta.labelKey)}
       </Badge>
       {detail && <span className="text-sm text-muted">{detail}</span>}
     </span>

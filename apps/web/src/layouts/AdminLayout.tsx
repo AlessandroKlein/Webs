@@ -9,6 +9,7 @@ import { useLocaleStore } from '../lib/locale-store';
 import { api } from '../lib/api';
 import { useRealtime } from '../lib/realtime';
 import { useTenantStore } from '../lib/tenant-store';
+import { useLicense } from '../lib/use-license';
 import { ScopeSwitcher } from '../components/tenant/ScopeSwitcher';
 
 /** Item de menú devuelto por `GET /menu` (núcleo + plugins). Los items de plugin llevan `id`. */
@@ -21,6 +22,8 @@ interface AdminMenuItem {
   icon?: string;
   parent?: string;
   permissions?: string[];
+  /** Feature premium que habilita el ítem (t97). `core`/ausente = siempre visible. */
+  feature?: string;
 }
 
 /** Secciones del menú `/admin` según la taxonomía de `docs/architecture/menu-categorias.md`. */
@@ -55,6 +58,7 @@ interface NavItem {
   section: SectionKey;
   perm: string | null;
   end?: boolean;
+  feature?: string;
 }
 
 /** Ítems de gestión de plugins que se ocultan cuando no hay plugins instalados. */
@@ -66,6 +70,7 @@ export function AdminLayout() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const hasPermission = useAuthStore((s) => s.hasPermission);
+  const { hasFeature } = useLicense();
   const catalog = useLocaleStore((s) => s.catalog);
   const enabledLocales = useLocaleStore((s) => s.enabled);
   const [collapsed, setCollapsed] = useState(false);
@@ -155,6 +160,7 @@ export function AdminLayout() {
   const pluginItems: NavItem[] = (menuData?.items ?? [])
     .filter((item) => typeof item.id === 'string' && item.id !== '')
     .filter((item) => !item.permissions || item.permissions.every((p) => hasPermission(p)))
+    .filter((item) => hasFeature(item.feature))
     .filter((item) => !corePaths.has(item.path))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((item) => ({
@@ -162,6 +168,7 @@ export function AdminLayout() {
       label: item.label,
       section: (SECTION_KEYS.has(item.section ?? '') ? item.section : 'integraciones') as SectionKey,
       perm: null,
+      feature: item.feature,
     }));
 
   const sectionLabels: Record<SectionKey, string> = {

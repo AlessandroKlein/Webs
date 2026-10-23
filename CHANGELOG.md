@@ -3,6 +3,45 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.4.0] - 2026-10-23
+
+### Añadido
+
+- **Feature-gating por licencia** (ADR-0019): catálogo canónico de features
+  (9: `core` siempre activa + 8 premium `payments`/`shipping`/`inventory`/`ai`/
+  `analytics`/`multitenant`/`marketplace`/`templates`) y `LicenseService.hasFeature()`
+  como única puerta de autorización. Campo declarativo `feature` (default `core`) en
+  `PluginManifest`/`PluginMenuItem`/menú/catálogo/dashboard; 20 plugins premium
+  declaran su `feature` (12 pagos, 4 envíos, 1 inventario, 1 IA, 1 analítica,
+  1 multi-tenant).
+- **Gating server-side** (`apps/api/src/lib/feature-gating.ts`): `GET /menu` marca
+  cada ítem con su `feature`; `GET /public/menu` filtra los premium no licenciados
+  (fail-closed); `GET /plugins/catalog` expone `feature` + `licensed`; y
+  `POST /plugins/install` devuelve `403 feature_not_licensed` para un plugin premium
+  sin su feature activa (frontera autoritativa).
+- **Gating en la UI** (`apps/web/src/lib/use-license.ts` → `hasFeature`): el menú
+  admin oculta los plugins premium no licenciados (`AdminLayout`), el catálogo los
+  marca con badge "Premium" y botón Instalar deshabilitado (`PluginsPage`) y el
+  dashboard oculta las métricas premium (`DashboardPage`). Fail-open en la UI (el
+  backend es la frontera): sin permiso `license.read` no se oculta nada.
+- **i18n M6 (ES/EN/PT)**: namespace `license.*` (31 claves) con paridad total en la
+  pantalla `/admin/license` (estados, activación, features, fingerprint, diálogo de
+  desactivación) y el upsell de marketplace (`plugins.premium`/`plugins.upsellTitle`).
+- **Docs M6**: `docs/adr/0019-feature-gating.md`, `docs/architecture/feature-gating.md`
+  (spec de mapeo feature→menú/plugins/datos), `docs/guides/feature-gating-licencia.md`
+  (guía operativa) y backlog Milestone 6 (WB-104→WB-113).
+
+### Deuda técnica
+
+- **MEDIUM (t101)**: el catálogo cachea en Redis `blocks:catalog` por 60s y esa
+  caché no se invalida al activar/desactivar una licencia → `GET /plugins/catalog`
+  devuelve `licensed` obsoleto hasta 60s. Impacto bajo (la UI usa `useLicense`, que
+  sí se invalida); fix pendiente: purgar `blocks:catalog` en los handlers
+  `activate`/`deactivate` de `apps/api/src/modules/licenses/routes.ts`.
+- Heredada: F12 (rename residual `blockId` + shim `/api/v1/blocks/*` + prosa
+  "bloque"), F4 (docs `block.read`/`block.manage` históricas), F10 (`GET /setup/status`
+  versión real), F17 (wrapper Capacitor real).
+
 ## [2.3.0] - 2026-10-23
 
 ### Añadido

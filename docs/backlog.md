@@ -1,12 +1,12 @@
-# Backlog de producto — Webs v2.0.0+
+# Backlog de producto — Webs v2.3.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.2.0'`
->   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** liberados).
->   Roadmap planificado hasta **v2.11.0** (M13 — IoT: serie temporal local +
->   plugins invernadero/sema).
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.3.0'`
+>   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** · **M5 v2.3.0**
+>   liberados). Roadmap planificado hasta **v2.11.0** (M13 — IoT: serie temporal
+>   local + plugins invernadero/sema).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -701,7 +701,128 @@ sección 3 (WB-7 a WB-13).
   quedan en verde.
 - **Métrica:** tag `v2.3.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.8 Milestone 9 (M9) — Inventario completo
+### 3.8 Milestone 6 (M6) — Feature-gating por licencia (UI)
+
+> **M6** se libera en **v2.4.0** (bump menor). Implementa el **feature-gating por
+> licencia** en la UI: el menú, el catálogo de plugins y las secciones/datos de
+> los dashboards se filtran según las features activas de la licencia (`GET
+> /api/v1/license`), de modo que el cliente ve exactamente lo que pagó. Anclado en
+> **ADR-0019** (feature-gating por licencia) + spec de mapeo. Trazabilidad:
+> `t95`–`t102`; `t95` es este documento.
+
+**Catálogo canónico de features** (fuente: `apps/api/src/modules/licenses/features.ts` → `LICENSE_FEATURES`, expuesto por `GET /api/v1/license/features`):
+
+| Feature | Etiqueta | Área | Tipo |
+|---------|----------|------|------|
+| `core` | Núcleo | core | **Núcleo** (siempre activa) |
+| `payments` | Pagos | commerce | Premium |
+| `shipping` | Envíos | commerce | Premium |
+| `inventory` | Inventario y tienda | commerce | Premium |
+| `ai` | Integraciones de IA | ai | Premium |
+| `analytics` | Analítica | ai | Premium |
+| `multitenant` | Cadenas multi-tenant | scale | Premium |
+| `marketplace` | Marketplace de plugins | extensions | Premium |
+| `templates` | Templates premium | extensions | Premium |
+
+**Mapeo feature → (menú, plugin, sección de datos)** (referencia; se finaliza en
+ADR-0019 `t96` y se aplica en `t97`/`t98`):
+
+| Feature | Menú | Plugins | Secciones/datos |
+|---------|------|---------|-----------------|
+| `core` | Dashboard, Páginas, Contenido, Usuarios, Roles, Media, Ajustes, Menú | blog, seo, search, social, social-login, chat, formularios, correo, notificaciones, documentos, mapa, calendario, academia, reservas, support, workflows, afiliados | Panel de usuario (pedidos/membresía/rutinas) + panel de trabajador (asistencia/rutinas/reservas) |
+| `payments` | Pagos | mercadopago, stripe, paypal, payway, ebanx, facturacion, suscripciones, carrito | Pagos, "Mis comprobantes" |
+| `shipping` | Envíos | andreani, oca | Logística / cotización |
+| `inventory` | Inventario, Tienda, POS | inventario, ecommerce, pos | Stock, ventas (POS), cobros |
+| `ai` | IA | chat-ia | Asistentes / análisis IA |
+| `analytics` | Analítica | analytics, marketing | Métricas, dashboards, reportes |
+| `multitenant` | Organizaciones, Sucursales | organizaciones | Selector de sucursal, finanzas consolidadas HQ |
+| `marketplace` | Marketplace/Plugins (comercial) | — (instalación de plugins comerciales) | Catálogo de plugins comerciales |
+| `templates` | Templates (premium) | — | Catálogo de plantillas premium |
+
+#### WB-104 · P0 (M6) — ADR-0019 + spec de mapeo feature→menú/plugin/datos — `t96`
+- **Dado** el catálogo de features ya expuesto por `/api/v1/license`,
+- **Cuando** se registra la decisión,
+- **Entonces** existe **ADR-0019** (feature-gating por licencia en UI) + spec que
+  define el mapeo de cada feature (core + premium) a ítems de menú, plugins
+  instalables y secciones/datos de dashboard, anclado en archivos reales
+  (`modules/licenses`, `modules/menu`, catálogo de plugins, `AdminLayout`,
+  `license-state`), con `mkdocs build` verde.
+- **Métrica:** ADR-0019 + spec presentes; mapeo feature→menú/plugin/datos completo.
+
+#### WB-105 · P0 (M6) — Filtrar menú server-side por licencia — `t97`
+- **Dado** una licencia activa con features determinadas,
+- **Cuando** se pide `GET /menu` o `GET /public/menu`,
+- **Entonces** se devuelven solo los ítems (core + plugins) cuyas features están
+  licenciadas (o marcados con la feature requerida), y `core` siempre aparece.
+- **Métrica:** con licencia core, el menú no contiene ítems premium; con full,
+  aparece todo.
+
+#### WB-106 · P0 (M6) — Filtrar catálogo e instalación de plugins premium — `t97`
+- **Dado** el catálogo de plugins y una licencia activa,
+- **Cuando** se pide `GET /api/v1/plugins/catalog` o se instala un plugin,
+- **Entonces** los plugins premium sin feature licenciada se ocultan/marcan en el
+  catálogo, e instalar un plugin premium sin licencia devuelve **403** con
+  mensaje claro.
+- **Métrica:** instalar un plugin premium sin licencia → 403; con licencia → 201.
+
+#### WB-107 · P0 (M6) — Exponer features activas (feature→estado) en `/license` — `t97`
+- **Dado** `GET /api/v1/license`,
+- **Cuando** se consulta,
+- **Entonces** devuelve la lista feature→estado (activa/inactiva) para que el
+  frontend filtre datos, con `core` siempre activo.
+- **Métrica:** la respuesta incluye todas las features del catálogo con su estado.
+
+#### WB-108 · P0 (M6) — Feature-gating UI: LicenseProvider + hasFeature — `t98`
+- **Dado** el frontend `apps/web`,
+- **Cuando** se carga la app,
+- **Entonces** un provider/contexto central (p. ej. `LicenseProvider`) consume
+  `GET /api/v1/license` y expone `hasFeature(feature)`; `AdminLayout`, menú
+  público y dashboards renderizan solo lo licenciado, sin categorías vacías.
+- **Métrica:** con licencia core vs premium, menú/plugins/datos cambian de forma
+  coherente con `/admin/license`.
+
+#### WB-109 · P0 (M6) — UX de upsell ("no incluido" vs ocultar) — `t98`
+- **Dado** un feature no licenciada,
+- **Cuando** el usuario la encuentra (catálogo/menú/dashboard),
+- **Entonces** se muestra de forma consistente: oculta en menú/datos y con
+  indicación de upsell ("no incluido en tu licencia" / "mejora tu plan") en el
+  catálogo de plugins premium, sin links rotos.
+- **Métrica:** ningún ítem premium renderiza roto; upsell claro en catálogo.
+
+#### WB-110 · P1 (M6) — i18n ES/EN/PT del feature-gating — `t99`
+- **Dado** lo nuevo de feature-gating,
+- **Cuando** se curan las claves,
+- **Entonces** los mensajes de upsell, estados de feature y strings de
+  menú/catálogo/dashboards están en es/en/pt con paridad.
+- **Métrica:** sin claves faltantes ni strings hardcodeados.
+
+#### WB-111 · P1 (M6) — Documentación de feature-gating — `t100`
+- **Dado** M6 implementado,
+- **Cuando** se documenta,
+- **Entonces** hay una guía de feature-gating (cómo se mapean features→menú/plugins/
+  datos, cómo agregar una feature gateable y cómo vender/activar licencias) en
+  Webs docs/ + Docs.git, con índices/nav actualizados.
+- **Métrica:** `mkdocs build` en verde.
+
+#### WB-112 · P0 (M6) — QA del feature-gating (core vs premium) — `t101`
+- **Dado** M6 implementado,
+- **Cuando** se ejecuta QA en entorno aislado,
+- **Entonces** verifica: con licencia core el menú no muestra ítems premium y el
+  catálogo oculta plugins premium (con upsell); con premium/full aparece todo;
+  instalar premium sin licencia → 403; dashboards ocultan datos no licenciados;
+  `/admin/license` refleja exactamente lo mostrado; regresión (login, plugin core,
+  menú nativo, i18n). Veredicto LIBERABLE/NO.
+- **Métrica:** QA LIBERABLE con licencia core y premium.
+
+#### WB-113 · P1 (M6) — Release v2.4.0 + CHANGELOG + workflows verdes — `t102`
+- **Dado** M6 completo y verificado (QA LIBERABLE),
+- **Cuando** se bumpa `SYSTEM_VERSION` a `2.4.0`, se actualiza `CHANGELOG.md`
+  (`[2.4.0]`) y se taggea `v2.4.0`,
+- **Entonces** el release se publica y los workflows (CI typecheck + release)
+  quedan en verde.
+- **Métrica:** tag `v2.4.0` público; workflows CI/release ✓; changelog coherente.
+
+### 3.9 Milestone 9 (M9) — Inventario completo
 
 > **M9** se libera en **v2.7.0** (bump menor). Convierte el inventario básico
 > actual (`blocks/inventario`, modelo `InventoryItem`) en un sistema de gestión de
@@ -801,7 +922,7 @@ sección 3 (WB-7 a WB-13).
   quedan en verde.
 - **Métrica:** tag `v2.7.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.9 Milestone 10 (M10) — Compositor de publicación enriquecido
+### 3.10 Milestone 10 (M10) — Compositor de publicación enriquecido
 
 > **M10** se libera en **v2.8.0** (bump menor). Enriquece el compositor "Nueva
 > publicación" de la red social (`apps/web/src/features/public/SocialPublicPage.tsx`).
@@ -889,7 +1010,7 @@ sección 3 (WB-7 a WB-13).
 - **Métrica:** escribir, cerrar y reabrir el compositor restaura el texto/adjuntos;
   publicar limpia el borrador.
 
-### 3.10 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
+### 3.11 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
 
 > **M11** se libera en **v2.9.0** (bump menor). Permite al usuario **elegir** el
 > tipo de escalabilidad Kubernetes por workload desde un panel `/admin/scaling`.
@@ -982,7 +1103,7 @@ sección 3 (WB-7 a WB-13).
 - **Métrica:** exportar un workload en modo VPA `Recommender` produce un YAML con
   `updateMode: Off` y los `minAllowed`/`maxAllowed` configurados.
 
-### 3.11 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
+### 3.12 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
 
 > **M13** se libera en **v2.11.0** (bump menor). Cronológicamente es **posterior a
 > M12 (v2.10.0, backlog pendiente — vista RAW/Code de actualizaciones)**, cuya
@@ -1113,8 +1234,8 @@ sección 3 (WB-7 a WB-13).
 | **R3 — Expansión** | **v2.0.0** ✓ | WB-18→WB-24: sistema de licencias (*Licensify*, `@licensify/core`), multi-tenant por cadenas (finanzas separadas + consolidadas HQ), escalabilidad k8s (HPA/stateless/auto-scaling), mobile real Capacitor, OAuth2 real (state/PKCE), limpieza de naming interno `block`, sistema de actualización zero-downtime (app + plugins). |
 | **R4 — Consolidación** | **v2.1.0** ✓ | WB-25→WB-34: cierre de deuda (F12/F4/F10/F17), visual page builder (GrapesJS + página de inicio configurable), i18n ES/EN/PT, documentos legales (ToS/Disclaimer/Privacy/Cookies), mobile Capacitor nativo + desktop, fix de login en Docker, política "todo nativo / sin componentes de pago", QA + docs + release. |
 | **R5 — Operación** | **v2.2.0** ✓ | M4: WB-63→WB-77 — pulido admin/UX (categorías `/admin`, fix CSS templates, buscador, actualizaciones unificadas, limpieza de plugins), plugin fiscal `arca` (ARCA/AFIP), comprobantes/facturas por pago (template editable + impresión térmica ESC/POS + "Mis comprobantes"), checkout unificado + pago en sucursal (suscripción→pago, POS). |
-| **R6 — Marketplace** | **v2.3.0** | M5: WB-90→WB-103 — plugins con fuente remota GitHub + botón "Instalar" (badge de origen), nginx allowlist + multi-sucursal por subdominio, roles/permisos completos + patrón "crear", app de claves de licencia para venta + E2E local, finalización de plugins, ADRs (0016/0017/0018) + i18n + docs + QA + release. |
-| **R7 — Licencias** | **v2.4.0** | M6: feature-gating por licencia (integra `@licensify/core` con features premium). |
+| **R6 — Marketplace** | **v2.3.0** ✓ | M5: WB-90→WB-103 — plugins con fuente remota GitHub + botón "Instalar" (badge de origen), nginx allowlist + multi-sucursal por subdominio, roles/permisos completos + patrón "crear", app de claves de licencia para venta + E2E local, finalización de plugins, ADRs (0016/0017/0018) + i18n + docs + QA + release. |
+| **R7 — Licencias** | **v2.4.0** | M6: WB-104→WB-113 — feature-gating por licencia en UI (catálogo de features core+premium ya expuesto por `/api/v1/license`, mapeo feature→menú/plugin/datos, filtro server-side de menú/catálogo/instalación, `LicenseProvider`+`hasFeature` en frontend, upsell, i18n + docs + QA + release). |
 | **R8 — Acceso rápido** | **v2.5.0** | M7: generador de APIs de acceso rápido (recurso → modelo + rutas CRUD + SDK tipado web/móvil). |
 | **R9 — Soporte** | **v2.6.0** | M8: rediseño de `/admin/menu`, sistema de tickets/soporte con estados, chat de usuarios en tiempo real + ventana flotante. |
 | **R10 — Inventario** | **v2.7.0** | M9: WB-35→WB-44 — inventario completo (variantes/SKU/EAN-UPC, catálogo, multi-almacén por sucursal, movimientos con ledger auditable, alertas de stock bajo, valoración costo promedio/FIFO, reportes + export/import CSV, código de barras/QR + impresión térmica). |
@@ -1207,6 +1328,14 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t92-docs-m5 | WB-101 |
 | t93-qa-m5 | WB-102 |
 | t94-release-m5 | WB-103 |
+| t95-backlog-m6 | WB-104→WB-113 (este documento) |
+| t96-adr-m6 | WB-104 (ADR-0019 + spec) |
+| t97-feature-gating-back | WB-105, WB-106, WB-107 |
+| t98-feature-gating-front | WB-108, WB-109 |
+| t99-i18n-m6 | WB-110 |
+| t100-docs-m6 | WB-111 |
+| t101-qa-m6 | WB-112 |
+| t102-release-m6 | WB-113 |
 | t125-backlog-m9 | WB-35→WB-44 (este documento) |
 | t126-adr-inventario | WB-35→WB-42 (ADR-0023 + spec) |
 | t127-modelo-inventario | WB-35, WB-36, WB-37 (modelo de datos) |

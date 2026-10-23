@@ -4,6 +4,7 @@ import { audit } from '../../lib/audit';
 import { sendMail } from '../mail/service';
 import { ensureDefaultSections, getSectionValue, listSections, setSectionValue } from './service';
 import { collectPluginMenuItems } from '../../lib/plugin-menu';
+import { isLicensed } from '../../lib/feature-gating';
 import { LEGAL_DOCUMENTS } from './legal-templates';
 
 export default async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
@@ -45,8 +46,13 @@ export default async function settingsRoutes(fastify: FastifyInstance): Promise<
   // más los items de menú nativos declarados por los plugins instalados).
   fastify.get('/public/menu', { schema: { tags: ['settings'] } }, async () => {
     const menu = await fastify.prisma.menu.findUnique({ where: { key: 'main' } });
-    const coreItems = (menu?.items as Array<{ label: string; path: string; order?: number }>) ?? [];
-    const pluginItems = collectPluginMenuItems('public');
+    const coreItems = ((menu?.items as Array<{ label: string; path: string; order?: number }>) ?? []).map((item) => ({
+      ...item,
+      feature: 'core',
+    }));
+    // El sitio público no tiene LicenseProvider: filtramos los items premium no
+    // licenciados (ADR-0019). Los items `core` siempre se incluyen.
+    const pluginItems = collectPluginMenuItems('public').filter((item) => isLicensed(fastify, item.feature));
     return { items: [...coreItems, ...pluginItems] };
   });
 

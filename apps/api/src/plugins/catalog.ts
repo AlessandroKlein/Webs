@@ -5,6 +5,7 @@ import type { LocalizedString, PluginManifest } from '@webs/plugin-sdk';
 import { pluginRegistry } from './registry';
 import { pluginsDir } from '../lib/paths';
 import { cacheGet, cacheSet } from '../lib/cache';
+import { resolveFeature } from '../lib/feature-gating';
 
 /**
  * Catálogo/marketplace de plugins. Combina:
@@ -59,6 +60,8 @@ export interface RegistryPluginEntry {
   signature?: string;
   /** Si el plugin está verificado por un autor de confianza. */
   verified?: boolean;
+  /** Feature de licencia que gobierna este plugin (ADR-0019). Default `core`. */
+  feature?: string;
 }
 
 /** @deprecated Usar {@link RegistryPluginEntry}. Alias por retrocompatibilidad. */
@@ -82,6 +85,10 @@ export interface CatalogItem {
   verified?: boolean;
   /** Categoría del plugin (agrupación en el catálogo). */
   category?: string;
+  /** Feature de licencia que gobierna este plugin (ADR-0019). Default `core`. */
+  feature?: string;
+  /** `true` si la feature del plugin está licenciada (seteado en `getCatalog`). */
+  licensed?: boolean;
   /** Versión instalada (null si no está instalado). */
   installedVersion?: string | null;
   /** true si hay una versión más nueva disponible. */
@@ -162,6 +169,7 @@ export function buildCatalog(
       repository: entry?.url ?? m.repository,
       source,
       category: m.category,
+      feature: resolveFeature(m.feature ?? entry?.feature),
       installed: installedIds.has(m.id),
       installedVersion,
       hasUpdate: installedVersion !== null && installedVersion !== m.version,
@@ -186,6 +194,7 @@ export function buildCatalog(
       source: b.source,
       installed: false,
       verified: b.verified,
+      feature: resolveFeature(b.feature),
     }));
 
   return { local, remote };
@@ -200,6 +209,9 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
   const installedMap = new Map(installations.map((i) => [i.pluginId, i.version]));
 
   const result = buildCatalog(pluginRegistry.getAvailable(), await loadRegistryIndex(), installedMap);
-  await cacheSet(fastify.redis, cacheKey, result, 60);
-  return result;
+  const enrich = <T extends { feature?: string }>(items: T[]): Array<T & { licensed: boolean }> =>
+    items.map((item) => ({ ...item, licensed: fastify.license.hasFeature(resolveFeature(item.feature)) }));
+  const enriched = { local: enrich(result.local), remote: enrich(result.remote) };
+  await cacheSet(fastify.redis, cacheKey, enriched, 60);
+  return enriched;
 }

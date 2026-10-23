@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ApiClientError } from '../../lib/api';
+import i18next from '../../lib/i18n';
 import { useAuthStore } from '../../lib/auth-store';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -60,20 +62,20 @@ function detailFor(ls: LicenseState): string | undefined {
   switch (ls.status) {
     case 'active': {
       const parts = [
-        ls.productId ? `Producto ${ls.productId}` : null,
+        ls.productId ? i18next.t('license.product', { id: ls.productId }) : null,
         ls.licensee ? ls.licensee : null,
-        ls.expiresAt ? `vence ${formatDate(ls.expiresAt)}` : null,
+        ls.expiresAt ? i18next.t('license.expiresOn', { date: formatDate(ls.expiresAt) }) : null,
       ].filter(Boolean) as string[];
       return parts.length > 0 ? parts.join(' · ') : undefined;
     }
     case 'expired':
-      return `Vencida el ${formatDate(ls.expiresAt)}.`;
+      return i18next.t('license.expiredOn', { date: formatDate(ls.expiresAt) });
     case 'invalid':
-      return 'La licencia no es válida para esta instalación.';
+      return i18next.t('license.invalid');
     case 'clock_rollback':
-      return 'Se detectó un retroceso del reloj del sistema; la licencia quedó bloqueada.';
+      return i18next.t('license.clockRollback');
     case 'unconfigured':
-      return 'Sin licencia configurada. Activá una clave para habilitar features.';
+      return i18next.t('license.unconfigured');
     default:
       return undefined;
   }
@@ -91,6 +93,7 @@ function toFeatureItems(features: LicenseFeature[]): FeatureListItem[] {
  * del nodo y las acciones de activación/desactivación.
  */
 export function LicensePage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const canManage = useAuthStore((s) => s.hasPermission)('license.manage');
 
@@ -138,26 +141,26 @@ export function LicensePage() {
 
   return (
     <div className="stack" style={{ gap: 'var(--ws-space-4)' }}>
-      <h1 style={{ margin: 0 }}>Licencia</h1>
+      <h1 style={{ margin: 0 }}>{t('license.title')}</h1>
 
       <Card>
         <Card.Header>
-          <Card.Title>Estado de la licencia</Card.Title>
-          <Card.Description>Activación local y features habilitados para esta instalación.</Card.Description>
+          <Card.Title>{t('license.statusTitle')}</Card.Title>
+          <Card.Description>{t('license.statusDesc')}</Card.Description>
         </Card.Header>
         <Card.Content className="flex flex-col gap-3">
           {loadingLicense ? (
             <Spinner />
           ) : licenseError || !license ? (
             <p className="muted" style={{ margin: 0 }}>
-              No se pudo consultar el estado de la licencia.
+              {t('license.statusError')}
             </p>
           ) : (
             <>
               <LicenseStatus state={toUiState(license.status)} detail={detailFor(license)} />
               {license.nodeLocked && (
                 <p className="text-sm text-muted" style={{ margin: 0 }}>
-                  <i className="bi bi-lock" aria-hidden="true" /> Licencia anclada a este nodo.
+                  <i className="bi bi-lock" aria-hidden="true" /> {t('license.nodeLocked')}
                 </p>
               )}
             </>
@@ -165,7 +168,7 @@ export function LicensePage() {
 
           {!licensed && canManage && !loadingLicense && !licenseError && (
             <div className="flex flex-col gap-2" style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-4)' }}>
-              <span className="text-sm font-medium text-text">Activar licencia</span>
+              <span className="text-sm font-medium text-text">{t('license.activateTitle')}</span>
               <ActivationKeyField
                 value={activationKey}
                 onChange={setActivationKey}
@@ -173,7 +176,7 @@ export function LicensePage() {
                 loading={activate.isPending}
                 disabled={!canManage}
                 error={activateError}
-                hint="Pegá la clave de activación provista. La licencia quedará vinculada a este nodo."
+                hint={t('license.activateHint')}
               />
             </div>
           )}
@@ -181,7 +184,7 @@ export function LicensePage() {
           {licensed && canManage && (
             <div className="flex flex-wrap gap-2" style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-4)' }}>
               <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
-                Desactivar licencia
+                {t('license.deactivate')}
               </Button>
             </div>
           )}
@@ -191,11 +194,11 @@ export function LicensePage() {
       {features.length > 0 && (
         <Card>
           <Card.Header>
-            <Card.Title>Funcionalidades</Card.Title>
-            <Card.Description>Qué está habilitado según tu licencia.</Card.Description>
+            <Card.Title>{t('license.featuresTitle')}</Card.Title>
+            <Card.Description>{t('license.featuresDesc')}</Card.Description>
           </Card.Header>
           <Card.Content>
-            <FeatureList features={toFeatureItems(features)} />
+            <FeatureList features={toFeatureItems(features)} ariaLabel={t('license.featuresTitle')} />
           </Card.Content>
         </Card>
       )}
@@ -206,18 +209,18 @@ export function LicensePage() {
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Desactivar licencia"
+        title={t('license.deactivate')}
         danger
-        confirmLabel="Desactivar"
+        confirmLabel={t('license.deactivate')}
         onConfirm={() => deactivate.mutate()}
         onCancel={() => setConfirmOpen(false)}
       >
-        Se desactivará la licencia y se perderán los features premium. ¿Continuar?
+        {t('license.deactivateConfirm')}
       </ConfirmDialog>
     </div>
   );
 }
 
 function errorMessage(e: unknown): string {
-  return e instanceof ApiClientError ? e.message : e instanceof Error ? e.message : 'Error inesperado';
+  return e instanceof ApiClientError ? e.message : e instanceof Error ? e.message : i18next.t('license.errorUnexpected');
 }

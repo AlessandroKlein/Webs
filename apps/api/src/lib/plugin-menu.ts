@@ -1,3 +1,4 @@
+import type { PluginManifest, PluginMenuItem } from '@webs/plugin-sdk';
 import { pluginRegistry } from '../plugins/registry';
 
 /** Resuelve un `LocalizedString` a un único string (preferencia `es` → `en` → primero). */
@@ -23,15 +24,25 @@ const CATEGORY_TO_SECTION: Record<string, string> = {
 
 const DEFAULT_SECTION = 'integraciones';
 
-/** Resuelve la sección de un item: `section` explícito > categoría del manifest > default. */
-function resolveSection(pluginId: string, section: string | undefined): string {
-  if (section) return section;
-  const manifest =
+/** Resuelve el manifiesto de un plugin (disponible o ya cargado). */
+function resolveManifest(pluginId: string): PluginManifest | undefined {
+  return (
     pluginRegistry.getAvailableManifest(pluginId) ??
-    pluginRegistry.getLoadedPlugins().find((l) => l.manifest.id === pluginId)?.manifest;
-  const category = manifest?.category;
+    pluginRegistry.getLoadedPlugins().find((l) => l.manifest.id === pluginId)?.manifest
+  );
+}
+
+/** Resuelve la sección de un item: `section` explícito > categoría del manifest > default. */
+function resolveSection(pluginId: string, section: string | undefined, manifest?: PluginManifest): string {
+  if (section) return section;
+  const category = (manifest ?? resolveManifest(pluginId))?.category;
   if (category && CATEGORY_TO_SECTION[category]) return CATEGORY_TO_SECTION[category];
   return DEFAULT_SECTION;
+}
+
+/** Feature de un item (ADR-0019): `menu[].feature` > `manifest.feature` > `'core'`. */
+function resolveItemFeature(item: PluginMenuItem, manifest: PluginManifest | undefined): string {
+  return item.feature ?? manifest?.feature ?? 'core';
 }
 
 export interface ResolvedPluginMenuItem {
@@ -43,6 +54,8 @@ export interface ResolvedPluginMenuItem {
   icon?: string;
   parent?: string;
   permissions?: string[];
+  /** Feature de licencia que gobierna este item (ADR-0019). */
+  feature?: string;
 }
 
 /**
@@ -53,6 +66,7 @@ export interface ResolvedPluginMenuItem {
 export function collectPluginMenuItems(scope: 'public' | 'admin'): ResolvedPluginMenuItem[] {
   const items: ResolvedPluginMenuItem[] = [];
   for (const { pluginId, items: pluginItems } of pluginRegistry.getMenuItems()) {
+    const manifest = resolveManifest(pluginId);
     for (const item of pluginItems) {
       const target = item.target ?? 'both';
       if (scope === 'public' && target === 'admin') continue;
@@ -62,7 +76,8 @@ export function collectPluginMenuItems(scope: 'public' | 'admin'): ResolvedPlugi
         label: resolveLabel(item.label),
         path: item.path,
         order: item.order,
-        section: resolveSection(pluginId, item.section),
+        section: resolveSection(pluginId, item.section, manifest),
+        feature: resolveItemFeature(item, manifest),
         icon: item.icon,
         parent: item.parent,
         permissions: item.permissions,

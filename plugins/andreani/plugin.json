@@ -90,5 +90,6 @@
       }
     }
   },
-  "repository": "https://github.com/AlessandroKlein/Webs"
+  "repository": "https://github.com/AlessandroKlein/Webs",
+  "feature": "shipping"
 }

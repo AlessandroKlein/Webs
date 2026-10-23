@@ -1,4 +1,5 @@
 import { useId, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from './cn';
 import { Button } from './Button';
 import { Input } from './Input';
@@ -20,8 +21,8 @@ export function ActivationKeyField({
   disabled = false,
   error,
   hint,
-  label = 'Clave de activación',
-  placeholder = 'XXXX-XXXX-XXXX-XXXX',
+  label,
+  placeholder,
   groupSize = 4,
   className,
 }: {
@@ -38,8 +39,11 @@ export function ActivationKeyField({
   groupSize?: number;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const inputId = useId();
   const describedBy = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
+  const resolvedLabel = label ?? t('license.activationKeyLabel');
+  const resolvedPlaceholder = placeholder ?? t('license.activationKeyPlaceholder');
 
   function normalize(next: string): string {
     const cleaned = next.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -54,13 +58,13 @@ export function ActivationKeyField({
 
   return (
     <form onSubmit={handleSubmit} className={cn('flex flex-col gap-1', className)}>
-      <Label htmlFor={inputId}>{label}</Label>
+      <Label htmlFor={inputId}>{resolvedLabel}</Label>
       <div className="flex items-center gap-2">
         <Input
           id={inputId}
           value={value}
           onChange={(e) => onChange(normalize(e.target.value))}
-          placeholder={placeholder}
+          placeholder={resolvedPlaceholder}
           disabled={disabled || loading}
           autoComplete="off"
           spellCheck={false}
@@ -69,7 +73,7 @@ export function ActivationKeyField({
           className="font-mono uppercase tracking-wider"
         />
         <Button type="submit" loading={loading} disabled={disabled || !value.trim()}>
-          Activar
+          {t('license.activate')}
         </Button>
       </div>
       {hint && !error && (

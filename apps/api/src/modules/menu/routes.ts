@@ -38,7 +38,7 @@ export default async function menuRoutes(fastify: FastifyInstance): Promise<void
     { schema: { tags: ['menu'] }, preHandler: [fastify.authenticate, fastify.authorize('setting.read')] },
     async () => {
       const menu = await fastify.prisma.menu.findUnique({ where: { key: 'main' } });
-      const coreItems = normalizeItems(menu?.items);
+      const coreItems = normalizeItems(menu?.items).map((item) => ({ ...item, feature: 'core' }));
       const pluginItems = collectPluginMenuItems('admin');
       return { items: [...coreItems, ...pluginItems] };
     },

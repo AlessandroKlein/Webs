@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../lib/auth-store';
+import { useLicense } from '../../lib/use-license';
 import { api } from '../../lib/api';
 import { Card } from '../../components/ui/Card';
 
@@ -24,17 +25,21 @@ function formatValue(value: number | undefined): string {
 export function DashboardPage() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const { hasFeature } = useLicense();
   const { data, isLoading } = useQuery({
     queryKey: ['metrics'],
     queryFn: () => api.get<Metrics>('/api/v1/admin/metrics'),
   });
 
   const metrics = [
-    { key: 'users', label: t('nav.users'), icon: 'bi-people' },
-    { key: 'content', label: t('nav.content'), icon: 'bi-file-earmark-text' },
-    { key: 'blocks', label: t('nav.installedPlugins'), icon: 'bi-grid-3x3-gap' },
-    { key: 'payments', label: t('nav.payments'), icon: 'bi-credit-card' },
+    { key: 'users', label: t('nav.users'), icon: 'bi-people', feature: 'core' },
+    { key: 'content', label: t('nav.content'), icon: 'bi-file-earmark-text', feature: 'core' },
+    { key: 'blocks', label: t('nav.installedPlugins'), icon: 'bi-grid-3x3-gap', feature: 'core' },
+    { key: 'payments', label: t('nav.payments'), icon: 'bi-credit-card', feature: 'payments' },
   ] as const;
+
+  // Oculta las métricas de features premium no licenciadas (ADR-0019).
+  const visibleMetrics = metrics.filter((m) => hasFeature(m.feature));
 
   const quickLinks = [
     { to: '/admin/content', label: t('nav.content'), icon: 'bi-file-earmark-richtext' },
@@ -55,7 +60,7 @@ export function DashboardPage() {
       </div>
 
       <div className="grid-2">
-        {metrics.map((m) => (
+        {visibleMetrics.map((m) => (
           <Card key={m.key}>
             <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>

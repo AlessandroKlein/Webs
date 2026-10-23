@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { audit } from '../../lib/audit';
+import { cacheDel } from '../../lib/cache';
 import { isCoreFeature, listFeatures } from './features';
 
 export default async function licenseRoutes(fastify: FastifyInstance): Promise<void> {
@@ -59,6 +60,8 @@ export default async function licenseRoutes(fastify: FastifyInstance): Promise<v
     async (request) => {
       const { activationKey } = request.body as { activationKey: string };
       const result = fastify.license.activate(activationKey);
+      // La licencia cambió → invalidar el catálogo cacheado (`licensed` por feature).
+      await cacheDel(fastify.redis, 'blocks:catalog');
       audit(fastify, request, {
         actorId: request.user?.sub,
         action: 'license.activate',
@@ -77,6 +80,8 @@ export default async function licenseRoutes(fastify: FastifyInstance): Promise<v
     },
     async (request) => {
       fastify.license.deactivate();
+      // La licencia cambió → invalidar el catálogo cacheado (`licensed` por feature).
+      await cacheDel(fastify.redis, 'blocks:catalog');
       audit(fastify, request, {
         actorId: request.user?.sub,
         action: 'license.deactivate',

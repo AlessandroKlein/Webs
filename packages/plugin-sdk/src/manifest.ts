@@ -54,6 +54,8 @@ export interface PluginMenuItem {
   permissions?: string[];
   /** Dónde se muestra. Default `both`. */
   target?: PluginMenuTarget;
+  /** Feature de licencia que gobierna este item (ADR-0019). Default `core`. */
+  feature?: string;
 }
 
 /**
@@ -110,6 +112,8 @@ export interface PluginManifest {
   blockDependencies?: string[];
   /** Categoría del plugin para agrupar en el catálogo (ej. pago, contenido, seo, comunicación). */
   category?: string;
+  /** Feature de licencia que gobierna este plugin (ADR-0019). Default `core`. */
+  feature?: string;
   /** Grupos de proveedores que este plugin registra (ej. `payment`, `storage`, `notification`). */
   provides?: string[];
   /** Grupos de proveedores que este plugin necesita (el usuario elige cuál instalar). */
@@ -168,6 +172,7 @@ export const pluginMenuItemSchema = z.object({
   parent: z.string().optional(),
   permissions: z.array(z.string()).optional(),
   target: z.enum(['admin', 'public', 'both']).optional(),
+  feature: z.string().optional(),
 });
 
 export const pluginManifestSchema = z.object({
@@ -195,6 +200,7 @@ export const pluginManifestSchema = z.object({
   pluginDependencies: z.array(z.string()).optional(),
   blockDependencies: z.array(z.string()).optional(),
   category: z.string().optional(),
+  feature: z.string().optional(),
   provides: z.array(z.string()).optional(),
   requiresProviders: z.array(z.string()).optional(),
   menu: z.array(pluginMenuItemSchema).optional(),
