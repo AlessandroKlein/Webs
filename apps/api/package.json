@@ -29,7 +29,7 @@
     "@fastify/rate-limit": "^10.1.0",
     "@fastify/sensible": "^6.0.2",
     "@fastify/swagger": "^9.4.0",
-    "@fastify/swagger-ui": "^5.1.0",
+    "@fastify/swagger-ui": "^6.1.2",
     "@fastify/multipart": "^9.0.0",
     "@fastify/websocket": "^11.0.1",
     "@licensify/core": "workspace:*",
