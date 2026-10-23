@@ -1,7 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
-  - "blocks/*"
+  - "plugins/*"
 
 allowBuilds:
   '@prisma/client': true

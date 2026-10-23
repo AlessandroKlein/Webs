@@ -1,0 +1,20 @@
+# PVC para subidas (media) y estado de instalación compartido por las réplicas
+# de la API. El resto del estado es EXTERNO: PostgreSQL + Redis (servicios
+# gestionados), sesión vía JWT (sin sticky sessions) — ver README.md.
+#
+# Nota multi-AZ: para compartir uploads entre réplicas en nodos distintos hace
+# falta un provisionador RWX (NFS/EFS/CephFS). Alternativa recomendada por
+# ADR-0008: usar el plugin storage-s3 (S3/R2/MinIO) y prescindir del PVC.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: webs-uploads
+  namespace: webs
+  labels:
+    app.kubernetes.io/name: webs
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi

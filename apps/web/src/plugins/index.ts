@@ -1,5 +1,5 @@
 import { registerClientPlugin } from './registry';
-import examplePlugin from '@webs/block-example/client';
+import examplePlugin from '@webs/plugin-example/client';
 
 /**
  * Registro estático de los plugins empaquetados en el build del frontend.

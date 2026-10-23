@@ -27,7 +27,7 @@ jobs:
         run: pnpm --filter @webs/api exec prisma generate
 
       - name: Build paquetes compartidos (genera dist/*.d.ts)
-        run: pnpm --filter @webs/core --filter @webs/i18n --filter @webs/plugin-sdk --filter @webs/ui --filter @webs/block-example build
+        run: pnpm --filter @licensify/core --filter @webs/core --filter @webs/i18n --filter @webs/plugin-sdk --filter @webs/ui --filter @webs/plugin-example build
 
       - name: Typecheck
         run: pnpm typecheck

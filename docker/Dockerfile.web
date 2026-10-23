@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json .npmrc ./
 COPY apps ./apps
 COPY packages ./packages
-COPY blocks ./blocks
+COPY plugins ./plugins
 COPY templates ./templates
 RUN pnpm install --frozen-lockfile
 RUN pnpm -r build

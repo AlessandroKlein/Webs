@@ -1,0 +1,85 @@
+# Deployment de la API (Fastify) — estateless. ADR-0008.
+#   - Estado en PostgreSQL + Redis (externos al cluster de app).
+#   - Sesión vía JWT: SIN sticky sessions (el Ingress puede balancear libre).
+#   - WebSocket multi-instancia vía Redis pub/sub (`webs:ws`), sin afinidad.
+#   - El ÚNICO volumen es el PVC de uploads (`/app/data`); usar storage-s3
+#     para media si se quiere prescindir del PVC (multi-AZ).
+# Imagen: build de docker/Dockerfile.api (compila apps/ + blocks/ + prisma).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: webs
+  labels:
+    app.kubernetes.io/name: webs
+    app.kubernetes.io/component: api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webs
+      component: api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: webs
+        component: api
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: webs-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 4000
+          envFrom:
+            - configMapRef:
+                name: webs-config
+            - secretRef:
+                name: webs-secret
+          env:
+            - name: APP_DIR
+              value: /app/apps/api
+            - name: DATA_DIR
+              value: /app/data
+          # Liveness = proceso vivo; Readiness = listo para tráfico (SELECT 1).
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          # requests/limits permiten al HPA escalar por CPU y memoria.
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/data
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: webs-uploads

@@ -11,6 +11,8 @@ export interface AccessTokenPayload {
   tokenId?: string;
   /** Permisos acotados del token de API (solo `api_token`). */
   scopes?: string[];
+  /** Organización activa (scoping multi-tenant, ADR-0006). */
+  orgId?: string | null;
 }
 
 // Nota: el refresh token NO es un JWT; es un valor opaco aleatorio (48 bytes

@@ -17,6 +17,9 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Configuración y temas](architecture/settings-theming.md) | Secciones de ajustes, formularios auto-generados (SchemaForm) y sistema de temas. |
 | [Internacionalización](architecture/i18n.md) | i18next, locales base, sobrescritura desde UI y traducciones de plugins. |
 | [Escalabilidad](architecture/scalability.md) | API stateless, Redis, PostgreSQL, contenedores, rate limiting y observabilidad. |
+| [Licencias locales (Licensify)](architecture/licensing-integration.md) | Módulo `apps/api/src/modules/licenses`: activación offline, node-locking, feature-gating, modelo de venta y anti-reloj. |
+| [Multi-tenant por cadenas](architecture/multi-tenant.md) | Organización padre/hija, scoping por filas, finanzas separadas + vista consolidada y contexto de tenant en runtime. |
+| [Actualización zero-downtime](architecture/update-system.md) | Módulo `apps/api/src/modules/update`: check/apply/rollback, swap atómico y actualización de plugins. |
 | [Refactorización global](architecture/refactor-global.md) | **Diseño objetivo**: plugins, multi-tenant por cadenas, licencias Licensify, escalabilidad y sistema de estilos. |
 
 ### Registros de decisiones de arquitectura (ADR)
@@ -32,6 +35,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [ADR-0007 — Licencias local anti-RE](adr/0007-licensing.md) | Licensify: activación offline, firma Ed25519, node-locking y ofuscación. |
 | [ADR-0008 — Escalabilidad](adr/0008-scalability.md) | Rate-limit en Redis, k8s, stateless y auto-scaling. |
 | [ADR-0009 — Tailwind + Shadcn UI](adr/0009-ui-styling.md) | Tailwind CSS v4 + primitivas Shadcn UI como sistema de estilos. |
+| [ADR-0010 — Actualización zero-downtime](adr/0010-update-system.md) | Botón actualizar app/plugins: GitHub Releases, sha256+Ed25519, swap atómico + hot-reload, rollback. |
 
 ## Convenciones de este repositorio de documentación
 

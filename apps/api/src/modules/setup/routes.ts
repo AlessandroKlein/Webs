@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { readState } from '../../lib/state';
 import { listTemplates } from '../templates';
+import { SYSTEM_VERSION } from '../system';
 import { SUPPORTED_PROVIDERS, install, testDatabase, type DatabaseConfig, type InstallPayload } from './service';
 
 export default async function setupRoutes(fastify: FastifyInstance): Promise<void> {
@@ -14,7 +15,7 @@ export default async function setupRoutes(fastify: FastifyInstance): Promise<voi
         installedAt: state.installedAt ?? null,
         databaseProvider: state.databaseProvider ?? null,
         providers: SUPPORTED_PROVIDERS,
-        version: '0.2.0',
+        version: SYSTEM_VERSION,
       };
     },
   );

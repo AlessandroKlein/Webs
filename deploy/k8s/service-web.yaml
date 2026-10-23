@@ -1,0 +1,20 @@
+# Service ClusterIP del frontend. El Ingress apunta aquí; nginx internamente
+# reenvía /api, /ws y /docs al service `api` (ver docker/nginx.conf).
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: webs
+  labels:
+    app.kubernetes.io/name: webs
+    app.kubernetes.io/component: web
+spec:
+  type: ClusterIP
+  selector:
+    app: webs
+    component: web
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

@@ -45,8 +45,24 @@ const envSchema = z.object({
   // solo si se cifran columnas PII. Usar `openssl rand -hex 32`.
   ENCRYPTION_KEY: z.string().optional(),
 
+  // Clave pública Ed25519 (PEM SPKI) del vendedor de licencias (Licensify).
+  // Opcional: sin ella el módulo de licencias queda 'unconfigured' y la
+  // activación se rechaza. La clave privada NUNCA se embebe en la app.
+  LICENSE_PUBLIC_KEY: z.string().optional(),
+
   SEED_ADMIN_EMAIL: z.string().email().optional(),
   SEED_ADMIN_PASSWORD: z.string().optional(),
+
+  // Actualización de la app (updater / bootloader, ADR-0010).
+  // Clave pública Ed25519 (PEM SPKI) del proveedor para verificar la firma de
+  // los artefactos de release. Opcional: sin ella `POST /system/update/apply`
+  // rechaza las actualizaciones (no puede verificar autenticidad).
+  UPDATE_PUBLIC_KEY: z.string().optional(),
+  // 'auto' detecta Docker vs bare; 'bare' fuerza swap atómico + reload; 'docker'
+  // fuerza rolling update vía `docker compose`.
+  UPDATE_MODE: z.enum(['auto', 'bare', 'docker']).default('auto'),
+  // Nombre del servicio a actualizar en Docker Compose (por defecto 'api').
+  UPDATE_DOCKER_SERVICE: z.string().default('api'),
 });
 
 export type Env = z.infer<typeof envSchema>;

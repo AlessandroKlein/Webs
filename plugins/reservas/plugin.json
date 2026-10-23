@@ -1,0 +1,95 @@
+{
+  "name": "@webs/plugin-reservas",
+  "id": "reservas",
+  "version": "0.1.0",
+  "type": "plugin",
+  "displayName": {
+    "en": "Bookings",
+    "es": "Reservas y turnos"
+  },
+  "description": {
+    "en": "Appointments and bookings.",
+    "es": "Citas y reservas."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "category": "negocio",
+  "permissions": [
+    "membership.manage"
+  ],
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "slots": [
+    "content"
+  ],
+  "settings": {
+    "type": "object",
+    "title": "Reservas",
+    "properties": {
+      "provider": {
+        "type": "string",
+        "title": "Proveedor",
+        "enum": [
+          "local",
+          "google",
+          "caldav"
+        ],
+        "default": "local",
+        "x-ui": {
+          "help": {
+            "text": "Local (persistencia interna), Google Calendar (OAuth2) o CalDAV (Nextcloud/Radicale). Sin credenciales se usa local.",
+            "url": "https://developers.google.com/calendar/api/v3/reference/events/insert"
+          }
+        }
+      },
+      "reminderEmail": {
+        "type": "boolean",
+        "title": "Recordatorio por email",
+        "default": false
+      },
+      "leadTimeHours": {
+        "type": "number",
+        "title": "Antelación (horas)",
+        "default": 24
+      },
+      "cancelPolicyHours": {
+        "type": "number",
+        "title": "Política de cancelación (horas)",
+        "default": 24
+      },
+      "defaultSlots": {
+        "type": "number",
+        "title": "Cupos por defecto",
+        "default": 10
+      },
+      "recurrenceLimit": {
+        "type": "number",
+        "title": "Máximo de repeticiones",
+        "default": 12
+      },
+      "services": {
+        "type": "array",
+        "title": "Servicios",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "duration": {
+              "type": "number"
+            },
+            "price": {
+              "type": "number"
+            }
+          }
+        },
+        "default": []
+      }
+    }
+  }
+}

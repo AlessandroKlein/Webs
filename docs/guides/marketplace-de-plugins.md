@@ -80,6 +80,6 @@ BLOCK_REGISTRY_URL=https://raw.githubusercontent.com/tu-usuario/tu-registro/main
 | GET | `/api/v1/plugins/catalog` | Catálogo local + remoto (con estado `installed`). |
 | POST | `/api/v1/plugins/install` | Instala `{ id }` (local o remoto) o `{ id, source, url, subdir }`. |
 
-> Seguridad: la instalación requiere el permiso `block.manage`; el `url` se
+> Seguridad: la instalación requiere el permiso `plugin.manage`; el `url` se
 > valida (solo `http(s)` o `git@`) y el plugin descargado se ejecuta como
 > cualquier plugin local (mismo aislamiento/permisos).

@@ -467,7 +467,7 @@ los dos niveles:
 | Rutas API | `/api/v1/plugins/*` | shim `/api/v1/blocks/*` (deprecado) |
 | Loader | `registerPlugins`, `installPlugin`, `discoverPlugins` | alias `@deprecated` `registerBlocks`, `installBlock`, … |
 | Modelos Prisma | — (sin renombrar) | `BlockInstallation` / `BlockPlacement`, campo `blockId` |
-| Permisos | — (sin renombrar) | `block.read` / `block.manage` |
+| Permisos | `plugin.read` / `plugin.manage` | alias `@deprecated` `BlockRead` / `BlockManage` |
 | Directorio físico | — (sin renombrar) | `blocks/*` (`pluginsDir()` → `../../blocks`) |
 | Paquetes npm | — (sin renombrar) | `@webs/block-*` |
 
@@ -479,15 +479,16 @@ los dos niveles:
 
   - `apps/api/prisma/schema.prisma` (modelos `BlockInstallation`/`BlockPlacement`) y el
     campo `blockId` no se renombraron (requeriría migración de BD).
-  - Los permisos `block.read`/`block.manage` se conservan en `packages/core/src/constants.ts`
-    (`BlockRead`/`BlockManage`) y se usan en `seed.ts` y en los `authorize` de las rutas.
+  - Los permisos son `plugin.read`/`plugin.manage` (`PluginRead`/`PluginManage` en
+    `packages/core/src/constants.ts`); los alias `@deprecated` `BlockRead`/`BlockManage`
+    apuntan a los mismos valores y se usan en `seed.ts` y en los `authorize` de las rutas.
   - El directorio físico `blocks/` se conserva (`pluginsDir()` resuelve `../../blocks`), y
     la variable de entorno sigue siendo `BLOCK_DIR`.
   - Los paquetes npm siguen llamándose `@webs/block-*` (p. ej. `@webs/block-example`).
   - La cache key `blocks:catalog` y la env `BLOCK_REGISTRY_URL` se conservan.
 
 **Deuda técnica post-M1:** renombrar los modelos Prisma (`PluginInstallation`/`PluginPlacement`),
-los permisos (`plugin.read`/`plugin.manage`), el directorio físico `blocks/` → `plugins/` y
+el directorio físico `blocks/` → `plugins/` y
 los paquetes npm `@webs/plugin-*`. Esto requiere migración de BD y migración de los 42
 paquetes, por lo que se difiere a un milestone posterior.
 

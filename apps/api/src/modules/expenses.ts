@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { NotFoundError, ValidationError } from '@webs/core';
+import { BadRequestError, NotFoundError, ValidationError } from '@webs/core';
+import { resolveScope } from '../lib/tenant';
 
 const expenseSchema = z.object({
   description: z.string().min(1),
@@ -9,8 +10,12 @@ const expenseSchema = z.object({
   date: z.string().optional(),
 });
 
-/** Ganancias (pagos aprobados) + gastos, agrupados por mes o año. */
-async function analytics(fastify: FastifyInstance, period: 'month' | 'year') {
+/** Ganancias (pagos aprobados) + gastos, agrupados por mes o año y scoped por tenant. */
+async function analytics(
+  fastify: FastifyInstance,
+  period: 'month' | 'year',
+  scope: Record<string, unknown>,
+) {
   const now = new Date();
   const buckets: Array<{ label: string; start: Date; end: Date }> = [];
 
@@ -32,8 +37,8 @@ async function analytics(fastify: FastifyInstance, period: 'month' | 'year') {
 
   const start = buckets[0]!.start;
   const [payments, expenses] = await Promise.all([
-    fastify.prisma.payment.findMany({ where: { status: 'approved', paidAt: { gte: start } }, select: { amount: true, paidAt: true } }),
-    fastify.prisma.expense.findMany({ where: { date: { gte: start } }, select: { amount: true, date: true } }),
+    fastify.prisma.payment.findMany({ where: { status: 'approved', paidAt: { gte: start }, ...scope }, select: { amount: true, paidAt: true } }),
+    fastify.prisma.expense.findMany({ where: { date: { gte: start }, ...scope }, select: { amount: true, date: true } }),
   ]);
 
   const series = buckets.map((b) => {
@@ -52,19 +57,26 @@ async function analytics(fastify: FastifyInstance, period: 'month' | 'year') {
 export default async function expensesRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get(
     '/expenses',
-    { schema: { tags: ['expenses'] }, preHandler: [fastify.authenticate, fastify.authorize('user.read')] },
-    async () => fastify.prisma.expense.findMany({ orderBy: { date: 'desc' }, take: 200 }),
+    { schema: { tags: ['expenses'] }, preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')] },
+    async (request) => {
+      const scope = await resolveScope(fastify, request.tenant!);
+      return fastify.prisma.expense.findMany({ where: scope, orderBy: { date: 'desc' }, take: 200 });
+    },
   );
 
   fastify.post(
     '/expenses',
-    { schema: { tags: ['expenses'] }, preHandler: [fastify.authenticate, fastify.authorize('user.read')] },
+    { schema: { tags: ['expenses'] }, preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')] },
     async (request, reply) => {
       const parsed = expenseSchema.safeParse(request.body);
       if (!parsed.success) {
         throw new ValidationError('Gasto inválido', parsed.error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })));
       }
       const input = parsed.data;
+      const organizationId = request.tenant?.organizationId ?? null;
+      if (!organizationId) {
+        throw new BadRequestError('Se requiere una organización activa para registrar gastos');
+      }
       const expense = await fastify.prisma.expense.create({
         data: {
           description: input.description,
@@ -72,6 +84,7 @@ export default async function expensesRoutes(fastify: FastifyInstance): Promise<
           category: input.category ?? null,
           date: input.date ? new Date(input.date) : new Date(),
           userId: request.user?.sub ?? null,
+          organizationId,
         },
       });
       return reply.status(201).send(expense);
@@ -82,11 +95,12 @@ export default async function expensesRoutes(fastify: FastifyInstance): Promise<
     '/expenses/:id',
     {
       schema: { tags: ['expenses'], params: { type: 'object', properties: { id: { type: 'string' } } } },
-      preHandler: [fastify.authenticate, fastify.authorize('user.read')],
+      preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')],
     },
     async (request, reply) => {
       const id = (request.params as { id: string }).id;
-      const expense = await fastify.prisma.expense.findUnique({ where: { id } });
+      const scope = await resolveScope(fastify, request.tenant!);
+      const expense = await fastify.prisma.expense.findFirst({ where: { id, ...scope } });
       if (!expense) throw new NotFoundError('Gasto');
       await fastify.prisma.expense.delete({ where: { id } });
       return reply.status(204).send();
@@ -100,11 +114,12 @@ export default async function expensesRoutes(fastify: FastifyInstance): Promise<
         tags: ['expenses'],
         querystring: { type: 'object', properties: { period: { type: 'string', enum: ['month', 'year'], default: 'month' } } },
       },
-      preHandler: [fastify.authenticate, fastify.authorize('user.read')],
+      preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')],
     },
     async (request) => {
       const period = ((request.query as { period?: string }).period ?? 'month') as 'month' | 'year';
-      return analytics(fastify, period);
+      const scope = await resolveScope(fastify, request.tenant!);
+      return analytics(fastify, period, scope);
     },
   );
 }

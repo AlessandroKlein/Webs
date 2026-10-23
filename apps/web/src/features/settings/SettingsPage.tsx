@@ -9,6 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { PromptDialog } from '../../components/ui/PromptDialog';
 import { TextField } from '../../components/ui/TextField';
+import { AppUpdater } from '../updates/AppUpdater';
 
 interface SettingsSection {
   key: string;
@@ -99,40 +100,12 @@ export function SettingsPage() {
   );
 }
 
-interface VersionInfo {
-  version: string;
-  latest: string;
-  hasUpdate: boolean;
-}
-
 function UpdatesSection() {
-  const qc = useQueryClient();
-
-  const { data, isFetching } = useQuery({
-    queryKey: ['system-version'],
-    queryFn: () => api.get<VersionInfo>('/api/v1/system/version'),
-  });
-
   return (
     <Card>
       <h3 style={{ margin: 0 }}>Actualizaciones</h3>
-      <p className="muted" style={{ margin: 'var(--ws-space-3) 0 0' }}>
-        Versión actual: <strong>{data?.version ?? '…'}</strong> · Última disponible:{' '}
-        <strong>{data?.latest ?? '…'}</strong>
-      </p>
-      {data?.hasUpdate && (
-        <p style={{ color: 'var(--ws-warning, #b45309)', margin: 'var(--ws-space-3) 0 0' }}>
-          Hay una nueva versión v{data.latest} (actualizá reconstruyendo el contenedor)
-        </p>
-      )}
-      <div style={{ marginTop: 'var(--ws-space-4)' }}>
-        <Button
-          variant="secondary"
-          disabled={isFetching}
-          onClick={() => qc.invalidateQueries({ queryKey: ['system-version'] })}
-        >
-          {isFetching ? 'Buscando…' : 'Buscar actualizaciones'}
-        </Button>
+      <div style={{ marginTop: 'var(--ws-space-3)' }}>
+        <AppUpdater compact />
       </div>
     </Card>
   );

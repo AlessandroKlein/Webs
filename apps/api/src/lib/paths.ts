@@ -19,7 +19,7 @@ export function dataDir(): string {
 
 /** Directorio de plugins locales (antes `blocks`). Se mantiene `BLOCK_DIR` como clave de config. */
 export function pluginsDir(configured?: string): string {
-  return path.resolve(appDir(), configured ?? '../../blocks');
+  return path.resolve(appDir(), configured ?? '../../plugins');
 }
 
 /** @deprecated Usar {@link pluginsDir}. Alias por retrocompatibilidad. */

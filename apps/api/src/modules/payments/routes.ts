@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import type { PaymentWebhookResult } from '@webs/plugin-sdk';
 import { BadRequestError, NotFoundError, ValidationError } from '@webs/core';
+import { resolveScope, DEFAULT_ORG_ID } from '../../lib/tenant';
 import { getPaymentProvider, listPaymentProviders } from './registry';
 
 /** Validación anti-manipulación de precios: montos enteros (centavos) y positivos. */
@@ -99,7 +100,7 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
 
   fastify.post(
     '/payments/checkout',
-    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate] },
+    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.requireTenant] },
     async (request, reply) => {
       const parsed = checkoutSchema.safeParse(request.body);
       if (!parsed.success) {
@@ -109,6 +110,10 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
         );
       }
       const input = parsed.data;
+      const organizationId = request.tenant?.organizationId ?? null;
+      if (!organizationId) {
+        throw new BadRequestError('Se requiere una organización activa para iniciar un pago');
+      }
       const provider = getPaymentProvider(input.provider);
       if (!provider) throw new NotFoundError(`Proveedor de pago '${input.provider}'`);
 
@@ -130,6 +135,7 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
           currency: input.currency,
           status: 'pending',
           userId: request.user?.sub ?? null,
+          organizationId,
           externalReference: input.externalReference ?? null,
           idempotencyKey: input.idempotencyKey ?? null,
           metadata: input.metadata ? (input.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
@@ -179,6 +185,10 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
         return { ok: true, alreadyProcessed: true, status: existing.status };
       }
 
+      // Pago huérfano (sin checkout previo): se asigna a la organización raíz por defecto.
+      const rootOrg = await fastify.prisma.organization.findFirst({ where: { slug: 'principal' }, select: { id: true } });
+      const rootOrgId = rootOrg?.id ?? DEFAULT_ORG_ID;
+
       const payment = existing
         ? await fastify.prisma.payment.update({
             where: { id: existing.id },
@@ -192,6 +202,7 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
               currency: 'ARS',
               status: webhook.status,
               paidAt: webhook.status === 'approved' ? new Date() : null,
+              organizationId: rootOrgId,
               metadata: webhook.raw ? (webhook.raw as Prisma.InputJsonValue) : Prisma.JsonNull,
             },
           });
@@ -216,12 +227,13 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
           properties: { status: { type: 'string' }, provider: { type: 'string' } },
         },
       },
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authenticate, fastify.requireTenant],
     },
     async (request) => {
       const isAdmin = request.user?.permissions?.includes('user.read') ?? false;
       const { status, provider } = request.query as { status?: string; provider?: string };
-      const where: Record<string, unknown> = isAdmin ? {} : { userId: request.user?.sub };
+      const scope = await resolveScope(fastify, request.tenant!);
+      const where: Record<string, unknown> = isAdmin ? { ...scope } : { userId: request.user?.sub, ...scope };
       if (status) where.status = status;
       if (provider) where.provider = provider;
       return fastify.prisma.payment.findMany({ where, orderBy: { createdAt: 'desc' }, take: 200 });
@@ -231,15 +243,16 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
   // Resumen para el panel de pagos (conciliación).
   fastify.get(
     '/payments/summary',
-    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.authorize('user.read')] },
-    async () => {
+    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')] },
+    async (request) => {
+      const scope = await resolveScope(fastify, request.tenant!);
       const [total, approved, pending, rejected, refunded, collected] = await Promise.all([
-        fastify.prisma.payment.count(),
-        fastify.prisma.payment.count({ where: { status: 'approved' } }),
-        fastify.prisma.payment.count({ where: { status: 'pending' } }),
-        fastify.prisma.payment.count({ where: { status: 'rejected' } }),
-        fastify.prisma.payment.count({ where: { status: 'refunded' } }),
-        fastify.prisma.payment.aggregate({ where: { status: 'approved' }, _sum: { amount: true } }),
+        fastify.prisma.payment.count({ where: scope }),
+        fastify.prisma.payment.count({ where: { status: 'approved', ...scope } }),
+        fastify.prisma.payment.count({ where: { status: 'pending', ...scope } }),
+        fastify.prisma.payment.count({ where: { status: 'rejected', ...scope } }),
+        fastify.prisma.payment.count({ where: { status: 'refunded', ...scope } }),
+        fastify.prisma.payment.aggregate({ where: { status: 'approved', ...scope }, _sum: { amount: true } }),
       ]);
       return { total, approved, pending, rejected, refunded, collectedAmount: collected._sum.amount ?? 0 };
     },
@@ -249,13 +262,15 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
     '/payments/:id',
     {
       schema: { tags: ['payments'], params: { type: 'object', properties: { id: { type: 'string' } } } },
-      preHandler: [fastify.authenticate],
+      preHandler: [fastify.authenticate, fastify.requireTenant],
     },
     async (request) => {
       const id = (request.params as { id: string }).id;
-      const payment = await fastify.prisma.payment.findFirst({
-        where: { id, OR: [{ userId: request.user?.sub }, { userId: null }] },
-      });
+      const scope = await resolveScope(fastify, request.tenant!);
+      const isAdmin = request.user?.permissions?.includes('user.read') ?? false;
+      const where: Record<string, unknown> = { id, ...scope };
+      if (!isAdmin) where.OR = [{ userId: request.user?.sub }, { userId: null }];
+      const payment = await fastify.prisma.payment.findFirst({ where });
       if (!payment) throw new NotFoundError('Pago');
       return payment;
     },
@@ -266,11 +281,12 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
     '/payments/:id/mark-paid',
     {
       schema: { tags: ['payments'], params: { type: 'object', properties: { id: { type: 'string' } } } },
-      preHandler: [fastify.authenticate, fastify.authorize('user.read')],
+      preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')],
     },
     async (request) => {
       const id = (request.params as { id: string }).id;
-      const payment = await fastify.prisma.payment.findUnique({ where: { id } });
+      const scope = await resolveScope(fastify, request.tenant!);
+      const payment = await fastify.prisma.payment.findFirst({ where: { id, ...scope } });
       if (!payment) throw new NotFoundError('Pago');
       if (payment.status === 'approved') return { ok: true, alreadyApproved: true };
 
@@ -290,11 +306,12 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
     '/payments/:id/refund',
     {
       schema: { tags: ['payments'], params: { type: 'object', properties: { id: { type: 'string' } } } },
-      preHandler: [fastify.authenticate, fastify.authorize('user.read')],
+      preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')],
     },
     async (request) => {
       const id = (request.params as { id: string }).id;
-      const payment = await fastify.prisma.payment.findUnique({ where: { id } });
+      const scope = await resolveScope(fastify, request.tenant!);
+      const payment = await fastify.prisma.payment.findFirst({ where: { id, ...scope } });
       if (!payment) throw new NotFoundError('Pago');
       if (payment.status === 'refunded') return { ok: true, alreadyRefunded: true };
 
@@ -317,11 +334,12 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
     '/payments/:id',
     {
       schema: { tags: ['payments'], params: { type: 'object', properties: { id: { type: 'string' } } } },
-      preHandler: [fastify.authenticate, fastify.authorize('user.read')],
+      preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')],
     },
     async (request) => {
       const id = (request.params as { id: string }).id;
-      const payment = await fastify.prisma.payment.findUnique({ where: { id } });
+      const scope = await resolveScope(fastify, request.tenant!);
+      const payment = await fastify.prisma.payment.findFirst({ where: { id, ...scope } });
       if (!payment) throw new NotFoundError('Pago');
       if (payment.status !== 'pending') {
         throw new BadRequestError('Solo se pueden eliminar pagos pendientes');
@@ -334,9 +352,10 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
   // "Eliminar pendientes": borra todas las transacciones pendientes de una vez.
   fastify.post(
     '/payments/cancel-pending',
-    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.authorize('user.read')] },
-    async () => {
-      const result = await fastify.prisma.payment.deleteMany({ where: { status: 'pending' } });
+    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')] },
+    async (request) => {
+      const scope = await resolveScope(fastify, request.tenant!);
+      const result = await fastify.prisma.payment.deleteMany({ where: { status: 'pending', ...scope } });
       return { ok: true, deleted: result.count ?? 0 };
     },
   );
@@ -346,12 +365,13 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
   // Puede llamarse desde un cron externo; por simplicidad no hay job interno.
   fastify.post(
     '/payments/auto-cancel',
-    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.authorize('user.read')] },
-    async () => {
+    { schema: { tags: ['payments'] }, preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('user.read')] },
+    async (request) => {
       const expiryMinutes = await getPendingExpiryMinutes(fastify);
       const cutoff = new Date(Date.now() - expiryMinutes * 60_000);
+      const scope = await resolveScope(fastify, request.tenant!);
       const result = await fastify.prisma.payment.deleteMany({
-        where: { status: 'pending', createdAt: { lt: cutoff } },
+        where: { status: 'pending', createdAt: { lt: cutoff }, ...scope },
       });
       return { ok: true, deleted: result.count ?? 0, thresholdMinutes: expiryMinutes };
     },

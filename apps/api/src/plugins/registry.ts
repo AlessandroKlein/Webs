@@ -31,6 +31,10 @@ class PluginRegistry {
     this.available.set(manifest.id, manifest);
   }
 
+  unregisterAvailable(pluginId: string): void {
+    this.available.delete(pluginId);
+  }
+
   getAvailable(): PluginManifest[] {
     return [...this.available.values()];
   }
@@ -41,6 +45,11 @@ class PluginRegistry {
 
   registerLoaded(plugin: LoadedPlugin): void {
     this.loaded.set(plugin.manifest.id, plugin);
+  }
+
+  /** Quita un plugin del registro de cargados (hot-reload / desactivación). */
+  unregisterLoaded(pluginId: string): void {
+    this.loaded.delete(pluginId);
   }
 
   getLoadedPlugins(): LoadedPlugin[] {
@@ -64,6 +73,10 @@ class PluginRegistry {
     this.translations.set(pluginId, translations);
   }
 
+  unregisterTranslations(pluginId: string): void {
+    this.translations.delete(pluginId);
+  }
+
   getTranslations(): Array<{ pluginId: string; translations: Record<string, Record<string, string>> }> {
     return [...this.translations.entries()].map(([pluginId, translations]) => ({ pluginId, translations }));
   }
@@ -75,6 +88,10 @@ class PluginRegistry {
     } else {
       this.menuItems.delete(pluginId);
     }
+  }
+
+  unregisterMenuItems(pluginId: string): void {
+    this.menuItems.delete(pluginId);
   }
 
   getMenuItems(): Array<{ pluginId: string; items: PluginMenuItem[] }> {

@@ -16,14 +16,15 @@ Los permisos siguen la convención **`<recurso>.<acción>`**:
 | `.manage`     | Operaciones especiales (instalar, publicar, etc.) |
 | `.publish`    | Publicar (caso particular de contenido)          |
 
-Ejemplos: `user.read`, `user.write`, `role.read`, `block.manage`,
+Ejemplos: `user.read`, `user.write`, `role.read`, `plugin.manage`,
 `content.publish`, `translation.write`.
 
 > Los permisos se definen en `packages/core/src/constants.ts` (constante
 > `Permission`) y se siembran en `apps/api/prisma/seed.ts`. Los plugins pueden
 > registrar permisos adicionales vía su manifiesto (`manifest.permissions`).
-> Los permisos internos del sistema de plugins conservan el prefijo `block.*`
-> de forma transitoria (ver `docs/architecture/plugin-system.md`).
+> Los permisos del sistema de plugins son `plugin.read`/`plugin.manage`; los
+> alias `@deprecated` `BlockRead`/`BlockManage` se conservan por retrocompatibilidad
+> (ver `docs/architecture/plugin-system.md`).
 
 ---
 
@@ -36,7 +37,7 @@ El seed crea estos 20 permisos:
 | Usuarios     | `user.read`, `user.write`                                  |
 | Roles        | `role.read`, `role.write`                                  |
 | Ajustes      | `setting.read`, `setting.write`                            |
-| Plugins      | `block.read`, `block.manage`                               |
+| Plugins      | `plugin.read`, `plugin.manage`                               |
 | Contenido    | `content.read`, `content.write`, `content.publish`         |
 | Traducciones | `translation.read`, `translation.write`                    |
 | Tema         | `theme.read`, `theme.write`                                |
@@ -59,16 +60,16 @@ El seed crea cuatro roles **de sistema** (`system: true`):
 | ------------- | ---------------------- | ------------------------------------------------------------------------------- |
 | `super_admin` | Super Administrador    | **Acceso total.** Todos los permisos. Rol raíz, no eliminable.                  |
 | `admin`       | Administrador          | Administración operativa: todos los permisos **excepto** `role.*` (no gestiona roles). |
-| `editor`      | Editor                 | Contenido y medios: `content.*`, `media.*`, `block.read`, `theme.read`, `seo.read`, `translation.read`. |
+| `editor`      | Editor                 | Contenido y medios: `content.*`, `media.*`, `plugin.read`, `theme.read`, `seo.read`, `translation.read`. |
 | `user`        | Usuario                | Rol básico de usuario final: solo `content.read`.                               |
 
 Desglose exacto (desde `apps/api/prisma/seed.ts`):
 
 | Rol           | Permisos                                                                                          |
 | ------------- | ------------------------------------------------------------------------------------------------- |
-| `super_admin` | Todos (`user.*`, `role.*`, `setting.*`, `block.*`, `content.*`, `translation.*`, `theme.*`, `seo.*`, `media.*`, `audit.*`). |
+| `super_admin` | Todos (`user.*`, `role.*`, `setting.*`, `plugin.*`, `content.*`, `translation.*`, `theme.*`, `seo.*`, `media.*`, `audit.*`). |
 | `admin`       | Todos **excepto** `role.read` y `role.write`.                                                     |
-| `editor`      | `content.read`, `content.write`, `content.publish`, `media.read`, `media.write`, `block.read`, `theme.read`, `seo.read`, `translation.read`. |
+| `editor`      | `content.read`, `content.write`, `content.publish`, `media.read`, `media.write`, `plugin.read`, `theme.read`, `seo.read`, `translation.read`. |
 | `user`        | `content.read`.                                                                                   |
 
 ---

@@ -18,8 +18,10 @@ const PERMISSIONS: Array<{ key: string; description: string }> = [
   { key: 'role.write', description: 'Crear/editar roles' },
   { key: 'setting.read', description: 'Ver ajustes' },
   { key: 'setting.write', description: 'Editar ajustes' },
-  { key: 'block.read', description: 'Ver bloques' },
-  { key: 'block.manage', description: 'Instalar/desinstalar bloques' },
+  { key: 'plugin.read', description: 'Ver plugins' },
+  { key: 'plugin.manage', description: 'Instalar/desinstalar plugins' },
+  { key: 'license.read', description: 'Ver estado y features de la licencia' },
+  { key: 'license.manage', description: 'Activar/desactivar la licencia' },
   { key: 'content.read', description: 'Ver contenido' },
   { key: 'content.write', description: 'Crear/editar contenido' },
   { key: 'content.publish', description: 'Publicar contenido' },
@@ -110,7 +112,7 @@ const ROLES: Array<{
       'content.publish',
       'media.read',
       'media.write',
-      'block.read',
+      'plugin.read',
       'theme.read',
       'seo.read',
       'translation.read',
@@ -220,7 +222,39 @@ async function main() {
     create: { userId: admin.id, roleId: superAdminRole.id },
   });
 
-  console.log(`✔ Seed completado. Superadmin: ${adminEmail}`);
+  // 4. Organización por defecto (raíz standalone) + membresía del superadmin.
+  //    El id fijo coincide con `DEFAULT_ORG_ID` (src/lib/tenant.ts) y con la
+  //    migración `multi_tenant_chains`, de modo que backfill y arranque converjan.
+  const DEFAULT_ORG_ID = '00000000-0000-4000-8000-000000000001';
+  const organization = await prisma.organization.upsert({
+    where: { slug: 'principal' },
+    update: {},
+    create: {
+      id: DEFAULT_ORG_ID,
+      slug: 'principal',
+      name: 'Organización Principal',
+      type: 'standalone',
+      plan: 'free',
+      active: true,
+    },
+  });
+
+  const existingMembership = await prisma.membership.findFirst({
+    where: { userId: admin.id, organizationId: organization.id },
+  });
+  if (!existingMembership) {
+    await prisma.membership.create({
+      data: {
+        organizationId: organization.id,
+        userId: admin.id,
+        role: 'admin',
+        plan: 'free',
+        status: 'active',
+      },
+    });
+  }
+
+  console.log(`✔ Seed completado. Superadmin: ${adminEmail} · Organización: ${organization.slug}`);
 }
 
 main()

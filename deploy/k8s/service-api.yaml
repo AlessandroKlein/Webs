@@ -1,0 +1,20 @@
+# Service ClusterIP de la API. El nombre `api` debe coincidir con el upstream
+# que usa docker/nginx.conf (`proxy_pass http://api:4000`) dentro del cluster.
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: webs
+  labels:
+    app.kubernetes.io/name: webs
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  selector:
+    app: webs
+    component: api
+  ports:
+    - name: http
+      port: 4000
+      targetPort: http
+      protocol: TCP

@@ -1,4 +1,5 @@
 import { getAccessToken, setAccessToken } from './token';
+import { getScopeHeaders } from './tenant-scope';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -55,6 +56,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       headers: {
         ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...getScopeHeaders(),
         ...(options.headers ?? {}),
       },
     });
@@ -76,20 +78,20 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  get<T>(path: string): Promise<T> {
-    return request<T>(path);
+  get<T>(path: string, headers?: Record<string, string>): Promise<T> {
+    return request<T>(path, { headers });
   },
-  post<T>(path: string, body?: unknown): Promise<T> {
-    return request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) });
+  post<T>(path: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
+    return request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), headers });
   },
-  put<T>(path: string, body?: unknown): Promise<T> {
-    return request<T>(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body) });
+  put<T>(path: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
+    return request<T>(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body), headers });
   },
-  patch<T>(path: string, body: unknown): Promise<T> {
-    return request<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
+  patch<T>(path: string, body: unknown, headers?: Record<string, string>): Promise<T> {
+    return request<T>(path, { method: 'PATCH', body: JSON.stringify(body), headers });
   },
-  del<T>(path: string): Promise<T> {
-    return request<T>(path, { method: 'DELETE' });
+  del<T>(path: string, headers?: Record<string, string>): Promise<T> {
+    return request<T>(path, { method: 'DELETE', headers });
   },
 };
 

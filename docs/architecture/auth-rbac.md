@@ -161,7 +161,7 @@ Definidos en `@webs/core` (`packages/core/src/constants.ts`) y sembrados en
 |-------------|----------|--------------------|-------|
 | `super_admin` | `true` | **Todos** los permisos base. | Rol raíz, no eliminable. |
 | `admin` | `true` | Todos menos los que empiezan por `role.`. | Administración operativa. |
-| `editor` | `true` | `content.*`, `media.*`, `block.read`, `theme.read`, `seo.read`, `translation.read`. | Gestión de contenido. |
+| `editor` | `true` | `content.*`, `media.*`, `plugin.read`, `theme.read`, `seo.read`, `translation.read`. | Gestión de contenido. |
 | `user` | `true` | `content.read`. | Rol básico de usuario final. |
 
 > `@webs/core` también declara `manager` y `guest` en la constante `SystemRole`, pero el
@@ -176,7 +176,7 @@ Los permisos siguen la convención **`<recurso>.<accion>`**. Los base están en
 user.read        user.write
 role.read        role.write
 setting.read     setting.write
-block.read       block.manage
+plugin.read       plugin.manage
 content.read     content.write     content.publish
 translation.read translation.write
 theme.read       theme.write

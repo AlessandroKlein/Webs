@@ -10,7 +10,7 @@ mapea a la implementación actual.
 
 > **Nota de naming:** la unidad de extensión se llama **«Plugin»** (antes «Bloque»).
 > El rename de la superficie de usuario está completo, pero el *naming interno*
-> (`block.read`/`block.manage`, directorio `blocks/`, modelos `BlockInstallation`/
+> (directorio `blocks/`, modelos `BlockInstallation`/
 > `BlockPlacement`) se conserva de forma transitoria. Ver
 > [`plugin-system.md`](plugin-system.md#8-estado-transitorio-del-rename-bloques-plugins).
 

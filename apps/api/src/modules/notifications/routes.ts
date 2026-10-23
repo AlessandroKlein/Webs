@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { NotFoundError, ValidationError } from '@webs/core';
+import { DEFAULT_ORG_ID } from '../../lib/tenant';
 import { getNotificationProvider, listNotificationProviders } from './registry';
 
 /** Esquema de validación para el envío de una notificación por un proveedor. */
@@ -35,7 +36,7 @@ export default async function notificationsRoutes(fastify: FastifyInstance): Pro
   // Creación de una notificación en la bandeja (requiere permiso de escritura de ajustes).
   fastify.post(
     '/notifications/inbox',
-    { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate, fastify.authorize('setting.write')] },
+    { schema: { tags: ['notifications'] }, preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('setting.write')] },
     async (request, reply) => {
       const body = request.body as { title?: string; body?: string; userId?: string; priority?: string; expiresAt?: string | null };
       const n = await fastify.prisma.notification.create({
@@ -45,6 +46,7 @@ export default async function notificationsRoutes(fastify: FastifyInstance): Pro
           userId: body?.userId ?? null,
           priority: body?.priority ?? 'normal',
           expiresAt: body?.expiresAt ? new Date(body.expiresAt) : null,
+          organizationId: request.tenant?.organizationId ?? DEFAULT_ORG_ID,
         },
       });
       // Tiempo real: avisa al usuario destinatario (si está conectado).

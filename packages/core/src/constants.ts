@@ -41,9 +41,18 @@ export const Permission = {
   SettingRead: 'setting.read',
   SettingWrite: 'setting.write',
 
-  // Bloques / plugins
-  BlockRead: 'block.read',
-  BlockManage: 'block.manage',
+  // Plugins (antes "Bloques")
+  PluginRead: 'plugin.read',
+  PluginManage: 'plugin.manage',
+
+  /** @deprecated Alias de PluginRead por retrocompatibilidad. */
+  BlockRead: 'plugin.read',
+  /** @deprecated Alias de PluginManage por retrocompatibilidad. */
+  BlockManage: 'plugin.manage',
+
+  // Licencias (Licensify, node-locking local)
+  LicenseRead: 'license.read',
+  LicenseManage: 'license.manage',
 
   // Contenido
   ContentRead: 'content.read',

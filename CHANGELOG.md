@@ -3,6 +3,45 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.0.0] - 2026-10-23
+
+### Añadido
+
+- **Licencias (Licensify)**: sistema de licencias local anti-reverse-engineering con
+  node-locking (fingerprint del equipo), claves de activación y validación offline;
+  permisos `license.read`/`license.manage` y estado de licencia en el admin.
+- **Multi-tenant por cadenas**: modelo `Organization` con `type`
+  (`standalone`/`chain`/`branch`), jerarquía `parentId`/`chainId` y aislamiento por
+  organización en 24 modelos de negocio; plugin `tenant` (ADR-0006).
+- **Escalabilidad Kubernetes**: manifests en `deploy/k8s/` (namespace, ConfigMap,
+  Secret, PVC, Deployments de API y web, Services, Ingress, HPA, PDB y job de
+  migración) para despliegue stateless con auto-scaling (ADR-0008).
+- **Actualizador zero-downtime**: `POST /system/update/{check,apply,status,rollback}`
+  con verificación `sha256` + firma Ed25519, bootloader (bare/Docker) y health-check
+  post-aplicación (ADR-0010).
+- **Host móvil Capacitor**: `apps/mobile` es ahora también host de Capacitor
+  (Android/iOS) que envuelve `apps/web`, conviviendo con la PWA de asistencia por QR.
+- **Baseline de migraciones Prisma**: `0001_init` regenerado con el esquema completo
+  (57 modelos) y backfill idempotente de la organización raíz.
+
+### Corregido
+
+- **Rate-limit global en memoria → Redis**: el limitador global (`300` req/`60s`) ahora
+  usa Redis (`rl:global:*`) y es cluster-wide en multi-instancia; sin regresión en
+  `login`/`register`/`forgot`/`reset` (cada uno conserva su `keyPrefix`).
+- **Docs de permisos**: `block.read`/`block.manage` → `plugin.read`/`plugin.manage`
+  (los alias deprecados `BlockRead`/`BlockManage` se conservan por retrocompatibilidad).
+- **Setup**: `GET /api/v1/setup/status` devuelve la versión real (`SYSTEM_VERSION`)
+  en lugar de `0.2.0`.
+
+### Deuda técnica (documentada, no bloqueante)
+
+- **F12 — rename residual**: `blockId`, shim `/api/v1/blocks/*` y la prosa «bloque»
+  residual (~137 referencias en `apps/web`) quedan para una limpieza posterior con
+  migración de BD.
+- **F17 — wrapper Capacitor real**: la compilación nativa Android/iOS (Gradle/Xcode)
+  y los plugins nativos de Capacitor quedan como seguimiento.
+
 ## [1.58.0] - 2026-10-22
 
 ### Cambiado

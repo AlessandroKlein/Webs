@@ -10,44 +10,54 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Tipo de organización para el multi-tenant por cadenas (ADR-0006).
+// - `standalone`: organización independiente (sin padre ni cadena).
+// - `chain`:     raíz de una cadena (casa matriz).
+// - `branch`:    sucursal (hija de una raíz o de otra sucursal).
+enum OrganizationType {
+  standalone
+  chain
+  branch
+}
+
 // ---------------------------------------------------------------------------
 // Identidad, roles y permisos
 // ---------------------------------------------------------------------------
 
 model User {
-  id              String    @id @default(uuid())
-  email           String    @unique
-  username        String?   @unique
-  passwordHash    String
-  displayName     String?
-  firstName       String?
-  lastName        String?
-  birthDate       DateTime?
-  avatarUrl       String?
-  locale          String    @default("es")
-  active          Boolean   @default(true)
-  profile         Json?
-  emailVerifiedAt DateTime?
-  twoFactorSecret String?
-  twoFactorEnabled Boolean  @default(false)
+  id                   String    @id @default(uuid())
+  email                String    @unique
+  username             String?   @unique
+  passwordHash         String
+  displayName          String?
+  firstName            String?
+  lastName             String?
+  birthDate            DateTime?
+  avatarUrl            String?
+  locale               String    @default("es")
+  active               Boolean   @default(true)
+  profile              Json?
+  emailVerifiedAt      DateTime?
+  twoFactorSecret      String?
+  twoFactorEnabled     Boolean   @default(false)
   twoFactorBackupCodes Json?
-  twoFactorPhone   String?
-  twoFactorSmsEnabled Boolean @default(false)
-  failedLoginAttempts Int @default(0)
-  lockedUntil     DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  twoFactorPhone       String?
+  twoFactorSmsEnabled  Boolean   @default(false)
+  failedLoginAttempts  Int       @default(0)
+  lockedUntil          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  roles      UserRole[]
-  sessions   Session[]
-  apiTokens  ApiToken[]
-  passkeys   Passkey[]
-  payments   Payment[]
-  expenses   Expense[]
-  otpCodes   OtpCode[]
-  auditLogs  AuditLog[]
-  content    Content[]   @relation("ContentAuthor")
-  settings   Setting[]   @relation("SettingEditor")
+  roles     UserRole[]
+  sessions  Session[]
+  apiTokens ApiToken[]
+  passkeys  Passkey[]
+  payments  Payment[]
+  expenses  Expense[]
+  otpCodes  OtpCode[]
+  auditLogs AuditLog[]
+  content   Content[]  @relation("ContentAuthor")
+  settings  Setting[]  @relation("SettingEditor")
 
   @@map("users")
 }
@@ -131,15 +141,15 @@ model ApiToken {
 }
 
 model Passkey {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  credentialId String   @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique
   publicKey    String
-  counter      Int      @default(0)
-  transports   Json     @default("[]")
+  counter      Int       @default(0)
+  transports   Json      @default("[]")
   deviceName   String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   lastUsedAt   DateTime?
 
   @@index([userId])
@@ -147,14 +157,14 @@ model Passkey {
 }
 
 model OtpCode {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   purpose    String
   codeHash   String
   expiresAt  DateTime
   consumedAt DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   @@index([userId])
   @@index([expiresAt])
@@ -162,15 +172,17 @@ model OtpCode {
 }
 
 model Expense {
-  id          String   @id @default(uuid())
-  description String
-  amount      Int
-  category    String?
-  date        DateTime @default(now())
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
+  id             String   @id @default(uuid())
+  description    String
+  amount         Int
+  category       String?
+  date           DateTime @default(now())
+  organizationId String
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@index([date])
   @@map("expenses")
 }
@@ -180,211 +192,253 @@ model Expense {
 // ---------------------------------------------------------------------------
 
 model Product {
-  id          String  @id @default(uuid())
-  title       String
-  description String?
-  price       Int
-  stock       Int     @default(0)
-  category    String?
-  imageUrl    String?
-  images      Json    @default("[]")
-  sizes       Json    @default("[]")
-  barcode     String?
+  id             String  @id @default(uuid())
+  organizationId String
+  title          String
+  description    String?
+  price          Int
+  stock          Int     @default(0)
+  category       String?
+  imageUrl       String?
+  images         Json    @default("[]")
+  sizes          Json    @default("[]")
+  barcode        String?
 
+  @@index([organizationId])
   @@map("products")
 }
 
 model Order {
-  id        String   @id @default(uuid())
-  status    String   @default("pending")
-  total     Int      @default(0)
-  items     Json     @default("[]")
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  status         String   @default("pending")
+  total          Int      @default(0)
+  items          Json     @default("[]")
+  createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@map("orders")
 }
 
 model Booking {
-  id        String   @id @default(uuid())
-  serviceId String
-  name      String
-  date      DateTime
-  status    String   @default("confirmed")
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  serviceId      String
+  name           String
+  date           DateTime
+  status         String   @default("confirmed")
+  createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@index([date])
   @@map("bookings")
 }
 
 model BlogPost {
-  id        String   @id @default(uuid())
-  title     String
-  body      String
-  category  String?
-  tags      Json     @default("[]")
-  status    String   @default("draft")
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  title          String
+  body           String
+  category       String?
+  tags           Json     @default("[]")
+  status         String   @default("draft")
+  createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@map("blog_posts")
 }
 
 model Course {
-  id          String  @id @default(uuid())
-  title       String
-  description String?
-  level       String?
-  lessons     Json    @default("[]")
+  id             String  @id @default(uuid())
+  organizationId String
+  title          String
+  description    String?
+  level          String?
+  lessons        Json    @default("[]")
 
+  @@index([organizationId])
   @@map("courses")
 }
 
 model Enrollment {
-  id          String    @id @default(uuid())
-  courseId    String
-  student     String
-  progress    Int       @default(0)
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
+  id             String    @id @default(uuid())
+  organizationId String
+  courseId       String
+  student        String
+  progress       Int       @default(0)
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
 
+  @@index([organizationId])
   @@index([courseId])
   @@map("enrollments")
 }
 
 model Routine {
-  id          String   @id @default(uuid())
-  trainerId   String
-  memberId    String
-  name        String
-  description String?
-  exercises   Json     @default("[]")
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(uuid())
+  organizationId String
+  trainerId      String
+  memberId       String
+  name           String
+  description    String?
+  exercises      Json     @default("[]")
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
+  @@index([organizationId])
   @@index([trainerId])
   @@index([memberId])
   @@map("routines")
 }
 
 model Comment {
-  id        String   @id @default(uuid())
-  author    String
-  body      String
-  rating    Int      @default(5)
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  author         String
+  body           String
+  rating         Int      @default(5)
+  createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@map("comments")
 }
 
 model Ticket {
-  id        String   @id @default(uuid())
-  subject   String
-  message   String
-  status    String   @default("open")
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  subject        String
+  message        String
+  status         String   @default("open")
+  createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@map("tickets")
 }
 
 model Notification {
-  id        String    @id @default(uuid())
-  userId    String?
-  title     String
-  body      String
-  read      Boolean   @default(false)
-  priority  String    @default("normal")
-  expiresAt DateTime?
-  createdAt DateTime  @default(now())
+  id             String    @id @default(uuid())
+  organizationId String
+  userId         String?
+  title          String
+  body           String
+  read           Boolean   @default(false)
+  priority       String    @default("normal")
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
 
+  @@index([organizationId])
   @@index([userId])
   @@index([expiresAt])
   @@map("notifications")
 }
 
 model ChatMessage {
-  id        String   @id @default(uuid())
-  from      String
-  to        String   @default("general")
-  body      String
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  from           String
+  to             String   @default("general")
+  body           String
+  createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@index([to, createdAt])
   @@map("chat_messages")
 }
 
 model CalendarEvent {
-  id        String   @id @default(uuid())
-  title     String
-  start     DateTime
-  end       DateTime?
-  type      String?
-  createdAt DateTime @default(now())
+  id             String    @id @default(uuid())
+  organizationId String
+  title          String
+  start          DateTime
+  end            DateTime?
+  type           String?
+  createdAt      DateTime  @default(now())
 
+  @@index([organizationId])
   @@index([start])
   @@map("calendar_events")
 }
 
 model SocialPost {
-  id        String   @id @default(uuid())
-  author    String
-  text      String
-  mediaUrl  String?
-  mediaType String?
-  likes     Int      @default(0)
-  createdAt DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  author         String
+  text           String
+  mediaUrl       String?
+  mediaType      String?
+  likes          Int      @default(0)
+  createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@index([createdAt])
   @@map("social_posts")
 }
 
 model Follow {
-  id          String   @id @default(uuid())
-  followerId  String
-  followingId String
-  createdAt   DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  followerId     String
+  followingId    String
+  createdAt      DateTime @default(now())
 
   @@unique([followerId, followingId])
+  @@index([organizationId])
   @@index([followingId])
   @@map("follows")
 }
 
 model Story {
-  id        String   @id @default(uuid())
-  author    String
-  mediaUrl  String
-  mediaType String   @default("image")
-  createdAt DateTime @default(now())
-  expiresAt DateTime
+  id             String   @id @default(uuid())
+  organizationId String
+  author         String
+  mediaUrl       String
+  mediaType      String   @default("image")
+  createdAt      DateTime @default(now())
+  expiresAt      DateTime
 
+  @@index([organizationId])
   @@index([author, createdAt])
   @@map("stories")
 }
 
 model Subscription {
-  id        String    @id @default(uuid())
-  userId    String
-  planId    String
-  planName  String    @default("")
-  status    String    @default("active")
-  startDate DateTime  @default(now())
-  endDate   DateTime?
-  createdAt DateTime  @default(now())
+  id             String    @id @default(uuid())
+  organizationId String
+  userId         String
+  planId         String
+  planName       String    @default("")
+  status         String    @default("active")
+  startDate      DateTime  @default(now())
+  endDate        DateTime?
+  createdAt      DateTime  @default(now())
 
+  @@index([organizationId])
   @@index([userId])
   @@index([planId])
   @@map("subscriptions")
 }
 
 model Organization {
-  id             String   @id @default(uuid())
+  id             String           @id @default(uuid())
   name           String
-  slug           String?  @unique
-  plan           String   @default("free")
-  active         Boolean  @default(true)
-  shareInventory Boolean  @default(false)
+  slug           String?          @unique
+  plan           String           @default("free")
+  active         Boolean          @default(true)
+  shareInventory Boolean          @default(false)
   logoUrl        String?
-  createdAt      DateTime @default(now())
+  type           OrganizationType @default(standalone)
+  parentId       String?
+  chainId        String?
+  parent         Organization?    @relation("OrgHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Organization[]   @relation("OrgHierarchy")
+  chainRoot      Organization?    @relation("OrgChain", fields: [chainId], references: [id], onDelete: SetNull)
+  chainBranches  Organization[]   @relation("OrgChain")
+  createdAt      DateTime         @default(now())
 
+  @@index([parentId])
+  @@index([chainId])
+  @@index([type])
   @@map("organizations")
 }
 
@@ -433,7 +487,7 @@ model AttendanceRecord {
 
 model InventoryItem {
   id             String   @id @default(uuid())
-  organizationId String?
+  organizationId String
   sku            String
   name           String
   quantity       Int      @default(0)
@@ -554,21 +608,21 @@ model Page {
 // ---------------------------------------------------------------------------
 
 model Setting {
-  id          String    @id @default(uuid())
-  key         String    @unique
+  id          String   @id @default(uuid())
+  key         String   @unique
   value       Json
   schemaKey   String?
   updatedById String?
-  updatedBy   User?     @relation("SettingEditor", fields: [updatedById], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedBy   User?    @relation("SettingEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("settings")
 }
 
-model BlockInstallation {
+model PluginInstallation {
   id          String   @id @default(uuid())
-  blockId     String   @unique
+  pluginId    String   @unique
   name        String
   version     String
   enabled     Boolean  @default(true)
@@ -577,12 +631,12 @@ model BlockInstallation {
   installedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@map("block_installations")
+  @@map("plugin_installations")
 }
 
-model BlockPlacement {
+model PluginPlacement {
   id        String   @id @default(uuid())
-  blockId   String
+  pluginId  String
   slotId    String
   order     Int      @default(0)
   enabled   Boolean  @default(true)
@@ -591,7 +645,7 @@ model BlockPlacement {
   updatedAt DateTime @updatedAt
 
   @@index([slotId])
-  @@map("block_placements")
+  @@map("plugin_placements")
 }
 
 // ---------------------------------------------------------------------------
@@ -641,15 +695,17 @@ model Menu {
 }
 
 model Media {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  mimeType  String
-  size      Int
-  url       String
-  alt       String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid())
+  key            String   @unique
+  mimeType       String
+  size           Int
+  url            String
+  alt            String?
+  organizationId String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
+  @@index([organizationId])
   @@map("media")
 }
 
@@ -748,6 +804,7 @@ model EmailClick {
 
 model Payment {
   id                String    @id @default(uuid())
+  organizationId    String
   provider          String
   transactionId     String    @unique
   amount            Int
@@ -764,6 +821,7 @@ model Payment {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
+  @@index([organizationId])
   @@index([provider])
   @@index([userId])
   @@index([status])
@@ -775,26 +833,29 @@ model Payment {
 // ---------------------------------------------------------------------------
 
 model Invoice {
-  id            String   @id @default(uuid())
-  number        String   @unique
-  type          String   @default("invoice")
-  amount        Int      @default(0)
-  currency      String   @default("ARS")
-  status        String   @default("draft")
-  customerName  String?
-  customerTaxId String?
-  vatCondition  String?
-  cae           String?
-  pdfUrl        String?
-  paymentId     String?
-  createdAt     DateTime @default(now())
+  id             String   @id @default(uuid())
+  organizationId String
+  number         String   @unique
+  type           String   @default("invoice")
+  amount         Int      @default(0)
+  currency       String   @default("ARS")
+  status         String   @default("draft")
+  customerName   String?
+  customerTaxId  String?
+  vatCondition   String?
+  cae            String?
+  pdfUrl         String?
+  paymentId      String?
+  createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@index([createdAt])
   @@map("invoices")
 }
 
 model Shipment {
   id             String   @id @default(uuid())
+  organizationId String
   orderId        String
   provider       String
   trackingNumber String?
@@ -802,18 +863,21 @@ model Shipment {
   cost           Int      @default(0)
   createdAt      DateTime @default(now())
 
+  @@index([organizationId])
   @@index([orderId])
   @@map("shipments")
 }
 
 model Coupon {
   id              String    @id @default(uuid())
+  organizationId  String
   code            String    @unique
   discountPercent Int       @default(0)
   validUntil      DateTime?
   active          Boolean   @default(true)
   createdAt       DateTime  @default(now())
 
+  @@index([organizationId])
   @@map("coupons")
 }
 

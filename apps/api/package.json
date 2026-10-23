@@ -32,6 +32,7 @@
     "@fastify/swagger-ui": "^5.1.0",
     "@fastify/multipart": "^9.0.0",
     "@fastify/websocket": "^11.0.1",
+    "@licensify/core": "workspace:*",
     "@aws-sdk/client-s3": "^3.600.0",
     "@prisma/client": "^6.0.0",
     "@simplewebauthn/server": "^10.0.0",

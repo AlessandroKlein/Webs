@@ -87,22 +87,25 @@ export async function applyTemplate(fastify: FastifyInstance, id: string) {
   // 1) Instalar + configurar + activar bloques (best-effort).
   for (const b of template.blocks ?? []) {
     if (!pluginRegistry.getAvailableManifest(b.id)) {
-      fastify.log.warn({ blockId: b.id, template: id }, 'bloque no disponible; se omite');
+      fastify.log.warn({ pluginId: b.id, template: id }, 'bloque no disponible; se omite');
       continue;
     }
-    const existing = await fastify.prisma.blockInstallation.findUnique({ where: { blockId: b.id } });
+    const existing = await fastify.prisma.pluginInstallation.findUnique({ where: { pluginId: b.id } });
     if (!existing) {
-      await installPlugin(fastify, b.id);
+      // F13: instalar SIN activar todavía; aplicamos primero la config de la
+      // plantilla y recién después activamos una sola vez (evita doble-boot y
+      // que el plugin quede corriendo con la config por defecto).
+      await installPlugin(fastify, b.id, { activate: false });
       blocksInstalled += 1;
     }
     if (b.config) {
-      await fastify.prisma.blockInstallation.update({
-        where: { blockId: b.id },
+      await fastify.prisma.pluginInstallation.update({
+        where: { pluginId: b.id },
         data: { config: b.config as Prisma.InputJsonValue, enabled: true },
       });
     }
     if (!pluginRegistry.getLoadedPlugins().some((l) => l.manifest.id === b.id)) {
-      const inst = await fastify.prisma.blockInstallation.findUnique({ where: { blockId: b.id } });
+      const inst = await fastify.prisma.pluginInstallation.findUnique({ where: { pluginId: b.id } });
       if (inst) await loadAndActivate(fastify, inst);
     }
   }

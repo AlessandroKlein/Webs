@@ -133,13 +133,13 @@ Las traducciones guardadas aquí **sobrescriben** los recursos base compilados
 | Acción                    | Permiso(s) requerido(s)                        |
 | ------------------------- | ---------------------------------------------- |
 | Ver/editar ajustes        | `setting.read` / `setting.write`               |
-| Ver catálogo de plugins   | `block.read`                                   |
-| Instalar/colocar plugins  | `block.manage`                                 |
+| Ver catálogo de plugins   | `plugin.read`                                   |
+| Instalar/colocar plugins  | `plugin.manage`                                 |
 | Configurar un plugin      | `setting.write`                                |
 | Ver/editar traducciones   | `translation.read` / `translation.write`       |
 
-> Los permisos internos `block.read`/`block.manage` se conservan de forma
-> transitoria (ver `docs/architecture/plugin-system.md`). Los asigna un
+> Los permisos son `plugin.read`/`plugin.manage` (alias `@deprecated`
+> `BlockRead`/`BlockManage` por retrocompatibilidad). Los asigna un
 > administrador desde **Roles y permisos**. Ver
 > [`docs/guides/roles-permisos.md`](./roles-permisos.md).
 

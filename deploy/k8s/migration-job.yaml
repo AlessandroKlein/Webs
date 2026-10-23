@@ -1,0 +1,39 @@
+# Job de migración Prisma (ADR-0008 + t22 multi-tenant). Corre `prisma migrate
+# deploy` (aplica pendientes sin generar/editar) contra DATABASE_URL del Secret
+# ANTES de escalar el rollout de la API. Reutiliza la imagen de la API, que ya
+# incluye el CLI de Prisma, el schema y las migraciones (apps/api/prisma).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: prisma-migrate
+  namespace: webs
+  labels:
+    app.kubernetes.io/name: webs
+    app.kubernetes.io/component: migration
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: webs
+        component: migration
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: webs-api:latest
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - "cd /app/apps/api && npx prisma migrate deploy"
+          envFrom:
+            - secretRef:
+                name: webs-secret
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

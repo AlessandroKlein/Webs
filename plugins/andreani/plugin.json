@@ -1,0 +1,93 @@
+{
+  "name": "@webs/plugin-envio-andreani",
+  "id": "andreani",
+  "version": "0.1.0",
+  "type": "plugin",
+  "category": "envios",
+  "displayName": {
+    "en": "Andreani",
+    "es": "Andreani"
+  },
+  "description": {
+    "en": "Shipping quotes via Andreani (login Bearer + /v1/cotizacion).",
+    "es": "Cotización de envíos con Andreani (login Bearer + /v1/cotizacion)."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "provides": [
+    "shipping"
+  ],
+  "settings": {
+    "type": "object",
+    "title": "Configuración de Andreani",
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "title": "Habilitado",
+        "default": false
+      },
+      "apiKey": {
+        "type": "string",
+        "title": "API Key",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "API Key de Andreani (se usa como token Bearer si no hacés login).",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "apiSecret": {
+        "type": "string",
+        "title": "API Secret",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "API Secret de Andreani (acompaña a la API Key).",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "userToken": {
+        "type": "string",
+        "title": "Usuario (token)",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Usuario para el login Bearer de Andreani.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "passwordToken": {
+        "type": "string",
+        "title": "Contraseña (token)",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Contraseña para el login Bearer de Andreani.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "baseUrl": {
+        "type": "string",
+        "title": "URL base",
+        "default": "https://api.andreani.com",
+        "x-ui": {
+          "help": {
+            "text": "URL base de la API de Andreani.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      }
+    }
+  }
+}

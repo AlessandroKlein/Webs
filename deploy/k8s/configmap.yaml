@@ -1,0 +1,25 @@
+# Config no sensible de Webs (ADR-0008). Todo lo secreto va en `secret.yaml`.
+# Los valores marcados con "<...>" deben adaptarse al entorno antes de aplicar.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: webs-config
+  namespace: webs
+  labels:
+    app.kubernetes.io/name: webs
+data:
+  NODE_ENV: "production"
+  HOST: "0.0.0.0"
+  PORT: "4000"
+  LOG_LEVEL: "info"
+  # Origen permitido por CORS (la URL pública servida por el Ingress).
+  CORS_ORIGIN: "https://webs.example.com"
+  # Índice remoto de plugins (opcional; vacío = solo catálogo local).
+  BLOCK_REGISTRY_URL: ""
+  # Updater de la app (t29/ADR-0010). En Kubernetes NO se usa el swap interno:
+  # la actualización es el rolling update del Deployment (cambio de imagen). Se
+  # deja 'bare' para que /system/update/apply nunca intente `docker compose`.
+  UPDATE_MODE: "bare"
+  # Clave pública Ed25519 (PEM SPKI) que verifica los artefactos de update.
+  # Es pública, por eso va en ConfigMap. Generar con el CLI de @licensify/core.
+  UPDATE_PUBLIC_KEY: ""

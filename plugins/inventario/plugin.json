@@ -1,0 +1,54 @@
+{
+  "name": "@webs/plugin-inventario",
+  "id": "inventario",
+  "version": "0.1.0",
+  "type": "plugin",
+  "displayName": {
+    "en": "Inventory",
+    "es": "Inventario"
+  },
+  "description": {
+    "en": "Inventory control with stock adjustments and low-stock alerts.",
+    "es": "Control de inventario con ajustes de stock y alertas de stock bajo."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "category": "negocio",
+  "menu": [
+    {
+      "id": "admin",
+      "label": {
+        "en": "Inventory",
+        "es": "Inventario"
+      },
+      "path": "/admin/inventory",
+      "order": 12,
+      "target": "admin"
+    }
+  ],
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "permissions": [
+    "inventory.manage"
+  ],
+  "slots": [
+    "content"
+  ],
+  "settings": {
+    "type": "object",
+    "title": "Inventario",
+    "properties": {
+      "lowStockThreshold": {
+        "type": "number",
+        "title": "Umbral de stock bajo",
+        "default": 5
+      },
+      "trackBySku": {
+        "type": "boolean",
+        "title": "Control por SKU",
+        "default": true
+      }
+    }
+  }
+}

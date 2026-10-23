@@ -15,6 +15,7 @@ import rateLimitPlugin from './plugins/rate-limit';
 import sensiblePlugin from './plugins/sensible';
 import swaggerPlugin from './plugins/swagger';
 import authPlugin from './plugins/auth';
+import tenantPlugin from './plugins/tenant';
 import errorHandlerPlugin from './plugins/error-handler';
 import websocketPlugin from './plugins/websocket';
 import securityPlugin from './plugins/security';
@@ -23,6 +24,7 @@ import paymentsPlugin from './plugins/payments';
 import shippingPlugin from './plugins/shipping';
 import storagePlugin from './plugins/storage';
 import notificationsPlugin from './plugins/notifications';
+import licensePlugin from './plugins/license';
 
 import healthRoutes from './modules/health';
 import metricsRoutes from './modules/metrics';
@@ -33,6 +35,8 @@ import mediaRoutes from './modules/media/routes';
 import notificationsRoutes from './modules/notifications/routes';
 import expensesRoutes from './modules/expenses';
 import systemRoutes from './modules/system';
+import updateRoutes from './modules/update';
+import pluginUpdateRoutes from './modules/update/plugins';
 import pagesRoutes from './modules/pages/routes';
 import menuRoutes from './modules/menu/routes';
 import authRoutes from './modules/auth';
@@ -49,6 +53,7 @@ import setupRoutes from './modules/setup';
 import emailRoutes, { startQueueProcessor } from './modules/email';
 import i18nRoutes from './modules/i18n';
 import apiTokensRoutes from './modules/api-tokens';
+import licenseRoutes from './modules/licenses';
 import trackingRoutes from './modules/email/tracking';
 import { startScheduler } from './modules/email/scheduler';
 
@@ -87,6 +92,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(rateLimitPlugin);
   await app.register(swaggerPlugin);
 
+  // 2b. Salud siempre disponible (liveness/readiness): en un clúster limpio los
+  //     probes de k8s deben responder antes de la instalación (F3/t43). /health
+  //     responde 200 sin dependencias; /health/ready responde 503 hasta que la
+  //     DB esté disponible (no 404).
+  await app.register(healthRoutes);
+
   // 3. Modo instalación: solo el asistente de instalación.
   if (!state.installed) {
     await app.register(setupRoutes, { prefix: API_PREFIX });
@@ -104,7 +115,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(storagePlugin);
   await app.register(notificationsPlugin);
   await app.register(authPlugin, { jwtSecret: env.JWT_SECRET });
+  await app.register(tenantPlugin);
   await app.register(websocketPlugin);
+  await app.register(licensePlugin, { publicKey: env.LICENSE_PUBLIC_KEY });
 
   // Modo mantenimiento: bloquea rutas públicas salvo whitelist / autenticadas.
   await app.addHook('onRequest', async (request, reply) => {
@@ -130,7 +143,6 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   // 5. Módulos de dominio (bajo /api/v1).
-  await app.register(healthRoutes);
   await app.register(metricsRoutes, { prefix: API_PREFIX });
   await app.register(templatesRoutes, { prefix: API_PREFIX });
   await app.register(paymentsRoutes, { prefix: API_PREFIX });
@@ -138,6 +150,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(notificationsRoutes, { prefix: API_PREFIX });
   await app.register(expensesRoutes, { prefix: API_PREFIX });
   await app.register(systemRoutes, { prefix: API_PREFIX });
+  await app.register(updateRoutes, { prefix: API_PREFIX });
+  await app.register(pluginUpdateRoutes, { prefix: API_PREFIX });
   await app.register(pagesRoutes, { prefix: API_PREFIX });
   await app.register(menuRoutes, { prefix: API_PREFIX });
   await app.register(authRoutes, { prefix: API_PREFIX });
@@ -154,6 +168,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(emailRoutes, { prefix: API_PREFIX });
   await app.register(i18nRoutes, { prefix: API_PREFIX });
   await app.register(apiTokensRoutes, { prefix: API_PREFIX });
+  await app.register(licenseRoutes, { prefix: API_PREFIX });
   await app.register(trackingRoutes, { prefix: API_PREFIX });
 
   // 6. Plugins instalados (cargan sus plugins, rutas, settings, slots y permisos).

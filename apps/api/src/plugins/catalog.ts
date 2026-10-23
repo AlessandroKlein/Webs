@@ -134,9 +134,9 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
   const cached = await cacheGet<{ local: CatalogItem[]; remote: CatalogItem[] }>(fastify.redis, cacheKey);
   if (cached) return cached;
 
-  const installations = await fastify.prisma.blockInstallation.findMany({ select: { blockId: true, version: true } });
-  const installedMap = new Map(installations.map((i) => [i.blockId, i.version]));
-  const installedIds = new Set(installations.map((i) => i.blockId));
+  const installations = await fastify.prisma.pluginInstallation.findMany({ select: { pluginId: true, version: true } });
+  const installedMap = new Map(installations.map((i) => [i.pluginId, i.version]));
+  const installedIds = new Set(installations.map((i) => i.pluginId));
 
   const local: CatalogItem[] = pluginRegistry.getAvailable().map((m) => {
     const installedVersion = installedMap.get(m.id) ?? null;

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { useTenantStore } from '../../lib/tenant-store';
+import { ScopeBadge } from '../../components/tenant/ScopeSwitcher';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -55,13 +57,16 @@ export function PaymentsPage() {
   const qc = useQueryClient();
   const [status, setStatus] = useState('');
   const [provider, setProvider] = useState('');
+  const mode = useTenantStore((s) => s.mode);
+  const selectedOrganizationId = useTenantStore((s) => s.selectedOrganizationId);
+  const scopeKey = mode === 'branch' ? `branch:${selectedOrganizationId}` : mode;
 
   const { data: summary } = useQuery({
-    queryKey: ['payments-summary'],
+    queryKey: ['payments-summary', scopeKey],
     queryFn: () => api.get<Summary>('/api/v1/payments/summary'),
   });
   const { data, isLoading } = useQuery({
-    queryKey: ['payments', status, provider],
+    queryKey: ['payments', status, provider, scopeKey],
     queryFn: () => {
       const qs = new URLSearchParams();
       if (status) qs.set('status', status);
@@ -117,7 +122,10 @@ export function PaymentsPage() {
 
   return (
     <div className="stack">
-      <h1>Pagos</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1>Pagos</h1>
+        <ScopeBadge />
+      </div>
 
       <Card>
         <h3 style={{ margin: 0 }}>Seguridad de webhooks</h3>
@@ -224,13 +232,16 @@ function CostsPanel() {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
+  const mode = useTenantStore((s) => s.mode);
+  const selectedOrganizationId = useTenantStore((s) => s.selectedOrganizationId);
+  const scopeKey = mode === 'branch' ? `branch:${selectedOrganizationId}` : mode;
 
   const { data } = useQuery({
-    queryKey: ['expenses-analytics', period],
+    queryKey: ['expenses-analytics', period, scopeKey],
     queryFn: () => api.get<AnalyticsData>(`/api/v1/expenses/analytics?period=${period}`),
   });
   const { data: expenses } = useQuery({
-    queryKey: ['expenses'],
+    queryKey: ['expenses', scopeKey],
     queryFn: () => api.get<ExpenseRow[]>('/api/v1/expenses'),
   });
 
@@ -257,7 +268,10 @@ function CostsPanel() {
 
   return (
     <Card>
-      <h3>Costos y ganancias</h3>
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 style={{ margin: 0 }}>Costos y ganancias</h3>
+        <ScopeBadge />
+      </div>
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div className="row">
           <Button variant={period === 'month' ? 'secondary' : 'ghost'} onClick={() => setPeriod('month')}>Mensual</Button>
@@ -307,6 +321,68 @@ function CostsPanel() {
         ))}
         {(expenses ?? []).length === 0 && <p className="muted">Sin gastos registrados.</p>}
       </div>
+
+      <BranchBreakdown period={period} />
     </Card>
+  );
+}
+
+function BranchBreakdown({ period }: { period: 'month' | 'year' }) {
+  const branches = useTenantStore((s) => s.branches);
+  const mode = useTenantStore((s) => s.mode);
+  const enabled = mode === 'consolidated' && branches.length > 0;
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['expenses-branch-breakdown', period, branches.map((b) => b.id).join(',')],
+    queryFn: async () => {
+      const rows = await Promise.all(
+        branches.map(async (b) => {
+          try {
+            const d = await api.get<AnalyticsData>(`/api/v1/expenses/analytics?period=${period}`, {
+              'X-Org-Id': b.id,
+            });
+            return { id: b.id, name: b.name, totals: d.totals };
+          } catch {
+            return { id: b.id, name: b.name, totals: null };
+          }
+        }),
+      );
+      return rows;
+    },
+    enabled,
+  });
+
+  if (!enabled) return null;
+
+  const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
+  return (
+    <div style={{ marginTop: 'var(--ws-space-4)' }}>
+      <h4>Desglose por sucursal</h4>
+      {isLoading && <Spinner />}
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Sucursal</th>
+            <th>Ganancias</th>
+            <th>Gastos</th>
+            <th>Beneficio</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(data ?? []).map((r) => (
+            <tr key={r.id}>
+              <td>{r.name}</td>
+              <td>{r.totals ? money(r.totals.earnings) : '—'}</td>
+              <td>{r.totals ? money(r.totals.expenses) : '—'}</td>
+              <td>{r.totals ? money(r.totals.profit) : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {(data ?? []).length === 0 && !isLoading && (
+        <p className="muted">No hay sucursales para desglosar.</p>
+      )}
+    </div>
   );
 }

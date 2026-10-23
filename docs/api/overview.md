@@ -235,21 +235,21 @@ Secciones base: `site`, `appearance`, `seo`, `legal`, `contact`, `social`
 
 | Método | Ruta                      | Permiso         | Descripción                                                         |
 | ------ | ------------------------- | --------------- | ------------------------------------------------------------------- |
-| GET    | `/plugins`                | `block.read`    | Instalaciones (`installed`) y catálogo (`catalog`).                 |
-| POST   | `/plugins/install`        | `block.manage`  | Instala un plugin. Body: `{ id }`.                                  |
-| POST   | `/plugins/:id/activate`   | `block.manage`  | Activa un plugin instalado.                                          |
-| POST   | `/plugins/:id/deactivate` | `block.manage`  | Desactiva un plugin instalado.                                       |
-| DELETE | `/plugins/:id`            | `block.manage`  | Desinstala un plugin. Devuelve `204`.                                |
+| GET    | `/plugins`                | `plugin.read`    | Instalaciones (`installed`) y catálogo (`catalog`).                 |
+| POST   | `/plugins/install`        | `plugin.manage`  | Instala un plugin. Body: `{ id }`.                                  |
+| POST   | `/plugins/:id/activate`   | `plugin.manage`  | Activa un plugin instalado.                                          |
+| POST   | `/plugins/:id/deactivate` | `plugin.manage`  | Desactiva un plugin instalado.                                       |
+| DELETE | `/plugins/:id`            | `plugin.manage`  | Desinstala un plugin. Devuelve `204`.                                |
 | GET    | `/plugins/:id/settings`   | `setting.read`  | Devuelve el esquema y el valor de configuración del plugin.          |
 | PUT    | `/plugins/:id/settings`   | `setting.write` | Guarda la configuración del plugin (validada contra su `settings`). |
-| GET    | `/slots`                  | `block.read`    | Lista los slots (regiones) disponibles.                              |
-| GET    | `/placements`             | `block.read`    | Lista colocaciones. Filtro opcional `?slotId=`.                      |
-| PUT    | `/placements`             | `block.manage`  | Reemplaza las colocaciones de un slot. Body: `{ slotId, blocks[] }`. |
+| GET    | `/slots`                  | `plugin.read`    | Lista los slots (regiones) disponibles.                              |
+| GET    | `/placements`             | `plugin.read`    | Lista colocaciones. Filtro opcional `?slotId=`.                      |
+| PUT    | `/placements`             | `plugin.manage`  | Reemplaza las colocaciones de un slot. Body: `{ slotId, blocks[] }`. |
 
 Slots base: `header`, `content`, `sidebar`, `footer`.
 
 > Las rutas canónicas son `/plugins/*`; el shim `/blocks/*` se conserva por
-> retrocompatibilidad. Los permisos internos siguen siendo `block.read`/`block.manage`
+> retrocompatibilidad. Los permisos son `plugin.read`/`plugin.manage` (alias `@deprecated` `BlockRead`/`BlockManage`).
 > (ver `docs/architecture/plugin-system.md`, sección «Estado transitorio del rename»).
 
 ### content

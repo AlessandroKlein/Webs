@@ -43,8 +43,10 @@ const PERMISSIONS = [
   { key: 'role.write', description: 'Crear/editar roles' },
   { key: 'setting.read', description: 'Ver ajustes' },
   { key: 'setting.write', description: 'Editar ajustes' },
-  { key: 'block.read', description: 'Ver bloques' },
-  { key: 'block.manage', description: 'Instalar/desinstalar bloques' },
+  { key: 'plugin.read', description: 'Ver plugins' },
+  { key: 'plugin.manage', description: 'Instalar/desinstalar plugins' },
+  { key: 'license.read', description: 'Ver estado y features de la licencia' },
+  { key: 'license.manage', description: 'Activar/desactivar la licencia' },
   { key: 'content.read', description: 'Ver contenido' },
   { key: 'content.write', description: 'Crear/editar contenido' },
   { key: 'content.publish', description: 'Publicar contenido' },
@@ -129,7 +131,7 @@ const ROLES = [
       'content.publish',
       'media.read',
       'media.write',
-      'block.read',
+      'plugin.read',
       'theme.read',
       'seo.read',
       'translation.read',
@@ -229,6 +231,37 @@ async function main() {
     },
   });
   await prisma.userRole.create({ data: { userId: admin.id, roleId: superAdminRole.id } });
+
+  // 3b. Organización por defecto (raíz standalone) + membresía del admin.
+  //     Alineado con seed.ts: el id fijo coincide con DEFAULT_ORG_ID
+  //     (src/lib/tenant.ts) y con la migración multi_tenant_chains.
+  const DEFAULT_ORG_ID = '00000000-0000-4000-8000-000000000001';
+  const organization = await prisma.organization.upsert({
+    where: { slug: 'principal' },
+    update: {},
+    create: {
+      id: DEFAULT_ORG_ID,
+      slug: 'principal',
+      name: 'Organización Principal',
+      type: 'standalone',
+      plan: 'free',
+      active: true,
+    },
+  });
+  const existingMembership = await prisma.membership.findFirst({
+    where: { userId: admin.id, organizationId: organization.id },
+  });
+  if (!existingMembership) {
+    await prisma.membership.create({
+      data: {
+        organizationId: organization.id,
+        userId: admin.id,
+        role: 'admin',
+        plan: 'free',
+        status: 'active',
+      },
+    });
+  }
 
   // 4. Configuración del sitio.
   await prisma.setting.upsert({

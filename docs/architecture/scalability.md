@@ -68,6 +68,21 @@ documenta que, en cluster, debe conectarse un store Redis para que el límite se
 > «En un despliegue en cluster, conectar un store Redis (`@fastify/rate-limit` acepta
 > `redis` como store) para que el límite sea global y no por instancia.»
 
+### Rate limiting global en Redis (ADR-0008)
+
+El [ADR-0008](../adr/0008-scalability.md) decide sustituir el store en memoria por
+**`rate-limiter-flexible`** con backend **Redis** (`RateLimiterRedis`, ventana fija/deslizante,
+clave `webs:rl:<ip>` con TTL), de modo que el límite sea **global al cluster**
+independientemente del número de réplicas (hoy, con N réplicas, cada una permite 300 req/min →
+límite efectivo N×300).
+
+- Se conserva un fallback **en memoria** solo para ejecución mononodo sin `REDIS_URL` (dev),
+  documentado como no-global.
+- Política base: mantener el contrato actual (300 req/min por IP) con umbrales por endpoint
+  (auth más estricto) y clave por IP + (opcional) tenant en rutas autenticadas.
+- Detrás del ingress se respeta `X-Forwarded-For` (`trustProxy: true`) para evitar lock-outs por
+  IP compartida (NAT/proxy).
+
 ## Contenedores
 
 `docker/` contiene los artefactos de contenedorización:
@@ -87,15 +102,46 @@ pnpm --filter @webs/api exec prisma db seed
 node apps/api/dist/index.js
 ```
 
-## Kubernetes (futuro)
+## Kubernetes (ADR-0008)
 
-`infra/README.md` describe el despliegue objetivo para clientes grandes, con manifiestos
-en `k8s/` (aún no creados):
+El [ADR-0008](../adr/0008-scalability.md) define el despliegue objetivo reproducible con
+manifiestos en el directorio `k8s/` (base + overlays `dev`/`prod`):
 
-- **api** — `Deployment` con N réplicas + `HorizontalPodAutoscaler` + `Service` + `Ingress`.
-- **web** — build estático servido por nginx o CDN.
-- **postgres** — operador (CloudNativePG) o servicio gestionado.
-- **redis** — clúster gestionado (o Valkey).
+| Recurso | Contenido |
+|---|---|
+| `namespace.yaml` | Namespace `webs`. |
+| `configmap.yaml` | Config no sensible (URL pública, paginación, feature flags). |
+| `secret.yaml` | Referencia a secretos (external-secrets/sealed-secrets; **nunca** literales): `DATABASE_URL`, `REDIS_URL`, `ENCRYPTION_KEY`, `JWT_*`, `LICENSE_PUBLIC_KEY`, `UPDATE_PUBLIC_KEY`. |
+| `deployment-api.yaml` | `replicas: 3`, `resources.requests/limits`, `envFrom` configmap/secret, `livenessProbe`/`readinessProbe`, `terminationGracePeriodSeconds`. |
+| `service-api.yaml` | `ClusterIP` (puerto interno). |
+| `deployment-web.yaml` + `service-web.yaml` | nginx sirviendo estáticos de `apps/web` + reverse-proxy a `service-api` (reutiliza `docker/nginx.conf`). |
+| `ingress.yaml` | Ingress (TLS) hacia `service-web`. |
+| `hpa-api.yaml` | HorizontalPodAutoscaler: `minReplicas: 2`, `maxReplicas: 10`, CPU/memoria 70 %. |
+| `pdb.yaml` | PodDisruptionBudget (`minAvailable: 1`). |
+| `migration-job.yaml` | `prisma migrate deploy` como `initContainer`/`Job` antes de escalar el rollout. |
+
+El estado (Postgres/Redis) vive **fuera del cluster** de aplicación: servicios gestionados
+(RDS/Cloud SQL, ElastiCache/Memorystore) o un operador dedicado; no en los manifests de app.
+
+### Stateless garantizado y auto-scaling
+
+- **Ninguna** sesión/estado en proceso: todo estado mutuable en Postgres o Redis; la sesión es
+  el JWT (sin server-side session store). WebSocket no requiere afinidad de sesión (fan-out por
+  pub/sub `webs:ws`), por lo que **`sticky sessions` no es requerido**.
+- **Graceful shutdown** (precondición del auto-scaling): ante `SIGTERM` → dejar de aceptar
+  conexiones, drenar in-flight (grace period) y cerrar Prisma/Redis.
+- **Probes**: `livenessProbe` → `/health`; `readinessProbe` → `/health/ready` (que ya hace
+  `SELECT 1`).
+- **HPA** por CPU/memoria sobre `deployment-api`; escalado por eventos/cola (opcional, KEDA)
+  sobre longitud de cola Redis para trabajos asíncronos (email, export, etc.).
+- El límite de concurrencia de Prisma/Postgres (pool) y de Redis se dimensiona **por réplica**;
+  el auto-scaling añade réplicas, no hilos dentro de un proceso.
+
+### Redis como dependencia de producción
+
+Con el rate-limit global, el pub/sub de WebSocket y la caché, Redis se vuelve **hard-dependency**
+en producción. Si cae, la app debe degradar de forma controlada (circuit-breaker/fallback
+documentado), no colgar.
 
 ## Observabilidad
 
@@ -160,9 +206,12 @@ internos en los errores 500. Los códigos de error son estables y versionados
 
 ## Discrepancias observadas
 
+Estas discrepancias documentan el estado **actual** del código; el
+[ADR-0008](../adr/0008-scalability.md) las resuelve como objetivo de Milestone 2:
+
 1. **Rate limiting por instancia.** El store actual de `@fastify/rate-limit` es en memoria;
-   el límite (300 req/min/IP) no es global hasta conectar un store Redis, tal como
-   documenta el propio plugin. En un despliegue multi-réplica sin ese store, cada instancia
-   contaría por separado.
+   el límite (300 req/min/IP) no es global hasta conectar un store Redis. **Resuelto por
+   ADR-0008** (`rate-limiter-flexible` + Redis).
 2. **Sin manifests de Kubernetes.** `infra/README.md` describe la estructura `k8s/` como
-   «futuro»; no hay archivos YAML de Kubernetes en el repo.
+   «futuro»; no hay archivos YAML de Kubernetes en el repo. **Resuelto por ADR-0008** (crear
+   `k8s/`).

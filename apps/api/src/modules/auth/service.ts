@@ -38,6 +38,7 @@ export function signAccessToken(fastify: FastifyInstance, profile: UserProfile):
       sub: profile.id,
       email: profile.email,
       permissions: profile.permissions,
+      orgId: profile.orgId ?? undefined,
       type: 'access' as const,
     },
     { expiresIn: ACCESS_TOKEN_TTL_SECONDS },

@@ -32,6 +32,7 @@ import { ApiTokensPage } from './features/api-tokens/ApiTokensPage';
 import { AccountPage } from './features/account/AccountPage';
 import { PagesPage } from './features/pages/PagesPage';
 import { OrganizationsPage } from './features/organizations/OrganizationsPage';
+import { BranchesPage } from './features/branches/BranchesPage';
 import { InventoryPage } from './features/inventory/InventoryPage';
 import { BlogPage } from './features/blog/BlogPage';
 import { SocialPage } from './features/social/SocialPage';
@@ -51,6 +52,8 @@ import { SocialPublicPage } from './features/public/SocialPublicPage';
 import { UserDashboardPage } from './features/dashboard/UserDashboardPage';
 import { MenuEditorPage } from './features/menu/MenuEditorPage';
 import { SupportPage } from './features/support/SupportPage';
+import { UpdatesPage } from './features/updates/UpdatesPage';
+import { LicensePage } from './features/license/LicensePage';
 import { SiteLayout } from './components/SiteLayout';
 import { StaffDashboard } from './features/staff/StaffDashboard';
 import { SetupWizard } from './features/setup/SetupWizard';
@@ -154,6 +157,7 @@ function MainApp() {
           <Route path="content" element={<ContentPage />} />
           <Route path="pages" element={<PagesPage />} />
           <Route path="organizations" element={<OrganizationsPage />} />
+          <Route path="branches" element={<BranchesPage />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="blog" element={<BlogPage />} />
           <Route path="social" element={<SocialPage />} />
@@ -181,6 +185,8 @@ function MainApp() {
           <Route path="api-tokens" element={<ApiTokensPage />} />
           <Route path="menu" element={<MenuEditorPage />} />
           <Route path="support" element={<SupportPage />} />
+          <Route path="updates" element={<UpdatesPage />} />
+          <Route path="license" element={<LicensePage />} />
         </Route>
 
         <Route path="/:slug" element={<PublicPage />} />

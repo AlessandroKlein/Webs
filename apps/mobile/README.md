@@ -84,6 +84,26 @@ Para instalar: abrí la app en Chrome/Edge (Android o escritorio) y usá
 «Instalar aplicación» o el botón «Instalar» que aparece en pantalla. Recordá que
 el service worker requiere **HTTPS** (o `localhost`).
 
+## Host Capacitor (Android/iOS)
+
+Además de la PWA, `apps/mobile` actúa como **host de Capacitor** para la app
+administrativa (`apps/web`). `capacitor.config.json` define `webDir: ../web/dist`,
+de modo que Capacitor envuelve el build de React/Vite de `apps/web` (no los
+archivos propios de esta PWA). Ver
+[`docs/guides/mobile-capacitor.md`](../../docs/guides/mobile-capacitor.md).
+
+Flujo típico:
+
+```bash
+cd apps/mobile
+pnpm build:web        # compila apps/web → apps/web/dist
+pnpm sync             # cap sync (copia dist/ a las plataformas)
+pnpm add:android      # (una sola vez) genera la plataforma android/
+pnpm open:android     # abre Android Studio
+```
+
+Los directorios `android/` e `ios/` (generados) están ignorados por git.
+
 ## Estructura
 
 ```
@@ -91,6 +111,7 @@ apps/mobile/
 ├── index.html
 ├── vite.config.js
 ├── package.json
+├── capacitor.config.json   # host Capacitor (envuelve apps/web/dist)
 ├── public/
 │   ├── manifest.webmanifest
 │   ├── sw.js

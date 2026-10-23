@@ -1,0 +1,329 @@
+{
+  "name": "@webs/plugin-ecommerce",
+  "id": "ecommerce",
+  "version": "0.1.0",
+  "type": "plugin",
+  "displayName": {
+    "en": "E-commerce",
+    "es": "Comercio electrónico"
+  },
+  "description": {
+    "en": "Store with products, orders, shipping and coupons.",
+    "es": "Tienda con productos, pedidos, envíos y cupones."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "category": "negocio",
+  "menu": [
+    {
+      "id": "admin",
+      "label": {
+        "en": "Commerce",
+        "es": "Comercio"
+      },
+      "path": "/admin/commerce",
+      "order": 6,
+      "target": "admin"
+    }
+  ],
+  "permissions": [
+    "sales.manage"
+  ],
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "requiresProviders": [
+    "payment"
+  ],
+  "slots": [
+    "content"
+  ],
+  "settings": {
+    "type": "object",
+    "title": "Tienda",
+    "properties": {
+      "shippingProviders": {
+        "type": "string",
+        "title": "Proveedor de envío",
+        "enum": [
+          "local",
+          "andreani",
+          "oca",
+          "correo",
+          "mercadolibre",
+          "dhl"
+        ],
+        "default": "local",
+        "x-ui": {
+          "help": {
+            "text": "Local (tarifas fijas) o cotización con Andreani/OCA/Correo Argentino/Mercado Envíos/DHL. Sin credenciales se usa la tarifa local.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "enableShippingProviders": {
+        "type": "boolean",
+        "title": "Activar proveedores de envío",
+        "default": false,
+        "x-ui": {
+          "help": {
+            "text": "Habilita la cotización en tiempo real con Andreani, OCA, Correo Argentino y Mercado Envíos usando la dirección/CP del comprador. Sin credenciales se usa la tarifa local.",
+            "url": "https://developers.mercadolibre.com/es_ar/guia-para-producto/mercado-envios-costos-y-cotizaciones"
+          }
+        }
+      },
+      "shippingProvider": {
+        "type": "string",
+        "title": "Proveedor de envío activo",
+        "enum": [
+          "local",
+          "andreani",
+          "oca",
+          "correo",
+          "mercadolibre"
+        ],
+        "default": "local",
+        "x-ui": {
+          "help": {
+            "text": "Proveedor de envío usado para cotizar. Sin credenciales se usa la tarifa local.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "shippingProviderKey": {
+        "type": "string",
+        "title": "API Key / token del proveedor",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "API Key o token del proveedor de envío seleccionado (Andreani/OCA/Correo Argentino/Mercado Envíos). Se usa solo en el servidor.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "shippingProviderUser": {
+        "type": "string",
+        "title": "Usuario / client id del proveedor",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Usuario o client id del proveedor de envío seleccionado. Se usa solo en el servidor.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "shippingProviderCustomerId": {
+        "type": "string",
+        "title": "Customer ID (Correo Argentino)",
+        "x-ui": {
+          "help": {
+            "text": "Customer ID de MiCorreo (Correo Argentino) para cotizar envíos.",
+            "url": "https://www.correoargentino.com.ar/"
+          }
+        }
+      },
+      "shippingProviderItemId": {
+        "type": "string",
+        "title": "ID de publicación (Mercado Envíos)",
+        "x-ui": {
+          "help": {
+            "text": "ID de publicación (item) para consultar las opciones de Mercado Envíos.",
+            "url": "https://developers.mercadolibre.com/es_ar/guia-para-producto/mercado-envios-costos-y-cotizaciones"
+          }
+        }
+      },
+      "shippingOriginPostalCode": {
+        "type": "string",
+        "title": "Código postal de origen"
+      },
+      "shippingRates": {
+        "type": "array",
+        "title": "Tarifas de envío",
+        "items": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": [
+                "local",
+                "andreani",
+                "oca",
+                "correo",
+                "mercadolibre",
+                "dhl"
+              ]
+            },
+            "baseCost": {
+              "type": "number",
+              "title": "Costo base"
+            },
+            "costPerKg": {
+              "type": "number",
+              "title": "Costo por kg"
+            },
+            "days": {
+              "type": "number",
+              "title": "Días de entrega"
+            }
+          }
+        },
+        "default": [
+          {
+            "provider": "local",
+            "baseCost": 500,
+            "costPerKg": 100,
+            "days": 2
+          },
+          {
+            "provider": "andreani",
+            "baseCost": 1200,
+            "costPerKg": 150,
+            "days": 3
+          },
+          {
+            "provider": "oca",
+            "baseCost": 1300,
+            "costPerKg": 160,
+            "days": 4
+          },
+          {
+            "provider": "correo",
+            "baseCost": 900,
+            "costPerKg": 120,
+            "days": 5
+          },
+          {
+            "provider": "mercadolibre",
+            "baseCost": 1100,
+            "costPerKg": 140,
+            "days": 3
+          },
+          {
+            "provider": "dhl",
+            "baseCost": 3000,
+            "costPerKg": 300,
+            "days": 2
+          }
+        ]
+      },
+      "shippingApiKey": {
+        "type": "string",
+        "title": "API Key de envíos",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "API Key del proveedor de envío. Se usa solo en el servidor.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "shippingApiSecret": {
+        "type": "string",
+        "title": "API Secret de envíos",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "API Secret del proveedor de envío. Se usa solo en el servidor.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "shippingUsername": {
+        "type": "string",
+        "title": "Usuario del proveedor",
+        "x-ui": {
+          "help": {
+            "text": "Usuario del proveedor de envío seleccionado.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "shippingPassword": {
+        "type": "string",
+        "title": "Contraseña del proveedor",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Contraseña del proveedor de envío. Se usa solo en el servidor.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "shippingToken": {
+        "type": "string",
+        "title": "Token de acceso",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Token de acceso del proveedor de envío. Se usa solo en el servidor.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "shippingBaseUrl": {
+        "type": "string",
+        "title": "URL base del proveedor",
+        "x-ui": {
+          "help": {
+            "text": "URL base de la API del proveedor de envío seleccionado.",
+            "url": "https://developers.andreani.com/documentacion"
+          }
+        }
+      },
+      "shippingFlat": {
+        "type": "number",
+        "title": "Tarifa de envío fija",
+        "default": 0
+      },
+      "products": {
+        "type": "array",
+        "title": "Productos",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "price": {
+              "type": "number"
+            },
+            "stock": {
+              "type": "number"
+            },
+            "category": {
+              "type": "string"
+            },
+            "imageUrl": {
+              "type": "string"
+            },
+            "images": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "sizes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "default": []
+      }
+    }
+  }
+}

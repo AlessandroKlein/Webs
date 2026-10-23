@@ -108,9 +108,17 @@ export function PluginsPage() {
       api.post(`/api/v1/plugins/${id}/${enabled ? 'activate' : 'deactivate'}`),
     onSuccess: invalidate,
   });
+  // Actualización por plugin vía el sistema de update de t28 (con backup y
+  // rollback disponibles en /admin/updates). Reemplaza al viejo endpoint
+  // POST /plugins/:id/update.
   const update = useMutation({
-    mutationFn: (id: string) => api.post(`/api/v1/plugins/${id}/update`),
-    onSuccess: invalidate,
+    mutationFn: (id: string) =>
+      api.post<{ updateId: string }>('/api/v1/system/plugins/update/apply', { pluginId: id }),
+    onSuccess: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ['plugin-updates-status'] });
+      qc.invalidateQueries({ queryKey: ['plugin-updates-check'] });
+    },
   });
 
   if (isLoading) return <Spinner />;

@@ -125,3 +125,8 @@ alcance «sin servidor externo» de este ADR, se documenta como opción).
   documentar `commercial`/`productId` y el flujo de activación.
 - Relación con ADR-0005: el manifiesto pasa de `block.json` a `plugin.json`, por lo que los
   campos `commercial`/`productId` se definen sobre el contrato renombrado.
+- **Vendorización (resolución F1/F16 de t34)**: el core `@licensify/core` se vendoriza como
+  paquete de workspace `packages/licensify` dentro del monorepo Webs (consumido con
+  `workspace:*`), para que `pnpm install --frozen-lockfile` y `docker compose build` no dependan
+  del repo hermano. El repo `Licensify` conserva el CLI de emisión (`@licensify/cli`) y las
+  pruebas unitarias; `packages/licensify` es una copia sincronizada del paquete `packages/core`.

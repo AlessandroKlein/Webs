@@ -18,7 +18,7 @@ export default async function metricsRoutes(fastify: FastifyInstance): Promise<v
         fastify.prisma.media.count(),
         fastify.prisma.emailCampaign.count(),
         fastify.prisma.emailAutomation.count(),
-        fastify.prisma.blockInstallation.count(),
+        fastify.prisma.pluginInstallation.count(),
         fastify.prisma.session.count({ where: { revokedAt: null, expiresAt: { gt: now } } }),
         fastify.prisma.payment.count(),
         fastify.prisma.role.count(),

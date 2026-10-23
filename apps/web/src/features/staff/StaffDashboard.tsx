@@ -6,6 +6,8 @@ import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
+import { BarcodeScanner } from '../../components/ui/BarcodeScanner';
+import { CameraScanner } from '../../components/ui/CameraScanner';
 
 // ── Tipos de datos de los bloques/endpoints ─────────────────────────────
 
@@ -307,8 +309,8 @@ function StatCard({ label, value, accent }: { label: string; value: string; acce
 
 function AttendanceSection() {
   const qc = useQueryClient();
-  const [code, setCode] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   const { data: records, isLoading, isError } = useQuery({
     queryKey: ['staff-attendance'],
@@ -321,11 +323,15 @@ function AttendanceSection() {
     onSuccess: (r) => {
       setResult(r);
       if (r.ok) {
-        setCode('');
         void qc.invalidateQueries({ queryKey: ['staff-attendance'] });
       }
     },
   });
+
+  function handleScan(qrcode: string) {
+    setResult(null);
+    scan.mutate(qrcode);
+  }
 
   return (
     <div className="stack">
@@ -333,29 +339,14 @@ function AttendanceSection() {
 
       <Card>
         <h3 style={{ marginTop: 0 }}>Registrar asistencia</h3>
-        <form
-          className="row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!code.trim()) return;
-            setResult(null);
-            scan.mutate(code.trim());
-          }}
-          style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}
-        >
-          <div style={{ flex: 1, minWidth: 240 }}>
-            <label style={fieldLabelStyle}>Código QR del miembro</label>
-            <input
-              className="input"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Escanear o pegar el código QR"
-            />
-          </div>
-          <Button type="submit" disabled={scan.isPending || !code.trim()}>
-            Registrar
-          </Button>
-        </form>
+        <BarcodeScanner
+          onCode={handleScan}
+          label="Código QR del miembro"
+          placeholder="Escanear o pegar el código QR"
+          allowCamera
+          onRequestCamera={() => setCameraOpen(true)}
+          disabled={scan.isPending}
+        />
         {scan.isPending && <p className="muted" style={{ margin: 'var(--ws-space-2) 0 0' }}>Registrando asistencia…</p>}
         {result && (
           <p style={{ margin: 'var(--ws-space-2) 0 0', color: result.ok ? 'var(--ws-success)' : 'var(--ws-danger)' }}>
@@ -363,6 +354,7 @@ function AttendanceSection() {
           </p>
         )}
         {scan.error && <p style={{ margin: 'var(--ws-space-2) 0 0', color: 'var(--ws-danger)' }}>{scan.error.message}</p>}
+        <CameraScanner open={cameraOpen} onCode={handleScan} onClose={() => setCameraOpen(false)} />
       </Card>
 
       <Card>

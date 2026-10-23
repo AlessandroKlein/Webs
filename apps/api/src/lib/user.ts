@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { CHAIN_ADMIN_ROLES } from './tenant';
 
 /** Perfil de usuario con sus permisos efectivos (resueltos desde sus roles). */
 export interface UserProfile {
@@ -14,6 +15,12 @@ export interface UserProfile {
   active: boolean;
   profile: Record<string, unknown> | null;
   permissions: string[];
+  /** Organización activa por defecto (scoping multi-tenant, ADR-0006). */
+  orgId: string | null;
+  /** Raíz de la cadena a la que pertenece la org activa (ADR-0006). */
+  chainId: string | null;
+  /** El usuario administra la cadena completa (super_admin o admin de la raíz). */
+  isChainAdmin: boolean;
 }
 
 /** Carga un usuario con sus permisos efectivos. Devuelve null si no existe. */
@@ -43,6 +50,37 @@ export async function findUserWithPermissions(
         ),
       ];
 
+  // Organización activa por defecto: primera membresía activa (ADR-0006).
+  const membership = await fastify.prisma.membership.findFirst({
+    where: { userId: user.id, status: 'active' },
+    orderBy: { createdAt: 'asc' },
+    select: { organizationId: true },
+  });
+
+  // Cadena y administración derivadas de la membresía activa (ADR-0006).
+  const orgId = membership?.organizationId ?? null;
+  let chainId: string | null = null;
+  let isChainAdmin = isSuperAdmin;
+  if (orgId) {
+    const org = await fastify.prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { chainId: true },
+    });
+    chainId = org?.chainId ?? orgId;
+    if (!isChainAdmin) {
+      const rootAdmin = await fastify.prisma.membership.findFirst({
+        where: {
+          userId: user.id,
+          organizationId: chainId,
+          role: { in: CHAIN_ADMIN_ROLES },
+          status: 'active',
+        },
+        select: { id: true },
+      });
+      isChainAdmin = Boolean(rootAdmin);
+    }
+  }
+
   return {
     id: user.id,
     email: user.email,
@@ -56,6 +94,9 @@ export async function findUserWithPermissions(
     active: user.active,
     profile: (user.profile as Record<string, unknown> | null) ?? null,
     permissions,
+    orgId,
+    chainId,
+    isChainAdmin,
   };
 }
 

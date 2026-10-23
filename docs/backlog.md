@@ -3,9 +3,9 @@
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '1.57.0'`
->   (próxima release = **v1.58.0**). `CHANGELOG.md` está desactualizado (último
->   asiento `[1.34.1]`), se normaliza en la tarea de release.
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '1.58.0'`
+>   (**M1 liberado como v1.58.0**; `CHANGELOG.md` reconstruido en t12). Próximas:
+>   **v1.59.0** (buffer de pulido M1) y **v2.0.0** (Milestone 2).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -25,7 +25,7 @@ escalabilidad.
 | Milestone | Alcance |
 |-----------|---------|
 | **M1 — Fundación** | Rename Bloques→Plugins · CI + release en verde · bugs · UX · templates · páginas · lectores de código · auditorías · documentación. |
-| **M2 — Expansión** | Sistema de licencias local anti-reverse-engineering (repo *Licensify*) · multi-tenant por cadenas · escalabilidad k8s (LB/stateless/auto-scaling) · mobile. |
+| **M2 — Expansión** | Sistema de licencias local anti-reverse-engineering (repo *Licensify*, `@licensify/core`) · multi-tenant por cadenas (finanzas separadas por sucursal + consolidadas HQ) · escalabilidad k8s (HPA/stateless/auto-scaling) · mobile real Capacitor · OAuth2 real (state/PKCE) · limpieza de naming interno `block` · sistema de actualización zero-downtime (app + plugins). |
 
 ---
 
@@ -207,38 +207,93 @@ sección 3 (WB-7 a WB-13).
 
 ### 3.4 Milestone 2 (M2)
 
-#### WB-18 · P0 (M2) — Sistema de licencias local anti-reverse-engineering — `Licensify`
-- **Dado** que la plataforma se instala en un servidor del cliente,
-- **Cuando** se valida la licencia,
+> **M2** se libera en **v2.0.0** (bump mayor). Cubre los 4 frentes ya esbozados
+> (WB-18→WB-21, ahora detallados) y 3 frentes nuevos (WB-22→WB-24). La
+> trazabilidad apunta a las tareas M2 ya despachadas (`t20`–`t24`) y a tareas
+> futuras (`k8s`, `mobile Capacitor`, `naming cleanup`) que se crearán al iniciar
+> su desarrollo.
+
+#### WB-18 · P0 (M2) — Sistema de licencias local anti-reverse-engineering — `t21`
+- **Dado** que la plataforma se instala en el servidor del cliente (on-premise),
+- **Cuando** se genera y valida una licencia,
 - **Entonces** la validación es **local** (sin depender de un servicio externo),
-  la licencia está firmada/ofuscada, es difícil de reverse-engineer, y
+  la clave está firmada con **Ed25519**, el payload cifrado con **AES-256-GCM**
+  (split-key), con **node-locking** por fingerprint de nodo y
+  **anti-tamper/anti-reloj** (rechaza código alterado y reloj retrocedido), y
   expira/invalida según sus términos (fecha, features, organizaciones).
-- **Métrica:** una licencia alterada o vencida es rechazada; la validación no
-  requiere red.
+- **Entregable:** paquete `@licensify/core` en el repo *Licensify* (ADR-0007),
+  con CLI keygen/sign/verify y formato de clave de activación offline.
+- **Métrica:** una licencia alterada, vencida o con reloj retrocedido es
+  rechazada sin red; la librería es consumible como dependencia.
 
-#### WB-19 · P0 (M2) — Multi-tenant por cadenas
-- **Dado** múltiples organizaciones (cadena de sucursales),
-- **Cuando** se accede a datos y recursos,
-- **Entonces** cada organización ve solo sus datos (aislamiento por
-  `organizationId` en los modelos que hoy no lo tienen: `Product`, `Order`,
-  `Payment`), con roles/membresías por organización.
-- **Métrica:** un usuario de la org A no puede leer/escribir datos de la org B.
+#### WB-19 · P0 (M2) — Multi-tenant por cadenas (finanzas separadas + consolidadas HQ) — `t22`
+- **Dado** una cadena con casa matriz (HQ) y sucursales modeladas en
+  `Organization.parentId`/`chainId`/`type` (HEADQUARTER|BRANCH),
+- **Cuando** una sucursal opera su inventario, ventas y finanzas,
+- **Entonces** cada sucursal ve y administra **solo** sus datos (scoping
+  fail-closed por `organizationId` en los ~20 modelos de negocio), y la casa
+  matriz ve la vista **consolidada** (agregación de sub-orgs), sin que una
+  sucursal acceda a las finanzas de otra.
+- **Además:** RBAC diferencia **admin de cadena** (HQ, ve todo) de **admin de
+  sucursal** (solo su org); si no se puede resolver el tenant → 403 (nunca datos
+  cruzados).
+- **Métrica:** un usuario de la sucursal A no lee/escribe datos de la sucursal B,
+  y HQ ve el agregado correcto de todas sus sub-orgs.
 
-#### WB-20 · P0 (M2) — Escalabilidad k8s (LB/stateless/auto-scaling)
+#### WB-20 · P0 (M2) — Escalabilidad k8s (HPA/stateless/auto-scaling) — `t-future-k8s`
 - **Dado** que la plataforma se despliega en Kubernetes,
-- **Cuando** aumenta la carga,
-- **Entonces** escala horizontalmente (auto-scaling), la API es stateless
-  (sesión en Redis/JWT), y el balanceo distribuye tráfico sin pérdida de estado.
-- **Métrica:** prueba de carga con N réplicas sin errores de sesión; HPA
-  configurado.
+- **Cuando** aumenta la carga o se ejecuta un rollout,
+- **Entonces** la API escala horizontalmente vía **HPA**, es **stateless**
+  (sesión en Redis/JWT), el balanceo distribuye tráfico sin pérdida de estado, y
+  el rate-limit es global (Redis, ADR-0008), no por instancia.
+- **Métrica:** prueba de carga con N réplicas sin errores de sesión ni bypass de
+  rate-limit; manifiestos HPA/Deployment/Service aplicables.
 
-#### WB-21 · P1 (M2) — Mobile
-- **Dado** un usuario en dispositivo móvil,
-- **Cuando** accede a la plataforma,
-- **Entonces** las pantallas son responsivas y los lectores de código
-  (QR/barcode) usan la cámara del dispositivo.
-- **Métrica:** auditoría de `apps/mobile` y `apps/desktop` en verde; flujo de
-  escaneo por cámara funcional.
+#### WB-21 · P1 (M2) — Mobile real con Capacitor — `t-future-mobile`
+- **Dado** la app móvil empaquetada con Capacitor (no solo PWA),
+- **Cuando** un trabajador usa la app en Android/iOS,
+- **Entonces** accede a las pantallas de su rol, los lectores de código
+  (QR/barcode) usan la cámara nativa, y el puente con lectores hardware externos
+  funciona sin depender del endpoint hardcodeado.
+- **Métrica:** build de Capacitor en verde y flujo de escaneo por cámara
+  funcional en dispositivo.
+
+#### WB-22 · P0 (M2) — OAuth2 real con state + PKCE (social-login) — `t23`
+- **Dado** un proveedor OAuth2 configurado y habilitado (Google/Facebook/etc.),
+- **Cuando** un usuario inicia sesión social,
+- **Entonces** el flujo usa `state` (anti-CSRF) y **PKCE S256**
+  (`code_challenge`/`code_verifier`), intercambia el authorization code contra el
+  proveedor real (code→token→perfil) y vincula la cuenta por identidad
+  verificada — nunca por email auto-afirmado (ya removido en F3).
+- **Métrica:** login social end-to-end vincula la cuenta solo tras el handshake
+  real; sin exponer `clientSecret` al cliente.
+
+#### WB-23 · P1 (M2) — Limpieza de naming interno `block` — `t-future-naming`
+- **Dado** el rename de cara al usuario ya completado (Plugins),
+- **Cuando** se limpia la deuda interna,
+- **Entonces** los modelos Prisma (`BlockInstallation`→`PluginInstallation`,
+  `BlockPlacement`→`PluginPlacement`, `blockId`→`pluginId`), el directorio `blocks/`→`plugins/` y
+  los paquetes npm `@webs/block-*`→`@webs/plugin-*` quedan renombrados, con
+  migración de datos y aliases de retrocompatibilidad acotados.
+- **Métrica:** `grep -riE '\bblock' apps/api/prisma apps/api/src packages blocks`
+  sin referencias de producto (solo históricas/deprecadas documentadas);
+  migración ejecutada sin pérdida de datos.
+
+#### WB-24 · P0 (M2) — Sistema de actualización zero-downtime (app + plugins) — `t20`, `t24`
+- **Dado** un botón "Actualizar" para la **app** y otro para los **plugins**,
+- **Cuando** el usuario lo presiona,
+- **Entonces** el sistema corrobora si hay versión nueva en GitHub Releases (vs
+  `SYSTEM_VERSION` para la app, vs `plugin.json version` para plugins), descarga
+  el artefacto verificando `sha256` + firma **Ed25519** (reutilizando
+  `@licensify/core`), y aplica la actualización **sin que la app deje de
+  funcionar**:
+  - **Plugins:** stage en dir temporal → swap atómico del directorio → hot-reload
+    con `import()` cache-busted (loader `loadPluginEntry`), sin reiniciar.
+  - **App:** Node bare con cluster/graceful reload; Docker con rolling update.
+- **Además:** endpoints `/api/v1/system/update/check|apply|status|rollback`, y
+  rollback que restaura la versión previa si la actualización falla.
+- **Métrica:** actualizar un plugin y la app en un entorno de prueba sin downtime
+  observable ni pérdida de datos; rollback funcional ante fallo.
 
 ---
 
@@ -248,12 +303,15 @@ sección 3 (WB-7 a WB-13).
 |---------|---------|---------|
 | **R1 — Fundación** | **v1.58.0** | WB-1→WB-17: rename Bloques→Plugins + menú nativo, CI + release en verde, bugs B1/B2 (inventario/tienda, social-login), constructor de páginas + templates, UX de pago + dashboards, lectores de código, auditorías + QA + docs + changelog. |
 | **R2 — Pulido M1** | **v1.59.0** | Buffer de hardening/UX: cierre de hallazgos de QA, alias de compatibilidad `blocks`→`plugins` estable, refinamiento de templates y dashboards. |
-| **R3 — Expansión** | **v2.0.0** | WB-18→WB-21: sistema de licencias (*Licensify*), multi-tenant por cadenas, escalabilidad k8s (LB/stateless/auto-scaling), mobile. |
+| **R3 — Expansión** | **v2.0.0** | WB-18→WB-24: sistema de licencias (*Licensify*, `@licensify/core`), multi-tenant por cadenas (finanzas separadas + consolidadas HQ), escalabilidad k8s (HPA/stateless/auto-scaling), mobile real Capacitor, OAuth2 real (state/PKCE), limpieza de naming interno `block`, sistema de actualización zero-downtime (app + plugins). |
+| **R4 — Pulido M2** | **v2.1.0** | Buffer post-M2: cierre de hallazgos de QA de licencias/multi-tenant/actualizaciones, estabilización de aliases de retrocompatibilidad del naming cleanup, refinamiento de UX de actualización y cadenas. |
+| **R5 — Escala** | **v2.2.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas, más proveedores OAuth2, empaquetado de stores (iOS/Android). |
 
 **Criterio de corte entre R1 y R2:** R1 sale solo con P0/P1 de M1 en verde
 (typecheck + release ✓) y sin bugs bloqueantes (B1, B2 corregidos). R3 es un
-bump **mayor** (v2.0.0) porque introduce licenciamiento y multi-tenancy, que
-cambian el contrato de despliegue y datos.
+bump **mayor** (v2.0.0) porque introduce licenciamiento, multi-tenancy y el
+sistema de actualización, que cambian el contrato de despliegue, datos y
+operación (zero-downtime).
 
 ---
 
@@ -273,4 +331,12 @@ cambian el contrato de despliegue y datos.
 | t11-qa | WB-15 |
 | t12-release | WB-16 |
 | t13-docs | WB-17 |
-| t14-mobile | WB-13, WB-21 |
+| t14-mobile | WB-13 |
+| t20-adr-update | WB-24 (ADR-0010) |
+| t21-licensify | WB-18 |
+| t22-multitenant | WB-19 |
+| t23-oauth2 | WB-22 |
+| t24-ux-m2 | WB-24 (UX) |
+| *(futuro)* k8s | WB-20 |
+| *(futuro)* mobile Capacitor | WB-21 |
+| *(futuro)* naming cleanup | WB-23 |

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme, type ThemeMode } from '@webs/ui';
@@ -8,6 +8,8 @@ import { setLocale } from '../lib/i18n';
 import { useLocaleStore } from '../lib/locale-store';
 import { api } from '../lib/api';
 import { useRealtime } from '../lib/realtime';
+import { useTenantStore } from '../lib/tenant-store';
+import { ScopeSwitcher } from '../components/tenant/ScopeSwitcher';
 
 /** Item de menú devuelto por `GET /menu` (núcleo + plugins). Los items de plugin llevan `id`. */
 interface AdminMenuItem {
@@ -32,6 +34,12 @@ export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+
+  // Carga la estructura de la cadena (casa matriz + sucursales) una vez para
+  // habilitar el selector de scope del shell.
+  useEffect(() => {
+    void useTenantStore.getState().load();
+  }, []);
 
   const { data: inbox } = useQuery({
     queryKey: ['notifications-inbox'],
@@ -81,13 +89,16 @@ export function AdminLayout() {
     { to: '/admin/content', label: t('nav.content'), perm: 'content.read' },
     { to: '/admin/pages', label: t('nav.pages'), perm: 'content.read' },
     { to: '/admin/email', label: t('nav.email'), perm: 'email.read' },
-    { to: '/admin/plugins', label: t('nav.plugins'), perm: 'block.read' },
-    { to: '/admin/plugin-settings', label: 'Configuración de plugins', perm: 'block.read' },
+    { to: '/admin/plugins', label: t('nav.plugins'), perm: 'plugin.read' },
+    { to: '/admin/plugin-settings', label: 'Configuración de plugins', perm: 'plugin.read' },
     { to: '/admin/templates', label: t('nav.templates'), perm: 'setting.write' },
+    { to: '/admin/branches', label: 'Sucursales', perm: null },
     { to: '/admin/payments', label: t('nav.payments'), perm: 'user.read' },
     { to: '/admin/users', label: t('nav.users'), perm: 'user.read' },
     { to: '/admin/roles', label: t('nav.roles'), perm: 'role.read' },
     { to: '/admin/settings', label: t('nav.settings'), perm: 'setting.read' },
+    { to: '/admin/updates', label: 'Actualizaciones', perm: 'setting.read' },
+    { to: '/admin/license', label: 'Licencia', perm: 'license.read' },
     { to: '/admin/appearance', label: t('nav.appearance'), perm: 'theme.read' },
     { to: '/admin/translations', label: t('nav.translations'), perm: 'translation.read' },
     { to: '/admin/audit', label: t('nav.audit'), perm: 'audit.read' },
@@ -186,6 +197,8 @@ export function AdminLayout() {
                 ))}
             </select>
           </div>
+
+          <ScopeSwitcher />
 
           <div className="row">
             <div className="user-menu-wrap">

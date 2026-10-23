@@ -46,7 +46,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
     {
       schema: { tags: ['auth'], body: loginSchema },
       config: { rateLimit: { max: 10, timeWindow: '15 minutes' } },
-      preHandler: [ipLimiter(fastify.redis, 10, 15 * 60)],
+      preHandler: [ipLimiter(fastify.redis, 10, 15 * 60, 'rl:login')],
     },
     async (request, reply) => {
       const { identifier, password, totp, smsCode, rememberMe } = request.body as LoginBody;
@@ -92,7 +92,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
     {
       schema: { tags: ['auth'], body: registerSchema },
       config: { rateLimit: { max: 5, timeWindow: '15 minutes' } },
-      preHandler: [ipLimiter(fastify.redis, 5, 15 * 60)],
+      preHandler: [ipLimiter(fastify.redis, 5, 15 * 60, 'rl:register')],
     },
     async (request, reply) => {
       const { email, password, displayName, firstName, lastName, birthDate, username, inviteToken } = request.body as RegisterBody;
@@ -155,6 +155,9 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
         user: toPublicUser(profile),
         permissions: profile.permissions,
         twoFactorEnabled: user?.twoFactorEnabled ?? false,
+        orgId: profile.orgId,
+        chainId: profile.chainId,
+        isChainAdmin: profile.isChainAdmin,
       };
     },
   );
@@ -264,7 +267,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post(
     '/auth/forgot-password',
-    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } }, preHandler: [ipLimiter(fastify.redis, 5, 15 * 60)] },
+    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } }, preHandler: [ipLimiter(fastify.redis, 5, 15 * 60, 'rl:forgot')] },
     async (request) => {
       const { email } = request.body as { email: string };
       if (email) await forgotPassword(fastify, email);
@@ -275,7 +278,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post(
     '/auth/reset-password',
-    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } }, preHandler: [ipLimiter(fastify.redis, 5, 15 * 60)] },
+    { schema: { tags: ['auth'] }, config: { rateLimit: { max: 5, timeWindow: '15 minutes' } }, preHandler: [ipLimiter(fastify.redis, 5, 15 * 60, 'rl:reset')] },
     async (request) => {
       const { token, password } = request.body as { token: string; password: string };
       if (!token || !password) return fastify.httpErrors.badRequest('Faltan token o contraseña');
