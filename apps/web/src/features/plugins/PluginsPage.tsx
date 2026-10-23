@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
 
 interface InstalledPlugin {
@@ -52,6 +53,23 @@ function catName(item: CatalogItem): string {
   return item.displayName?.['es'] ?? item.displayName?.['en'] ?? item.name;
 }
 
+/** Plugins legacy/demo que no deben ofrecerse en el catálogo público. */
+const LEGACY_PLUGIN_IDS = new Set(['example']);
+
+function catalogMatches(item: CatalogItem, q: string): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  const haystack = [
+    catName(item),
+    item.description?.['es'] ?? '',
+    item.description?.['en'] ?? '',
+    item.author ?? '',
+  ]
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(needle);
+}
+
 export function PluginsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
@@ -87,6 +105,7 @@ export function PluginsPage() {
   const [jsonInput, setJsonInput] = useState('');
   const [tab, setTab] = useState<'installed' | 'catalog' | 'import'>('installed');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [catalogQuery, setCatalogQuery] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
 
   const importJson = () => {
@@ -125,7 +144,9 @@ export function PluginsPage() {
 
   const allCatalog = [...(catalogData?.local ?? []), ...(catalogData?.remote ?? [])];
   const updateMap = new Map(allCatalog.filter((b) => b.hasUpdate).map((b) => [b.id, b.version]));
-  const catalog = allCatalog.filter((b) => !b.installed);
+  const catalog = allCatalog.filter(
+    (b) => !b.installed && !LEGACY_PLUGIN_IDS.has(b.id) && catalogMatches(b, catalogQuery),
+  );
   const groupedCatalog = catalog.reduce<Record<string, CatalogItem[]>>((acc, b) => {
     const cat = b.category ?? 'otros';
     (acc[cat] ??= []).push(b);
@@ -174,6 +195,12 @@ export function PluginsPage() {
       {tab === 'catalog' && (
       <Card>
         <h3>Catálogo{activeCategory ? ` — ${activeCategory}` : ''}</h3>
+        <Input
+          value={catalogQuery}
+          onChange={(e) => setCatalogQuery(e.target.value)}
+          placeholder="Buscar en el catálogo…"
+          aria-label="Buscar en el catálogo"
+        />
         {catalog.length === 0 && <p className="muted">No hay plugins disponibles para instalar.</p>}
         <div className="stack">
           {Object.entries(groupedCatalog)

@@ -36,6 +36,16 @@
         "type": "boolean",
         "title": "Requiere pago",
         "default": true
+      },
+      "paymentProvider": {
+        "type": "string",
+        "title": "Proveedor de pago",
+        "default": "mercadopago",
+        "x-ui": {
+          "help": {
+            "text": "Proveedor registrado (fastify.payments.register) que procesa el cobro de las suscripciones (mercadopago, stripe, paypal, etc.). Debe estar instalado."
+          }
+        }
       }
     }
   }

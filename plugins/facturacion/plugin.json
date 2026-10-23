@@ -63,6 +63,16 @@
         "title": "IVA (%)",
         "default": 21
       },
+      "ptoVta": {
+        "type": "number",
+        "title": "Punto de venta",
+        "default": 1,
+        "x-ui": {
+          "help": {
+            "text": "Punto de venta usado en la numeración correlativa de comprobantes (1 a 4 dígitos)."
+          }
+        }
+      },
       "invoiceTemplate": {
         "type": "string",
         "title": "Plantilla HTML del comprobante",
@@ -74,19 +84,60 @@
           }
         }
       },
+      "invoiceTemplateConfig": {
+        "type": "object",
+        "title": "Apariencia del comprobante",
+        "properties": {
+          "logo": {
+            "type": "string",
+            "title": "Logo (URL)",
+            "x-ui": {
+              "help": {
+                "text": "URL o data-URI del logo a mostrar en el encabezado. Vacío = sin logo."
+              }
+            }
+          },
+          "primaryColor": {
+            "type": "string",
+            "title": "Color principal",
+            "default": "#111827"
+          },
+          "heading": {
+            "type": "string",
+            "title": "Título",
+            "default": "Comprobante"
+          },
+          "footer": {
+            "type": "string",
+            "title": "Pie del comprobante",
+            "default": "Gracias por su compra"
+          },
+          "showCae": {
+            "type": "boolean",
+            "title": "Mostrar CAE",
+            "default": true
+          },
+          "showCustomer": {
+            "type": "boolean",
+            "title": "Mostrar datos del cliente",
+            "default": true
+          }
+        }
+      },
       "taxProvider": {
         "type": "string",
         "title": "Proveedor fiscal",
         "enum": [
           "local",
           "afip",
+          "arca",
           "facturante",
           "tsd"
         ],
         "default": "local",
         "x-ui": {
           "help": {
-            "text": "Local (CAE simulado), AFIP/ARCA (WSFE FECAESolicitar, requiere token+sign), Facturante o TSD. Sin credenciales se usa CAE simulado.",
+            "text": "Local (CAE simulado), AFIP/ARCA (WSFE FECAESolicitar, requiere token+sign), ARCA (WSAA X.509 + WSFE, requiere certificado+clave), Facturante o TSD. Sin credenciales se usa CAE simulado.",
             "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf"
           }
         }
@@ -99,6 +150,18 @@
           "secret": true,
           "help": {
             "text": "Certificado ARCA/AFIP para firmar las solicitudes al webservice WSFE. Se usa solo en el servidor.",
+            "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf"
+          }
+        }
+      },
+      "arcaKey": {
+        "type": "string",
+        "title": "Clave privada ARCA",
+        "x-ui": {
+          "widget": "password",
+          "secret": true,
+          "help": {
+            "text": "Clave privada correspondiente al certificado ARCA (PEM). Se usa solo en el servidor, para el WSAA (Ticket de Acceso).",
             "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf"
           }
         }

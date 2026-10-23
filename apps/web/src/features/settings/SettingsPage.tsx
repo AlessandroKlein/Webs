@@ -9,7 +9,6 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { PromptDialog } from '../../components/ui/PromptDialog';
 import { TextField } from '../../components/ui/TextField';
-import { AppUpdater } from '../updates/AppUpdater';
 
 interface SettingsSection {
   key: string;
@@ -19,7 +18,6 @@ interface SettingsSection {
   value: Record<string, unknown>;
 }
 
-const UPDATES_ID = '__updates__';
 const BACKUP_ID = '__backup__';
 
 export function SettingsPage() {
@@ -67,13 +65,6 @@ export function SettingsPage() {
         ))}
         <div style={{ borderTop: '1px solid var(--ws-border, #e5e7eb)', margin: 'var(--ws-space-2) 0' }} />
         <button
-          className={`nav-link ${selected === UPDATES_ID ? 'active' : ''}`}
-          style={navButton}
-          onClick={() => setSelected(UPDATES_ID)}
-        >
-          Actualizaciones
-        </button>
-        <button
           className={`nav-link ${selected === BACKUP_ID ? 'active' : ''}`}
           style={navButton}
           onClick={() => setSelected(BACKUP_ID)}
@@ -83,9 +74,7 @@ export function SettingsPage() {
       </aside>
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
-        {selected === UPDATES_ID ? (
-          <UpdatesSection />
-        ) : selected === BACKUP_ID ? (
+        {selected === BACKUP_ID ? (
           <BackupSection />
         ) : active ? (
           <SettingsSectionCard
@@ -97,17 +86,6 @@ export function SettingsPage() {
         ) : null}
       </div>
     </div>
-  );
-}
-
-function UpdatesSection() {
-  return (
-    <Card>
-      <h3 style={{ margin: 0 }}>Actualizaciones</h3>
-      <div style={{ marginTop: 'var(--ws-space-3)' }}>
-        <AppUpdater compact />
-      </div>
-    </Card>
   );
 }
 

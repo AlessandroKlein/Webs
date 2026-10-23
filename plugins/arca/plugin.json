@@ -1,0 +1,96 @@
+{
+  "name": "@webs/plugin-arca",
+  "id": "arca",
+  "version": "0.1.0",
+  "type": "plugin",
+  "displayName": {
+    "en": "ARCA (AFIP) invoicing",
+    "es": "Facturación ARCA (AFIP)",
+    "pt": "Faturamento ARCA (AFIP)"
+  },
+  "description": {
+    "en": "Argentine electronic invoicing via ARCA (ex-AFIP): WSAA (X.509) + WSFE CAE.",
+    "es": "Facturación electrónica argentina vía ARCA (ex-AFIP): WSAA (X.509) + WSFE CAE.",
+    "pt": "Faturamento eletrônico argentino via ARCA (ex-AFIP): WSAA (X.509) + WSFE CAE."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "category": "negocio",
+  "permissions": [
+    "billing.write"
+  ],
+  "entry": "./dist/server.js",
+  "apiVersion": "1.0.0",
+  "settings": {
+    "type": "object",
+    "title": "Configuración ARCA",
+    "properties": {
+      "environment": {
+        "type": "string",
+        "title": "Entorno",
+        "enum": [
+          "homologacion",
+          "produccion"
+        ],
+        "default": "homologacion",
+        "x-ui": {
+          "help": {
+            "text": "Homologación usa wsaa-homo/wswhomo (pruebas, CAE simulado por ARCA). Producción usa wsaa/servicios1.",
+            "url": "https://www.afip.gob.ar/ws/WSFE/documentacion/WSFE_v1.pdf"
+          }
+        }
+      },
+      "cuit": {
+        "type": "string",
+        "title": "CUIT del emisor"
+      },
+      "puntoVenta": {
+        "type": "string",
+        "title": "Punto de venta",
+        "default": "1"
+      },
+      "condicionFiscal": {
+        "type": "string",
+        "title": "Condición fiscal",
+        "enum": [
+          "responsable_inscripto",
+          "monotributo"
+        ],
+        "default": "responsable_inscripto",
+        "x-ui": {
+          "help": {
+            "text": "Responsable inscripto → WSFE (CAE). Monotributo → WSMTXCA (CAEA, documentado; cae a simulado hasta integrar la solicitud de rango CAEA)."
+          }
+        }
+      },
+      "alias": {
+        "type": "string",
+        "title": "Alias del certificado"
+      },
+      "cert": {
+        "type": "string",
+        "title": "Certificado X.509 (PEM)",
+        "x-ui": {
+          "widget": "textarea",
+          "rows": 8,
+          "secret": true,
+          "help": {
+            "text": "Certificado X.509 (clave pública) del emisor. Se usa solo en el servidor para firmar el Ticket de Acceso (WSAA)."
+          }
+        }
+      },
+      "key": {
+        "type": "string",
+        "title": "Clave privada (PEM)",
+        "x-ui": {
+          "widget": "textarea",
+          "rows": 8,
+          "secret": true,
+          "help": {
+            "text": "Clave privada correspondiente al certificado. Nunca se expone al cliente; se usa solo en el servidor."
+          }
+        }
+      }
+    }
+  }
+}

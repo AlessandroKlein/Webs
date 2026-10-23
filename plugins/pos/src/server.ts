@@ -1,4 +1,5 @@
 import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import { createPosPayment } from '../../../apps/api/src/modules/payments/service';
 import manifestJson from '../plugin.json';
 
 const manifest = manifestJson as unknown as PluginManifest;
@@ -17,11 +18,9 @@ async function hmacSha256Hex(secret: string, data: string): Promise<string> {
  * Plugin de cobro presencial (POS).
  *
  * Mantiene el registro como proveedor de pagos (`payment`) y agrega rutas de
- * venta/cobro bajo `/api/v1/plugins/pos`.
- *
- * ⚠️ Permiso requerido: `sales.manage`. Estas rutas usan SOLO `authenticate`
- * (no `authorize`) a propósito: se documenta el requisito de permiso pero no se
- * impone acá, para no bloquear flujos de cobro.
+ * venta/cobro bajo `/api/v1/plugins/pos`. El cobro en caja delega en el núcleo
+ * vía `createPosPayment` (ADR-0015): la orden se crea `pending` y se confirma +
+ * descuenta stock al recibir `payment.approved`.
  */
 export default definePlugin(manifest, {
   register: async (fastify, options) => {
@@ -31,6 +30,14 @@ export default definePlugin(manifest, {
     const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
       req: unknown,
     ) => Promise<void>;
+    const authorize = (fastify as unknown as { authorize?: (permission: string) => unknown }).authorize as
+      | ((permission: string) => unknown)
+      | undefined;
+    const events = (
+      fastify as unknown as {
+        events?: { on?: (event: string, handler: (payload: unknown) => Promise<void> | void) => void };
+      }
+    ).events;
 
     // Resuelve la organización activa (tenant) con fallback a la org raíz 'principal'.
     const resolveOrgId = async (request: unknown): Promise<string> => {
@@ -57,6 +64,29 @@ export default definePlugin(manifest, {
       if (api.resolveTenant && api.resolveScope) return api.resolveScope(await api.resolveTenant(request));
       return { organizationId: ROOT_ORG_ID };
     };
+
+    // Confirma la orden y descuenta stock cuando se aprueba un pago `kind:'pos'`.
+    // Idempotente: si la orden ya está `paid`, no hace nada.
+    events?.on?.('payment.approved', async (payload) => {
+      const { payment } = payload as { payment?: { id?: string } };
+      if (!payment?.id) return;
+      const paid = await db.payment.findUnique({ where: { id: payment.id } });
+      const meta = (paid?.metadata ?? {}) as { kind?: string; orderId?: string };
+      if (meta.kind !== 'pos' || !meta.orderId) return;
+
+      const order = await db.order.findUnique({ where: { id: meta.orderId } });
+      if (!order || order.status === 'paid') return;
+
+      await db.order.update({ where: { id: order.id }, data: { status: 'paid' } });
+
+      for (const line of (order.items ?? []) as Array<{ id: string; qty: number }>) {
+        await db.product.update({ where: { id: line.id }, data: { stock: { decrement: line.qty } } });
+        const inventory = await db.inventoryItem.findMany({ where: { productId: line.id } });
+        for (const inv of inventory as Array<{ id: string }>) {
+          await db.inventoryItem.update({ where: { id: inv.id }, data: { quantity: { decrement: line.qty } } });
+        }
+      }
+    });
 
     // Proveedor de pago (contra entrega / lector físico).
     fastify.payments?.register({
@@ -91,7 +121,7 @@ export default definePlugin(manifest, {
     // ── POS / cobro presencial ────────────────────────────────────────────
     // Productos disponibles para vender (tabla `products`).
     // `?q=` filtra por título (contiene) o por código de barras (igual), insensible a mayúsculas.
-    fastify.get('/products', { preHandler: [authenticate, requireTenant] }, async (request: unknown) => {
+    fastify.get('/products', { preHandler: [authenticate, requireTenant, authorize?.('sales.manage')] }, async (request: unknown) => {
       const { query } = request as { query?: { q?: string } };
       const q = (query?.q ?? '').trim();
       if (!q) return db.product.findMany({ where: await resolveScope(request), orderBy: { title: 'asc' } });
@@ -107,8 +137,11 @@ export default definePlugin(manifest, {
       });
     });
 
-    // Cobro: crea la orden pagada + el pago y descuenta stock.
-    fastify.post('/checkout', { preHandler: [authenticate] }, async (request: unknown) => {
+    // Cobro: crea la orden (pendiente) y delega la creación del pago al núcleo.
+    // Efectivo (cash) → el pago se aprueba al instante y la orden se confirma +
+    // descuenta stock en el mismo request (vía el evento `payment.approved`).
+    // Terminal → el pago queda pendiente hasta el webhook del lector.
+    fastify.post('/checkout', { preHandler: [authenticate, requireTenant, authorize?.('sales.manage')] }, async (request: unknown) => {
       const { body } = request as {
         body?: { items?: Array<{ id?: string; qty?: number; barcode?: string }>; userId?: string; method?: string };
       };
@@ -133,42 +166,37 @@ export default definePlugin(manifest, {
         lines.push({ id: product.id, title: product.title, qty, unitPrice: product.price });
       }
 
-      const now = new Date();
       const organizationId = await resolveOrgId(request);
+      const method = body?.method === 'terminal' ? 'terminal' : mode === 'terminal' ? 'terminal' : 'cash';
+
+      // Orden pendiente: se confirma al aprobarse el pago.
       const order = await db.order.create({
-        data: { status: 'paid', total, items: lines, organizationId },
+        data: { status: 'pending', total, items: lines, organizationId },
       });
 
-      const transactionId = `pos_${crypto.randomUUID()}`;
-      const payment = await db.payment.create({
-        data: {
-          provider: 'pos',
-          transactionId,
+      const payment = await createPosPayment(
+        fastify as unknown as Parameters<typeof createPosPayment>[0],
+        {
           amount: total,
           currency: 'ARS',
-          status: 'approved',
-          userId: body?.userId || null,
+          method,
+          description: `Venta en caja #${order.id}`,
           externalReference: order.id,
-          paidAt: now,
-          metadata: { method: body?.method ?? 'cash', orderId: order.id },
+          items: lines.map((l) => ({ id: l.id, title: l.title, quantity: l.qty, unitPrice: l.unitPrice })),
+          metadata: { kind: 'pos', orderId: order.id },
           organizationId,
+          userId: body?.userId || null,
         },
-      });
+      );
 
-      // Descuenta stock del producto y de los ítems de inventario asociados.
-      for (const line of lines) {
-        await db.product.update({ where: { id: line.id }, data: { stock: { decrement: line.qty } } });
-        const inventory = await db.inventoryItem.findMany({ where: { productId: line.id } });
-        for (const inv of inventory as Array<{ id: string }>) {
-          await db.inventoryItem.update({ where: { id: inv.id }, data: { quantity: { decrement: line.qty } } });
-        }
-      }
-
-      return { ok: true, order, payment };
+      // Para efectivo el evento `payment.approved` ya confirmó la orden y descontó
+      // stock (emitido de forma síncrona por `createPosPayment`). Releemos el estado.
+      const finalOrder = await db.order.findUnique({ where: { id: order.id } });
+      return { ok: true, order: finalOrder ?? order, payment };
     });
 
     // Historial de ventas pagas (scope del tenant, fail-closed).
-    fastify.get('/sales', { preHandler: [authenticate, requireTenant] }, async (request: unknown) =>
+    fastify.get('/sales', { preHandler: [authenticate, requireTenant, authorize?.('sales.manage')] }, async (request: unknown) =>
       db.order.findMany({ where: { status: 'paid', ...(await resolveScope(request)) }, orderBy: { createdAt: 'desc' } }),
     );
   },

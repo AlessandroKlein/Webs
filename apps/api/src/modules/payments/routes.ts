@@ -5,6 +5,7 @@ import type { PaymentWebhookResult } from '@webs/plugin-sdk';
 import { BadRequestError, NotFoundError, ValidationError } from '@webs/core';
 import { resolveScope, DEFAULT_ORG_ID } from '../../lib/tenant';
 import { getPaymentProvider, listPaymentProviders } from './registry';
+import { createCheckoutPayment, createPosPayment } from './service';
 
 /** Validación anti-manipulación de precios: montos enteros (centavos) y positivos. */
 const checkoutSchema = z.object({
@@ -14,6 +15,26 @@ const checkoutSchema = z.object({
   description: z.string().optional(),
   externalReference: z.string().optional(),
   idempotencyKey: z.string().optional(),
+  items: z
+    .array(
+      z.object({
+        id: z.string(),
+        title: z.string(),
+        quantity: z.number().int().positive(),
+        unitPrice: z.number().int().nonnegative(),
+      }),
+    )
+    .optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+/** Validación del cobro presencial (caja/POS): efectivo o terminal. */
+const posSchema = z.object({
+  amount: z.number().int().positive(),
+  currency: z.string().length(3).default('ARS'),
+  method: z.enum(['cash', 'terminal']).default('cash'),
+  description: z.string().optional(),
+  externalReference: z.string().optional(),
   items: z
     .array(
       z.object({
@@ -114,10 +135,8 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
       if (!organizationId) {
         throw new BadRequestError('Se requiere una organización activa para iniciar un pago');
       }
-      const provider = getPaymentProvider(input.provider);
-      if (!provider) throw new NotFoundError(`Proveedor de pago '${input.provider}'`);
-
-      const result = await provider.createTransaction({
+      const payment = await createCheckoutPayment(fastify, {
+        provider: input.provider,
         amount: input.amount,
         currency: input.currency,
         description: input.description,
@@ -125,30 +144,49 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
         idempotencyKey: input.idempotencyKey,
         items: input.items,
         metadata: input.metadata,
+        organizationId,
+        userId: request.user?.sub ?? null,
       });
 
-      const payment = await fastify.prisma.payment.create({
-        data: {
-          provider: provider.id,
-          transactionId: result.transactionId,
-          amount: input.amount,
-          currency: input.currency,
-          status: 'pending',
-          userId: request.user?.sub ?? null,
-          organizationId,
-          externalReference: input.externalReference ?? null,
-          idempotencyKey: input.idempotencyKey ?? null,
-          metadata: input.metadata ? (input.metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
-        },
+      return reply.status(201).send(payment);
+    },
+  );
+
+  // Pago físico en sucursal (caja/POS): efectivo (aprobación inmediata) o
+  // terminal (queda pendiente hasta el webhook del lector).
+  fastify.post(
+    '/payments/pos',
+    {
+      schema: { tags: ['payments'] },
+      preHandler: [fastify.authenticate, fastify.requireTenant, fastify.authorize('sales.manage')],
+    },
+    async (request, reply) => {
+      const parsed = posSchema.safeParse(request.body);
+      if (!parsed.success) {
+        throw new ValidationError(
+          'Datos de pago presencial inválidos',
+          parsed.error.issues.map((i) => ({ field: i.path.join('.') || undefined, message: i.message })),
+        );
+      }
+      const input = parsed.data;
+      const organizationId = request.tenant?.organizationId ?? null;
+      if (!organizationId) {
+        throw new BadRequestError('Se requiere una organización activa para registrar un pago presencial');
+      }
+
+      const payment = await createPosPayment(fastify, {
+        amount: input.amount,
+        currency: input.currency,
+        method: input.method,
+        description: input.description,
+        externalReference: input.externalReference,
+        items: input.items,
+        metadata: input.metadata,
+        organizationId,
+        userId: request.user?.sub ?? null,
       });
 
-      return reply.status(201).send({
-        id: payment.id,
-        transactionId: result.transactionId,
-        status: payment.status,
-        paymentUrl: result.paymentUrl,
-        qr: result.qr,
-      });
+      return reply.status(201).send(payment);
     },
   );
 

@@ -833,23 +833,36 @@ model Payment {
 // ---------------------------------------------------------------------------
 
 model Invoice {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   organizationId String
-  number         String   @unique
-  type           String   @default("invoice")
-  amount         Int      @default(0)
-  currency       String   @default("ARS")
-  status         String   @default("draft")
+  number         String    @unique
+  type           String    @default("invoice")
+  amount         Int       @default(0)
+  neto           Int?
+  iva            Int?
+  currency       String    @default("ARS")
+  status         String    @default("draft")
   customerName   String?
   customerTaxId  String?
   vatCondition   String?
+  customerAddress String?
+  ptoVta         Int       @default(1)
+  cbteTipo       Int       @default(1)
   cae            String?
+  caeExpiresAt   DateTime?
+  caePeriodo     String?
+  caeOrden       Int?
+  orderId        String?
+  userId         String?
+  template       String?
   pdfUrl         String?
   paymentId      String?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
   @@index([organizationId])
   @@index([createdAt])
+  @@index([ptoVta, cbteTipo])
+  @@index([userId])
   @@map("invoices")
 }
 

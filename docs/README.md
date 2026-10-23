@@ -26,6 +26,11 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Móvil y escritorio](architecture/mobile-desktop.md) | Auditoría + plan de integración: PWA/Capacitor (`@webs/mobile`) y companion de escritorio (`@webs/desktop`). |
 | [Inventario completo](architecture/inventory.md) | **Spec técnica (ADR-0023)**: variantes SKU/EAN-UPC, catálogo, multi-almacén por sucursal, ledger inmutable, valoración promedio/FIFO, alertas y reportes/CSV. |
 | [Compositor social enriquecido](architecture/compositor-social.md) | **Spec técnica (ADR-0024)**: galería multi-media, menciones/hashtags, encuestas, visibilidad, unfurl SSRF-safe y retrocompat. |
+| [Categorización del menú admin](architecture/menu-categorias.md) | **Spec**: taxonomía de secciones (Panel, Contenido, Ventas, Comunicación, Comunidad, Apariencia, Integraciones, Configuración, Usuarios) y criterio de clasificación de cada ítem del panel `/admin`. |
+| [Facturación electrónica ARCA](architecture/facturacion-electronica.md) | Plugin `arca`: WSAA (X.509 CMS/PKCS#7), WSFE (CAE) vs WSMTXCA (CAEA), homologación vs producción y settings por organización. |
+| [Comprobantes y facturas](architecture/comprobantes-facturas.md) | `Invoice` fiscal, numeración `pppp-tt-ssssssss`, template HTML editable, ESC/POS 80/58 mm y generación automática por pago aprobado. |
+| [Pagos y checkout unificado](architecture/pagos-checkout.md) | `createCheckoutPayment`/`createPosPayment`, registro de proveedores, webhook idempotente, `metadata.kind` y cobro físico POS. |
+| [Serie temporal local IoT](architecture/iot-serie-temporal.md) | **Spec técnica (ADR-0027/0028)**: base separada `webs_iot`, `IotDevice`, flujo de recolección, contrato de rutas y matriz de mapeo invernadero/SEMA. |
 | [Refactorización global](architecture/refactor-global.md) | **Diseño objetivo**: plugins, multi-tenant por cadenas, licencias Licensify, escalabilidad y sistema de estilos. |
 
 ### Registros de decisiones de arquitectura (ADR)
@@ -44,8 +49,14 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [ADR-0010 — Actualización zero-downtime](adr/0010-update-system.md) | Botón actualizar app/plugins: GitHub Releases, sha256+Ed25519, swap atómico + hot-reload, rollback. |
 | [ADR-0011 — Builder visual de páginas](adr/0011-page-builder.md) | GrapesJS (MIT, autoalojado): `POST /api/v1/pages/save`, render de bloques guardados y página de inicio configurable. |
 | [ADR-0012 — Internacionalización](adr/0012-i18n.md) | ES/EN/PT sobre `@webs/i18n`, sobrescritura por UI y language switcher. |
+| [ADR-0013 — Plugin ARCA](adr/0013-arca-facturacion.md) | Facturación electrónica Argentina: plugin `arca` con WSFE (CAE) + WSMTXCA (CAEA), WSAA con certificado X.509 y credenciales por organización. |
+| [ADR-0014 — Sistema de comprobantes](adr/0014-comprobantes.md) | Factura/receipt por pago aprobado, numeración correlativa por punto de venta, template editable HTML + ESC/POS 80/58 mm. |
+| [ADR-0015 — Checkout unificado](adr/0015-checkout-unificado.md) | Una página de checkout para tienda + suscripciones + cobro físico (POS), con métodos de pago extensibles. |
 | [ADR-0023 — Modelo de inventario](adr/0023-inventory.md) | Inventario completo: variantes SKU/EAN-UPC, multi-almacén, ledger inmutable, valoración promedio/FIFO y alertas. |
 | [ADR-0024 — Compositor social enriquecido](adr/0024-compositor-social-enriquecido.md) | Galería multi-media, menciones/hashtags, encuestas, visibilidad y preview de enlaces (nativo, retrocompatible). |
+| [ADR-0025 — Escalabilidad selectable](adr/0025-scalable-selectable.md) | Selector HPA vs VPA por workload con modos verticales Auto/Recommender/Initial y guarda de exclusión. |
+| [ADR-0027 — Serie temporal local IoT](adr/0027-iot-serie-temporal.md) | Base separada `webs_iot`, tabla genérica `measurements`, pool `pg` dedicado (sin Prisma), retención + downsampling y `IotDevice` scoped. |
+| [ADR-0028 — Patrón de plugins IoT](adr/0028-iot-plugin-pattern.md) | Cliente HTTP de dispositivo (Bearer/X-Auth-Token/X-API-Key), collector configurable, SSRF-safe, token cifrado y contrato de rutas fail-closed. |
 
 ### Documentos legales (templates)
 

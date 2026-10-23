@@ -3,6 +3,53 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.2.0] - 2026-10-23
+
+### Añadido
+
+- **Facturación electrónica (plugin `arca`)**: integración con AFIP vía WSAA
+  (X.509, CMS/PKCS#7) y WSFE (CAE); homologación y producción configurables por
+  organización (`POST /plugins/arca/cae`, `GET /plugins/arca/estado`). Ref ADR-0013.
+- **Comprobantes / facturas fiscales**: modelo `Invoice` con numeración
+  `pppp-tt-ssssssss` y campos fiscales (neto, IVA, punto de venta, tipo de
+  comprobante, CAE), plantilla HTML editable (`invoiceTemplateConfig`), impresión
+  térmica ESC/POS (80/58 mm) y generación automática idempotente al aprobarse un
+  pago. Ref ADR-0014.
+- **Editor gráfico de la plantilla de factura** (`/admin/invoices/template`): logo,
+  color, título, pie y opciones CAE/cliente con vista previa en vivo; y pestaña
+  **"Mis comprobantes"** en `/account` (filtros por fecha, descarga HTML y vista
+  previa).
+- **Checkout unificado** (`/checkout`): tienda y suscripciones con resumen del
+  pedido, selector de método de pago, datos de facturación y pantalla de éxito
+  (`approved` / `paymentUrl` / QR / `pending`). Ref ADR-0015.
+- **Pagos unificados en el núcleo**: `createCheckoutPayment` y `createPosPayment`
+  (cash aprobado inmediato, terminal pendiente) sobre el registro
+  `fastify.payments.register`; la suscripción pasa a `pending` y se activa con el
+  evento `payment.approved` (`metadata.membershipId`).
+- **Pago físico en sucursal (POS)**: `POST /payments/pos` y el plugin `pos` crean
+  la orden `pending` y confirman/descuentan stock de forma idempotente al aprobarse
+  el pago.
+- **Pulido admin/UX**: buscadores client-side en plantillas y catálogo, página
+  unificada de actualizaciones `/admin/updates`, taxonomía de menú admin
+  (9 secciones) y categorías admin con i18n.
+- **i18n M4 (ES/EN/PT)**: checkout, comprobantes/facturas, categorías admin y pago
+  en sucursal.
+- **Docs M4**: `facturacion-electronica.md`, `comprobantes-facturas.md`,
+  `pagos-checkout.md`, `menu-admin.md`, ADR-0013/0014/0015 y documentos legales
+  (facturación AFIP, términos de suscripción/pago, checklist de cumplimiento).
+
+### Corregido
+
+- **Comprobantes rotos por el shim**: `InvoicesPage` apuntaba a
+  `/api/v1/blocks/facturacion` (el shim `/blocks` solo cubre CRUD) → ahora
+  `/api/v1/plugins/facturacion`.
+- **Config congelada en plugins hot-instalados**: el loader registra las rutas con
+  los defaults del schema (`schemaDefaults`) y lee la config fresca de BD
+  (`resolvePluginConfig`); antes un plugin instalado en caliente corría con la
+  config vacía.
+- **Carga de plugins pos/suscripciones**: el import de un valor de Prisma causaba
+  `Dynamic require of fs` → ahora `import type` (ambos plugins cargan y responden).
+
 ## [2.1.0] - 2026-10-23
 
 ### Añadido

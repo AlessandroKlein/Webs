@@ -13,6 +13,7 @@ import { QrCode } from '../../components/ui/QrCode';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { PromptDialog } from '../../components/ui/PromptDialog';
+import { MyInvoices } from '../invoices/MyInvoices';
 
 interface MeResponse {
   user: {
@@ -95,7 +96,7 @@ const ORDER_STATUS_COLOR: Record<string, string> = {
   cancelled: 'var(--ws-danger)',
 };
 
-type Tab = 'summary' | 'profile' | 'medical' | 'notifications' | 'security' | 'connections' | 'password' | 'danger';
+type Tab = 'summary' | 'profile' | 'medical' | 'notifications' | 'security' | 'connections' | 'password' | 'danger' | 'invoices';
 
 export function AccountPage() {
   const { t } = useTranslation();
@@ -212,11 +213,13 @@ export function AccountPage() {
             ? 'Conexiones'
             : tab === 'password'
               ? t('admin.account.changePassword')
-              : t('admin.account.dangerZone');
+              : tab === 'invoices'
+                ? t('admin.account.myInvoices')
+                : t('admin.account.dangerZone');
 
   const tabs: Tab[] = socialLoginInstalled
-    ? ['summary', 'profile', 'medical', 'notifications', 'security', 'connections', 'password', 'danger']
-    : ['summary', 'profile', 'medical', 'notifications', 'security', 'password', 'danger'];
+    ? ['summary', 'profile', 'medical', 'notifications', 'security', 'connections', 'password', 'danger', 'invoices']
+    : ['summary', 'profile', 'medical', 'notifications', 'security', 'password', 'danger', 'invoices'];
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
@@ -249,6 +252,8 @@ export function AccountPage() {
         {tab === 'summary' && (
           <SummaryView user={data?.user ?? null} academiaInstalled={!!academiaInstalled} onNavigate={setTab} />
         )}
+
+        {tab === 'invoices' && <MyInvoices userId={data?.user?.id ?? ''} />}
 
         {tab === 'profile' && (
           <>

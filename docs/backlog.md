@@ -3,9 +3,10 @@
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.0.0'`
->   (**M1 liberado como v1.58.0** · **M2 liberado como v2.0.0**). Roadmap
->   planificado hasta **v2.9.0** (M11 — escalabilidad selectable HPA/VPA).
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.1.0'`
+>   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** liberados). Roadmap
+>   planificado hasta **v2.11.0** (M13 — IoT: serie temporal local + plugins
+>   invernadero/sema).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -35,6 +36,8 @@ escalabilidad.
 | **M9 — Inventario** | Inventario completo: variantes de producto (SKU, código de barras EAN/UPC), categorías/marcas/proveedores, multi-almacén por sucursal, movimientos de stock con ledger auditable, alertas de stock bajo, valoración (costo promedio/FIFO), reportes y export/import CSV, soporte de código de barras/QR integrable con impresoras térmicas (M4). |
 | **M10 — Red social** | Compositor de publicación enriquecido en `SocialPublicPage.tsx`: galería multi-media (imágenes/video con pie, reordenar/eliminar), menciones `@usuario`, hashtags `#tema`, encuestas, selector de visibilidad (Público/Seguidores/Solo yo), selector de emoji, contador de caracteres con límite, vista previa de enlaces, autoguardado de borrador. |
 | **M11 — Escalabilidad** | Escalabilidad Kubernetes selectable por el usuario desde `/admin/scaling`: elegir Horizontal (HPA) vs Vertical (VPA) por workload; VPA con modos Auto/Recommender/Initial; HPA/VPA configurables; guarda de exclusión HPA+VPA sobre la misma métrica; visibilidad de recomendaciones/réplicas/eventos; export YAML del manifiesto generado. |
+| **M12 — Actualizaciones** | Vista RAW/Code de los datos de actualización en `/admin/updates`: endpoint de datos crudos (manifest + changelog + archivos cambiados + checksums + firma Ed25519) en JSON/YAML; toggle Code/RAW con resaltado de sintaxis autohospedado + copiar + descargar; redacción de campos sensibles (sin secretos), permiso `update.manage` (solo admin). |
+| **M13 — IoT** | Serie temporal local (ThingSpeak-like, 100% local) con base de datos separada `webs_iot` + modelo genérico de mediciones, retención/downsampling y consultas con agregación; plugins `invernadero` (IP/URL + Bearer, control de actuadores) y `sema` (IP/URL + X-API-Key) con conexión mínima + test, dashboards con gráficos de históricos; multi-tenant por organización, token cifrado + SSRF-safe, i18n, docs, QA y release. |
 
 ---
 
@@ -411,7 +414,154 @@ sección 3 (WB-7 a WB-13).
   + release) quedan en verde.
 - **Métrica:** tag `v2.1.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.6 Milestone 9 (M9) — Inventario completo
+### 3.6 Milestone 4 (M4) — Operación
+
+> **M4** se libera en **v2.2.0** (bump menor). Cubre 4 frentes: pulido admin/UX,
+> fiscal ARCA, comprobantes/facturas y pagos. Se ancla en los **ADR-0013** (arca),
+> **ADR-0014** (comprobantes), **ADR-0015** (checkout) + spec de categorías del
+> menú (`t68`). Trazabilidad: `t68`–`t79`; `t67` es este documento.
+
+#### WB-63 · P0 (M4) — Categorías del menú `/admin` (taxonomía) — `t70`, `t68`
+- **Dado** el panel `/admin` con un menú plano,
+- **Cuando** se aplica la taxonomía de `t68` (Apariencia / Configuración /
+  Contenido / Integraciones / …),
+- **Entonces** los ítems del menú se agrupan en categorías coherentes (todo lo de
+  aspecto en Apariencia, configuraciones en Configuración, etc.), sin ítems
+  huérfanos ni duplicados.
+- **Métrica:** el menú `/admin` muestra categorías y cada ítem está en exactamente
+  una categoría según la spec.
+
+#### WB-64 · P1 (M4) — Fix CSS/estilos de `/admin/templates` — `t70`
+- **Dado** la pantalla `/admin/templates` con elementos desalineados,
+- **Cuando** se corrigen los estilos,
+- **Entonces** la grilla de plantillas queda alineada y responsive usando los
+  tokens `--ws-*` del proyecto.
+- **Métrica:** revisión visual de `/admin/templates` sin desalineaciones en
+  desktop y mobile.
+
+#### WB-65 · P1 (M4) — Buscador en plantillas y catálogo de plugins — `t70`
+- **Dado** la lista de plantillas (`/admin/templates`) y el catálogo de plugins
+  (`/admin/plugins/install`),
+- **Cuando** el operador escribe en el buscador,
+- **Entonces** filtra por nombre/descripción en tiempo real, con estado vacío
+  claro cuando no hay resultados.
+- **Métrica:** buscar un término en plantillas y en plugins filtra correctamente
+  ambas listas.
+
+#### WB-66 · P1 (M4) — Actualizaciones unificadas (app + plugins en un solo lugar) — `t70`
+- **Dado** que hoy las actualizaciones de la app y de los plugins aparecen en dos
+  lugares distintos,
+- **Cuando** el operador abre la pantalla de actualizaciones,
+- **Entonces** ve una sola pantalla con sección "app" y sección "plugins"
+  (versión actual, disponible y acción de actualizar), coherente con el sistema
+  de actualización zero-downtime (ADR-0010).
+- **Métrica:** una sola entrada de menú lleva a app + plugins; ambos muestran
+  versión actual/disponible.
+
+#### WB-67 · P1 (M4) — Limpieza de plugins (legacy + ocultar sección sin instalados) — `t70`
+- **Dado** plugins anteriores/legacy y el caso de un sitio sin plugins,
+- **Cuando** se limpia el catálogo y se visita `/admin`,
+- **Entonces** los plugins legacy que ya no corresponden se eliminan, y la
+  categoría/sección "Plugins" del menú **se oculta** cuando no hay plugins
+  instalados.
+- **Métrica:** sitio sin plugins instalados no muestra "Plugins" en el menú; con
+  plugins instalados sí.
+
+#### WB-68 · P0 (M4) — Plugin `arca`: facturación electrónica ARCA/AFIP (WSFE, CAE) — `t71`, `t68`, `t69`
+- **Dado** un contribuyente argentino configurado (CUIT, punto de venta,
+  certificado X.509, modo homologación/producción),
+- **Cuando** se solicita un CAE para un comprobante,
+- **Entonces** el plugin `arca` autentica con el WSFE (ticket de acceso firmado),
+  solicita el CAE/CAEA y devuelve el resultado, con modo homologación para
+  pruebas y errores controlados (sin certificado válido → error claro, sin
+  romper el flujo).
+- **Métrica:** `POST /api/v1/arca/cae` en homologación responde con CAE de prueba
+  o error controlado; `GET /api/v1/arca/estado` devuelve la configuración.
+
+#### WB-69 · P0 (M4) — Comprobante por cada pago (numeración + datos fiscales + CAE) — `t72`, `t68`, `t69`
+- **Dado** un pago/comprar completado,
+- **Cuando** el flujo de pago dispara la generación del comprobante,
+- **Entonces** se crea una factura/receipt con numeración correlativa, datos
+  fiscales obligatorios (CUIT, punto de venta, número, fecha, importes neto/IVA/
+  total, condición IVA, datos del receptor) y campo para el CAE (aportado por
+  `arca`), enlazada al pago y al usuario.
+- **Métrica:** cada pago exitoso produce exactamente un comprobante con numeración
+  correlativa y datos fiscales completos.
+
+#### WB-70 · P1 (M4) — Template de factura editable (editor gráfico) — `t72`, `t74`
+- **Dado** el aspecto por defecto del comprobante,
+- **Cuando** el operador edita el template (logo, colores, textos, campos
+  visibles/ocultos) desde el editor gráfico,
+- **Entonces** la configuración se persiste y todos los comprobantes se renderizan
+  con el template actualizado (preview incluido).
+- **Métrica:** cambiar logo + color + ocultar un campo se refleja en la preview y
+  en el comprobante generado.
+
+#### WB-71 · P1 (M4) — Impresión térmica ESC/POS + "Mis comprobantes" por usuario — `t72`, `t74`
+- **Dado** un comprobante generado,
+- **Cuando** se solicita la impresión térmica o el usuario consulta "Mis
+  comprobantes",
+- **Entonces** `GET /api/v1/invoices/:id/escpos` genera el stream ESC/POS
+  (80mm/58mm, sin requerir hardware) y el usuario ve su listado con búsqueda por
+  fecha/rango y descarga (PDF/HTML).
+- **Métrica:** el stream ESC/POS se genera sin hardware; "Mis comprobantes" filtra
+  por fecha y permite descarga/preview.
+
+#### WB-72 · P0 (M4) — Suscripción → pago (navegar al checkout) — `t73`, `t75`
+- **Dado** que un usuario elige una suscripción,
+- **Cuando** confirma,
+- **Entonces** se crea una intención de pago y se redirige al checkout unificado
+  (método + datos de facturación), completando el flujo suscripción→pago sin
+  pasos muertos.
+- **Métrica:** elegir suscripción → checkout → pago → comprobante, de extremo a
+  extremo, sin pantallas rotas.
+
+#### WB-73 · P0 (M4) — Pago físico en sucursal (POS/caja) — `t73`, `t75`
+- **Dado** una sucursal con caja/POS,
+- **Cuando** se registra un pago presencial (efectivo o tarjeta por terminal),
+- **Entonces** `POST /api/v1/payments/pos` registra el pago con el método elegido
+  y dispara el comprobante (igual que un pago online).
+- **Métrica:** un pago POS registrado produce comprobante y queda trazado en el
+  resumen de pagos de la sucursal.
+
+#### WB-74 · P0 (M4) — Checkout unificado (tienda + suscripciones) — `t75`, `t73`
+- **Dado** el flujo de compra (tienda) y el de suscripción,
+- **Cuando** el usuario llega al checkout,
+- **Entonces** una única página bien diseñada muestra resumen, selección de método
+  (online + pago físico), datos de facturación, confirmación y pantalla de éxito
+  con el comprobante; reutilizable por tienda y suscripciones, responsive y
+  accesible.
+- **Métrica:** el mismo checkout sirve a tienda y suscripción; checkout exitoso
+  muestra el comprobante y checkout fallido muestra error con reintento.
+
+#### WB-75 · P0 (M4) — i18n de M4 (ES/EN/PT) — `t76`
+- **Dado** las nuevas superficies de M4 (checkout, comprobantes, editor de
+  template, categorías del menú, pago en sucursal, plugin `arca`),
+- **Cuando** se auditan los strings,
+- **Entonces** todas las cadenas están traducidas en `es`/`en`/`pt` con paridad de
+  claves y sin strings hardcodeados.
+- **Métrica:** `es`/`en`/`pt` tienen el mismo set de claves; grep de strings
+  hardcodeados = 0.
+
+#### WB-76 · P0 (M4) — QA + documentación de M4 — `t77`, `t78`
+- **Dado** M4 implementado,
+- **Cuando** se ejecuta la QA en Docker aislado (login, categorías del menú,
+  buscador, actualizaciones, suscripción→checkout→pago→comprobante, pago POS,
+  `arca` homologación, comprobantes + template + impresión, i18n) y se documenta,
+- **Entonces** el veredicto es **LIBERABLE** y la documentación (facturación
+  electrónica, comprobantes, checkout/pagos, menú admin) está publicada con
+  `mkdocs build` en verde.
+- **Métrica:** QA → exit 0 sin findings bloqueantes; mkdocs en verde.
+
+#### WB-77 · P1 (M4) — Release v2.2.0 + CHANGELOG + workflows verdes — `t79`
+- **Dado** M4 completo y verificado (QA LIBERABLE),
+- **Cuando** se bumpa `SYSTEM_VERSION` a `2.2.0`, se actualiza `CHANGELOG.md`
+  (`[2.2.0]`) y se taggea `v2.2.0`,
+- **Entonces** el release se publica y los workflows (CI typecheck + release)
+  quedan en verde.
+- **Métrica:** tag `v2.2.0` público; workflows CI/release ✓; changelog coherente.
+
+### 3.7 Milestone 9 (M9) — Inventario completo
 
 > **M9** se libera en **v2.7.0** (bump menor). Convierte el inventario básico
 > actual (`blocks/inventario`, modelo `InventoryItem`) en un sistema de gestión de
@@ -511,7 +661,7 @@ sección 3 (WB-7 a WB-13).
   quedan en verde.
 - **Métrica:** tag `v2.7.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.7 Milestone 10 (M10) — Compositor de publicación enriquecido
+### 3.8 Milestone 10 (M10) — Compositor de publicación enriquecido
 
 > **M10** se libera en **v2.8.0** (bump menor). Enriquece el compositor "Nueva
 > publicación" de la red social (`apps/web/src/features/public/SocialPublicPage.tsx`).
@@ -599,7 +749,7 @@ sección 3 (WB-7 a WB-13).
 - **Métrica:** escribir, cerrar y reabrir el compositor restaura el texto/adjuntos;
   publicar limpia el borrador.
 
-### 3.8 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
+### 3.9 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
 
 > **M11** se libera en **v2.9.0** (bump menor). Permite al usuario **elegir** el
 > tipo de escalabilidad Kubernetes por workload desde un panel `/admin/scaling`.
@@ -692,6 +842,126 @@ sección 3 (WB-7 a WB-13).
 - **Métrica:** exportar un workload en modo VPA `Recommender` produce un YAML con
   `updateMode: Off` y los `minAllowed`/`maxAllowed` configurados.
 
+### 3.10 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
+
+> **M13** se libera en **v2.11.0** (bump menor). Cronológicamente es **posterior a
+> M12 (v2.10.0, backlog pendiente — vista RAW/Code de actualizaciones)**, cuya
+> sección se insertará antes de esta cuando se redacte. M13 añade un motor de
+> serie temporal 100% local (tipo ThingSpeak) y dos plugins IoT (`invernadero`,
+> `sema`) que conectan dispositivos con SOLO IP/URL + token. Se ancla en el
+> **ADR-0027** (serie temporal local, base separada `webs_iot`) y el **ADR-0028**
+> (patrón de plugins IoT). Trazabilidad: `t167`–`t179`; `t167` es este documento.
+
+#### WB-78 · P0 (M13) — Base de datos separada `webs_iot` + modelo genérico de mediciones — `t168`, `t169`, `t170`
+- **Dado** la necesidad de históricos de sensores sin contaminar el schema
+  principal,
+- **Cuando** se provisiona la base y se registra una medición,
+- **Entonces** existe una base PostgreSQL **separada** `webs_iot` con el modelo
+  genérico `measurements(ts timestamptz, device_id, metric, value, unit)` e
+  índice `(device_id, metric, ts)` (partición mensual o BRIN), accedida vía pool
+  `pg` dedicado (no Prisma), y los dispositivos se registran en el schema
+  principal como `IotDevice` (organizationId/kind/baseUrl/token cifrado/
+  pollIntervalMs/enabled/lastSeenAt).
+- **Métrica:** `docker compose up` crea `webs_iot` idempotentemente; una medición
+  se escribe y se lee sin tocar `prisma migrate deploy` del schema principal.
+
+#### WB-79 · P0 (M13) — Retención + downsampling (raw → horario → diario) — `t169`, `t170`
+- **Dado** un flujo continuo de mediciones,
+- **Cuando** corre el job de retención/downsampling,
+- **Entonces** agrega raw a resolución horaria y diaria según la política
+  configurada y purga el raw vencido, sin pérdida de los agregados.
+- **Métrica:** tras N días, los agregados horario/diario se mantienen y el raw
+  caducado se elimina según retención.
+
+#### WB-80 · P0 (M13) — Consultas con agregación para gráficos — `t170`
+- **Dado** una serie temporal almacenada,
+- **Cuando** se consulta `querySeries({deviceId, metric, from, to, agg})`,
+- **Entonces** devuelve el rango con agregación `avg/min/max/count` y bucketing
+  por hora/día, apto para graficar sin re-computar en el cliente.
+- **Métrica:** consulta de 30 días con `agg=avg` diario devuelve ≤30 puntos
+  correctos.
+
+#### WB-81 · P0 (M13) — Plugin `invernadero`: conexión IP/URL + token Bearer + mapeo + control — `t171`
+- **Dado** un controlador de invernadero (v3.29.0, base `http://<IP>/api/v1`,
+  auth Bearer/`X-Auth-Token`),
+- **Cuando** se registra con SOLO `baseUrl` + token y se consulta el estado,
+- **Entonces** el plugin mapea `GET /status` (temperatura, humedad, humedad de
+  suelo por zona, nivel de tanque, luz, bomba, ventilador), `/sensors`,
+  `/weather`, `/alarms` (severidad ≥ 2), `/actuators` y `/device`, y permite el
+  control `POST /actuators {role,index,output 0..100}` (pump/valve/fan/heater/
+  light/roof/window/shade/alarm) escribiendo los métricos a la serie temporal.
+- **Métrica:** conectar un invernadero real y ver estado en vivo + una orden de
+  actuador aceptada (HTTP 2xx).
+
+#### WB-82 · P1 (M13) — Plugin `invernadero`: dashboard con gráficos de históricos — `t174`
+- **Dado** un invernadero conectado,
+- **Cuando** el operador abre su dashboard,
+- **Entonces** ve tarjetas de estado en vivo (temperatura, humedad, suelo, tanque,
+  luz, bomba on/off, ventilador on/off), gráficos de serie temporal por métrico
+  (rango 1h/24h/7d/30d + agregación) y las alarmas (severidad ≥ 2).
+- **Métrica:** el dashboard muestra ≥6 métricos con sus gráficos y sin errores.
+
+#### WB-83 · P0 (M13) — Plugin `sema`: conexión IP/URL + X-API-Key + mapeo — `t172`
+- **Dado** un nodo SEMA (v1.103.0, base `/api/v1`, auth `X-API-Key`),
+- **Cuando** se registra con SOLO `baseUrl` + apiKey y se consulta,
+- **Entonces** el plugin mapea `GET /status`, `/sensors`, `/history`, `/energy`,
+  `/alarms` y `/system` (temperatura EXT/INT, humedad, energía, alarmas) y
+  escribe los métricos a la serie temporal (sin control de actuadores en v1).
+- **Métrica:** conectar un SEMA y ver estado en vivo + métricos en la serie.
+
+#### WB-84 · P1 (M13) — Plugin `sema`: dashboard con gráficos de históricos — `t175`
+- **Dado** un SEMA conectado,
+- **Cuando** el operador abre su dashboard,
+- **Entonces** ve tarjetas de estado (temperatura EXT/INT, humedad, energía),
+  gráficos de serie temporal por métrico y alarmas/eventos listados.
+- **Métrica:** el dashboard muestra los métricos de SEMA con gráficos funcionales.
+
+#### WB-85 · P0 (M13) — UI de conexión mínima (solo IP/URL + token) con test — `t173`
+- **Dado** la necesidad de conectar un dispositivo sin configuración compleja,
+- **Cuando** el usuario usa `DeviceConfigForm`,
+- **Entonces** ingresa **solo** IP/URL + token (con toggle mostrar/ocultar) y un
+  botón "Probar conexión" que llama al test del plugin, mostrando estados
+  conectando/conectado/error.
+- **Métrica:** conectar un dispositivo desde el formulario con ≤2 campos + test
+  en verde.
+
+#### WB-86 · P0 (M13) — Dashboard con gráficos (componentes compartidos) — `t173`, `t174`, `t175`
+- **Dado** los componentes IoT compartidos (`DeviceStatusCard`, `TimeSeriesChart`,
+  `DevicesList`),
+- **Cuando** se renderiza el dashboard de un dispositivo,
+- **Entonces** los gráficos (SVG/canvas autohospedado, sin CDN) muestran selector
+  de métrico, rango 1h/24h/7d/30d y agregación, con tarjetas de estado y listado
+  de dispositivos, todo i18n-ready (es/en/pt).
+- **Métrica:** los tres componentes se reutilizan en invernadero y sema sin
+  duplicación.
+
+#### WB-87 · P0 (M13) — Multi-tenant + seguridad (scoping por organización, token cifrado, SSRF-safe) — `t168`, `t170`
+- **Dado** dispositivos de varias organizaciones,
+- **Cuando** una organización accede a sus dispositivos,
+- **Entonces** cada `IotDevice` está scoped por `organizationId` (fail-closed: la
+  org A no ve ni opera dispositivos de la org B), el token se cifra con el crypto
+  existente (nunca se expone en claro), y el cliente HTTP valida el host
+  **SSRF-safe** (deniega loopback/privados salvo allowlist).
+- **Métrica:** un usuario de la org A recibe 404/403 sobre el dispositivo de la
+  org B; un `baseUrl` a `127.0.0.1` es rechazado.
+
+#### WB-88 · P0 (M13) — i18n + documentación de M13 — `t176`, `t177`
+- **Dado** el alcance IoT implementado,
+- **Cuando** se curan las claves i18n (es/en/pt) y se documenta,
+- **Entonces** los strings de conexión/estado/gráficos/control están traducidos
+  con paridad de claves, y la guía de uso + referencia de API (ADR-0027/0028 +
+  spec `docs/architecture/iot-serie-temporal.md`) están publicadas.
+- **Métrica:** mkdocs en verde; sin claves i18n faltantes ni strings hardcodeados.
+
+#### WB-89 · P1 (M13) — QA + Release v2.11.0 + CHANGELOG + workflows verdes — `t178`, `t179`
+- **Dado** M13 completo,
+- **Cuando** se ejecuta la QA (serie temporal, conexión/estado/control/gráficos,
+  multi-tenant, SSRF-safe, i18n) y se bumpa `SYSTEM_VERSION` a `2.11.0`,
+- **Entonces** el veredicto es **LIBERABLE**, el `CHANGELOG.md` se actualiza
+  (`[2.11.0]`), se taggea `v2.11.0` y los workflows (CI typecheck + release)
+  quedan en verde.
+- **Métrica:** QA LIBERABLE; tag `v2.11.0` público; workflows CI/release ✓.
+
 ---
 
 ## 4. Roadmap de releases
@@ -701,8 +971,8 @@ sección 3 (WB-7 a WB-13).
 | **R1 — Fundación** | **v1.58.0** ✓ | WB-1→WB-17: rename Bloques→Plugins + menú nativo, CI + release en verde, bugs B1/B2 (inventario/tienda, social-login), constructor de páginas + templates, UX de pago + dashboards, lectores de código, auditorías + QA + docs + changelog. |
 | **R2 — Pulido M1** | **v1.59.0** | Buffer de hardening/UX (absorbido en v2.0.0): cierre de hallazgos de QA, alias de compatibilidad `blocks`→`plugins` estable, refinamiento de templates y dashboards. |
 | **R3 — Expansión** | **v2.0.0** ✓ | WB-18→WB-24: sistema de licencias (*Licensify*, `@licensify/core`), multi-tenant por cadenas (finanzas separadas + consolidadas HQ), escalabilidad k8s (HPA/stateless/auto-scaling), mobile real Capacitor, OAuth2 real (state/PKCE), limpieza de naming interno `block`, sistema de actualización zero-downtime (app + plugins). |
-| **R4 — Consolidación** | **v2.1.0** | WB-25→WB-34: cierre de deuda (F12/F4/F10/F17), visual page builder (GrapesJS + página de inicio configurable), i18n ES/EN/PT, documentos legales (ToS/Disclaimer/Privacy/Cookies), mobile Capacitor nativo + desktop, fix de login en Docker, política "todo nativo / sin componentes de pago", QA + docs + release. |
-| **R5 — Operación** | **v2.2.0** | M4: pulido admin/UX (categorías `/admin`, buscador, actualizaciones unificadas), plugin fiscal ARCA, comprobantes/facturas por pago + impresión térmica ESC/POS, checkout unificado + pago en sucursal. |
+| **R4 — Consolidación** | **v2.1.0** ✓ | WB-25→WB-34: cierre de deuda (F12/F4/F10/F17), visual page builder (GrapesJS + página de inicio configurable), i18n ES/EN/PT, documentos legales (ToS/Disclaimer/Privacy/Cookies), mobile Capacitor nativo + desktop, fix de login en Docker, política "todo nativo / sin componentes de pago", QA + docs + release. |
+| **R5 — Operación** | **v2.2.0** | M4: WB-63→WB-77 — pulido admin/UX (categorías `/admin`, fix CSS templates, buscador, actualizaciones unificadas, limpieza de plugins), plugin fiscal `arca` (ARCA/AFIP), comprobantes/facturas por pago (template editable + impresión térmica ESC/POS + "Mis comprobantes"), checkout unificado + pago en sucursal (suscripción→pago, POS). |
 | **R6 — Marketplace** | **v2.3.0** | M5: plugins con fuente remota GitHub + botón "Instalar", nginx allowlist + multi-sucursal por subdominio, roles/permisos completos, app de claves de licencia para venta, finalización de plugins. |
 | **R7 — Licencias** | **v2.4.0** | M6: feature-gating por licencia (integra `@licensify/core` con features premium). |
 | **R8 — Acceso rápido** | **v2.5.0** | M7: generador de APIs de acceso rápido (recurso → modelo + rutas CRUD + SDK tipado web/móvil). |
@@ -710,7 +980,9 @@ sección 3 (WB-7 a WB-13).
 | **R10 — Inventario** | **v2.7.0** | M9: WB-35→WB-44 — inventario completo (variantes/SKU/EAN-UPC, catálogo, multi-almacén por sucursal, movimientos con ledger auditable, alertas de stock bajo, valoración costo promedio/FIFO, reportes + export/import CSV, código de barras/QR + impresión térmica). |
 | **R11 — Red social** | **v2.8.0** | M10: WB-45→WB-53 — compositor de publicación enriquecido (galería multi-media, menciones, hashtags, encuestas, visibilidad, emoji, contador de caracteres, vista previa de enlaces, autoguardado de borrador). |
 | **R12 — Escalabilidad** | **v2.9.0** | M11: WB-54→WB-62 — escalabilidad Kubernetes selectable (HPA configurable vs VPA Auto/Recommender/Initial, guarda de exclusión, visibilidad de estado, export YAML) desde `/admin/scaling`. |
-| **R13 — Backlog** | **v2.10.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
+| **R13 — Actualizaciones** | **v2.10.0** | M12: vista RAW/Code de los datos de actualización en `/admin/updates` (endpoint datos crudos manifest + changelog + archivos + checksums + firma en JSON/YAML, toggle Code/RAW con syntax highlight autohospedado + copiar/descargar, redacción de secretos, permiso `update.manage`). |
+| **R14 — IoT** | **v2.11.0** | M13: WB-78→WB-89 — serie temporal local (base separada `webs_iot` + modelo genérico de mediciones, retención/downsampling, consultas con agregación) + plugins `invernadero` (IP/URL + Bearer, control de actuadores) y `sema` (IP/URL + X-API-Key), UI de conexión mínima con test + dashboards con gráficos, multi-tenant + seguridad (token cifrado, SSRF-safe), i18n + docs + QA + release. |
+| **R15 — Backlog** | **v2.12.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
 
 **Criterio de corte entre R1 y R2:** R1 sale solo con P0/P1 de M1 en verde
 (typecheck + release ✓) y sin bugs bloqueantes (B1, B2 corregidos). R3 es un
@@ -766,6 +1038,20 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t63-docs-m3 | WB-26 (F4) + docs de WB-27→WB-30 |
 | t64-docker-e2e | WB-33 (smoke) |
 | t65-release | WB-34 |
+| t66-deuda-f12-schemas | WB-25 (F12 residual: schema.mysql/sqlite) |
+| t67-backlog-m4 | WB-63→WB-77 (este documento) |
+| t68-adr-m4 | WB-63, WB-68, WB-69, WB-72→WB-74 (ADR-0013/0014/0015 + spec) |
+| t69-legal-fiscal | WB-68, WB-69 (compliance AFIP/ARCA + términos) |
+| t70-admin-ux | WB-63→WB-67 |
+| t71-arca | WB-68 |
+| t72-invoices | WB-69, WB-70, WB-71 |
+| t73-pagos | WB-72, WB-73, WB-74 (backend) |
+| t74-comprobantes-front | WB-70, WB-71 |
+| t75-checkout-front | WB-72, WB-73, WB-74 |
+| t76-i18n-m4 | WB-75 |
+| t77-docs-m4 | WB-76 (docs) |
+| t78-qa-m4 | WB-76 (QA) |
+| t79-release-m4 | WB-77 |
 | t125-backlog-m9 | WB-35→WB-44 (este documento) |
 | t126-adr-inventario | WB-35→WB-42 (ADR-0023 + spec) |
 | t127-modelo-inventario | WB-35, WB-36, WB-37 (modelo de datos) |
@@ -785,3 +1071,16 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t152-backend-scaling | WB-54→WB-62 (API, manifiestos, guarda, export YAML) |
 | t153-frontend-scaling | WB-54, WB-56, WB-58, WB-59, WB-61, WB-62 (panel `/admin/scaling`) |
 | t154-qa-m11 | WB-54→WB-62 (QA) |
+| t167-backlog-m13 | WB-78→WB-89 (este documento) |
+| t168-adr-iot | WB-78, WB-87 (ADR-0027 serie temporal + ADR-0028 patrón plugins IoT + spec) |
+| t169-iot-db | WB-78, WB-79 (provisionar `webs_iot` + job retención/downsampling) |
+| t170-pkg-iot | WB-78, WB-79, WB-80, WB-87 (`@webs/iot`: IoTStore + DeviceClient + `IotDevice`) |
+| t171-invernadero | WB-81 (integración REST + control de actuadores) |
+| t172-sema | WB-83 (integración REST) |
+| t173-ui-iot | WB-85, WB-86 (componentes compartidos: conexión, estado, gráfico) |
+| t174-ui-invernadero | WB-82, WB-86 (dashboard + control) |
+| t175-ui-sema | WB-84, WB-86 (dashboard) |
+| t176-i18n-m13 | WB-88 (i18n es/en/pt) |
+| t177-docs-m13 | WB-88 (documentación) |
+| t178-qa-m13 | WB-89 (QA) |
+| t179-release-m13 | WB-89 (release v2.11.0) |

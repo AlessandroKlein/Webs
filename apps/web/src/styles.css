@@ -171,6 +171,21 @@ textarea.input {
   background: var(--ws-primary-soft);
   color: var(--ws-primary);
 }
+.nav-section {
+  margin: var(--ws-space-3) 0 var(--ws-space-1);
+  padding: 0 var(--ws-space-3);
+  font-size: var(--ws-font-size-xs, 11px);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ws-text-muted);
+}
+.nav-section:first-child {
+  margin-top: 0;
+}
+.admin-layout.collapsed .nav-section {
+  display: none;
+}
 .topbar {
   display: flex;
   align-items: center;

@@ -4,6 +4,9 @@
  * devuelve un CAE simulado (`crypto.randomUUID()`). Todo se lee de `config`.
  */
 
+import { issueArca } from './arca';
+import type { ArcaConfig } from './arca';
+
 export interface InvoiceInput {
   id?: string;
   number?: string;
@@ -62,6 +65,9 @@ function simulatedResult(provider: string): IssueInvoiceResult {
 function hasCredentials(provider: string, config: Record<string, unknown>): boolean {
   if (provider === 'afip') {
     return Boolean(str(config.token) && str(config.sign) && str(config.cuit ?? config.taxId));
+  }
+  if (provider === 'arca') {
+    return Boolean(str(config.cuit) && str(config.cert) && str(config.key));
   }
   if (provider === 'facturante' || provider === 'tsd') {
     return Boolean(str(config.username) && str(config.password));
@@ -225,9 +231,11 @@ export async function issueInvoice(
     const result =
       provider === 'afip'
         ? await issueAfip(config, invoice)
-        : provider === 'facturante'
-          ? await issueFacturante(config, invoice)
-          : await issueTsd(config, invoice);
+        : provider === 'arca'
+          ? await issueArca(config as unknown as ArcaConfig, invoice)
+          : provider === 'facturante'
+            ? await issueFacturante(config, invoice)
+            : await issueTsd(config, invoice);
     return result ?? simulatedResult(provider);
   } catch {
     return simulatedResult(provider);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -8,7 +9,7 @@ import { TextField } from '../../components/ui/TextField';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
-const INV_BASE = '/api/v1/blocks/facturacion';
+const INV_BASE = '/api/v1/plugins/facturacion';
 
 interface Invoice {
   id: string;
@@ -81,8 +82,28 @@ export function InvoicesPage() {
 
   return (
     <div className="stack">
-      <h1>{t('admin.invoices.title')}</h1>
-      <p className="muted">{t('admin.invoices.subtitle')}</p>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div>
+          <h1>{t('admin.invoices.title')}</h1>
+          <p className="muted">{t('admin.invoices.subtitle')}</p>
+        </div>
+        <Link
+          to="/admin/invoices/template"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 'var(--ws-space-1)',
+            padding: 'var(--ws-space-2) var(--ws-space-3)',
+            borderRadius: 'var(--ws-radius-md)',
+            border: '1px solid var(--ws-border)',
+            color: 'var(--ws-text)',
+            textDecoration: 'none',
+            fontSize: 'var(--ws-font-size-sm)',
+          }}
+        >
+          <i className="bi bi-palette" /> {t('admin.invoices.customizeTemplate')}
+        </Link>
+      </div>
 
       <Card>
         <h3 style={{ marginTop: 0 }}>{t('admin.invoices.newInvoice')}</h3>
@@ -96,9 +117,9 @@ export function InvoicesPage() {
           <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <TextField label={t('admin.invoices.customerOptional')} value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
             <TextField label={t('admin.invoices.taxIdOptional')} value={customerTaxId} onChange={(e) => setCustomerTaxId(e.target.value)} />
-            <TextField label={t('admin.invoices.vatConditionOptional')} value={vatCondition} onChange={(e) => setVatCondition(e.target.value)} placeholder="responsable inscripto…" />
+            <TextField label={t('admin.invoices.vatConditionOptional')} value={vatCondition} onChange={(e) => setVatCondition(e.target.value)} placeholder={t('admin.invoices.placeholderVatCondition')} />
             <TextField label={t('admin.invoices.amount')} type="number" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-            <TextField label={t('admin.invoices.typeOptional')} value={type} onChange={(e) => setType(e.target.value)} placeholder="A, B, C…" />
+            <TextField label={t('admin.invoices.typeOptional')} value={type} onChange={(e) => setType(e.target.value)} placeholder={t('admin.invoices.placeholderType')} />
           </div>
           <div className="row">
             <Button type="submit" disabled={createInvoice.isPending || !amount}>
@@ -112,7 +133,7 @@ export function InvoicesPage() {
       <Card>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <h3 style={{ margin: 0 }}>{t('admin.invoices.invoices')}</h3>
-          <TextField label={t('admin.invoices.filterByStatus')} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} placeholder="issued, paid…" />
+          <TextField label={t('admin.invoices.filterByStatus')} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} placeholder={t('admin.invoices.placeholderStatus')} />
         </div>
         {isLoading ? (
           <Spinner />
@@ -158,7 +179,7 @@ export function InvoicesPage() {
                           href={`${INV_BASE}/invoices/${inv.id}/html`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          title="Abre el comprobante en una pestaña nueva para imprimirlo a PDF"
+                          title={t('admin.invoices.printHint')}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -172,7 +193,7 @@ export function InvoicesPage() {
                             cursor: 'pointer',
                           }}
                         >
-                          <i className="bi bi-download" /> Descargar
+                          <i className="bi bi-download" /> {t('admin.invoices.download')}
                         </a>
                         <Button variant="ghost" onClick={() => setConfirmInvoice(inv)}>
                           {t('common.delete')}

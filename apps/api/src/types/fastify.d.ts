@@ -39,6 +39,8 @@ declare module 'fastify' {
     resolveTenant: (request: FastifyRequest) => Promise<TenantContext>;
     /** Devuelve el fragmento `where` de scoping según el tenant (ADR-0006). */
     resolveScope: (tenant: TenantContext) => Promise<Record<string, unknown>>;
+    /** Config actual de un plugin (defaults del manifest + overrides de settings), resuelta en cada request (fix config-freeze). */
+    getPluginConfig: (pluginId: string) => Promise<Record<string, unknown>>;
     /** Configuración de seguridad (sección `security`) cacheada al arranque. */
     securitySettings: {
       hsts?: boolean;
@@ -46,9 +48,10 @@ declare module 'fastify' {
       secureCookies?: boolean;
       contentSecurityPolicy?: string;
     };
-    /** Emisor de eventos de negocio (dispara automatizaciones de correo). */
+    /** Bus de eventos de negocio (automatizaciones de correo + suscriptores de plugins). */
     events: {
       emit: (event: string, payload: Record<string, unknown>) => Promise<void>;
+      on: (event: string, handler: (payload: Record<string, unknown>) => Promise<void> | void) => void;
     };
     /** Registro de proveedores de pago (los bloques de pasarela se registran acá). */
     payments: {

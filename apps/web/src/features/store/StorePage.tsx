@@ -5,6 +5,7 @@ import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { QrCode } from '../../components/ui/QrCode';
+import { useCheckoutStore } from '../checkout/checkout-store';
 
 const EC_BASE = '/api/v1/blocks/ecommerce';
 const PAY_BASE = '/api/v1/payments';
@@ -201,7 +202,7 @@ export function StorePage() {
   const [providers, setProviders] = useState<PaymentProvider[] | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<CheckoutResult | null>(null);
-  const [loadingProviders, setLoadingProviders] = useState(false);
+  const [loadingProviders] = useState(false);
   const [paying, setPaying] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
   const [address, setAddress] = useState<ShippingAddress>(EMPTY_ADDRESS);
@@ -294,7 +295,7 @@ export function StorePage() {
     return true;
   };
 
-  const startCheckout = async () => {
+  const startCheckout = () => {
     if (!requireLogin()) return;
     if (!selectedShipping) {
       setCartError('Completá la dirección y elegí un método de envío');
@@ -302,23 +303,15 @@ export function StorePage() {
     }
     setCartError(null);
     setNotice(null);
-    setLoadingProviders(true);
-    try {
-      const list = await api.get<PaymentProvider[]>(`${PAY_BASE}/providers`);
-      if (!list || list.length === 0) {
-        setProviders(null);
-        setCartError('No hay métodos de pago configurados');
-        return;
-      }
-      setProviders(list);
-      setSelectedProvider(list[0]?.id ?? null);
-      setCheckout(null);
-    } catch {
-      setProviders(null);
-      setCartError('No hay métodos de pago configurados');
-    } finally {
-      setLoadingProviders(false);
-    }
+    // Entrega el carrito + envío a la página de checkout unificado.
+    useCheckoutStore.getState().setStore({
+      lines: cart.map((l) => ({ id: l.id, title: l.title, price: l.price, quantity: l.qty })),
+      subtotal: total,
+      shippingAddress: address,
+      shippingMethod: selectedShipping,
+      shippingCost,
+    });
+    navigate('/checkout?kind=store');
   };
 
   const pay = async () => {

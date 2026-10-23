@@ -173,6 +173,27 @@ export function schemaDefaults(schema?: JsonSchema): Record<string, unknown> {
   return out;
 }
 
+/**
+ * Resuelve la config ACTUAL de un plugin: defaults del manifest + overrides de
+ * settings (leídos frescos de BD en cada request). Fix config-freeze (t183):
+ * permite que los handlers lean la config sin el snapshot capturado al boot, de
+ * modo que un hot-install (que guarda `schemaDefaults` al instalar) o un
+ * `PUT /plugins/:id/settings` surtan efecto de inmediato, sin reiniciar la API.
+ */
+export async function resolvePluginConfig(
+  app: FastifyInstance,
+  pluginId: string,
+): Promise<Record<string, unknown>> {
+  const manifest = pluginRegistry.getAvailableManifest(pluginId);
+  const defaults = schemaDefaults(manifest?.settings);
+  const inst = await app.prisma.pluginInstallation.findUnique({ where: { pluginId } });
+  const stored =
+    inst?.config != null && typeof inst.config === 'object' && !Array.isArray(inst.config)
+      ? (inst.config as Record<string, unknown>)
+      : {};
+  return { ...defaults, ...stored };
+}
+
 function makeContext(
   fastify: FastifyInstance,
   serverPlugin: ServerPlugin,
@@ -308,6 +329,11 @@ export async function loadAndActivate(
 export async function registerPlugins(app: FastifyInstance): Promise<void> {
   for (const slot of CORE_SLOTS) pluginRegistry.registerSlot(slot);
 
+  // Fix config-freeze (t183): exponer la config fresca a los handlers de plugin.
+  // Se decora ANTES de registrar las rutas para que las instancias encapsuladas
+  // (que heredan por prototipo) ya lo tengan disponible.
+  app.decorate('getPluginConfig', (pluginId: string) => resolvePluginConfig(app, pluginId));
+
   const pluginDir = resolvePluginDir(app);
   discoverPlugins(pluginDir);
 
@@ -322,7 +348,13 @@ export async function registerPlugins(app: FastifyInstance): Promise<void> {
   // runtime activa sus rutas de inmediato (sin reinicio).
   for (const manifest of pluginRegistry.getAvailable()) {
     try {
-      await registerPluginRoutes(app, manifest, configByPluginId.get(manifest.id) ?? {});
+      // Fallback a los defaults del manifest (no `{}`): así un plugin instalado en
+      // caliente ya arranca con su config por defecto aplicada, sin esperar restart.
+      await registerPluginRoutes(
+        app,
+        manifest,
+        configByPluginId.get(manifest.id) ?? schemaDefaults(manifest.settings),
+      );
     } catch (err) {
       app.log.error({ err, pluginId: manifest.id }, 'no se pudo registrar las rutas del plugin');
     }

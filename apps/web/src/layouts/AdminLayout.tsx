@@ -23,6 +23,43 @@ interface AdminMenuItem {
   permissions?: string[];
 }
 
+/** Secciones del menú `/admin` según la taxonomía de `docs/architecture/menu-categorias.md`. */
+type SectionKey =
+  | 'panel'
+  | 'contenido'
+  | 'ventas'
+  | 'comunicacion'
+  | 'comunidad'
+  | 'apariencia'
+  | 'integraciones'
+  | 'configuracion'
+  | 'usuarios';
+
+const SECTION_ORDER: SectionKey[] = [
+  'panel',
+  'contenido',
+  'ventas',
+  'comunicacion',
+  'comunidad',
+  'apariencia',
+  'integraciones',
+  'configuracion',
+  'usuarios',
+];
+
+const SECTION_KEYS = new Set<string>(SECTION_ORDER);
+
+interface NavItem {
+  to: string;
+  label: string;
+  section: SectionKey;
+  perm: string | null;
+  end?: boolean;
+}
+
+/** Ítems de gestión de plugins que se ocultan cuando no hay plugins instalados. */
+const PLUGIN_MANAGEMENT_PATHS = new Set(['/admin/plugins', '/admin/plugin-settings']);
+
 export function AdminLayout() {
   const { t, i18n } = useTranslation();
   const { mode, setMode } = useTheme();
@@ -79,88 +116,105 @@ export function AdminLayout() {
     enabled: hasPermission('setting.read'),
     retry: false,
   });
-  const pluginNav = (menuData?.items ?? [])
+  const { data: pluginsData } = useQuery({
+    queryKey: ['admin-plugins'],
+    queryFn: () => api.get<{ installed: unknown[] }>('/api/v1/plugins'),
+    enabled: hasPermission('plugin.read'),
+    retry: false,
+  });
+  const hasInstalledPlugins = pluginsData ? pluginsData.installed.length > 0 : true;
+
+  const navItems: NavItem[] = [
+    { to: '/admin', label: t('nav.dashboard'), section: 'panel', perm: null, end: true },
+    { to: '/admin/analytics', label: t('admin.analytics.title'), section: 'panel', perm: null },
+    { to: '/admin/content', label: t('nav.content'), section: 'contenido', perm: 'content.read' },
+    { to: '/admin/pages', label: t('nav.pages'), section: 'contenido', perm: 'content.read' },
+    { to: '/admin/editor', label: t('nav.editor'), section: 'contenido', perm: 'content.write' },
+    { to: '/admin/blog', label: t('admin.blog.title'), section: 'contenido', perm: null },
+    { to: '/admin/forms', label: t('admin.forms.title'), section: 'contenido', perm: null },
+    { to: '/admin/payments', label: t('nav.payments'), section: 'ventas', perm: 'user.read' },
+    { to: '/admin/commerce', label: t('admin.commerce.title'), section: 'ventas', perm: null },
+    { to: '/admin/invoices', label: t('admin.invoices.title'), section: 'ventas', perm: null },
+    { to: '/admin/inventory', label: t('admin.inventory.title'), section: 'ventas', perm: null },
+    { to: '/admin/email', label: t('nav.email'), section: 'comunicacion', perm: 'email.read' },
+    { to: '/admin/notifications', label: t('admin.notifications.title'), section: 'comunicacion', perm: null },
+    { to: '/admin/chat', label: t('admin.chat.title'), section: 'comunicacion', perm: null },
+    { to: '/admin/support', label: t('nav.support'), section: 'comunicacion', perm: 'support.read' },
+    { to: '/admin/social', label: t('admin.social.title'), section: 'comunidad', perm: null },
+    { to: '/admin/calendar', label: t('admin.calendar.title'), section: 'comunidad', perm: null },
+    { to: '/admin/appearance', label: t('nav.appearance'), section: 'apariencia', perm: 'theme.read' },
+    { to: '/admin/translations', label: t('nav.translations'), section: 'apariencia', perm: 'translation.read' },
+    { to: '/admin/menu', label: t('nav.menu'), section: 'apariencia', perm: 'setting.read' },
+    { to: '/admin/plugins', label: t('nav.plugins'), section: 'integraciones', perm: 'plugin.read' },
+    { to: '/admin/plugin-settings', label: t('nav.configPlugins'), section: 'integraciones', perm: 'plugin.read' },
+    { to: '/admin/api-tokens', label: t('nav.api'), section: 'integraciones', perm: null },
+    { to: '/admin/auth', label: t('nav.registerLogin'), section: 'integraciones', perm: null },
+    { to: '/admin/settings', label: t('nav.settings'), section: 'configuracion', perm: 'setting.read' },
+    { to: '/admin/templates', label: t('nav.templates'), section: 'configuracion', perm: 'setting.write' },
+    { to: '/admin/branches', label: t('nav.branches'), section: 'configuracion', perm: null },
+    { to: '/admin/organizations', label: t('admin.organizations.title'), section: 'configuracion', perm: null },
+    { to: '/admin/updates', label: t('nav.updates'), section: 'configuracion', perm: 'setting.read' },
+    { to: '/admin/license', label: t('nav.license'), section: 'configuracion', perm: 'license.read' },
+    { to: '/admin/users', label: t('nav.users'), section: 'usuarios', perm: 'user.read' },
+    { to: '/admin/roles', label: t('nav.roles'), section: 'usuarios', perm: 'role.read' },
+    { to: '/admin/audit', label: t('nav.audit'), section: 'usuarios', perm: 'audit.read' },
+  ];
+
+  const pluginItems: NavItem[] = (menuData?.items ?? [])
     .filter((item) => typeof item.id === 'string' && item.id !== '')
     .filter((item) => !item.permissions || item.permissions.every((p) => hasPermission(p)))
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    .map((item) => ({
+      to: item.path,
+      label: item.label,
+      section: (SECTION_KEYS.has(item.section ?? '') ? item.section : 'integraciones') as SectionKey,
+      perm: null,
+    }));
 
-  const coreNav = [
-    { to: '/admin', label: t('nav.dashboard'), end: true, perm: null as string | null },
-    { to: '/admin/content', label: t('nav.content'), perm: 'content.read' },
-    { to: '/admin/pages', label: t('nav.pages'), perm: 'content.read' },
-    { to: '/admin/editor', label: t('nav.editor'), perm: 'content.write' },
-    { to: '/admin/email', label: t('nav.email'), perm: 'email.read' },
-    { to: '/admin/plugins', label: t('nav.plugins'), perm: 'plugin.read' },
-    { to: '/admin/plugin-settings', label: t('nav.configPlugins'), perm: 'plugin.read' },
-    { to: '/admin/templates', label: t('nav.templates'), perm: 'setting.write' },
-    { to: '/admin/branches', label: t('nav.branches'), perm: null },
-    { to: '/admin/payments', label: t('nav.payments'), perm: 'user.read' },
-    { to: '/admin/users', label: t('nav.users'), perm: 'user.read' },
-    { to: '/admin/roles', label: t('nav.roles'), perm: 'role.read' },
-    { to: '/admin/settings', label: t('nav.settings'), perm: 'setting.read' },
-    { to: '/admin/updates', label: t('nav.updates'), perm: 'setting.read' },
-    { to: '/admin/license', label: t('nav.license'), perm: 'license.read' },
-    { to: '/admin/appearance', label: t('nav.appearance'), perm: 'theme.read' },
-    { to: '/admin/translations', label: t('nav.translations'), perm: 'translation.read' },
-    { to: '/admin/audit', label: t('nav.audit'), perm: 'audit.read' },
-    { to: '/admin/api-tokens', label: t('nav.api'), perm: null },
-    { to: '/admin/menu', label: t('nav.menu'), perm: 'setting.read' },
-    { to: '/admin/support', label: t('nav.support'), perm: 'support.read' },
-  ].filter((item) => item.perm === null || hasPermission(item.perm));
+  const sectionLabels: Record<SectionKey, string> = {
+    panel: t('admin.sections.panel'),
+    contenido: t('admin.sections.contenido'),
+    ventas: t('admin.sections.ventas'),
+    comunicacion: t('admin.sections.comunicacion'),
+    comunidad: t('admin.sections.comunidad'),
+    apariencia: t('admin.sections.apariencia'),
+    integraciones: t('admin.sections.integraciones'),
+    configuracion: t('admin.sections.configuracion'),
+    usuarios: t('admin.sections.usuarios'),
+  };
 
-  // Módulos core del panel que antes figuraban como "Plugins instalados".
-  const featureNav = [
-    { to: '/admin/blog', label: t('admin.blog.title') },
-    { to: '/admin/social', label: t('admin.social.title') },
-    { to: '/admin/chat', label: t('admin.chat.title') },
-    { to: '/admin/calendar', label: t('admin.calendar.title') },
-    { to: '/admin/forms', label: t('admin.forms.title') },
-    { to: '/admin/commerce', label: t('admin.commerce.title') },
-    { to: '/admin/invoices', label: t('admin.invoices.title') },
-    { to: '/admin/analytics', label: t('admin.analytics.title') },
-    { to: '/admin/notifications', label: t('admin.notifications.title') },
-    { to: '/admin/auth', label: t('nav.registerLogin') },
-    { to: '/admin/organizations', label: t('admin.organizations.title') },
-    { to: '/admin/inventory', label: t('admin.inventory.title') },
-  ];
+  const isVisible = (item: NavItem) =>
+    (item.perm === null || hasPermission(item.perm)) &&
+    !(PLUGIN_MANAGEMENT_PATHS.has(item.to) && !hasInstalledPlugins);
+
+  const grouped = SECTION_ORDER.map((section) => ({
+    section,
+    items: [
+      ...navItems.filter((i) => i.section === section && isVisible(i)),
+      ...pluginItems.filter((i) => i.section === section),
+    ],
+  })).filter((g) => g.items.length > 0);
 
   return (
     <div className={`admin-layout${collapsed ? ' collapsed' : ''}`}>
       <aside className="sidebar">
         <div className="brand">{collapsed ? 'W' : 'Webs'}</div>
         <nav className="stack">
-          {coreNav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              title={item.label}
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              {collapsed ? item.label.charAt(0) : item.label}
-            </NavLink>
-          ))}
-
-          {featureNav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              title={item.label}
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              {collapsed ? item.label.charAt(0) : item.label}
-            </NavLink>
-          ))}
-
-          {pluginNav.map((item) => (
-            <NavLink
-              key={item.id ?? item.path}
-              to={item.path}
-              title={item.label}
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              {collapsed ? item.label.charAt(0) : item.label}
-            </NavLink>
+          {grouped.map((group) => (
+            <div key={group.section}>
+              {!collapsed && <div className="nav-section">{sectionLabels[group.section]}</div>}
+              {group.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  title={item.label}
+                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                >
+                  {collapsed ? item.label.charAt(0) : item.label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
       </aside>

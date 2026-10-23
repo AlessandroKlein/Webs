@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
 
 interface Template {
@@ -14,10 +15,25 @@ interface Template {
   menu?: Array<{ label: string; path: string; order?: number }>;
 }
 
+function templateMatches(tpl: Template, q: string): boolean {
+  const needle = q.trim().toLowerCase();
+  if (!needle) return true;
+  const haystack = [
+    tpl.name,
+    tpl.description ?? '',
+    ...(tpl.blocks ?? []).map((b) => b.id),
+    ...(tpl.menu ?? []).map((m) => m.label),
+  ]
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(needle);
+}
+
 export function TemplatesPage() {
   const qc = useQueryClient();
   const [applied, setApplied] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['templates'],
@@ -37,6 +53,8 @@ export function TemplatesPage() {
 
   if (isLoading) return <Spinner />;
 
+  const filtered = (data ?? []).filter((tpl) => templateMatches(tpl, query));
+
   return (
     <div className="stack">
       <h1>Plantillas</h1>
@@ -45,11 +63,19 @@ export function TemplatesPage() {
         menú. Ideal para arrancar un gimnasio, un mercado, un blog…
       </p>
 
+      <Input
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Buscar plantillas…"
+        aria-label="Buscar plantillas"
+        style={{ maxWidth: 360 }}
+      />
+
       {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
 
-      <div className="grid-2" style={{ alignItems: 'start' }}>
-        {(data ?? []).map((tpl) => (
-          <Card key={tpl.id}>
+      <div className="grid-2">
+        {filtered.map((tpl) => (
+          <Card key={tpl.id} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <h3>{tpl.name}</h3>
             <p className="muted">{tpl.description}</p>
             <p className="muted">
@@ -73,12 +99,14 @@ export function TemplatesPage() {
                 )}
               </div>
             )}
-            <Button onClick={() => apply.mutate(tpl.id)} disabled={apply.isPending}>
-              {applied === tpl.id ? 'Aplicada ✓' : 'Aplicar plantilla'}
-            </Button>
+            <div style={{ marginTop: 'auto', paddingTop: 'var(--ws-space-3)' }}>
+              <Button onClick={() => apply.mutate(tpl.id)} disabled={apply.isPending}>
+                {applied === tpl.id ? 'Aplicada ✓' : 'Aplicar plantilla'}
+              </Button>
+            </div>
           </Card>
         ))}
-        {(data ?? []).length === 0 && <p className="muted">No hay plantillas definidas.</p>}
+        {filtered.length === 0 && <p className="muted">No se encontraron plantillas.</p>}
       </div>
     </div>
   );

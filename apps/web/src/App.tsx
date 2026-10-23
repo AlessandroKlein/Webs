@@ -22,6 +22,7 @@ import { PluginSettingsPage } from './features/plugins/PluginSettingsPage';
 import { TemplatesPage } from './features/templates/TemplatesPage';
 import { PaymentsPage } from './features/payments/PaymentsPage';
 import { StorePage } from './features/store/StorePage';
+import { CheckoutPage } from './features/checkout/CheckoutPage';
 import { UsersPage } from './features/users/UsersPage';
 import { RolesPage } from './features/roles/RolesPage';
 import { ContentPage } from './features/content/ContentPage';
@@ -42,6 +43,7 @@ import { CalendarPage } from './features/calendar/CalendarPage';
 import { FormsPage } from './features/forms/FormsPage';
 import { CommercePage } from './features/commerce/CommercePage';
 import { InvoicesPage } from './features/invoices/InvoicesPage';
+import { InvoiceTemplateEditor } from './features/invoices/InvoiceTemplateEditor';
 import { AnalyticsPage } from './features/analytics/AnalyticsPage';
 import { NotificationsPage } from './features/notifications/NotificationsPage';
 import { AuthConfigPage } from './features/auth-config/AuthConfigPage';
@@ -139,6 +141,7 @@ function MainApp() {
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/store" element={<SiteLayout><StorePage /></SiteLayout>} />
+        <Route path="/checkout" element={<RequireAuth><SiteLayout><CheckoutPage /></SiteLayout></RequireAuth>} />
         <Route path="/" element={<PublicHome />} />
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/clases" element={<ClassesPage />} />
@@ -169,6 +172,7 @@ function MainApp() {
           <Route path="forms" element={<FormsPage />} />
           <Route path="commerce" element={<CommercePage />} />
           <Route path="invoices" element={<InvoicesPage />} />
+          <Route path="invoices/template" element={<InvoiceTemplateEditor />} />
           <Route path="analytics" element={<AnalyticsPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="auth" element={<AuthConfigPage />} />

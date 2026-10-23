@@ -17,6 +17,10 @@ para adaptar a la empresa, jurisdicción y dominio que despliegue la plataforma.
 | [`03-politica-de-privacidad.md`](03-politica-de-privacidad.md) | Política de Privacidad, alineada con **GDPR** (UE) y **LGPD** (Brasil). |
 | [`04-politica-de-cookies.md`](04-politica-de-cookies.md) | Política de Cookies. |
 | [`05-cumplimiento-componentes-sin-pago.md`](05-cumplimiento-componentes-sin-pago.md) | **Anexo de cumplimiento**: confirmación de que las dependencias del proyecto son open-source/sin costo, con listado de licencias. |
+| [`06-facturacion-electronica-afip-arca.md`](06-facturacion-electronica-afip-arca.md) | **Facturación electrónica Argentina (AFIP/ARCA)**: tipos de comprobante (A/B/C/M), CAE/CAEA, datos del emisor/receptor, monotributo vs responsable inscripto y homologación vs producción. |
+| [`07-terminos-suscripcion-pago.md`](07-terminos-suscripcion-pago.md) | **Términos y Condiciones de Suscripciones y Pagos**: renovación, cancelación, reembolsos y medios de pago. |
+| [`08-checklist-cumplimiento-checkout.md`](08-checklist-cumplimiento-checkout.md) | **Checklist de cumplimiento del checkout**: precios claros, impuestos, resumen y consentimiento. |
+| [`09-referencia-tecnica-facturacion.md`](09-referencia-tecnica-facturacion.md) | **Referencia técnica** para el equipo de desarrollo: mapa de datos obligatorios de facturación → modelo de la plataforma. |
 
 ## Personalización desde la UI (Settings → Legal)
 
@@ -58,6 +62,18 @@ Placeholders adicionales opcionales presentes en los documentos:
 | `[IDENTIFICACION_FISCAL]` | NIF/CUIT/RUT/CNPJ u otro identificador fiscal (opcional). |
 | `[DOMICILIO]` | Domicilio legal o fiscal (opcional). |
 | `[AUTORIDAD_CONTROL]` | Autoridad de protección de datos competente (opcional). |
+
+Placeholders específicos de facturación y pagos (documentos 06–09):
+
+| Placeholder | Uso |
+| ----------- | --- |
+| `[CUIT]` | Clave Única de Identificación Tributaria del emisor (11 dígitos). |
+| `[RAZON_SOCIAL]` | Razón social registrada ante AFIP/ARCA (si difiere de `[NOMBRE_EMPRESA]`). |
+| `[CONDICION_IVA]` | Condición frente al IVA del emisor (Responsable Inscripto / Monotributista / Exento / No responsable). |
+| `[DOMICILIO_FISCAL]` | Domicilio fiscal/comercial declarado ante AFIP/ARCA. |
+| `[INGRESOS_BRUTOS]` | N° de inscripción en Ingresos Brutos y jurisdicción (si corresponde). |
+| `[FECHA_INICIO_ACTIVIDADES]` | Fecha de inicio de actividades declarada. |
+| `[PUNTO_DE_VENTA]` | Código de punto de venta habilitado por AFIP/ARCA. |
 
 ### 2. Elegir la jurisdicción
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api';
 import i18next from '../../lib/i18n';
 import { useAuthStore } from '../../lib/auth-store';
@@ -979,6 +980,7 @@ function asPlanFeatures(v: unknown): string[] {
 function PlansSection({ user }: { user: AuthUser | null }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const userId = user?.id ?? '';
 
   const { data: plans, isLoading: plansLoading, isError: plansError } = useQuery({
@@ -1091,10 +1093,10 @@ function PlansSection({ user }: { user: AuthUser | null }) {
               )}
               <Button
                 style={{ marginTop: 'auto' }}
-                onClick={() => subscribe.mutate(p.id)}
+                onClick={() => navigate(`/checkout?kind=subscription&planId=${p.id}`)}
                 disabled={subscribe.isPending || !!my}
               >
-                {subscribe.isPending ? t('dashboard.subscribing') : t('dashboard.subscribe')}
+                {t('dashboard.subscribe')}
               </Button>
             </div>
           ))}

@@ -143,6 +143,120 @@ Con el rate-limit global, el pub/sub de WebSocket y la caché, Redis se vuelve *
 en producción. Si cae, la app debe degradar de forma controlada (circuit-breaker/fallback
 documentado), no colgar.
 
+## Escalabilidad selectable (ADR-0025)
+
+El [ADR-0025](../adr/0025-scalable-selectable.md) extiende el HPA de M2 para que el usuario
+elija, **desde el panel y por workload** (`api`, `web`), entre escalado **horizontal (HPA)** y
+**vertical (VPA)**, con los modos verticales **Auto / Recommender / Initial**.
+
+### Selector por workload
+
+| Workload | Modo | Efecto |
+|---|---|---|
+| `api` | `horizontal` | `HorizontalPodAutoscaler` (`autoscaling/v2`, CPU/mem 70 %, 2→10). |
+| `api` | `vertical` | `VerticalPodAutoscaler` (`autoscaling.k8s.io/v1`) con `updateMode` Auto/Off/Initial. |
+| `web` | `horizontal` / `vertical` | Ídem para el deployment de nginx. |
+
+La selección se **persiste en el `ConfigMap` `webs-scaling`** (namespace `webs`), clave
+`scaling.json`:
+
+```jsonc
+{
+  "workloads": [
+    { "name": "api",  "mode": "horizontal", "hpa": { "min": 2, "max": 10, "cpuTargetPct": 70, "memTargetPct": 70 } },
+    { "name": "web",  "mode": "vertical",
+      "vpa": { "updateMode": "Off", "minAllowed": { "cpu": "100m", "memory": "128Mi" },
+               "maxAllowed": { "cpu": "2", "memory": "4Gi" }, "controlledResources": ["cpu", "memory"] } }
+  ]
+}
+```
+
+### Modos verticales (VPA)
+
+El VPA requiere el **operador VPA** (`kubernetes/autoscaler`: `recommender`, `updater`,
+`admission-controller`) instalado en el cluster.
+
+| Modo UI | `updateMode` | Comportamiento |
+|---|---|---|
+| **Auto** | `Auto` | Aplica recomendaciones y reinicia pods cuando hace falta. |
+| **Recommender** | `Off` | Calcula y publica recomendaciones (visibles), no las aplica. |
+| **Initial** | `Initial` | Aplica recomendaciones solo al crear el pod. |
+
+Parámetros configurables (`spec.resourcePolicy.containerPolicies`): `minAllowed`/`maxAllowed`
+CPU y memoria + `controlledResources: ["cpu", "memory"]` por contenedor.
+
+### Regla de exclusión HPA vs VPA
+
+**HPA y VPA no pueden activarse a la vez sobre CPU/memoria del mismo workload** (se pisan: el VPA
+reescribe `requests`/`limits` que son la base de la métrica del HPA). El selector impone **uno u
+otro por workload**.
+
+- `PUT /api/v1/system/scaling` valida la guarda y responde **422** si la viola.
+- **Coexistencia** (cuando se quieren ambos): `VPA` sobre **CPU/memoria** + `HPA` sobre
+  **métricas custom** (p. ej. `KEDA` por longitud de cola Redis `webs:queue:*`), de modo que el
+  HPA no usa las métricas que el VPA controla.
+
+### Contrato de endpoints
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| GET | `/api/v1/system/scaling` | admin (`scaling.read`) | Estado persistido + `recommendations` (si el VPA publica). |
+| PUT | `/api/v1/system/scaling` | admin (`scaling.write`) | Actualiza selección/parámetros; valida exclusión (422 si viola). |
+| GET | `/api/v1/system/scaling/export?workload=api&format=yaml` | admin (`scaling.read`) | Exporta el YAML del manifiesto (`HPA` o `VPA`) según la selección. |
+
+Respuesta `GET /api/v1/system/scaling`:
+
+```jsonc
+{
+  "workloads": [
+    { "name": "api", "mode": "horizontal",
+      "hpa": { "min": 2, "max": 10, "cpuTargetPct": 70, "memTargetPct": 70 },
+      "vpa": null },
+    { "name": "web", "mode": "vertical", "hpa": null,
+      "vpa": { "updateMode": "Off", "minAllowed": { "cpu": "100m", "memory": "128Mi" },
+               "maxAllowed": { "cpu": "2", "memory": "4Gi" }, "controlledResources": ["cpu", "memory"] } }
+  ],
+  "appliedAt": "2026-…",
+  "recommendations": { "web": { "cpu": "300m", "memory": "640Mi" } }
+}
+```
+
+### Template VPA (generado)
+
+```yaml
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: api
+  namespace: webs
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  updatePolicy:
+    updateMode: Off            # Auto | Off | Initial
+  resourcePolicy:
+    containerPolicies:
+      - containerName: api
+        controlledResources: ["cpu", "memory"]
+        minAllowed:
+          cpu: 100m
+          memory: 128Mi
+        maxAllowed:
+          cpu: "2"
+          memory: 4Gi
+```
+
+El HPA generado reutiliza el `hpa-api.yaml` existente (con los parámetros configurables
+`min`/`max`/`cpuTargetPct`/`memTargetPct`).
+
+### Seguridad
+
+Solo `role=admin`; toda escritura auditable (`AuditLog`, `action = scaling.update`). El export YAML
+referencia `secretKeyRef` a `webs-secret` (nunca literales). El `ServiceAccount` del backend tiene
+el menor privilegio (`get/list/watch/update` solo sobre `webs-scaling`), sin acceso a `Secret`.
+
 ## Observabilidad
 
 ### Logging estructurado (pino)
