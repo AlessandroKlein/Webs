@@ -22,6 +22,7 @@
         "es": "Inventario"
       },
       "path": "/admin/inventory",
+      "section": "ventas",
       "order": 12,
       "target": "admin"
     }
@@ -50,5 +51,6 @@
         "default": true
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }

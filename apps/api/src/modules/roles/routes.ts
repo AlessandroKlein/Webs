@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { ConflictError, ForbiddenError, NotFoundError } from '@webs/core';
+import { ConflictError, ForbiddenError, NotFoundError, flattenPermissionCatalog, groupPermissionCatalog } from '@webs/core';
 import { paginationQuerySchema, pageParams, pageResponse } from '../../lib/pagination';
 import { audit } from '../../lib/audit';
 import { createRoleSchema, updateRoleSchema, type CreateRoleBody, type UpdateRoleBody } from './schema';
@@ -26,12 +26,25 @@ export default async function rolesRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get(
     '/permissions',
     {
-      schema: { tags: ['roles'] },
+      schema: {
+        tags: ['roles'],
+        querystring: {
+          type: 'object',
+          properties: { format: { type: 'string', enum: ['grouped', 'flat'] } },
+        },
+      },
       preHandler: [fastify.authenticate, fastify.authorize('role.read')],
     },
-    async () => {
-      const permissions = await fastify.prisma.permission.findMany({ orderBy: { key: 'asc' } });
-      return permissions.map((p) => ({ key: p.key, description: p.description }));
+    async (request) => {
+      const { format } = (request.query as { format?: 'grouped' | 'flat' }) ?? {};
+      const dbPermissions = await fastify.prisma.permission.findMany({
+        orderBy: { key: 'asc' },
+        select: { key: true, description: true },
+      });
+      // ADR-0018: catálogo agrupado (base + permisos de plugins) por defecto;
+      // variante plana por retrocompatibilidad con clientes existentes.
+      if (format === 'flat') return flattenPermissionCatalog(dbPermissions);
+      return groupPermissionCatalog(dbPermissions);
     },
   );
 

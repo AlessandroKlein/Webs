@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { cacheGet, cacheSet } from './cache';
 
 /** Contexto de tenant resuelto para un request autenticado. */
 export interface TenantContext {
@@ -21,6 +22,38 @@ export const CHAIN_ADMIN_ROLES = ['admin', 'owner'];
 interface TenantUser {
   sub?: string;
   orgId?: string | null;
+}
+
+/**
+ * Resuelve la organización/sucursal a partir del hostname del request (ADR-0017).
+ *
+ * Usa `X-Forwarded-Host` (tras el proxy) o `Host`, normalizado a minúsculas y sin
+ * puerto, y busca `Organization.domain`. Devuelve el id de la organización o `null`
+ * si el host no corresponde a ningún dominio declarado (la resolución continúa por
+ * cabecera/JWT en `resolveTenant`).
+ *
+ * El resultado se cachea (Redis si está disponible, en memoria como respaldo) con
+ * TTL corto para no añadir una query por request.
+ */
+export async function resolveTenantByHostname(
+  fastify: FastifyInstance,
+  request: FastifyRequest,
+): Promise<string | null> {
+  const raw = (request.headers['x-forwarded-host'] as string | undefined) ?? (request.headers.host as string | undefined);
+  if (!raw) return null;
+  const host = (raw.toLowerCase().split(':')[0] ?? raw).trim();
+  if (!host) return null;
+
+  const cacheKey = `tenant:domain:${host}`;
+  const cached = await cacheGet<{ id: string | null }>(fastify.redis, cacheKey);
+  if (cached) return cached.id;
+
+  const org = await fastify.prisma.organization.findUnique({
+    where: { domain: host },
+    select: { id: true },
+  });
+  await cacheSet(fastify.redis, cacheKey, { id: org?.id ?? null }, 60);
+  return org?.id ?? null;
 }
 
 /**
@@ -58,10 +91,24 @@ export async function resolveTenant(
   const headerOrgId = request.headers['x-org-id'] as string | undefined;
   const headerChainId = request.headers['x-chain-id'] as string | undefined;
 
+  // ADR-0017: el hostname/subdominio fija la sucursal base. El usuario debe tener
+  // membresía activa sobre ella (fail-closed); super_admin puede anular con cabecera.
+  const hostOrgId = await resolveTenantByHostname(fastify, request);
+
   let organizationId: string | null = null;
 
   if (isSuperAdmin) {
-    organizationId = headerOrgId ?? headerChainId ?? user.orgId ?? null;
+    organizationId = headerOrgId ?? headerChainId ?? hostOrgId ?? user.orgId ?? null;
+  } else if (hostOrgId) {
+    // Hostname resuelto a una sucursal: requiere membresía activa sobre esa org.
+    const membership = await prisma.membership.findFirst({
+      where: { userId: user.sub, organizationId: hostOrgId, status: 'active' },
+      select: { id: true },
+    });
+    if (membership) {
+      organizationId = hostOrgId;
+    }
+    // Sin membresía sobre la sucursal del hostname: null → 403 (fail-closed).
   } else if (headerChainId) {
     // Vista consolidada: solo admin de la raíz de esa cadena.
     const rootAdmin = await prisma.membership.findFirst({

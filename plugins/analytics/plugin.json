@@ -28,6 +28,7 @@
         "es": "Analítica"
       },
       "path": "/admin/analytics",
+      "section": "panel",
       "order": 8,
       "target": "admin"
     }
@@ -126,5 +127,6 @@
         "default": true
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }

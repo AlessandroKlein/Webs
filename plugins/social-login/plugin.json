@@ -124,5 +124,6 @@
         "default": true
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }

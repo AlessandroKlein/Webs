@@ -269,6 +269,8 @@ input[type='radio'] {
   display: flex;
   align-items: center;
   gap: var(--ws-space-3);
+  flex-wrap: nowrap;
+  margin: 0;
 }
 .stack {
   display: flex;
@@ -303,6 +305,73 @@ input[type='radio'] {
 .table th {
   color: var(--ws-text-muted);
   font-size: var(--ws-font-size-sm);
+}
+
+/* ── Integración de tokens Bootstrap → Webs (carga después de bootstrap-vendor.scss) ──
+   Mapea las variables CSS de Bootstrap a los tokens `--ws-*` para que las tablas,
+   formularios y estados de validación sigan el tema claro/oscuro de la plataforma. */
+.table {
+  --bs-table-color: var(--ws-text);
+  --bs-table-bg: var(--ws-surface);
+  --bs-table-border-color: var(--ws-border);
+  --bs-table-striped-color: var(--ws-text);
+  --bs-table-striped-bg: var(--ws-surface-2);
+  --bs-table-hover-color: var(--ws-text);
+  --bs-table-hover-bg: var(--ws-surface-3);
+  --bs-table-active-color: var(--ws-text);
+  --bs-table-active-bg: var(--ws-surface-3);
+}
+.form-control,
+.form-select {
+  color: var(--ws-text);
+  background-color: var(--ws-surface);
+  border-color: var(--ws-border);
+}
+.form-control:focus,
+.form-select:focus {
+  color: var(--ws-text);
+  background-color: var(--ws-surface);
+  border-color: var(--ws-primary);
+  box-shadow: 0 0 0 0.25rem var(--ws-primary-soft);
+}
+.form-control::placeholder {
+  color: var(--ws-text-subtle);
+}
+.form-label {
+  color: var(--ws-text-muted);
+}
+.form-text {
+  color: var(--ws-text-subtle);
+}
+.form-check-input:checked {
+  background-color: var(--ws-primary);
+  border-color: var(--ws-primary);
+}
+.form-check-input:focus {
+  border-color: var(--ws-primary);
+  box-shadow: 0 0 0 0.25rem var(--ws-primary-soft);
+}
+.form-control.is-invalid,
+.form-select.is-invalid,
+.is-invalid {
+  border-color: var(--ws-danger);
+}
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus,
+.is-invalid:focus {
+  border-color: var(--ws-danger);
+  box-shadow: 0 0 0 0.25rem var(--ws-danger-soft);
+}
+.invalid-feedback {
+  color: var(--ws-danger);
+}
+.form-control.is-valid,
+.form-select.is-valid,
+.is-valid {
+  border-color: var(--ws-success);
+}
+.valid-feedback {
+  color: var(--ws-success);
 }
 
 /* Documentos legales (Markdown renderizado por lib/markdown.ts) */

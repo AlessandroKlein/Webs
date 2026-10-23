@@ -3,6 +3,58 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.3.0] - 2026-10-23
+
+### Añadido
+
+- **Catálogo canónico de permisos** (`PERMISSION_CATALOG`, 46 claves / 24 áreas):
+  `GET /api/v1/permissions` devuelve el catálogo agrupado por área (`?format=flat`
+  para la vista plana) y fusiona los permisos de los plugins instalados; `RolesPage`
+  reescrito para crear/editar roles seleccionando permisos por área (checkbox
+  "seleccionar todo" + contador) y modal `RoleFormDialog` con todos los campos.
+  Ref ADR-0018.
+- **Claves de licencia para la venta**: modelos `LicenseSale`/`LicenseKey`
+  (migración `0006_license_sales_keys`), API de gestión (`/license/sales`,
+  `/license/keys`, `/license/keys/validate`, `/license/keys/:id/revoke`), emisión de
+  claves firmadas Ed25519 + cifradas por fingerprint (requiere `LICENSE_PRIVATE_KEY`,
+  solo entorno del vendedor) y panel `/admin/license/keys` (generar, revocar, listar
+  y validar).
+- **Marketplace con origen real**: botón "Instalar" + badge de origen
+  (GitHub/npm/local); resolución de fuente remota vía `repository`/`source` con
+  verificación sha256 + Ed25519 (`installRemotePlugin`).
+- **Nginx reverse-proxy con allowlist + multi-sucursal** (`docker/nginx/`):
+  allowlist de rutas públicas (setting `public_routes`, `map $uri`, drop `444`),
+  endpoints internos siempre denegados (`/api/v1/{license,roles,audit,system/backup}/*`)
+  y plantilla multi-sucursal por hostname (`Organization.domain`, `map $host`,
+  `server_name .marca.ar`). Ref ADR-0017.
+- **Plugins finalizados**: 43/43 manifiestos válidos, compilables, registrables e
+  instalables (smoke de instalación del catálogo 43/43); `README.md` generado para
+  los 41 plugins que no lo tenían + `docs/plugins-checklist.md`.
+- **i18n M5 (ES/EN/PT)** de marketplace, roles/permisos, claves de venta y
+  sucursales; y **docs M5** (marketplace remoto, nginx/multi-sucursal,
+  roles-permisos, claves-de-venta).
+
+### Corregido
+
+- **Emisión de claves de licencia rota**: `stableStringify` ahora filtra claves
+  `undefined` (antes `POST /license/keys` sin `limits`/`expiresAt` emitía una clave
+  inválida).
+- **`Organization.domain`**: el plugin `organizaciones` acepta y devuelve `domain`,
+  y el routing por hostname resuelve vía `X-Forwarded-Host` (fail-closed).
+- **Build roto**: `pnpm-workspace.yaml` tenía el placeholder literal de
+  `@parcel/watcher` (rompía `pnpm install --frozen-lockfile` → Docker/CI) → fijado a
+  `false` (dependencia transitiva, binding nativo solo para watch).
+- **Config de licencias en compose**: `LICENSE_PUBLIC_KEY`/`LICENSE_PRIVATE_KEY`
+  declaradas en `docker-compose.yml` (sin secretos reales; `docker-compose.override.yml`
+  ignorado).
+
+### Deuda técnica (heredada)
+
+- F12: rename residual `blockId` + shim `/api/v1/blocks/*` + prosa "bloque".
+- F4: docs con `block.read`/`block.manage` (históricas).
+- F10: `GET /setup/status` devuelve versión real del sistema.
+- F17: wrapper Capacitor real (seguimiento).
+
 ## [2.2.0] - 2026-10-23
 
 ### Añadido

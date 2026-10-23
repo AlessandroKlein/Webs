@@ -1,7 +1,52 @@
 # Roles y permisos
 
 El sistema de autorización de Webs es **basado en roles (RBAC)**: un usuario
-tiene uno o más roles, y cada rol agrupa un conjunto de **permisos**.
+tiene uno o más roles, y cada rol agrupa un conjunto de **permisos**. Desde
+M5 (ADR-0018) existe un **catálogo canónico de permisos** que expone **todas**
+las claves de la plataforma (incluidos los permisos de plugins) para crear y
+editar roles desde la UI.
+
+---
+
+## Catálogo canónico de permisos
+
+El catálogo vive en `packages/core/src/permissions.ts` (`PERMISSION_CATALOG`):
+**46 claves base** agrupadas en **24 dominios** (`area`). Coincide 1:1 con la
+constante `Permission` de `packages/core/src/constants.ts` y con el seed.
+
+| Área (`area`) | Permisos |
+|---------------|----------|
+| `users` | `user.read`, `user.write`, `user.invite` |
+| `roles` | `role.read`, `role.write` |
+| `settings` | `setting.read`, `setting.write` |
+| `plugins` | `plugin.read`, `plugin.manage` |
+| `license` | `license.read`, `license.manage` |
+| `content` | `content.read`, `content.write`, `content.publish`, `content.moderate` |
+| `i18n` | `translation.read`, `translation.write` |
+| `theme` | `theme.read`, `theme.write` |
+| `seo` | `seo.read`, `seo.write` |
+| `media` | `media.read`, `media.write` |
+| `audit` | `audit.read`, `audit.export` |
+| `email` | `email.read`, `email.write`, `email.send` |
+| `apiTokens` | `apiToken.read`, `apiToken.write` |
+| `organization` | `organization.manage` |
+| `membership` | `membership.manage`, `attendance.manage` |
+| `inventory` | `inventory.read`, `inventory.manage` |
+| `billing` | `billing.read`, `billing.write`, `refund.manage` |
+| `support` | `support.read`, `support.manage` |
+| `marketing` | `marketing.manage` |
+| `analytics` | `analytics.read` |
+| `hr` | `hr.manage` |
+| `sales` | `sales.manage` |
+| `academy` | `course.manage` |
+| `reports` | `report.export` |
+
+### Permisos de plugins
+
+Los plugins pueden registrar permisos adicionales vía su manifiesto
+(`manifest.permissions`). En runtime se **unen al catálogo** con
+`groupPermissionCatalog(extra)`: la base gana ante colisiones de clave y los
+permisos de plugins sin área conocida caen en el área `plugins`.
 
 ---
 
@@ -9,68 +54,34 @@ tiene uno o más roles, y cada rol agrupa un conjunto de **permisos**.
 
 Los permisos siguen la convención **`<recurso>.<acción>`**:
 
-| Acción        | Significado                                      |
-| ------------- | ------------------------------------------------ |
-| `.read`       | Leer/ver el recurso                              |
-| `.write`      | Crear/editar (gestionar) el recurso              |
-| `.manage`     | Operaciones especiales (instalar, publicar, etc.) |
-| `.publish`    | Publicar (caso particular de contenido)          |
+| Acción      | Significado                                         |
+| ----------- | --------------------------------------------------- |
+| `.read`     | Leer/ver el recurso                                 |
+| `.write`    | Crear/editar (gestionar) el recurso                 |
+| `.manage`   | Operaciones especiales (instalar, publicar, etc.)   |
+| `.publish`  | Publicar (caso particular de contenido)             |
 
-Ejemplos: `user.read`, `user.write`, `role.read`, `plugin.manage`,
-`content.publish`, `translation.write`.
-
-> Los permisos se definen en `packages/core/src/constants.ts` (constante
-> `Permission`) y se siembran en `apps/api/prisma/seed.ts`. Los plugins pueden
-> registrar permisos adicionales vía su manifiesto (`manifest.permissions`).
 > Los permisos del sistema de plugins son `plugin.read`/`plugin.manage`; los
-> alias `@deprecated` `BlockRead`/`BlockManage` se conservan por retrocompatibilidad
-> (ver `docs/architecture/plugin-system.md`).
+> alias `@deprecated` `BlockRead`/`BlockManage` se conservan por
+> retrocompatibilidad (ver `docs/architecture/plugin-system.md`).
 
 ---
 
-## Permisos base
+## Roles de sistema
 
-El seed crea estos 20 permisos:
+El seed crea **nueve roles de sistema** (`system: true`):
 
-| Dominio      | Permisos                                                  |
-| ------------ | --------------------------------------------------------- |
-| Usuarios     | `user.read`, `user.write`                                  |
-| Roles        | `role.read`, `role.write`                                  |
-| Ajustes      | `setting.read`, `setting.write`                            |
-| Plugins      | `plugin.read`, `plugin.manage`                               |
-| Contenido    | `content.read`, `content.write`, `content.publish`         |
-| Traducciones | `translation.read`, `translation.write`                    |
-| Tema         | `theme.read`, `theme.write`                                |
-| SEO          | `seo.read`, `seo.write`                                    |
-| Medios       | `media.read`, `media.write`                                |
-| Auditoría    | `audit.read`                                               |
-
-> Nota: los permisos `theme.*` y `seo.*` están declarados en el catálogo para
-> el gating de UI futuro, pero las rutas de ajustes actuales (`/settings/*`)
-> se protegen con `setting.read`/`setting.write`. Los permisos `media.*` están
-> definidos aunque el módulo de medios (tabla `Media`) aún no expone rutas.
-
----
-
-## Roles por defecto
-
-El seed crea cuatro roles **de sistema** (`system: true`):
-
-| Clave         | Nombre                 | Qué puede hacer                                                                 |
-| ------------- | ---------------------- | ------------------------------------------------------------------------------- |
-| `super_admin` | Super Administrador    | **Acceso total.** Todos los permisos. Rol raíz, no eliminable.                  |
-| `admin`       | Administrador          | Administración operativa: todos los permisos **excepto** `role.*` (no gestiona roles). |
-| `editor`      | Editor                 | Contenido y medios: `content.*`, `media.*`, `plugin.read`, `theme.read`, `seo.read`, `translation.read`. |
-| `user`        | Usuario                | Rol básico de usuario final: solo `content.read`.                               |
-
-Desglose exacto (desde `apps/api/prisma/seed.ts`):
-
-| Rol           | Permisos                                                                                          |
-| ------------- | ------------------------------------------------------------------------------------------------- |
-| `super_admin` | Todos (`user.*`, `role.*`, `setting.*`, `plugin.*`, `content.*`, `translation.*`, `theme.*`, `seo.*`, `media.*`, `audit.*`). |
-| `admin`       | Todos **excepto** `role.read` y `role.write`.                                                     |
-| `editor`      | `content.read`, `content.write`, `content.publish`, `media.read`, `media.write`, `plugin.read`, `theme.read`, `seo.read`, `translation.read`. |
-| `user`        | `content.read`.                                                                                   |
+| Clave           | Nombre           | Qué puede hacer |
+| --------------- | ---------------- | ------------------------------------------------------------------ |
+| `super_admin`   | Super Admin      | **Acceso total.** Todos los permisos. Rol raíz, no eliminable. |
+| `admin`         | Administrador    | Todos los permisos **excepto** `role.*` (no gestiona roles). |
+| `editor`        | Editor           | Contenido y medios: `content.*`, `media.*`, `plugin.read`, `theme.read`, `seo.read`, `translation.read`. |
+| `user`          | Usuario          | Rol básico de usuario final: solo `content.read`. |
+| `entrenador`    | Entrenador       | Perfil de entrenador (asistencia, contenidos de academia). |
+| `contador`      | Contador         | Facturación, pagos y reportes (sin gestión de roles). |
+| `cajero`        | Cajero           | Ventas, caja y pagos POS. |
+| `soporte`       | Soporte          | Tickets de soporte y usuarios. |
+| `recepcionista` | Recepcionista    | Asistencia y membresías. |
 
 ---
 
@@ -86,27 +97,61 @@ Desglose exacto (desde `apps/api/prisma/seed.ts`):
 
 ---
 
+## Listar el catálogo de permisos
+
+`GET /api/v1/permissions` devuelve el catálogo **agrupado por área** por
+defecto, y la variante plana con `?format=flat` (retrocompat con la UI actual).
+
+**Agrupado (por defecto):**
+
+```bash
+curl http://localhost:4000/api/v1/permissions \
+  -H 'Authorization: Bearer <accessToken>'
+```
+
+```json
+{
+  "areas": [
+    { "area": "users", "permissions": [
+      { "key": "user.read", "description": "Ver usuarios" },
+      { "key": "user.write", "description": "Crear/editar usuarios" }
+    ]},
+    { "area": "plugins", "permissions": [
+      { "key": "plugin.read", "description": "Ver plugins" },
+      { "key": "plugin.manage", "description": "Instalar/desinstalar plugins" },
+      { "key": "store.admin", "description": "Permiso de plugin" }
+    ]}
+  ]
+}
+```
+
+**Plano (retrocompat):**
+
+```bash
+curl 'http://localhost:4000/api/v1/permissions?format=flat' \
+  -H 'Authorization: Bearer <accessToken>'
+```
+
+```json
+[
+  { "key": "content.read", "description": "Ver contenido" },
+  { "key": "content.write", "description": "Crear/editar contenido" }
+]
+```
+
+> La ruta se mantiene en `/api/v1/permissions` (no `/roles/permissions`) para
+> no romper el consumidor frontend; el cambio es **aditivo** (agrupado por
+> defecto + flat opcional).
+
+---
+
 ## Crear un rol y asignar permisos
 
 Se puede hacer desde la UI (**Roles y permisos**, `/roles`) o vía API.
 
 **Ejemplo vía API:**
 
-1. Listar permisos disponibles:
-
-   ```bash
-   curl http://localhost:4000/api/v1/permissions \
-     -H 'Authorization: Bearer <accessToken>'
-   ```
-
-   ```json
-   [
-     { "key": "content.read", "description": "Ver contenido" },
-     { "key": "content.write", "description": "Crear/editar contenido" }
-   ]
-   ```
-
-2. Crear el rol:
+1. Crear el rol:
 
    ```bash
    curl -X POST http://localhost:4000/api/v1/roles \
@@ -123,7 +168,7 @@ Se puede hacer desde la UI (**Roles y permisos**, `/roles`) o vía API.
    Restricciones de `key`: regex `^[a-z0-9][a-z0-9_]*$` (minúsculas, números,
    guion bajo; sin espacios).
 
-3. Asignar el rol a un usuario (al crearlo o actualizarlo):
+2. Asignar el rol a un usuario (al crearlo o actualizarlo):
 
    ```bash
    curl -X PATCH http://localhost:4000/api/v1/users/<userId> \
@@ -158,10 +203,13 @@ Si tu plugin necesita permisos propios, seguí la misma convención:
 
 - Prefijá con el `id` del plugin (`store.*`) para evitar colisiones.
 - Usá acciones semánticas (`read`, `write`, `manage`).
+- El permiso se registrará automáticamente (`registerPluginPermissions`) y
+  aparecerá en el catálogo agrupado bajo el área `plugins`.
 
 ---
 
 ## Ver también
 
+- [`docs/adr/0018-roles-permisos.md`](../adr/0018-roles-permisos.md) — decisión completa del catálogo.
 - [`docs/api/overview.md`](../api/overview.md) — endpoints de `roles` y `permissions`.
 - [`docs/guides/crear-un-plugin.md`](./crear-un-plugin.md) — permisos de plugins.

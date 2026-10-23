@@ -146,7 +146,7 @@ export function UsersPage() {
           <>
             <Card>
               <TextField label="Buscar" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Por correo o nombre…" />
-              <table className="table">
+              <table className="table table-striped table-hover">
                 <thead>
                   <tr>
                     <th>{t('auth.email')}</th>
@@ -189,13 +189,26 @@ export function UsersPage() {
                 </h3>
                 <form className="stack" onSubmit={onSubmitEdit}>
                   <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <TextField label="Nombre" value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
-                    <TextField label="Nombre de usuario" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
-                    <TextField label="Locale" value={editLocale} onChange={(e) => setEditLocale(e.target.value)} placeholder="es" />
-                    <label className="row" style={{ gap: 8 }}>
-                      <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} />
-                      Activo
-                    </label>
+                    <div className="col">
+                      <TextField label="Nombre" value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
+                    </div>
+                    <div className="col">
+                      <TextField label="Nombre de usuario" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
+                    </div>
+                    <div className="col">
+                      <TextField label="Locale" value={editLocale} onChange={(e) => setEditLocale(e.target.value)} placeholder="es" />
+                    </div>
+                    <div className="col">
+                      <label className="form-check" style={{ gap: 8 }}>
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          checked={editActive}
+                          onChange={(e) => setEditActive(e.target.checked)}
+                        />
+                        <span className="form-check-label">Activo</span>
+                      </label>
+                    </div>
                   </div>
 
                   <div>

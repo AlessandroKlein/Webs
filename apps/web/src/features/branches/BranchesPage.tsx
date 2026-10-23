@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { useTenantStore, type ChainOrg } from '../../lib/tenant-store';
 import { Button } from '../../components/ui/Button';
@@ -26,31 +27,32 @@ interface UserRow {
 const BRANCH_SCOPE_LIMITS = [
   {
     id: 'own-finances',
-    label: 'Finanzas propias',
-    description: 'La sucursal ve y gestiona solo sus ingresos y gastos.',
+    labelKey: 'branches.scopeOwnFinances',
+    descriptionKey: 'branches.scopeOwnFinancesDesc',
     enabled: true,
   },
   {
     id: 'shared-inventory',
-    label: 'Inventario compartido',
-    description: 'Puede compartir inventario con la casa matriz.',
+    labelKey: 'branches.scopeSharedInventory',
+    descriptionKey: 'branches.scopeSharedInventoryDesc',
     enabled: true,
   },
   {
     id: 'consolidated-view',
-    label: 'Vista consolidada',
-    description: 'Solo la casa matriz agrega las finanzas de todas las sucursales.',
+    labelKey: 'branches.scopeConsolidatedView',
+    descriptionKey: 'branches.scopeConsolidatedViewDesc',
     enabled: false,
   },
   {
     id: 'cross-branch',
-    label: 'Datos de otras sucursales',
-    description: 'Una sucursal no accede a los datos de las demás.',
+    labelKey: 'branches.scopeCrossBranch',
+    descriptionKey: 'branches.scopeCrossBranchDesc',
     enabled: false,
   },
 ];
 
 export function BranchesPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const root = useTenantStore((s) => s.root);
   const branches = useTenantStore((s) => s.branches);
@@ -146,10 +148,17 @@ export function BranchesPage() {
 
   const users = usersQuery.data?.items ?? [];
 
+  const scopeFeatures = BRANCH_SCOPE_LIMITS.map((f) => ({
+    id: f.id,
+    label: t(f.labelKey),
+    description: t(f.descriptionKey),
+    enabled: f.enabled,
+  }));
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-xl font-semibold">Sucursales</h1>
+        <h1 className="text-xl font-semibold">{t('branches.title')}</h1>
         <ScopeBadge />
       </div>
 
@@ -158,11 +167,8 @@ export function BranchesPage() {
       ) : !root || branches.length === 0 ? (
         <Card>
           <Card.Header>
-            <Card.Title>Sin estructura de cadena</Card.Title>
-            <Card.Description>
-              No se detectó una casa matriz con sucursales (tipo `chain`/`branch`). Crea sucursales
-              desde aquí para comenzar a operar multi-tenant.
-            </Card.Description>
+            <Card.Title>{t('branches.noChainTitle')}</Card.Title>
+            <Card.Description>{t('branches.noChainDesc')}</Card.Description>
           </Card.Header>
         </Card>
       ) : null}
@@ -172,24 +178,24 @@ export function BranchesPage() {
         <div className="flex flex-col gap-6">
           <Card>
             <Card.Header>
-              <Card.Title>Crear sucursal</Card.Title>
+              <Card.Title>{t('branches.createTitle')}</Card.Title>
               <Card.Description>
-                Se crea bajo la casa matriz {root?.name ?? ''}.
+                {t('branches.createDesc', { name: root?.name ?? '' })}
               </Card.Description>
             </Card.Header>
             <Card.Content>
               <form onSubmit={submitCreate} className="flex flex-col gap-3">
-                <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} required />
+                <TextField label={t('common.name')} value={name} onChange={(e) => setName(e.target.value)} required />
                 <TextField
-                  label="Slug"
+                  label={t('branches.slug')}
                   value={slug}
                   onChange={(e) => setSlug(e.target.value)}
                   placeholder="sucursal-norte"
-                  hint="Identificador corto para URLs."
+                  hint={t('branches.slugHint')}
                 />
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-                  Activa
+                  {t('branches.activeF')}
                 </label>
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -197,14 +203,14 @@ export function BranchesPage() {
                     checked={shareInventory}
                     onChange={(e) => setShareInventory(e.target.checked)}
                   />
-                  Compartir inventario con la casa matriz
+                  {t('branches.shareInventory')}
                 </label>
                 <Button type="submit" loading={createBranch.isPending}>
-                  Crear sucursal
+                  {t('branches.create')}
                 </Button>
                 {createBranch.isError && (
                   <p className="text-sm text-danger" role="alert">
-                    No se pudo crear la sucursal.
+                    {t('branches.createError')}
                   </p>
                 )}
               </form>
@@ -213,11 +219,11 @@ export function BranchesPage() {
 
           <Card>
             <Card.Header>
-              <Card.Title>Límites de alcance</Card.Title>
-              <Card.Description>Qué puede y qué no puede ver una sucursal.</Card.Description>
+              <Card.Title>{t('branches.scopeLimitsTitle')}</Card.Title>
+              <Card.Description>{t('branches.scopeLimitsDesc')}</Card.Description>
             </Card.Header>
             <Card.Content>
-              <FeatureList features={BRANCH_SCOPE_LIMITS} ariaLabel="Límites de alcance de la sucursal" />
+              <FeatureList features={scopeFeatures} ariaLabel={t('branches.scopeLimitsAria')} />
             </Card.Content>
           </Card>
         </div>
@@ -226,14 +232,15 @@ export function BranchesPage() {
         <div className="flex flex-col gap-6 lg:col-span-2">
           <Card>
             <Card.Header>
-              <Card.Title>Sucursales ({branches.length})</Card.Title>
+              <Card.Title>{t('branches.listTitle', { count: branches.length })}</Card.Title>
               <Card.Description>
-                Casa matriz: <span className="font-medium text-text">{root?.name ?? '—'}</span>
+                {t('branches.headquarters')}{' '}
+                <span className="font-medium text-text">{root?.name ?? '—'}</span>
               </Card.Description>
             </Card.Header>
             <Card.Content>
               {branches.length === 0 ? (
-                <p className="text-sm text-muted">Aún no hay sucursales.</p>
+                <p className="text-sm text-muted">{t('branches.noBranches')}</p>
               ) : (
                 <div className="flex flex-col gap-3">
                   {branches.map((branch) => (
@@ -246,14 +253,14 @@ export function BranchesPage() {
                           <span className="font-medium text-text">{branch.name}</span>
                           {branch.slug && <span className="font-mono text-xs text-subtle">/{branch.slug}</span>}
                           {branch.active ? (
-                            <Badge variant="success">Activa</Badge>
+                            <Badge variant="success">{t('branches.activeF')}</Badge>
                           ) : (
-                            <Badge variant="neutral">Inactiva</Badge>
+                            <Badge variant="neutral">{t('branches.inactiveF')}</Badge>
                           )}
-                          {branch.shareInventory && <Badge variant="info">Inventario compartido</Badge>}
+                          {branch.shareInventory && <Badge variant="info">{t('branches.sharedInventoryBadge')}</Badge>}
                         </div>
                         <span className="text-sm text-muted">
-                          {branch.memberCount ?? 0} miembros · plan {branch.plan ?? 'free'}
+                          {t('branches.membersLine', { count: branch.memberCount ?? 0, plan: branch.plan ?? 'free' })}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -268,7 +275,7 @@ export function BranchesPage() {
                             setEditShareInventory(branch.shareInventory);
                           }}
                         >
-                          Editar
+                          {t('common.edit')}
                         </Button>
                         <Button
                           variant="secondary"
@@ -279,10 +286,10 @@ export function BranchesPage() {
                             setUserQuery('');
                           }}
                         >
-                          Asignar admin
+                          {t('branches.assignAdmin')}
                         </Button>
                         <Button variant="destructive" size="sm" onClick={() => setDeleting(branch)}>
-                          Eliminar
+                          {t('common.delete')}
                         </Button>
                       </div>
                     </div>
@@ -295,29 +302,28 @@ export function BranchesPage() {
           {assigning && (
             <Card>
               <Card.Header>
-                <Card.Title>Asignar admin de sucursal</Card.Title>
+                <Card.Title>{t('branches.assignAdminTitle')}</Card.Title>
                 <Card.Description>
-                  Otorga el rol <span className="font-medium text-text">admin</span> a un usuario en la
-                  sucursal <span className="font-medium text-text">{assigning.name}</span>.
+                  {t('branches.assignAdminDesc', { name: assigning.name })}
                 </Card.Description>
               </Card.Header>
               <Card.Content>
                 <form onSubmit={submitAssign} className="flex flex-col gap-3">
                   <TextField
-                    label="Buscar usuario"
+                    label={t('branches.searchUser')}
                     value={userQuery}
                     onChange={(e) => setUserQuery(e.target.value)}
-                    placeholder="Email o nombre…"
+                    placeholder={t('branches.searchUserPlaceholder')}
                   />
                   <label className="flex flex-col gap-1">
-                    <span className="text-sm text-muted">Usuario</span>
+                    <span className="text-sm text-muted">{t('common.user')}</span>
                     <select
                       className="input"
                       value={selectedUserId}
                       onChange={(e) => setSelectedUserId(e.target.value)}
                       required
                     >
-                      <option value="">Seleccionar usuario…</option>
+                      <option value="">{t('branches.selectUser')}</option>
                       {users.map((u) => (
                         <option key={u.id} value={u.id}>
                           {u.displayName ?? u.email} · {u.email}
@@ -327,10 +333,10 @@ export function BranchesPage() {
                   </label>
                   <div className="flex items-center gap-2">
                     <Button type="submit" disabled={!selectedUserId} loading={assignAdmin.isPending}>
-                      Asignar admin
+                      {t('branches.assignAdmin')}
                     </Button>
                     <Button type="button" variant="ghost" onClick={() => setAssigning(null)}>
-                      Cancelar
+                      {t('common.cancel')}
                     </Button>
                   </div>
                 </form>
@@ -344,8 +350,8 @@ export function BranchesPage() {
       {editing && (
         <ConfirmDialog
           open
-          title={`Editar ${editing.name}`}
-          confirmLabel="Guardar"
+          title={t('branches.editTitle', { name: editing.name })}
+          confirmLabel={t('common.save')}
           onConfirm={() => {
             updateBranch.mutate({
               name: editName.trim(),
@@ -357,11 +363,11 @@ export function BranchesPage() {
           onCancel={() => setEditing(null)}
         >
           <div className="flex flex-col gap-3">
-            <TextField label="Nombre" value={editName} onChange={(e) => setEditName(e.target.value)} />
-            <TextField label="Slug" value={editSlug} onChange={(e) => setEditSlug(e.target.value)} />
+            <TextField label={t('common.name')} value={editName} onChange={(e) => setEditName(e.target.value)} />
+            <TextField label={t('branches.slug')} value={editSlug} onChange={(e) => setEditSlug(e.target.value)} />
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} />
-              Activa
+              {t('branches.activeF')}
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -369,7 +375,7 @@ export function BranchesPage() {
                 checked={editShareInventory}
                 onChange={(e) => setEditShareInventory(e.target.checked)}
               />
-              Compartir inventario
+              {t('branches.shareInventory')}
             </label>
           </div>
         </ConfirmDialog>
@@ -378,14 +384,13 @@ export function BranchesPage() {
       {/* Modal de borrado */}
       <ConfirmDialog
         open={deleting !== null}
-        title="Eliminar sucursal"
+        title={t('branches.deleteTitle')}
         danger
-        confirmLabel="Eliminar"
+        confirmLabel={t('common.delete')}
         onConfirm={() => deleting && deleteBranch.mutate(deleting.id)}
         onCancel={() => setDeleting(null)}
       >
-        Se eliminará <strong>{deleting?.name}</strong> junto con sus membresías y registros de
-        asistencia. Esta acción no se puede deshacer.
+        {t('branches.deleteConfirm', { name: deleting?.name ?? '' })}
       </ConfirmDialog>
     </div>
   );

@@ -22,6 +22,7 @@
         "es": "Calendario"
       },
       "path": "/admin/calendar",
+      "section": "comunidad",
       "order": 4,
       "target": "admin"
     }
@@ -138,5 +139,6 @@
         }
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }

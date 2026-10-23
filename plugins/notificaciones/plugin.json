@@ -22,6 +22,7 @@
         "es": "Notificaciones"
       },
       "path": "/admin/notifications",
+      "section": "comunicacion",
       "order": 9,
       "target": "admin"
     }
@@ -93,5 +94,6 @@
         ]
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }

@@ -2,10 +2,12 @@
 
 - **Estado:** Aceptado
 - **Fecha:** 2026 (refactorización global de Webs, Milestone 1)
-- **Decisión:** Adoptar **Tailwind CSS v4** como único motor de estilos y **Shadcn UI**
+- **Decisión:** Adoptar **Tailwind CSS v4** como motor de estilos base y **Shadcn UI**
   (primitivas basadas en Radix copiadas al repo en `components/ui/`) como biblioteca de
-  componentes del frontend, migrando progresivamente el CSS a medida del admin y sustituyendo
-  Bootstrap Icons por `lucide-react`.
+  componentes del frontend, complementando con **Bootstrap** (rejilla/Flexbox, formularios,
+  tablas e iconos `bootstrap-icons`).
+- **Revisión (2026):** se revierte la sustitución de Bootstrap Icons por `lucide-react` y se
+  incorpora Bootstrap para layout, formularios y tablas junto a Tailwind + Shadcn UI.
 
 ## Contexto
 
@@ -60,8 +62,19 @@ la brecha entre la base existente y el uso real.
 
 ### 4. Iconografía
 
-- Sustituir **Bootstrap Icons** por **`lucide-react`** (iconos por defecto de shadcn),
-  eliminando la dependencia `bootstrap-icons` al completar la migración.
+- Mantener **Bootstrap Icons** (`bootstrap-icons`) como biblioteca de iconos del frontend
+  (clases `bi bi-*`). *(Revisión 2026: se revierte la decisión original de migrar a
+  `lucide-react`.)*
+
+### 5. Rejilla, Flexbox, formularios y tablas — Bootstrap
+
+- Utilizar **Bootstrap** para la rejilla/Flexbox (`container`/`row`/`col` y utilidades flex),
+  los **formularios** (`form-control`, `form-label`, `form-select`, `input-group`, validación)
+  y las **tablas** (`.table`, `.table-striped`, `.table-hover`, responsivas).
+- Convivencia con Tailwind v4: Tailwind sigue siendo la fuente de tokens de color/tipografía y
+  de las primitivas shadcn; Bootstrap aporta rejilla, controles de formulario y tablas. Para
+  evitar colisiones de clases, integrar Bootstrap de forma **selectiva** (solo grid/forms/tables
+  + helpers) y, si hace falta, aislarlo en un layer/namespacing por hoja de estilos.
 
 ## Consecuencias
 
@@ -76,8 +89,9 @@ la brecha entre la base existente y el uso real.
 
 - **Migración amplia** del CSS a medida del admin y de muchos componentes; es un esfuerzo
   incremental (no big-bang) para no romper funcionalidad.
-- Sustituir iconos `bi` por `lucide-react` toca muchos archivos; requiere un mapeo previo de
-  iconos para no perder significado.
+- Integrar Bootstrap junto a Tailwind exige aislar/namespaciar los módulos de Bootstrap para
+  evitar colisiones de clases (`.container`, utilidades flex) con Tailwind; requiere una
+  estrategia de import selectivo y pruebas visuales.
 - Tailwind v4 + `@theme` + convención `hsl(var(--…))` de shadcn exigen alinear una sola vez los
   tokens; si se desalinean, primitivas y utilidades mostrarían colores distintos.
 

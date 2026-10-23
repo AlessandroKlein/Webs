@@ -1,0 +1,106 @@
+# ============================================================================
+# Webs — plantilla multi-sucursal por hostname (ADR-0017) — EJEMPLO COMENTADO
+# ============================================================================
+#
+# Cada sucursal (Organization) tiene un `domain` único (p. ej.
+# `sucursal-norte.marca.ar`) que t85 agrega al modelo. La API resuelve la
+# organización leyendo `Host`/`X-Forwarded-Host` ANTES de la resolución por
+# credencial (fail-closed: el usuario igual debe tener membresía activa).
+#
+# Este archivo es un EJEMPLO. NO se copia al contenedor por defecto. Para
+# activarlo: (1) renombrarlo a un .conf dentro de /etc/nginx/conf.d/ (o
+# mergearlo con nginx.conf), y (2) ajustar `marca.ar` y los dominios.
+#
+# Coordinación con la API (t85):
+#   - nginx SOLO compara `$host` con los dominios conocidos; no resuelve DNS.
+#   - Se preserva `Host` y se envía `X-Forwarded-Host` para que la API haga
+#     `resolveTenantByHostname(host)`.
+#   - `super_admin` puede anular la org del hostname con `X-Org-Id`/`X-Chain-Id`.
+# ============================================================================
+
+# ---- Allowlist por hostname (generada desde Organization.domain) -----------
+# `hostnames;` habilita coincidencia exacta + wildcard (`*.marca.ar`, `.marca.ar`
+# == `marca.ar` + todos sus subdominios). Host no listado -> 444.
+map $host $host_allowed {
+    hostnames;
+    default 0;
+
+    .marca.ar                      1;   # dominio base + *.marca.ar (wildcard)
+    sucursal-norte.marca.ar        1;   # generado desde Organization.domain
+    sucursal-sur.marca.ar          1;   # generado desde Organization.domain
+    # sucursalX.marca.ar           1;   # (agregar una línea por sucursal)
+}
+
+# ---- Allowlist por ruta (misma que nginx.conf; ver allí) -------------------
+map $uri $route {
+    ~^/api/      api;
+    ~^/ws($|/)   ws;
+    ~^/docs/     docs;
+    default      spa;
+}
+
+map $uri $internal_deny {
+    default 0;
+    ~^/api/v1/license($|/)         1;
+    ~^/api/v1/roles($|/)           1;
+    ~^/api/v1/audit($|/)           1;
+    ~^/api/v1/system/backup($|/)   1;
+}
+
+server {
+    listen 80;
+    # Wildcard con punto inicial: coincide con `marca.ar` y `*.marca.ar`.
+    server_name .marca.ar;
+
+    root  /usr/share/nginx/html;
+    index index.html;
+
+    # Host no conocido -> drop (antes de cualquier location).
+    if ($host_allowed = 0) { return 444; }
+    if ($route = deny)     { return 444; }
+    if ($internal_deny = 1) { return 444; }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://api:4000;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;   # <- la API resuelve la org por esto
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+    }
+
+    location /ws {
+        proxy_pass http://api:4000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Host  $host;
+    }
+
+    location /docs/ {
+        proxy_pass http://api:4000;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Host  $host;
+    }
+}
+
+# ----------------------------------------------------------------------------
+# NOTAS DE OPERACIÓN
+# ----------------------------------------------------------------------------
+# DNS:   publicar `marca.ar` + wildcard `*.marca.ar` (o un registro A/CNAME por
+#        sucursal) apuntando al host de nginx. nginx no resuelve DNS; solo
+#        compara `$host`.
+#
+# TLS:   un certificado por hostname (o wildcard *.marca.ar). Ver
+#        docker/nginx.ssl.conf.example para el bloque TLS (301 -> 443, HSTS).
+#
+# Admin: para no exponer roles/license/audit por el borde público, mantenerlos
+#        en `$internal_deny` y servir el panel en un HOST INTERNO aparte
+#        (server_name admin.marca.ar) con su propio allowlist menos estricto.
+# ============================================================================

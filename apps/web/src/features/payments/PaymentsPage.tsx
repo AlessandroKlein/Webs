@@ -175,7 +175,7 @@ export function PaymentsPage() {
           </Button>
         </div>
 
-        <table className="table" style={{ marginTop: 'var(--ws-space-3)' }}>
+        <table className="table table-striped table-hover" style={{ marginTop: 'var(--ws-space-3)' }}>
           <thead>
             <tr>
               <th>Fecha</th>

@@ -15,6 +15,6 @@ RUN pnpm -r build
 RUN pnpm --filter @webs/web build
 
 FROM nginx:alpine
-COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/apps/web/dist /usr/share/nginx/html
 EXPOSE 80

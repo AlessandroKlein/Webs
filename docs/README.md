@@ -19,6 +19,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Builder visual de páginas](architecture/page-builder.md) | GrapesJS autoalojado: editor `/admin/editor`, `Page.layout`, `POST /api/v1/pages/save` y página de inicio configurable. |
 | [Escalabilidad](architecture/scalability.md) | API stateless, Redis, PostgreSQL, contenedores, rate limiting y observabilidad. |
 | [Licencias locales (Licensify)](architecture/licensing-integration.md) | Módulo `apps/api/src/modules/licenses`: activación offline, node-locking, feature-gating, modelo de venta y anti-reloj. |
+| [Claves de licencia para la venta](architecture/claves-de-venta.md) | **Spec**: generación/validación/revocación de claves de activación (`LicenseSale`/`LicenseKey`), flujo de venta local y offline (sin servidor ni pasarela de pago). |
 | [Multi-tenant por cadenas](architecture/multi-tenant.md) | Organización padre/hija, scoping por filas, finanzas separadas + vista consolidada y contexto de tenant en runtime. |
 | [Actualización zero-downtime](architecture/update-system.md) | Módulo `apps/api/src/modules/update`: check/apply/rollback, swap atómico y actualización de plugins. |
 | [Base universal](architecture/base-universal.md) | De la base + plugins + plantilla a la app final (blog/tienda/gimnasio/logística), definiendo la página de inicio. |
@@ -52,6 +53,9 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [ADR-0013 — Plugin ARCA](adr/0013-arca-facturacion.md) | Facturación electrónica Argentina: plugin `arca` con WSFE (CAE) + WSMTXCA (CAEA), WSAA con certificado X.509 y credenciales por organización. |
 | [ADR-0014 — Sistema de comprobantes](adr/0014-comprobantes.md) | Factura/receipt por pago aprobado, numeración correlativa por punto de venta, template editable HTML + ESC/POS 80/58 mm. |
 | [ADR-0015 — Checkout unificado](adr/0015-checkout-unificado.md) | Una página de checkout para tienda + suscripciones + cobro físico (POS), con métodos de pago extensibles. |
+| [ADR-0016 — Fuente de plugins (remoto)](adr/0016-plugin-source-remoto.md) | Registro remoto (GitHub) + descarga/verificación (sha256 + Ed25519) al instalar; elimina el estado «local» engañoso de los plugins del repo. |
+| [ADR-0017 — Reverse-proxy + multi-sucursal](adr/0017-nginx-allowlist-multi-sucursal.md) | nginx con allowlist de rutas por tenant y URL propia por sucursal (resolución de organización por hostname). |
+| [ADR-0018 — Permisos y roles completos](adr/0018-roles-permisos.md) | Catálogo canónico de permisos agrupado por dominio + integración de permisos de plugins + edición de roles desde UI. |
 | [ADR-0023 — Modelo de inventario](adr/0023-inventory.md) | Inventario completo: variantes SKU/EAN-UPC, multi-almacén, ledger inmutable, valoración promedio/FIFO y alertas. |
 | [ADR-0024 — Compositor social enriquecido](adr/0024-compositor-social-enriquecido.md) | Galería multi-media, menciones/hashtags, encuestas, visibilidad y preview de enlaces (nativo, retrocompatible). |
 | [ADR-0025 — Escalabilidad selectable](adr/0025-scalable-selectable.md) | Selector HPA vs VPA por workload con modos verticales Auto/Recommender/Initial y guarda de exclusión. |

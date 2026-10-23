@@ -1,0 +1,28 @@
+/*
+ * Bootstrap selectivo para Webs.
+ *
+ * Estrategia (ver docs/architecture/bootstrap-selectivo.md):
+ *  - Se importan SÓLO los módulos de rejilla, tablas, formularios y helpers.
+ *  - Se omiten `root`, `reboot`, `type`, `images`, `buttons`, `badge`, `utilities/api`
+ *    y el resto de componentes, para NO pisar:
+ *      · el reset/preflight de Tailwind v4 (`reboot`),
+ *      · las primitivas shadcn y las clases a medida `.btn`/`.badge` (`buttons`/`badge`),
+ *      · las utilidades de Tailwind (`utilities/api` usa `.m-2`, `.text-muted`, etc.).
+ *  - Los tokens (`--bs-table-*`, `.form-control`, …) se mapean a `--ws-*` en
+ *    `apps/web/src/styles.css`, que se carga DESPUÉS de este archivo y por tanto
+ *    gana la cascada (source order) ante cualquier colisión residual.
+ *  - `bootstrap-icons` sigue siendo la biblioteca de iconos (`bi bi-*`).
+ */
+
+// Prerrequisitos (no emiten CSS, solo variables/mapas/mixins).
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/maps";
+@import "bootstrap/scss/mixins";
+
+// Módulos selectivos.
+@import "bootstrap/scss/containers"; // .container, .container-fluid, .container-{breakpoint}
+@import "bootstrap/scss/grid";       // .row, .col, .col-{breakpoint}-*, .g-*, .offset-*
+@import "bootstrap/scss/tables";     // .table, .table-striped/-hover/-responsive, .caption-top
+@import "bootstrap/scss/forms";      // .form-control/-label/-select/-check/-text, .is-valid/.is-invalid
+@import "bootstrap/scss/helpers";    // .clearfix, .visually-hidden, .ratio, .stretched-link, .vr

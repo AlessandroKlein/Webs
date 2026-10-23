@@ -6,6 +6,13 @@ import { createHash, timingSafeEqual } from "node:crypto";
  * same payload produces the same signature regardless of key insertion order.
  */
 export function stableStringify(value: unknown): string {
+  // JSON.stringify serializes `undefined` to the JS value `undefined` (not a
+  // string); in canonical JSON an `undefined` is only valid as an array element
+  // (→ `null`) or as an omitted object key. Normalize it here so the recursion
+  // never interpolates the literal "undefined" into the output.
+  if (value === undefined) {
+    return "null";
+  }
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
   }
@@ -15,6 +22,7 @@ export function stableStringify(value: unknown): string {
   const record = value as Record<string, unknown>;
   const keys = Object.keys(record).sort();
   const body = keys
+    .filter((key) => record[key] !== undefined)
     .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
     .join(",");
   return `{${body}}`;

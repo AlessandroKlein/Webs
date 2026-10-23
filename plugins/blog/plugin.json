@@ -28,6 +28,7 @@
         "es": "Blog"
       },
       "path": "/admin/blog",
+      "section": "contenido",
       "order": 1,
       "target": "admin"
     }
@@ -62,5 +63,6 @@
         "default": true
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }

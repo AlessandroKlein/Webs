@@ -138,7 +138,7 @@ export function InvoicesPage() {
         {isLoading ? (
           <Spinner />
         ) : (
-          <table className="table">
+          <table className="table table-striped table-hover">
             <thead>
               <tr>
                 <th>{t('admin.invoices.number')}</th>

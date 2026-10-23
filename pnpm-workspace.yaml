@@ -3,7 +3,12 @@ packages:
   - "packages/*"
   - "plugins/*"
 
+# allowBuilds: controla qué paquetes pueden ejecutar scripts de instalación
+# (postinstall). `@parcel/watcher` se bloquea (`false`) porque su script compila
+# un binding nativo que solo se usa en modo watch (dev); en build/CI no se
+# necesita, y bloquearlo evita fallos de compilación nativa en entornos limpios.
 allowBuilds:
+  '@parcel/watcher': false
   '@prisma/client': true
   '@prisma/engines': true
   esbuild: true

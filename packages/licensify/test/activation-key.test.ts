@@ -41,6 +41,38 @@ describe("Offline activation key", () => {
     expect(result.expired).toBe(false);
   });
 
+  it("issues and activates a minimal payload with undefined limits/expiresAt (P0 regression)", () => {
+    const kp = generateKeyPair();
+    const fp = getFingerprint();
+    // The API emits keys with these optional fields explicitly `undefined`
+    // (POST /license/keys without limits/expiresAt). stableStringify must omit
+    // them, not interpolate the literal "undefined" into the signed JSON.
+    const minimal = {
+      id: "lic-min",
+      productId: "plugin-x",
+      licensee: "ACME",
+      features: undefined,
+      limits: undefined,
+      issuedAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: undefined,
+    };
+    const key = createActivationKey(minimal, {
+      privateKeyPem: kp.privateKeyPem,
+      fingerprint: fp,
+    });
+    const result = verifyActivationKey(key, {
+      publicKeyPem: kp.publicKeyPem,
+      fingerprint: fp,
+    });
+    expect(result.payload).toEqual({
+      id: "lic-min",
+      productId: "plugin-x",
+      licensee: "ACME",
+      issuedAt: "2026-01-01T00:00:00.000Z",
+    });
+    expect(result.expired).toBe(false);
+  });
+
   it("fails to activate on a different machine (node-locking)", () => {
     const kp = generateKeyPair();
     const fp = getFingerprint();

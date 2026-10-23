@@ -423,6 +423,7 @@ model Organization {
   id             String           @id @default(uuid())
   name           String
   slug           String?          @unique
+  domain         String?          @unique
   plan           String           @default("free")
   active         Boolean          @default(true)
   shareInventory Boolean          @default(false)
@@ -833,31 +834,31 @@ model Payment {
 // ---------------------------------------------------------------------------
 
 model Invoice {
-  id             String    @id @default(uuid())
-  organizationId String
-  number         String    @unique
-  type           String    @default("invoice")
-  amount         Int       @default(0)
-  neto           Int?
-  iva            Int?
-  currency       String    @default("ARS")
-  status         String    @default("draft")
-  customerName   String?
-  customerTaxId  String?
-  vatCondition   String?
+  id              String    @id @default(uuid())
+  organizationId  String
+  number          String    @unique
+  type            String    @default("invoice")
+  amount          Int       @default(0)
+  neto            Int?
+  iva             Int?
+  currency        String    @default("ARS")
+  status          String    @default("draft")
+  customerName    String?
+  customerTaxId   String?
+  vatCondition    String?
   customerAddress String?
-  ptoVta         Int       @default(1)
-  cbteTipo       Int       @default(1)
-  cae            String?
-  caeExpiresAt   DateTime?
-  caePeriodo     String?
-  caeOrden       Int?
-  orderId        String?
-  userId         String?
-  template       String?
-  pdfUrl         String?
-  paymentId      String?
-  createdAt      DateTime  @default(now())
+  ptoVta          Int       @default(1)
+  cbteTipo        Int       @default(1)
+  cae             String?
+  caeExpiresAt    DateTime?
+  caePeriodo      String?
+  caeOrden        Int?
+  orderId         String?
+  userId          String?
+  template        String?
+  pdfUrl          String?
+  paymentId       String?
+  createdAt       DateTime  @default(now())
 
   @@index([organizationId])
   @@index([createdAt])
@@ -912,4 +913,51 @@ model AuditLog {
   @@index([actorId])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Licencias (venta) — registro local offline de ventas y claves de activación
+// ---------------------------------------------------------------------------
+
+model LicenseSale {
+  id             String       @id @default(uuid())
+  organizationId String
+  customerName   String
+  customerEmail  String?
+  productId      String
+  features       Json         @default("[]")
+  limits         Json?
+  amount         Int?
+  currency       String       @default("ARS")
+  notes          String?
+  soldAt         DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  keys           LicenseKey[]
+
+  @@index([organizationId])
+  @@index([productId])
+  @@map("license_sales")
+}
+
+model LicenseKey {
+  id             String       @id @default(uuid())
+  organizationId String
+  saleId         String?
+  sale           LicenseSale? @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  productId      String
+  licensee       String
+  features       Json         @default("[]")
+  limits         Json?
+  fingerprint    String?
+  activationKey  String       @unique
+  status         String       @default("active")
+  issuedAt       DateTime     @default(now())
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  revokedReason  String?
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([productId])
+  @@map("license_keys")
 }

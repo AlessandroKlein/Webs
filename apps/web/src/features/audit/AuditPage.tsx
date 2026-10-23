@@ -78,7 +78,7 @@ export function AuditPage() {
       </Card>
 
       <Card>
-        <table className="table">
+        <table className="table table-striped table-hover">
           <thead>
             <tr>
               <th>Fecha</th>

@@ -8,5 +8,5 @@ import { cn } from './cn';
  * En React 19, `ref` es una prop común: se reenvía explícitamente al <input>.
  */
 export function Input({ className, ref, ...props }: ComponentProps<'input'>) {
-  return <input ref={ref} className={cn('input', className)} {...props} />;
+  return <input ref={ref} className={cn('input form-control', className)} {...props} />;
 }

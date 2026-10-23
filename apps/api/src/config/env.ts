@@ -50,6 +50,13 @@ const envSchema = z.object({
   // activación se rechaza. La clave privada NUNCA se embebe en la app.
   LICENSE_PUBLIC_KEY: z.string().optional(),
 
+  // Clave privada Ed25519 (PEM PKCS#8) del vendedor, SOLO para la instancia de
+  // emisión/venta (panel admin de claves). No se embebe en la app: se inyecta
+  // por entorno únicamente en el entorno del vendedor. Sin ella, `POST
+  // /license/keys` solo puede REGISTRAR claves ya emitidas por @licensify/cli
+  // (nunca firmar). Generar con @licensify/cli (`generateKeyPair`).
+  LICENSE_PRIVATE_KEY: z.string().optional(),
+
   SEED_ADMIN_EMAIL: z.string().email().optional(),
   SEED_ADMIN_PASSWORD: z.string().optional(),
 

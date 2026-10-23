@@ -18,7 +18,6 @@ import { SettingsPage } from './features/settings/SettingsPage';
 import { AppearancePage } from './features/appearance/AppearancePage';
 import { PluginsPage } from './features/plugins/PluginsPage';
 import { PluginConfigPage } from './features/plugins/PluginConfigPage';
-import { PluginSettingsPage } from './features/plugins/PluginSettingsPage';
 import { TemplatesPage } from './features/templates/TemplatesPage';
 import { PaymentsPage } from './features/payments/PaymentsPage';
 import { StorePage } from './features/store/StorePage';
@@ -57,6 +56,7 @@ import { MenuEditorPage } from './features/menu/MenuEditorPage';
 import { SupportPage } from './features/support/SupportPage';
 import { UpdatesPage } from './features/updates/UpdatesPage';
 import { LicensePage } from './features/license/LicensePage';
+import { LicenseKeysPage } from './features/license/LicenseKeysPage';
 import { SiteLayout } from './components/SiteLayout';
 import { StaffDashboard } from './features/staff/StaffDashboard';
 import { SetupWizard } from './features/setup/SetupWizard';
@@ -179,8 +179,6 @@ function MainApp() {
           <Route path="email" element={<EmailPage />} />
           <Route path="plugins" element={<PluginsPage />} />
           <Route path="plugins/:pluginId" element={<PluginConfigPage />} />
-          <Route path="plugin-settings" element={<PluginSettingsPage />} />
-          <Route path="plugin-settings/:category" element={<PluginSettingsPage />} />
           <Route path="templates" element={<TemplatesPage />} />
           <Route path="payments" element={<PaymentsPage />} />
           <Route path="users" element={<UsersPage />} />
@@ -194,6 +192,7 @@ function MainApp() {
           <Route path="support" element={<SupportPage />} />
           <Route path="updates" element={<UpdatesPage />} />
           <Route path="license" element={<LicensePage />} />
+          <Route path="license/keys" element={<LicenseKeysPage />} />
         </Route>
 
         <Route path="/legal/terms" element={<SiteLayout><LegalPage slug="terms" /></SiteLayout>} />

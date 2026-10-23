@@ -5,6 +5,21 @@ const manifest = manifestJson as unknown as PluginManifest;
 const ROOT_ORG_ID = '00000000-0000-4000-8000-000000000001';
 
 /**
+ * Normaliza un dominio al hostname canónico que espera `resolveTenantByHostname`
+ * (ADR-0017): minúsculas, sin protocolo, sin path y sin puerto. Devuelve `null`
+ * para entradas vacías/no-string (el campo queda NULL y la org no participa del
+ * routing por hostname).
+ */
+const normalizeDomain = (raw: unknown): string | null => {
+  if (typeof raw !== 'string') return null;
+  let value = raw.trim().toLowerCase();
+  value = value.replace(/^https?:\/\//, '');
+  value = value.split('/')[0] ?? '';
+  value = value.split(':')[0] ?? '';
+  return value.trim() || null;
+};
+
+/**
  * Plugin de organizaciones multi-tenant + membresías + asistencia por QR.
  * Rutas bajo `/api/v1/plugins/organizaciones`. Requiere sesión (authenticate),
  * RBAC (authorize) y scoping multi-tenant fail-closed (requireTenant).
@@ -12,6 +27,18 @@ const ROOT_ORG_ID = '00000000-0000-4000-8000-000000000001';
 export default definePlugin(manifest, {
   register: async (fastify) => {
     const db = (fastify as unknown as { prisma: Record<string, any> }).prisma;
+    const redis = (fastify as unknown as { redis?: { del: (key: string) => Promise<unknown> } | null }).redis;
+    // Invalida la caché de routing por hostname (`tenant:domain:<host>` en lib/tenant.ts)
+    // cuando una organización cambia/borra su dominio. Best-effort: un fallo de Redis
+    // no debe romper el create/update (la caché expira sola a los 60s).
+    const invalidateDomainCache = async (domain: string | null | undefined): Promise<void> => {
+      if (!domain || !redis) return;
+      try {
+        await redis.del(`tenant:domain:${domain}`);
+      } catch {
+        /* noop */
+      }
+    };
     const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
       req: unknown,
     ) => Promise<void>;
@@ -67,22 +94,29 @@ export default definePlugin(manifest, {
       return orgs.map((o: { id: string }) => ({ ...o, memberCount: countMap.get(o.id) ?? 0 }));
     });
 
-    fastify.post('/organizations', { preHandler: [authenticate, authorize('organization.manage')] }, async (request: unknown) => {
+    fastify.post('/organizations', { preHandler: [authenticate, authorize('organization.manage')] }, async (request: unknown, reply: unknown) => {
       const { body } = request as {
         body?: {
           name?: string; slug?: string; plan?: string; active?: boolean; shareInventory?: boolean; logoUrl?: string;
-          type?: 'standalone' | 'chain' | 'branch'; parentId?: string | null;
+          type?: 'standalone' | 'chain' | 'branch'; parentId?: string | null; domain?: string | null;
         };
       };
       const type = body?.type ?? 'standalone';
       const parentId = body?.parentId ?? null;
+      const domain = normalizeDomain(body?.domain);
+      if (domain) {
+        const existing = await db.organization.findUnique({ where: { domain }, select: { id: true } });
+        if (existing) {
+          return (reply as { status: (code: number) => { send: (body: unknown) => unknown } }).status(409).send({ error: 'El dominio ya está en uso' });
+        }
+      }
       // chainId desnormalizado: sucursal → raíz del padre; raíz/standalone → null.
       let chainId: string | null = null;
       if (parentId) {
         const parent = await db.organization.findUnique({ where: { id: parentId }, select: { chainId: true } });
         chainId = parent?.chainId ?? parentId;
       }
-      return db.organization.create({
+      const created = await db.organization.create({
         data: {
           name: body?.name ?? '',
           slug: body?.slug || null,
@@ -93,16 +127,19 @@ export default definePlugin(manifest, {
           type,
           parentId,
           chainId,
+          domain,
         },
       });
+      await invalidateDomainCache(domain);
+      return created;
     });
 
-    fastify.patch('/organizations/:id', { preHandler: [authenticate, authorize('organization.manage')] }, async (request: unknown) => {
+    fastify.patch('/organizations/:id', { preHandler: [authenticate, authorize('organization.manage')] }, async (request: unknown, reply: unknown) => {
       const { params, body } = request as {
         params?: { id?: string };
         body?: {
           name?: string; slug?: string | null; plan?: string; active?: boolean; shareInventory?: boolean; logoUrl?: string | null;
-          type?: 'standalone' | 'chain' | 'branch'; parentId?: string | null;
+          type?: 'standalone' | 'chain' | 'branch'; parentId?: string | null; domain?: string | null;
         };
       };
       const data: Record<string, unknown> = {};
@@ -113,6 +150,17 @@ export default definePlugin(manifest, {
       if (body?.shareInventory !== undefined) data.shareInventory = body.shareInventory;
       if (body?.logoUrl !== undefined) data.logoUrl = body.logoUrl;
       if (body?.type !== undefined) data.type = body.type;
+      let newDomain: string | null | undefined;
+      if (body?.domain !== undefined) {
+        newDomain = normalizeDomain(body.domain);
+        data.domain = newDomain;
+        if (newDomain) {
+          const existing = await db.organization.findUnique({ where: { domain: newDomain }, select: { id: true } });
+          if (existing && existing.id !== params?.id) {
+            return (reply as { status: (code: number) => { send: (body: unknown) => unknown } }).status(409).send({ error: 'El dominio ya está en uso' });
+          }
+        }
+      }
       if (body?.parentId !== undefined) {
         data.parentId = body.parentId;
         // Recalcula chainId al reparentar: sucursal → raíz del padre; sin padre → raíz propia.
@@ -123,7 +171,11 @@ export default definePlugin(manifest, {
           data.chainId = null;
         }
       }
-      return db.organization.update({ where: { id: params?.id }, data });
+      const current = await db.organization.findUnique({ where: { id: params?.id }, select: { domain: true } });
+      const updated = await db.organization.update({ where: { id: params?.id }, data });
+      await invalidateDomainCache(current?.domain ?? null);
+      await invalidateDomainCache(newDomain ?? null);
+      return updated;
     });
 
     fastify.delete('/organizations/:id', { preHandler: [authenticate, authorize('organization.manage')] }, async (request: unknown) => {

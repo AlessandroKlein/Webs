@@ -3,10 +3,10 @@
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.1.0'`
->   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** liberados). Roadmap
->   planificado hasta **v2.11.0** (M13 — IoT: serie temporal local + plugins
->   invernadero/sema).
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.2.0'`
+>   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** liberados).
+>   Roadmap planificado hasta **v2.11.0** (M13 — IoT: serie temporal local +
+>   plugins invernadero/sema).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -561,7 +561,147 @@ sección 3 (WB-7 a WB-13).
   quedan en verde.
 - **Métrica:** tag `v2.2.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.7 Milestone 9 (M9) — Inventario completo
+### 3.7 Milestone 5 (M5) — Marketplace / plugin-source / multi-sucursal
+
+> **M5** se libera en **v2.3.0** (bump menor). Cubre 5 prioridades del usuario:
+> (1) los plugins dejan de mostrarse "local" y pasan a **fuente remota GitHub**
+> con descarga al instalar, renombrando el botón "Crear"→"Instalar"; (2) **nginx**
+> (o similar) con allowlist de URLs permitidas definidas en un cuadro + cada
+> sucursal con **URL propia (subdominio)** sin usar la URL principal; (3) apartado
+> de **roles completo** con TODOS los permisos + patrón "crear" (botón → página/
+> modal con todos los campos) en toda la app; (4) **app de claves de licencia**
+> para venta del proyecto + pruebas E2E en local; (5) **terminar todos los
+> plugins**. Se ancla en **ADR-0016** (plugin-source remoto), **ADR-0017**
+> (nginx allowlist + multi-sucursal) y **ADR-0018** (roles/permisos). Trazabilidad:
+> `t80`–`t94`; `t80` es este documento.
+
+#### WB-90 · P0 (M5) — Fuente remota de plugins (GitHub) + descarga al instalar — `t82`
+- **Dado** el catálogo de plugins que hoy muestra todo como "local" por vivir en
+  el repo,
+- **Cuando** se marca el origen en `plugin.json` (`source`/URL de repositorio
+  GitHub) y se instala un plugin,
+- **Entonces** el catálogo presenta el plugin como remoto, `installPlugin`
+  descarga el paquete desde la fuente remota (reutilizando el pipeline del
+  updater de M2) y el estado mostrado es remoto/no-instalado, manteniendo
+  retrocompatibilidad para seguir instalando los plugins locales del repo en
+  desarrollo.
+- **Métrica:** instalar un plugin desde GitHub descarga el paquete; el catálogo
+  deja de marcar "local" a los remotos.
+
+#### WB-91 · P0 (M5) — Marketplace: botón "Instalar" + badge de origen (GitHub/local) — `t83`
+- **Dado** el marketplace/catálogo de plugins,
+- **Cuando** el administrador ve un plugin,
+- **Entonces** la acción se llama "Instalar" (no "Crear"), muestra un badge de
+  origen (GitHub remoto vs local) según el campo de fuente, y "Instalar"
+  descarga/activa el plugin correctamente.
+- **Métrica:** el flujo Instalar → plugin activo funciona; el badge coincide con
+  la fuente real.
+
+#### WB-92 · P0 (M5) — nginx reverse-proxy con allowlist de URLs permitidas — `t84`
+- **Dado** el reverse-proxy nginx (o similar) delante de la API,
+- **Cuando** llega una petición,
+- **Entonces** solo responde a las URLs/paths explícitamente permitidos (lista
+  definida en settings) y rechaza el resto con 403/404.
+- **Métrica:** una URL no permitida → 403/404; una permitida → 200.
+
+#### WB-93 · P0 (M5) — Multi-sucursal por subdominio (URL propia) — `t84`, `t85`
+- **Dado** una cadena con sucursales,
+- **Cuando** cada sucursal accede por su subdominio (p. ej. `sucursalX.dominio.com`),
+- **Entonces** nginx mapea el subdominio a la misma API, que resuelve la
+  organización/sucursal por hostname (resolveTenant por subdominio →
+  organizationId/chainId) y aplica el scoping multi-tenant, sin depender de la
+  URL principal.
+- **Métrica:** `sucursalX.dominio.com` resuelve a la org X y solo ve sus datos;
+  una URL no mapeada es rechazada.
+
+#### WB-94 · P0 (M5) — Catálogo completo de permisos — `t86`
+- **Dado** las claves de permiso dispersas en el código,
+- **Cuando** se consulta el catálogo de permisos,
+- **Entonces** un endpoint (p. ej. `GET /api/v1/permissions`) centraliza y expone
+  **TODAS** las claves (plugin.*, license.*, organization.*, content.*,
+  membership.*, attendance.*, sales/checkout/invoices/pagos, etc.), y los roles
+  nuevos respetan el RBAC (`authorize`) en las rutas.
+- **Métrica:** el catálogo lista todas las claves; un rol con un permiso
+  específico solo accede a esas rutas.
+
+#### WB-95 · P0 (M5) — Roles: crear/editar con TODOS los permisos + patrón "crear" — `t87`
+- **Dado** el apartado de roles,
+- **Cuando** se crea o edita un rol,
+- **Entonces** se pueden seleccionar todos los permisos del catálogo
+  (checkbox/grupos), y toda acción de "crear" en la app (roles, plugins, páginas,
+  usuarios…) abre una página dedicada o modal con TODOS los campos, evitando
+  formularios incompletos.
+- **Métrica:** crear un rol con permisos arbitrarios funciona; cada botón "crear"
+  abre un formulario completo.
+
+#### WB-96 · P0 (M5) — Claves de licencia para venta: generar/validar/revocar — `t88`
+- **Dado** `@licensify/core` y `apps/api/src/modules/licenses/` de M2,
+- **Cuando** se emite una clave de activación,
+- **Entonces** los endpoints generan claves firmadas (Ed25519), las validan, las
+  revocan y las listan (comprador, duración, features), de modo que un comprador
+  reciba una clave y la active en su instancia.
+- **Métrica:** generar→validar→activar una clave en local funciona; revocar la
+  invalida.
+
+#### WB-97 · P0 (M5) — Panel UI de claves + E2E de venta local — `t89`
+- **Dado** los endpoints de claves de t88,
+- **Cuando** se usa el panel admin de claves,
+- **Entonces** lista/genera/revoca claves y permite probar el flujo de venta
+  completo en local (generar clave → activarla en otra instancia local).
+- **Métrica:** E2E generar→activar→revocar en verde.
+
+#### WB-98 · P0 (M5) — Terminar todos los plugins — `t90`
+- **Dado** el catálogo `plugins/*`,
+- **Cuando** se recorre y verifica cada plugin,
+- **Entonces** cada plugin tiene manifiesto válido, rutas, dependencias, i18n,
+  menú, permisos y README; los incompletos/rotos se corrigen o reportan con un
+  checklist por plugin.
+- **Métrica:** smoke de instalación del catálogo completo sin plugins rotos.
+
+#### WB-99 · P0 (M5) — ADRs + spec de M5 — `t81`
+- **Dado** el alcance de M5,
+- **Cuando** se registran las decisiones,
+- **Entonces** existen **ADR-0016** (plugin-source remoto), **ADR-0017** (nginx
+  allowlist + multi-sucursal) y **ADR-0018** (roles/permisos completos) más la
+  spec de claves de venta, coherentes con `base-universal.md` y
+  `política-dependencias.md` (sin modo de pago).
+- **Métrica:** los 3 ADRs + spec presentes; mkdocs en verde.
+
+#### WB-100 · P1 (M5) — i18n ES/EN/PT de marketplace, roles, claves y sucursales — `t91`
+- **Dado** lo nuevo de M5,
+- **Cuando** se curan las claves,
+- **Entonces** marketplace (badge de origen, botón "Instalar"), panel de
+  roles/permisos, panel de claves de venta y textos de multi-sucursal están
+  traducidos en es/en/pt con paridad de claves.
+- **Métrica:** sin claves faltantes ni strings hardcodeados.
+
+#### WB-101 · P1 (M5) — Documentación de M5 — `t92`
+- **Dado** M5 implementado,
+- **Cuando** se documenta,
+- **Entonces** hay guías de plugins con fuente remota, nginx allowlist +
+  multi-sucursal por subdominio, roles/permisos (catálogo completo) y claves de
+  licencia para venta, con índices/nav actualizados en Webs docs/ y Docs.git.
+- **Métrica:** `mkdocs build` en verde.
+
+#### WB-102 · P0 (M5) — QA + E2E local completo — `t93`
+- **Dado** M5 implementado,
+- **Cuando** se ejecuta QA en Docker aislado + E2E local,
+- **Entonces** verifica: catálogo con origen remoto + botón "Instalar"
+  (descarga/activación), nginx allowlist (URLs no permitidas rechazadas) +
+  multi-sucursal por subdominio, roles con catálogo completo + patrón crear, y
+  generación→activación de una clave de licencia en instancia local; emite
+  veredicto LIBERABLE/NO LIBERABLE.
+- **Métrica:** veredicto LIBERABLE; E2E de venta en verde.
+
+#### WB-103 · P1 (M5) — Release v2.3.0 + CHANGELOG + workflows verdes — `t94`
+- **Dado** M5 completo y verificado (QA LIBERABLE),
+- **Cuando** se bumpa `SYSTEM_VERSION` a `2.3.0`, se actualiza `CHANGELOG.md`
+  (`[2.3.0]`) y se taggea `v2.3.0`,
+- **Entonces** el release se publica y los workflows (CI typecheck + release)
+  quedan en verde.
+- **Métrica:** tag `v2.3.0` público; workflows CI/release ✓; changelog coherente.
+
+### 3.8 Milestone 9 (M9) — Inventario completo
 
 > **M9** se libera en **v2.7.0** (bump menor). Convierte el inventario básico
 > actual (`blocks/inventario`, modelo `InventoryItem`) en un sistema de gestión de
@@ -661,7 +801,7 @@ sección 3 (WB-7 a WB-13).
   quedan en verde.
 - **Métrica:** tag `v2.7.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.8 Milestone 10 (M10) — Compositor de publicación enriquecido
+### 3.9 Milestone 10 (M10) — Compositor de publicación enriquecido
 
 > **M10** se libera en **v2.8.0** (bump menor). Enriquece el compositor "Nueva
 > publicación" de la red social (`apps/web/src/features/public/SocialPublicPage.tsx`).
@@ -749,7 +889,7 @@ sección 3 (WB-7 a WB-13).
 - **Métrica:** escribir, cerrar y reabrir el compositor restaura el texto/adjuntos;
   publicar limpia el borrador.
 
-### 3.9 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
+### 3.10 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
 
 > **M11** se libera en **v2.9.0** (bump menor). Permite al usuario **elegir** el
 > tipo de escalabilidad Kubernetes por workload desde un panel `/admin/scaling`.
@@ -842,7 +982,7 @@ sección 3 (WB-7 a WB-13).
 - **Métrica:** exportar un workload en modo VPA `Recommender` produce un YAML con
   `updateMode: Off` y los `minAllowed`/`maxAllowed` configurados.
 
-### 3.10 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
+### 3.11 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
 
 > **M13** se libera en **v2.11.0** (bump menor). Cronológicamente es **posterior a
 > M12 (v2.10.0, backlog pendiente — vista RAW/Code de actualizaciones)**, cuya
@@ -972,8 +1112,8 @@ sección 3 (WB-7 a WB-13).
 | **R2 — Pulido M1** | **v1.59.0** | Buffer de hardening/UX (absorbido en v2.0.0): cierre de hallazgos de QA, alias de compatibilidad `blocks`→`plugins` estable, refinamiento de templates y dashboards. |
 | **R3 — Expansión** | **v2.0.0** ✓ | WB-18→WB-24: sistema de licencias (*Licensify*, `@licensify/core`), multi-tenant por cadenas (finanzas separadas + consolidadas HQ), escalabilidad k8s (HPA/stateless/auto-scaling), mobile real Capacitor, OAuth2 real (state/PKCE), limpieza de naming interno `block`, sistema de actualización zero-downtime (app + plugins). |
 | **R4 — Consolidación** | **v2.1.0** ✓ | WB-25→WB-34: cierre de deuda (F12/F4/F10/F17), visual page builder (GrapesJS + página de inicio configurable), i18n ES/EN/PT, documentos legales (ToS/Disclaimer/Privacy/Cookies), mobile Capacitor nativo + desktop, fix de login en Docker, política "todo nativo / sin componentes de pago", QA + docs + release. |
-| **R5 — Operación** | **v2.2.0** | M4: WB-63→WB-77 — pulido admin/UX (categorías `/admin`, fix CSS templates, buscador, actualizaciones unificadas, limpieza de plugins), plugin fiscal `arca` (ARCA/AFIP), comprobantes/facturas por pago (template editable + impresión térmica ESC/POS + "Mis comprobantes"), checkout unificado + pago en sucursal (suscripción→pago, POS). |
-| **R6 — Marketplace** | **v2.3.0** | M5: plugins con fuente remota GitHub + botón "Instalar", nginx allowlist + multi-sucursal por subdominio, roles/permisos completos, app de claves de licencia para venta, finalización de plugins. |
+| **R5 — Operación** | **v2.2.0** ✓ | M4: WB-63→WB-77 — pulido admin/UX (categorías `/admin`, fix CSS templates, buscador, actualizaciones unificadas, limpieza de plugins), plugin fiscal `arca` (ARCA/AFIP), comprobantes/facturas por pago (template editable + impresión térmica ESC/POS + "Mis comprobantes"), checkout unificado + pago en sucursal (suscripción→pago, POS). |
+| **R6 — Marketplace** | **v2.3.0** | M5: WB-90→WB-103 — plugins con fuente remota GitHub + botón "Instalar" (badge de origen), nginx allowlist + multi-sucursal por subdominio, roles/permisos completos + patrón "crear", app de claves de licencia para venta + E2E local, finalización de plugins, ADRs (0016/0017/0018) + i18n + docs + QA + release. |
 | **R7 — Licencias** | **v2.4.0** | M6: feature-gating por licencia (integra `@licensify/core` con features premium). |
 | **R8 — Acceso rápido** | **v2.5.0** | M7: generador de APIs de acceso rápido (recurso → modelo + rutas CRUD + SDK tipado web/móvil). |
 | **R9 — Soporte** | **v2.6.0** | M8: rediseño de `/admin/menu`, sistema de tickets/soporte con estados, chat de usuarios en tiempo real + ventana flotante. |
@@ -1052,6 +1192,21 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t77-docs-m4 | WB-76 (docs) |
 | t78-qa-m4 | WB-76 (QA) |
 | t79-release-m4 | WB-77 |
+| t80-backlog-m5 | WB-90→WB-103 (este documento) |
+| t81-adr-m5 | WB-99 (ADR-0016/0017/0018 + spec) |
+| t82-plugin-source | WB-90 (backend) |
+| t83-marketplace-ui | WB-91 |
+| t84-nginx | WB-92, WB-93 (proxy) |
+| t85-multisite-routing | WB-93 (resolución por hostname) |
+| t86-permisos | WB-94 |
+| t87-roles-ux | WB-95 |
+| t88-claves-venta | WB-96 (backend) |
+| t89-claves-ui | WB-97 |
+| t90-finalizar-plugins | WB-98 |
+| t91-i18n-m5 | WB-100 |
+| t92-docs-m5 | WB-101 |
+| t93-qa-m5 | WB-102 |
+| t94-release-m5 | WB-103 |
 | t125-backlog-m9 | WB-35→WB-44 (este documento) |
 | t126-adr-inventario | WB-35→WB-42 (ADR-0023 + spec) |
 | t127-modelo-inventario | WB-35, WB-36, WB-37 (modelo de datos) |

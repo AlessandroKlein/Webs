@@ -58,7 +58,7 @@ interface NavItem {
 }
 
 /** Ítems de gestión de plugins que se ocultan cuando no hay plugins instalados. */
-const PLUGIN_MANAGEMENT_PATHS = new Set(['/admin/plugins', '/admin/plugin-settings']);
+const PLUGIN_MANAGEMENT_PATHS = new Set(['/admin/plugins']);
 
 export function AdminLayout() {
   const { t, i18n } = useTranslation();
@@ -126,43 +126,36 @@ export function AdminLayout() {
 
   const navItems: NavItem[] = [
     { to: '/admin', label: t('nav.dashboard'), section: 'panel', perm: null, end: true },
-    { to: '/admin/analytics', label: t('admin.analytics.title'), section: 'panel', perm: null },
     { to: '/admin/content', label: t('nav.content'), section: 'contenido', perm: 'content.read' },
     { to: '/admin/pages', label: t('nav.pages'), section: 'contenido', perm: 'content.read' },
     { to: '/admin/editor', label: t('nav.editor'), section: 'contenido', perm: 'content.write' },
-    { to: '/admin/blog', label: t('admin.blog.title'), section: 'contenido', perm: null },
-    { to: '/admin/forms', label: t('admin.forms.title'), section: 'contenido', perm: null },
     { to: '/admin/payments', label: t('nav.payments'), section: 'ventas', perm: 'user.read' },
-    { to: '/admin/commerce', label: t('admin.commerce.title'), section: 'ventas', perm: null },
-    { to: '/admin/invoices', label: t('admin.invoices.title'), section: 'ventas', perm: null },
-    { to: '/admin/inventory', label: t('admin.inventory.title'), section: 'ventas', perm: null },
     { to: '/admin/email', label: t('nav.email'), section: 'comunicacion', perm: 'email.read' },
-    { to: '/admin/notifications', label: t('admin.notifications.title'), section: 'comunicacion', perm: null },
-    { to: '/admin/chat', label: t('admin.chat.title'), section: 'comunicacion', perm: null },
     { to: '/admin/support', label: t('nav.support'), section: 'comunicacion', perm: 'support.read' },
-    { to: '/admin/social', label: t('admin.social.title'), section: 'comunidad', perm: null },
-    { to: '/admin/calendar', label: t('admin.calendar.title'), section: 'comunidad', perm: null },
     { to: '/admin/appearance', label: t('nav.appearance'), section: 'apariencia', perm: 'theme.read' },
     { to: '/admin/translations', label: t('nav.translations'), section: 'apariencia', perm: 'translation.read' },
     { to: '/admin/menu', label: t('nav.menu'), section: 'apariencia', perm: 'setting.read' },
     { to: '/admin/plugins', label: t('nav.plugins'), section: 'integraciones', perm: 'plugin.read' },
-    { to: '/admin/plugin-settings', label: t('nav.configPlugins'), section: 'integraciones', perm: 'plugin.read' },
     { to: '/admin/api-tokens', label: t('nav.api'), section: 'integraciones', perm: null },
-    { to: '/admin/auth', label: t('nav.registerLogin'), section: 'integraciones', perm: null },
     { to: '/admin/settings', label: t('nav.settings'), section: 'configuracion', perm: 'setting.read' },
     { to: '/admin/templates', label: t('nav.templates'), section: 'configuracion', perm: 'setting.write' },
     { to: '/admin/branches', label: t('nav.branches'), section: 'configuracion', perm: null },
-    { to: '/admin/organizations', label: t('admin.organizations.title'), section: 'configuracion', perm: null },
     { to: '/admin/updates', label: t('nav.updates'), section: 'configuracion', perm: 'setting.read' },
     { to: '/admin/license', label: t('nav.license'), section: 'configuracion', perm: 'license.read' },
+    { to: '/admin/license/keys', label: t('nav.licenseKeys'), section: 'configuracion', perm: 'license.read' },
     { to: '/admin/users', label: t('nav.users'), section: 'usuarios', perm: 'user.read' },
     { to: '/admin/roles', label: t('nav.roles'), section: 'usuarios', perm: 'role.read' },
     { to: '/admin/audit', label: t('nav.audit'), section: 'usuarios', perm: 'audit.read' },
   ];
 
+  // Defensa anti-duplicado: los paths que ya están en el menú core no se repiten
+  // cuando un plugin declara su ítem en `plugin.json`.
+  const corePaths = new Set(navItems.map((i) => i.to));
+
   const pluginItems: NavItem[] = (menuData?.items ?? [])
     .filter((item) => typeof item.id === 'string' && item.id !== '')
     .filter((item) => !item.permissions || item.permissions.every((p) => hasPermission(p)))
+    .filter((item) => !corePaths.has(item.path))
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
     .map((item) => ({
       to: item.path,

@@ -1,12 +1,12 @@
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
-import { TextField } from '../../components/ui/TextField';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { RoleFormDialog, type PermissionAreaGroup, type RoleFormValues } from './RoleFormDialog';
 import type { Page } from '@webs/core';
 
 interface RoleRow {
@@ -18,14 +18,11 @@ interface RoleRow {
   permissions: string[];
 }
 
-interface PermissionOption {
-  key: string;
-  description: string | null;
+interface PermissionCatalogResponse {
+  areas: PermissionAreaGroup[];
 }
 
-function toggle(list: string[], value: string): string[] {
-  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
-}
+type RoleDialogState = { mode: 'create' } | { mode: 'edit'; role: RoleRow } | null;
 
 export function RolesPage() {
   const { t } = useTranslation();
@@ -35,22 +32,13 @@ export function RolesPage() {
     queryKey: ['roles'],
     queryFn: () => api.get<Page<RoleRow>>('/api/v1/roles'),
   });
-  const { data: permissions } = useQuery({
+  const { data: catalog } = useQuery({
     queryKey: ['roles', 'permissions'],
-    queryFn: () => api.get<PermissionOption[]>('/api/v1/permissions'),
+    queryFn: () => api.get<PermissionCatalogResponse>('/api/v1/permissions'),
   });
 
-  // Estado del formulario de creación.
-  const [key, setKey] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [createPermissions, setCreatePermissions] = useState<string[]>([]);
-
-  // Estado del formulario de edición.
-  const [editing, setEditing] = useState<RoleRow | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editPermissions, setEditPermissions] = useState<string[]>([]);
+  const [dialog, setDialog] = useState<RoleDialogState>(null);
+  const [confirmDelete, setConfirmDelete] = useState<RoleRow | null>(null);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['roles'] });
 
@@ -59,23 +47,20 @@ export function RolesPage() {
       api.post('/api/v1/roles', body),
     onSuccess: () => {
       invalidate();
-      setKey('');
-      setName('');
-      setDescription('');
-      setCreatePermissions([]);
+      setDialog(null);
     },
   });
 
   const update = useMutation({
-    mutationFn: (vars: { id: string; name: string; description: string | null; permissions: string[] }) =>
+    mutationFn: (vars: { id: string; name: string; description: string | null; permissions?: string[] }) =>
       api.patch(`/api/v1/roles/${vars.id}`, {
         name: vars.name,
         description: vars.description,
-        permissions: vars.permissions,
+        ...(vars.permissions !== undefined ? { permissions: vars.permissions } : {}),
       }),
     onSuccess: () => {
       invalidate();
-      setEditing(null);
+      setDialog(null);
     },
   });
 
@@ -84,105 +69,60 @@ export function RolesPage() {
     onSuccess: invalidate,
   });
 
-  const [confirmDelete, setConfirmDelete] = useState<RoleRow | null>(null);
-
   if (isLoading) return <Spinner />;
 
-  const permissionOptions = permissions ?? [];
+  const areas = catalog?.areas ?? [];
 
-  const onSubmitCreate = (e: FormEvent) => {
-    e.preventDefault();
-    create.mutate({ key, name, description: description || undefined, permissions: createPermissions });
+  const handleSave = (values: RoleFormValues) => {
+    if (!dialog) return;
+    if (dialog.mode === 'create') {
+      create.mutate({
+        key: values.key.trim(),
+        name: values.name,
+        description: values.description || undefined,
+        permissions: values.permissions,
+      });
+    } else {
+      // Los roles de sistema solo permiten renombrar (el backend rechaza editar permisos).
+      const role = dialog.role;
+      update.mutate({
+        id: role.id,
+        name: values.name,
+        description: values.description || null,
+        ...(role.system ? {} : { permissions: values.permissions }),
+      });
+    }
   };
 
-  const startEdit = (role: RoleRow) => {
-    setEditing(role);
-    setEditName(role.name);
-    setEditDescription(role.description ?? '');
-    setEditPermissions(role.permissions);
-  };
-
-  const onSubmitEdit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!editing) return;
-    update.mutate({
-      id: editing.id,
-      name: editName,
-      description: editDescription || null,
-      permissions: editPermissions,
-    });
-  };
+  const dialogInitial: RoleFormValues = !dialog
+    ? { key: '', name: '', description: '', permissions: [] }
+    : dialog.mode === 'create'
+      ? { key: '', name: '', description: '', permissions: [] }
+      : {
+          key: dialog.role.key,
+          name: dialog.role.name,
+          description: dialog.role.description ?? '',
+          permissions: dialog.role.permissions,
+        };
 
   return (
     <div className="stack">
-      <h1>{t('nav.roles')}</h1>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ margin: 0 }}>{t('nav.roles')}</h1>
+        <Button onClick={() => setDialog({ mode: 'create' })}>
+          <i className="bi bi-plus-lg" aria-hidden="true" />
+          {t('roles.createRole')}
+        </Button>
+      </div>
 
       <Card>
-        <h3>{t('common.create')}</h3>
-        <form className="stack" onSubmit={onSubmitCreate}>
-          <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <TextField
-              label="Clave"
-              value={key}
-              onChange={(e) => setKey(e.target.value)}
-              required
-              placeholder="editor"
-            />
-            <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} required />
-            <TextField label="Descripción" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-          <PermissionsCheckboxes
-            options={permissionOptions}
-            selected={createPermissions}
-            onChange={setCreatePermissions}
-          />
-          <div className="row">
-            <Button type="submit" disabled={create.isPending}>
-              {t('common.create')}
-            </Button>
-          </div>
-        </form>
-      </Card>
-
-      {editing && (
-        <Card>
-          <h3>
-            {t('common.edit')}: <code>{editing.key}</code>
-          </h3>
-          <form className="stack" onSubmit={onSubmitEdit}>
-            <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <TextField label="Nombre" value={editName} onChange={(e) => setEditName(e.target.value)} required />
-              <TextField
-                label="Descripción"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-              />
-            </div>
-            <PermissionsCheckboxes
-              options={permissionOptions}
-              selected={editPermissions}
-              onChange={setEditPermissions}
-            />
-            <div className="row">
-              <Button type="submit" disabled={update.isPending}>
-                {t('common.save')}
-              </Button>
-              <Button variant="ghost" onClick={() => setEditing(null)}>
-                {t('common.cancel')}
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      <Card>
-        <table className="table">
+        <table className="table table-striped table-hover">
           <thead>
             <tr>
-              <th>Clave</th>
-              <th>Nombre</th>
-              <th>Descripción</th>
-              <th>Permisos</th>
+              <th>{t('roles.key')}</th>
+              <th>{t('common.name')}</th>
+              <th>{t('roles.description')}</th>
+              <th>{t('roles.permissions')}</th>
               <th>{t('common.actions')}</th>
             </tr>
           </thead>
@@ -193,7 +133,7 @@ export function RolesPage() {
                   <code>{r.key}</code>
                   {r.system && (
                     <span className="badge" style={{ marginLeft: 8 }}>
-                      sistema
+                      {t('roles.system')}
                     </span>
                   )}
                 </td>
@@ -205,27 +145,20 @@ export function RolesPage() {
                   {r.permissions.length === 0 ? (
                     <span className="muted">—</span>
                   ) : (
-                    r.permissions.map((p) => (
-                      <span key={p} className="badge" style={{ marginRight: 4 }}>
-                        {p}
-                      </span>
-                    ))
+                    <span className="badge">{t('roles.permissionsCount', { count: r.permissions.length })}</span>
                   )}
                 </td>
                 <td>
-                  {!r.system && (
-                    <div className="row">
-                      <Button variant="secondary" onClick={() => startEdit(r)}>
-                        {t('common.edit')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onClick={() => setConfirmDelete(r)}
-                      >
+                  <div className="row">
+                    <Button variant="secondary" onClick={() => setDialog({ mode: 'edit', role: r })}>
+                      {t('common.edit')}
+                    </Button>
+                    {!r.system && (
+                      <Button variant="ghost" onClick={() => setConfirmDelete(r)}>
                         {t('common.delete')}
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -233,49 +166,32 @@ export function RolesPage() {
         </table>
       </Card>
 
+      {dialog && (
+        <RoleFormDialog
+          title={
+            dialog.mode === 'create'
+              ? t('roles.createRole')
+              : t('roles.editRole', { key: dialog.role.key })
+          }
+          initial={dialogInitial}
+          areas={areas}
+          isSystem={dialog.mode === 'edit' && dialog.role.system}
+          saving={create.isPending || update.isPending}
+          onSave={handleSave}
+          onCancel={() => setDialog(null)}
+        />
+      )}
+
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="Eliminar rol"
-        confirmLabel="Eliminar"
+        title={t('roles.deleteRole')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => { if (confirmDelete) remove.mutate(confirmDelete.id); setConfirmDelete(null); }}
         onCancel={() => setConfirmDelete(null)}
       >
-        ¿Eliminar el rol <strong>{confirmDelete?.name}</strong>? Esta acción es irreversible.
+        {t('roles.deleteRoleConfirm', { name: confirmDelete?.name ?? '' })}
       </ConfirmDialog>
-    </div>
-  );
-}
-
-function PermissionsCheckboxes({
-  options,
-  selected,
-  onChange,
-}: {
-  options: PermissionOption[];
-  selected: string[];
-  onChange: (next: string[]) => void;
-}) {
-  if (options.length === 0) return <p className="muted">No hay permisos disponibles.</p>;
-
-  return (
-    <div>
-      <strong>Permisos</strong>
-      <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
-        {options.map((p) => (
-          <label key={p.key} className="row" style={{ gap: 6, margin: '2px 0' }} title={p.description ?? undefined}>
-            <input
-              type="checkbox"
-              checked={selected.includes(p.key)}
-              onChange={() => onChange(toggle(selected, p.key))}
-            />
-            <span>
-              <code>{p.key}</code>
-              {p.description ? <span className="muted"> · {p.description}</span> : null}
-            </span>
-          </label>
-        ))}
-      </div>
     </div>
   );
 }

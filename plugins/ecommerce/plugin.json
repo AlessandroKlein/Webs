@@ -22,6 +22,7 @@
         "es": "Comercio"
       },
       "path": "/admin/commerce",
+      "section": "ventas",
       "order": 6,
       "target": "admin"
     }
@@ -325,5 +326,6 @@
         "default": []
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }

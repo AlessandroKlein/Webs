@@ -80,6 +80,10 @@ export interface PluginManifest {
   license?: string;
   /** URL del proyecto (opcional). */
   homepage?: string;
+  /** URL del repositorio fuente (ej. GitHub) desde donde se descarga el plugin (ADR-0016). */
+  repository?: string;
+  /** Cómo obtener el plugin (default `git` cuando `repository` está presente). */
+  source?: 'git' | 'npm';
   /** Icono (clave de icono o nombre de archivo). */
   icon?: string;
   /** Palabras clave para el catálogo. */
@@ -176,6 +180,8 @@ export const pluginManifestSchema = z.object({
   author: z.string().min(1),
   license: z.string().optional(),
   homepage: z.string().url().optional(),
+  repository: z.string().url().optional(),
+  source: z.enum(['git', 'npm']).optional(),
   icon: z.string().optional(),
   keywords: z.array(z.string()).optional(),
   entry: z.string().optional(),

@@ -28,6 +28,9 @@ apps/api/prisma/migrations/dev/
 data/
 apps/api/data/
 
+# Overrides locales de Docker Compose (pueden contener claves/secrets reales)
+docker-compose.override.yml
+
 # Test
 coverage/
 .nyc_output/

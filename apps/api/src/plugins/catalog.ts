@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
-import type { LocalizedString } from '@webs/plugin-sdk';
+import type { LocalizedString, PluginManifest } from '@webs/plugin-sdk';
 import { pluginRegistry } from './registry';
 import { pluginsDir } from '../lib/paths';
 import { cacheGet, cacheSet } from '../lib/cache';
@@ -75,6 +75,8 @@ export interface CatalogItem {
   homepage?: string;
   icon?: string;
   downloadUrl?: string;
+  /** URL del repositorio fuente (GitHub/npm) desde donde se descarga el plugin. */
+  repository?: string;
   source: PluginSource;
   installed: boolean;
   verified?: boolean;
@@ -129,17 +131,25 @@ export async function findRemotePlugin(id: string): Promise<RegistryPluginEntry 
 /** @deprecated Usar {@link findRemotePlugin}. Alias por retrocompatibilidad. */
 export const findRemoteBlock = findRemotePlugin;
 
-export async function getCatalog(fastify: FastifyInstance): Promise<{ local: CatalogItem[]; remote: CatalogItem[] }> {
-  const cacheKey = 'blocks:catalog';
-  const cached = await cacheGet<{ local: CatalogItem[]; remote: CatalogItem[] }>(fastify.redis, cacheKey);
-  if (cached) return cached;
+/**
+ * Construye el catálogo fusionando los plugins descubiertos en disco (local) y
+ * el índice del registro remoto. Origen de un plugin local (ADR-0016): campo
+ * `source` del manifiesto > entrada del registro > `git` inferido si declara
+ * `repository` > `local` (marcador interno, solo paquetes en disco sin fuente
+ * remota declarada).
+ */
+export function buildCatalog(
+  localManifests: PluginManifest[],
+  registryEntries: RegistryPluginEntry[],
+  installedMap: Map<string, string>,
+): { local: CatalogItem[]; remote: CatalogItem[] } {
+  const installedIds = new Set(installedMap.keys());
+  const registryById = new Map(registryEntries.map((e) => [e.id, e]));
 
-  const installations = await fastify.prisma.pluginInstallation.findMany({ select: { pluginId: true, version: true } });
-  const installedMap = new Map(installations.map((i) => [i.pluginId, i.version]));
-  const installedIds = new Set(installations.map((i) => i.pluginId));
-
-  const local: CatalogItem[] = pluginRegistry.getAvailable().map((m) => {
+  const local: CatalogItem[] = localManifests.map((m) => {
+    const entry = registryById.get(m.id);
     const installedVersion = installedMap.get(m.id) ?? null;
+    const source: PluginSource = m.source ?? entry?.source ?? (m.repository ? 'git' : 'local');
     return {
       id: m.id,
       name: m.name,
@@ -149,7 +159,8 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
       author: m.author,
       license: m.license,
       homepage: m.homepage,
-      source: 'local',
+      repository: entry?.url ?? m.repository,
+      source,
       category: m.category,
       installed: installedIds.has(m.id),
       installedVersion,
@@ -157,8 +168,9 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
     };
   });
 
-  const remote: CatalogItem[] = (await loadRegistryIndex())
-    .filter((b) => !installedIds.has(b.id) && !local.some((l) => l.id === b.id))
+  const localIds = new Set(local.map((l) => l.id));
+  const remote: CatalogItem[] = registryEntries
+    .filter((b) => !installedIds.has(b.id) && !localIds.has(b.id))
     .map((b) => ({
       id: b.id,
       name: b.name,
@@ -170,12 +182,24 @@ export async function getCatalog(fastify: FastifyInstance): Promise<{ local: Cat
       homepage: b.homepage,
       icon: b.icon,
       downloadUrl: b.downloadUrl,
+      repository: b.url,
       source: b.source,
       installed: false,
       verified: b.verified,
     }));
 
-  const result = { local, remote };
+  return { local, remote };
+}
+
+export async function getCatalog(fastify: FastifyInstance): Promise<{ local: CatalogItem[]; remote: CatalogItem[] }> {
+  const cacheKey = 'blocks:catalog';
+  const cached = await cacheGet<{ local: CatalogItem[]; remote: CatalogItem[] }>(fastify.redis, cacheKey);
+  if (cached) return cached;
+
+  const installations = await fastify.prisma.pluginInstallation.findMany({ select: { pluginId: true, version: true } });
+  const installedMap = new Map(installations.map((i) => [i.pluginId, i.version]));
+
+  const result = buildCatalog(pluginRegistry.getAvailable(), await loadRegistryIndex(), installedMap);
   await cacheSet(fastify.redis, cacheKey, result, 60);
   return result;
 }

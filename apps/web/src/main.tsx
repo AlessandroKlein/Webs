@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import '@webs/ui/styles.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './tailwind.css';
+import './styles/bootstrap-vendor.scss';
 import './styles.css';
 import { App } from './App';
 

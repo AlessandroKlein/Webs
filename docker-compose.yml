@@ -64,6 +64,14 @@ services:
       # Superadmin pre-creado por el entrypoint (migraciones + seed).
       SEED_ADMIN_EMAIL: admin@webs.test
       SEED_ADMIN_PASSWORD: Admin12345!
+      # Licencias (Licensify) — claves Ed25519 en PEM. Generá el par con
+      # @licensify/cli (`generateKeyPair`) y pegá el contenido aquí (o en un
+      # override local / secret). Sin LICENSE_PUBLIC_KEY el módulo queda
+      # 'unconfigured' y la activación se rechaza (400). La clave privada SOLO
+      # va en la instancia del vendedor (para emitir claves de venta); NUNCA se
+      # embebe en la app del cliente.
+      LICENSE_PUBLIC_KEY: ''
+      LICENSE_PRIVATE_KEY: ''
     volumes:
       - appdata:/app/data
     ports:

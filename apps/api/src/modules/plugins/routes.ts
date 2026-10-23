@@ -139,9 +139,7 @@ export async function pluginCrudRoutes(fastify: FastifyInstance): Promise<void> 
       }
 
       let result;
-      if (pluginRegistry.getAvailableManifest(id)) {
-        result = await installPluginWithDependencies(fastify, id);
-      } else if (body.url) {
+      if (body.url) {
         // F2 (P0): la instalación por URL directa queda PROHIBIDA sin firma
         // verificable. El manifest descargado debe venir firmado (Ed25519) y con
         // su sha256; `installRemotePlugin` valida ambas antes de ejecutar código.
@@ -162,9 +160,17 @@ export async function pluginCrudRoutes(fastify: FastifyInstance): Promise<void> 
           signature: body.signature,
         });
       } else {
+        // ADR-0016: el índice del registro es la única fuente de verdad de origen.
+        // Preferimos la descarga remota (sha256 + Ed25519) cuando el plugin está en
+        // el catálogo; el paquete en disco queda como fallback de desarrollo.
         const entry = await findRemotePlugin(id);
-        if (!entry) throw new NotFoundError(`Plugin '${id}' no encontrado en el catálogo`);
-        result = await installRemotePlugin(fastify, entry);
+        if (entry) {
+          result = await installRemotePlugin(fastify, entry);
+        } else if (pluginRegistry.getAvailableManifest(id)) {
+          result = await installPluginWithDependencies(fastify, id);
+        } else {
+          throw new NotFoundError(`Plugin '${id}' no encontrado en el catálogo`);
+        }
       }
 
       audit(fastify, request, { actorId: request.user?.sub, action: 'plugin.install', resource: 'plugin', resourceId: id });

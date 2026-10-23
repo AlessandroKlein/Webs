@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PluginManifest } from '@webs/plugin-sdk';
 import { useTranslation } from 'react-i18next';
+import i18next from '../../lib/i18n';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -50,7 +51,15 @@ interface CatalogResponse {
 }
 
 function catName(item: CatalogItem): string {
-  return item.displayName?.['es'] ?? item.displayName?.['en'] ?? item.name;
+  const lang = i18next.language.split('-')[0];
+  const localized = lang === 'es' ? item.displayName?.es : lang === 'en' ? item.displayName?.en : undefined;
+  return localized ?? item.displayName?.es ?? item.displayName?.en ?? item.name;
+}
+
+function catDescription(item: CatalogItem): string {
+  const lang = i18next.language.split('-')[0];
+  const localized = lang === 'es' ? item.description?.es : lang === 'en' ? item.description?.en : undefined;
+  return localized ?? item.description?.es ?? item.description?.en ?? '';
 }
 
 /** Plugins legacy/demo que no deben ofrecerse en el catálogo público. */
@@ -61,13 +70,44 @@ function catalogMatches(item: CatalogItem, q: string): boolean {
   if (!needle) return true;
   const haystack = [
     catName(item),
-    item.description?.['es'] ?? '',
-    item.description?.['en'] ?? '',
+    catDescription(item),
     item.author ?? '',
   ]
     .join(' ')
     .toLowerCase();
   return haystack.includes(needle);
+}
+
+/** Insignia de origen del plugin en el catálogo (local vs remoto Git/npm). */
+function SourceBadge({ source }: { source: 'local' | 'git' | 'npm' }) {
+  const { t } = useTranslation();
+  if (source === 'git') {
+    return (
+      <span
+        className="badge"
+        style={{ marginLeft: 8, background: 'rgba(37,99,235,0.15)', color: '#2563eb' }}
+        title={t('plugins.sourceGit')}
+      >
+        <i className="bi bi-github" aria-hidden="true" /> {t('plugins.sourceGit')}
+      </span>
+    );
+  }
+  if (source === 'npm') {
+    return (
+      <span
+        className="badge"
+        style={{ marginLeft: 8, background: 'rgba(203,61,53,0.15)', color: '#cb3d35' }}
+        title={t('plugins.sourceNpm')}
+      >
+        <i className="bi bi-box-seam" aria-hidden="true" /> {t('plugins.sourceNpm')}
+      </span>
+    );
+  }
+  return (
+    <span className="badge" style={{ marginLeft: 8 }} title={t('plugins.sourceLocal')}>
+      <i className="bi bi-hdd" aria-hidden="true" /> {t('plugins.sourceLocal')}
+    </span>
+  );
 }
 
 export function PluginsPage() {
@@ -115,7 +155,7 @@ export function PluginsPage() {
       setImportError(null);
       list.forEach((b) => install.mutate({ id: b.id, url: b.url, source: b.source }));
     } catch {
-      setImportError('JSON inválido. Esperado: [{"id":"...","url":"...","source":"git"}]');
+      setImportError(t('plugins.importJsonError'));
     }
   };
   const uninstall = useMutation({
@@ -157,8 +197,8 @@ export function PluginsPage() {
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
         <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.plugins')}</h1>
-        <button className={`nav-link ${tab === 'installed' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('installed')}>Instalados</button>
-        <button className={`nav-link ${tab === 'catalog' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('catalog')}>Catálogo</button>
+        <button className={`nav-link ${tab === 'installed' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('installed')}>{t('plugins.installed')}</button>
+        <button className={`nav-link ${tab === 'catalog' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('catalog')}>{t('plugins.catalog')}</button>
         {tab === 'catalog' && Object.keys(groupedCatalog).map((cat) => (
           <button
             key={cat}
@@ -169,14 +209,14 @@ export function PluginsPage() {
             {cat}
           </button>
         ))}
-        <button className={`nav-link ${tab === 'import' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('import')}>Importar JSON</button>
+        <button className={`nav-link ${tab === 'import' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('import')}>{t('plugins.importJson')}</button>
       </aside>
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
       {tab === 'installed' && (
       <Card>
-        <h3>Instalados</h3>
-        {(data?.installed ?? []).length === 0 && <p className="muted">No hay plugins instalados.</p>}
+        <h3>{t('plugins.installed')}</h3>
+        {(data?.installed ?? []).length === 0 && <p className="muted">{t('plugins.noInstalled')}</p>}
         <div className="stack">
           {(data?.installed ?? []).map((b) => (
             <InstalledPluginRow
@@ -194,14 +234,14 @@ export function PluginsPage() {
 
       {tab === 'catalog' && (
       <Card>
-        <h3>Catálogo{activeCategory ? ` — ${activeCategory}` : ''}</h3>
+        <h3>{t('plugins.catalog')}{activeCategory ? ` — ${activeCategory}` : ''}</h3>
         <Input
           value={catalogQuery}
           onChange={(e) => setCatalogQuery(e.target.value)}
-          placeholder="Buscar en el catálogo…"
-          aria-label="Buscar en el catálogo"
+          placeholder={t('plugins.searchCatalogPlaceholder')}
+          aria-label={t('plugins.searchCatalogAria')}
         />
-        {catalog.length === 0 && <p className="muted">No hay plugins disponibles para instalar.</p>}
+        {catalog.length === 0 && <p className="muted">{t('plugins.noPluginsAvailable')}</p>}
         <div className="stack">
           {Object.entries(groupedCatalog)
             .filter(([cat]) => !activeCategory || cat === activeCategory)
@@ -215,19 +255,19 @@ export function PluginsPage() {
                         <strong>{catName(b)}</strong>
                         <span className="muted"> v{b.version}</span>
                         {b.author && <span className="muted"> · {b.author}</span>}
-                        <span className="badge" style={{ marginLeft: 8 }}>{b.source}</span>
+                        <SourceBadge source={b.source} />
                         {b.verified && (
-                          <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-success)', color: '#fff' }}>✔ verificado</span>
+                          <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-success)', color: '#fff' }}>✔ {t('plugins.verified')}</span>
                         )}
                         {b.icon && (
                           <img src={b.icon} alt="" style={{ width: 28, height: 28, borderRadius: 6, marginLeft: 8, verticalAlign: 'middle' }} />
                         )}
                         <p className="muted" style={{ margin: 0 }}>
-                          {b.description?.['es'] ?? b.description?.['en']}
+                          {catDescription(b)}
                         </p>
                       </div>
                       <Button onClick={() => install.mutate({ id: b.id })} disabled={install.isPending}>
-                        {t('common.create')}
+                        {t('common.install')}
                       </Button>
                     </div>
                   ))}
@@ -240,17 +280,17 @@ export function PluginsPage() {
 
       {tab === 'import' && (
       <Card>
-        <h3>Importar plugins desde JSON</h3>
-        <p className="muted">Pegá una lista de plugins para instalar (formato JSON):</p>
+        <h3>{t('plugins.importJsonTitle')}</h3>
+        <p className="muted">{t('plugins.importJsonHint')}</p>
         <textarea className="input" rows={3} value={jsonInput} onChange={(e) => setJsonInput(e.target.value)} placeholder={'[{"id":"mi-plugin","url":"https://github.com/usuario/repo.git","source":"git"}]'} />
-        <Button variant="secondary" onClick={importJson}>Importar</Button>
+        <Button variant="secondary" onClick={importJson}>{t('plugins.importAction')}</Button>
         {importError && <p style={{ color: 'var(--ws-danger)' }}>{importError}</p>}
       </Card>
       )}
 
       {pending && (
         <Card>
-          <h3>Seleccioná proveedores para {pending.id}</h3>
+          <h3>{t('plugins.selectProviders', { id: pending.id })}</h3>
           {pending.missingProviders.map((g) => (
             <div key={g.group} style={{ marginBottom: 8 }}>
               <strong>{g.group}</strong>
@@ -272,8 +312,8 @@ export function PluginsPage() {
             </div>
           ))}
           <div className="row">
-            <Button onClick={() => install.mutate({ id: pending.id, providers: chosen })}>Confirmar</Button>
-            <Button variant="ghost" onClick={() => { setPending(null); setChosen({}); }}>Cancelar</Button>
+            <Button onClick={() => install.mutate({ id: pending.id, providers: chosen })}>{t('common.confirm')}</Button>
+            <Button variant="ghost" onClick={() => { setPending(null); setChosen({}); }}>{t('common.cancel')}</Button>
           </div>
         </Card>
       )}
@@ -305,7 +345,7 @@ function InstalledPluginRow({
           <span className="muted"> v{plugin.version}</span>
           {latestVersion && (
             <span className="badge" style={{ marginLeft: 8, background: 'var(--ws-warning)', color: '#111' }}>
-              ▲ actualización v{latestVersion}
+              ▲ {t('plugins.updateAvailable', { version: latestVersion })}
             </span>
           )}
           <span className="badge" style={{ marginLeft: 8 }}>
@@ -315,16 +355,16 @@ function InstalledPluginRow({
         <div className="row">
           {plugin.manifest.settings && (
             <Link to={`/admin/plugins/${plugin.pluginId}`} className="btn secondary">
-              Configurar
+              {t('plugins.configure')}
             </Link>
           )}
           {latestVersion && (
             <Button variant="secondary" onClick={() => onUpdate(plugin.pluginId)}>
-              Actualizar
+              {t('plugins.update')}
             </Button>
           )}
           <Button variant="secondary" onClick={() => onToggle({ id: plugin.pluginId, enabled: !plugin.enabled })}>
-            {plugin.enabled ? 'Desactivar' : 'Activar'}
+            {plugin.enabled ? t('plugins.deactivate') : t('plugins.activate')}
           </Button>
           <Button variant="ghost" onClick={() => onUninstall(plugin.pluginId)}>
             {t('common.delete')}

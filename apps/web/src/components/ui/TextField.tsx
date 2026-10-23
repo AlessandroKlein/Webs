@@ -18,10 +18,14 @@ export function TextField({
   const describedBy = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
   return (
     <div className={cn('field', className)}>
-      {label && <label htmlFor={inputId}>{label}</label>}
+      {label && (
+        <label htmlFor={inputId} className="form-label">
+          {label}
+        </label>
+      )}
       <input
         id={inputId}
-        className="input"
+        className="input form-control"
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         {...props}

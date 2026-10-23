@@ -69,5 +69,6 @@
         "title": "URL pública base (opcional)"
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }

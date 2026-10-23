@@ -28,6 +28,7 @@
         "es": "Social"
       },
       "path": "/admin/social",
+      "section": "comunidad",
       "order": 2,
       "target": "admin"
     }
@@ -67,5 +68,6 @@
         "default": "basic"
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }

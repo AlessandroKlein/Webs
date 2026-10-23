@@ -25,6 +25,7 @@
     "@webs/plugin-example": "workspace:*",
     "@webs/plugin-sdk": "workspace:*",
     "@webs/ui": "workspace:*",
+    "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.11.0",
     "grapesjs": "^0.23.8",
     "i18next": "^24.0.0",
@@ -33,6 +34,7 @@
     "react-dom": "^19.0.0",
     "react-i18next": "^15.0.0",
     "react-router-dom": "^7.0.0",
+    "sass": "^1.106.1",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

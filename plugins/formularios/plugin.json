@@ -22,6 +22,7 @@
         "es": "Formularios"
       },
       "path": "/admin/forms",
+      "section": "contenido",
       "order": 5,
       "target": "admin"
     }
@@ -52,5 +53,6 @@
         "format": "email"
       }
     }
-  }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
 }
