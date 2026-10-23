@@ -3,6 +3,49 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.1.0] - 2026-10-23
+
+### Añadido
+
+- **Builder visual (GrapesJS)**: editor drag-and-drop autoalojado en `/admin/editor`
+  con modelo `Page.layout` (`PageSection[]` / `PageItem` = `pluginId` u objeto),
+  `POST /api/v1/pages/save` (upsert por `slug` + `sanitizeLayout`), render de bloques
+  guardados y home única vía `Page.isHome`. Ref ADR-0011.
+- **Páginas legales configurables**: 4 documentos (Términos del Servicio, Aviso
+  Legal, Política de Privacidad, Política de Cookies) como templates markdown
+  editables desde **Ajustes → Legal**, publicados en `/legal/:slug` y
+  `GET /api/v1/public/legal/:slug`, con render seguro de markdown y enlaces nativos
+  en el footer.
+- **i18n completo (ES/EN/PT)**: ~700 claves nuevas y switcher de idioma persistido;
+  cobertura en menú, login, plugins, builder, dashboards de usuario/trabajadores,
+  páginas legales y de error. Ref ADR-0012.
+- **App móvil Capacitor (Android/iOS)**: host nativo en `apps/mobile` que envuelve
+  `apps/web` + splash screen (`@capacitor/splash-screen`); convive con la PWA de
+  asistencia por QR.
+- **Docs M3**: `page-builder.md`, `i18n.md` actualizado, legal (personalización
+  desde UI), inventario y política de dependencias.
+
+### Corregido
+
+- **Login en Docker**: entrypoint llave-en-mano (migraciones `prisma migrate deploy`
+  + `prisma db seed` + estado de instalación) y variables `DATABASE_URL`,
+  `JWT_REFRESH_SECRET` y `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` en Compose. Ahora
+  `docker compose up --build` deja una instancia lista con el superadmin
+  `admin@webs.test` / `Admin12345!`.
+- **F12 — rename residual**: `blockId` → `pluginId` en API y frontend (53
+  ocurrencias), prosa «bloque(s)» → «plugin(s)» (30 ocurrencias en 13 archivos) y
+  comentarios obsoletos `BlockPlacement`/`BlockInstallation` → `Plugin*`.
+- **F10 — versión hardcodeada**: Swagger (`apps/api/src/plugins/swagger.ts`) ahora
+  usa `SYSTEM_VERSION` (antes `0.1.0`); `GET /api/v1/setup/status` devuelve la
+  versión real.
+- **F4 — permisos en docs**: `block.read`/`block.manage` → `plugin.read`/
+  `plugin.manage` (los alias deprecados `BlockRead`/`BlockManage` se conservan).
+- **App de escritorio**: `apps/desktop` resuelve la versión dinámicamente desde
+  `SYSTEM_VERSION` (antes hardcodeada `1.0.0`).
+- **Multi-tenant organizaciones**: `resolveOrgScope()` en `plugins/organizaciones`
+  corrige el 500 «Unknown argument `organizationId`» en `GET /organizations` para
+  super_admin (sin org), admin de cadena y sucursal/usuario.
+
 ## [2.0.0] - 2026-10-23
 
 ### Añadido

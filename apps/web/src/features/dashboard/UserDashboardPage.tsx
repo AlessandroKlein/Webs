@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import i18next from '../../lib/i18n';
 import { useAuthStore } from '../../lib/auth-store';
 import type { AuthUser } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
@@ -9,7 +11,7 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { QrCode } from '../../components/ui/QrCode';
 
-// ── Tipos de datos de los bloques/endpoints ─────────────────────────────
+// ── Tipos de datos de los plugins/endpoints ─────────────────────────────
 
 interface CalendarEvent {
   id: string;
@@ -133,15 +135,15 @@ type View =
   | 'orders';
 
 const SECTIONS: Array<{ key: View; label: string; icon: string }> = [
-  { key: 'summary', label: 'Resumen', icon: 'bi-house' },
-  { key: 'routine', label: 'Mi rutina', icon: 'bi-clipboard2-pulse' },
-  { key: 'calendar', label: 'Calendario', icon: 'bi-calendar3' },
-  { key: 'bookings', label: 'Reservas', icon: 'bi-calendar-check' },
-  { key: 'pendingPayments', label: 'Pagos pendientes', icon: 'bi-hourglass-split' },
-  { key: 'payments', label: 'Historial de pagos', icon: 'bi-credit-card' },
-  { key: 'memberships', label: 'Suscripciones', icon: 'bi-award' },
-  { key: 'plans', label: 'Planes', icon: 'bi-gem' },
-  { key: 'orders', label: 'Mis compras', icon: 'bi-bag' },
+  { key: 'summary', label: 'dashboard.summary', icon: 'bi-house' },
+  { key: 'routine', label: 'dashboard.myRoutine', icon: 'bi-clipboard2-pulse' },
+  { key: 'calendar', label: 'dashboard.calendar', icon: 'bi-calendar3' },
+  { key: 'bookings', label: 'dashboard.bookings', icon: 'bi-calendar-check' },
+  { key: 'pendingPayments', label: 'dashboard.pendingPayments', icon: 'bi-hourglass-split' },
+  { key: 'payments', label: 'dashboard.paymentHistory', icon: 'bi-credit-card' },
+  { key: 'memberships', label: 'dashboard.subscriptions', icon: 'bi-award' },
+  { key: 'plans', label: 'dashboard.plans', icon: 'bi-gem' },
+  { key: 'orders', label: 'dashboard.myPurchases', icon: 'bi-bag' },
 ];
 
 // ── Utilidades de formato ───────────────────────────────────────────────
@@ -179,9 +181,9 @@ function eventTypeLabel(type: string | null): string {
   if (type.startsWith('{')) {
     try {
       const meta = JSON.parse(type) as { kind?: string; slots?: number; occurrence?: number; total?: number };
-      const label = meta.kind ?? 'clase';
+      const label = meta.kind ?? i18next.t('dashboard.clase');
       const parts = [label];
-      if (meta.slots !== undefined) parts.push(`${meta.slots} cupos`);
+      if (meta.slots !== undefined) parts.push(i18next.t('dashboard.slots', { n: meta.slots }));
       if (meta.total !== undefined && meta.total > 1 && meta.occurrence !== undefined) {
         parts.push(`${meta.occurrence}/${meta.total}`);
       }
@@ -203,11 +205,11 @@ function openSimpleReceipt(p: PaymentRow) {
   const date = new Date(p.createdAt).toLocaleString('es-AR');
   const amount = (p.amount / 100).toFixed(2);
   const html = `<!doctype html>
-<html lang="es">
+<html lang="${i18next.language.split('-')[0]}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Comprobante ${escHtml(p.transactionId || p.id)}</title>
+<title>${i18next.t('dashboard.receiptTitle2')} ${escHtml(p.transactionId || p.id)}</title>
 <style>
   body { font-family: -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; color: #111827; margin: 0; background: #f6f7f9; }
   .doc { max-width: 640px; margin: 24px auto; background: #fff; border-radius: 12px; padding: 32px; box-shadow: 0 12px 32px rgba(0,0,0,0.08); }
@@ -223,15 +225,15 @@ function openSimpleReceipt(p: PaymentRow) {
 </head>
 <body>
 <div class="doc">
-  <h1>Comprobante de pago</h1>
+  <h1>${i18next.t('dashboard.receiptHeading')}</h1>
   <div class="meta">${date}</div>
   <table>
-    <tr><td>Referencia</td><td>${escHtml(p.transactionId || p.id)}</td></tr>
-    <tr><td>Proveedor</td><td>${escHtml(p.provider)}</td></tr>
-    <tr><td>Estado</td><td>${escHtml(p.status)}</td></tr>
+    <tr><td>${i18next.t('dashboard.receiptReference')}</td><td>${escHtml(p.transactionId || p.id)}</td></tr>
+    <tr><td>${i18next.t('dashboard.receiptProvider')}</td><td>${escHtml(p.provider)}</td></tr>
+    <tr><td>${i18next.t('dashboard.receiptStatus')}</td><td>${escHtml(p.status)}</td></tr>
   </table>
   <div class="amount">${escHtml(p.currency)} ${amount}</div>
-  <div class="note">Comprobante generado por Webs. Imprimí esta página (Ctrl+P) para guardarla como PDF.</div>
+  <div class="note">${i18next.t('dashboard.receiptNote')}</div>
 </div>
 </body>
 </html>`;
@@ -242,11 +244,11 @@ function openSimpleReceipt(p: PaymentRow) {
 
 // ── Etiquetas/colores de estado ─────────────────────────────────────────
 
-const PAYMENT_STATUS_ES: Record<string, string> = {
-  pending: 'Pendiente',
-  approved: 'Aprobado',
-  rejected: 'Rechazado',
-  refunded: 'Reembolsado',
+const PAYMENT_STATUS_KEY: Record<string, string> = {
+  pending: 'status.pending',
+  approved: 'status.approved',
+  rejected: 'status.rejected',
+  refunded: 'status.refunded',
 };
 
 const PAYMENT_STATUS_COLOR: Record<string, string> = {
@@ -256,14 +258,14 @@ const PAYMENT_STATUS_COLOR: Record<string, string> = {
   refunded: 'var(--ws-text-muted)',
 };
 
-const ORDER_STATUS_ES: Record<string, string> = {
-  pending: 'Pendiente',
-  paid: 'Pagado',
-  preparing: 'En preparación',
-  processing: 'En proceso',
-  shipped: 'Enviado',
-  delivered: 'Entregado',
-  cancelled: 'Cancelado',
+const ORDER_STATUS_KEY: Record<string, string> = {
+  pending: 'status.pending',
+  paid: 'status.paid',
+  preparing: 'status.preparing',
+  processing: 'status.processing',
+  shipped: 'status.shipped',
+  delivered: 'status.delivered',
+  cancelled: 'status.cancelled',
 };
 
 const ORDER_STATUS_COLOR: Record<string, string> = {
@@ -276,10 +278,10 @@ const ORDER_STATUS_COLOR: Record<string, string> = {
   cancelled: 'var(--ws-danger)',
 };
 
-const BOOKING_STATUS_ES: Record<string, string> = {
-  confirmed: 'Confirmada',
-  cancelled: 'Cancelada',
-  pending: 'Pendiente',
+const BOOKING_STATUS_KEY: Record<string, string> = {
+  confirmed: 'status.confirmed',
+  cancelled: 'status.cancelled',
+  pending: 'status.pending',
 };
 
 const BOOKING_STATUS_COLOR: Record<string, string> = {
@@ -317,6 +319,7 @@ function SectionCard({ title, children }: { title: string; children: ReactNode }
 // ── Página principal ────────────────────────────────────────────────────
 
 export function UserDashboardPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const [view, setView] = useState<View>('summary');
 
@@ -334,7 +337,7 @@ export function UserDashboardPage() {
             padding: 'var(--ws-space-4)',
           }}
         >
-          <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Mi panel</h1>
+          <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('dashboard.title')}</h1>
           {user?.email ? (
             <p className="muted" style={{ margin: 0, wordBreak: 'break-all' }}>
               <i className="bi bi-envelope" /> {user.email}
@@ -379,7 +382,8 @@ export function UserDashboardPage() {
 // ── Resumen ─────────────────────────────────────────────────────────────
 
 function SummaryView({ user, onNavigate }: { user: AuthUser | null; onNavigate: (v: View) => void }) {
-  const name = user?.displayName ?? user?.email ?? 'Usuario';
+  const { t } = useTranslation();
+  const name = user?.displayName ?? user?.email ?? t('common.user');
 
   return (
     <>
@@ -410,7 +414,7 @@ function SummaryView({ user, onNavigate }: { user: AuthUser | null; onNavigate: 
             </div>
           )}
           <div className="stack" style={{ gap: 2 }}>
-            <h2 style={{ margin: 0 }}>¡Hola, {name}!</h2>
+            <h2 style={{ margin: 0 }}>{t('dashboard.hello', { name })}</h2>
             {user?.email ? (
               <p className="muted" style={{ margin: 0 }}>
                 <i className="bi bi-envelope" /> {user.email}
@@ -421,11 +425,11 @@ function SummaryView({ user, onNavigate }: { user: AuthUser | null; onNavigate: 
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Accesos rápidos</h3>
+        <h3 style={{ marginTop: 0 }}>{t('dashboard.quickAccess')}</h3>
         <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
           {SECTIONS.filter((s) => s.key !== 'summary').map((s) => (
             <Button key={s.key} variant="secondary" onClick={() => onNavigate(s.key)}>
-              <i className={`bi ${s.icon}`} /> {s.label}
+              <i className={`bi ${s.icon}`} /> {t(s.label)}
             </Button>
           ))}
         </div>
@@ -437,6 +441,7 @@ function SummaryView({ user, onNavigate }: { user: AuthUser | null; onNavigate: 
 // ── Calendario ──────────────────────────────────────────────────────────
 
 function CalendarSection({ user }: { user: AuthUser | null }) {
+  const { t } = useTranslation();
   const userId = user?.id ?? '';
   const { data: events, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-calendar'],
@@ -454,7 +459,7 @@ function CalendarSection({ user }: { user: AuthUser | null }) {
   const groups = groupEventsByDate(events ?? []);
 
   return (
-    <SectionCard title="Calendario">
+    <SectionCard title={t('dashboard.calendar')}>
       {/* Vencimiento del plan */}
       <div
         style={{
@@ -468,22 +473,22 @@ function CalendarSection({ user }: { user: AuthUser | null }) {
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
           <span>
             <strong>
-              <i className="bi bi-calendar3" /> Plan: {plan?.plan ?? '—'}
+              <i className="bi bi-calendar3" /> {t('dashboard.plan')} {plan?.plan ?? '—'}
             </strong>
             {plan?.status ? <span className="muted"> · {plan.status}</span> : null}
           </span>
           <span style={{ fontWeight: 600 }}>
-            Vence: {plan?.endDate ? formatDate(plan.endDate) : '—'}
+            {t('dashboard.expires')} {plan?.endDate ? formatDate(plan.endDate) : '—'}
           </span>
         </div>
       </div>
 
       {isLoading ? (
-        <Spinner label="Cargando calendario…" />
+        <Spinner label={t('dashboard.loadingCalendar')} />
       ) : isError ? (
-        <p className="muted">No disponible: el bloque de calendario no está instalado.</p>
+        <p className="muted">{t('dashboard.noCalendar')}</p>
       ) : groups.length === 0 ? (
-        <p className="muted">Sin datos: todavía no hay eventos programados.</p>
+        <p className="muted">{t('dashboard.noEvents')}</p>
       ) : (
         <div className="stack">
           {groups.map((g) => (
@@ -514,6 +519,7 @@ function CalendarSection({ user }: { user: AuthUser | null }) {
 // ── Reservas ────────────────────────────────────────────────────────────
 
 function BookingsSection() {
+  const { t } = useTranslation();
   const { data: bookings, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-bookings'],
     queryFn: () => api.get<Booking[]>('/api/v1/blocks/reservas/bookings'),
@@ -521,21 +527,21 @@ function BookingsSection() {
   });
 
   return (
-    <SectionCard title="Reservas">
+    <SectionCard title={t('dashboard.bookings')}>
       {isLoading ? (
-        <Spinner label="Cargando reservas…" />
+        <Spinner label={t('dashboard.loadingBookings')} />
       ) : isError ? (
-        <p className="muted">No disponible: el bloque de reservas no está instalado.</p>
+        <p className="muted">{t('dashboard.noBookings')}</p>
       ) : (bookings ?? []).length === 0 ? (
-        <p className="muted">Sin datos: no tenés reservas.</p>
+        <p className="muted">{t('dashboard.noBookingsData')}</p>
       ) : (
         <table className="table">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Nombre</th>
-              <th>Servicio</th>
-              <th>Estado</th>
+              <th>{t('common.date')}</th>
+              <th>{t('common.name')}</th>
+              <th>{t('dashboard.service')}</th>
+              <th>{t('common.status')}</th>
             </tr>
           </thead>
           <tbody>
@@ -548,7 +554,7 @@ function BookingsSection() {
                 </td>
                 <td>
                   <StatusBadge
-                    label={BOOKING_STATUS_ES[b.status] ?? b.status}
+                    label={t(BOOKING_STATUS_KEY[b.status] ?? b.status)}
                     color={BOOKING_STATUS_COLOR[b.status]}
                   />
                 </td>
@@ -564,6 +570,7 @@ function BookingsSection() {
 // ── Pagos pendientes ────────────────────────────────────────────────────
 
 function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onClose: () => void }) {
+  const { t } = useTranslation();
   const [providers, setProviders] = useState<PaymentProvider[] | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(payment.provider || null);
   const [result, setResult] = useState<CheckoutResult | null>(null);
@@ -578,14 +585,14 @@ function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onCl
       const list = await api.get<PaymentProvider[]>('/api/v1/payments/providers');
       if (!list || list.length === 0) {
         setProviders(null);
-        setError('No hay métodos de pago configurados');
+        setError(t('dashboard.noPaymentMethods'));
         return;
       }
       setProviders(list);
       setSelectedProvider((prev) => (prev && list.some((p) => p.id === prev) ? prev : list[0]?.id ?? null));
     } catch {
       setProviders(null);
-      setError('No hay métodos de pago configurados');
+      setError(t('dashboard.noPaymentMethods'));
     } finally {
       setLoadingProviders(false);
     }
@@ -604,12 +611,12 @@ function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onCl
         provider: selectedProvider,
         amount: payment.amount,
         currency: payment.currency,
-        description: `Retomar pago · ${payment.transactionId || payment.id}`,
+        description: t('dashboard.retryPayment', { id: payment.transactionId || payment.id }),
         externalReference: payment.externalReference ?? `retomar-${payment.id}`,
       });
       setResult(res);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al iniciar el pago');
+      setError(e instanceof Error ? e.message : t('dashboard.paymentError'));
     } finally {
       setPaying(false);
     }
@@ -646,19 +653,19 @@ function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onCl
         onClick={(e) => e.stopPropagation()}
       >
         <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
-          <h3 style={{ margin: 0 }}>{hasReference ? 'Retomar pago' : 'Continuar pago'}</h3>
+          <h3 style={{ margin: 0 }}>{hasReference ? t('dashboard.resumePayment') : t('dashboard.continuePayment')}</h3>
 
           <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
             <p style={{ margin: 0 }}>
-              <strong>ID:</strong> <code>{payment.id}</code>
+              <strong>{t('dashboard.id')}</strong> <code>{payment.id}</code>
             </p>
             {payment.transactionId && (
               <p style={{ margin: 0 }}>
-                <strong>Transacción:</strong> <code>{payment.transactionId}</code>
+                <strong>{t('dashboard.transaction')}</strong> <code>{payment.transactionId}</code>
               </p>
             )}
             <p style={{ margin: 0 }}>
-              <strong>Monto:</strong> {money(payment.amount, payment.currency)}
+              <strong>{t('dashboard.amount')}</strong> {money(payment.amount, payment.currency)}
             </p>
           </div>
 
@@ -696,35 +703,35 @@ function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onCl
                     fontWeight: 600,
                   }}
                 >
-                  <i className="bi bi-box-arrow-up-right" /> Pagar ahora
+                  <i className="bi bi-box-arrow-up-right" /> {t('dashboard.payNow')}
                 </a>
               ) : result.qr ? (
                 <div className="stack" style={{ gap: 'var(--ws-space-2)', alignItems: 'center' }}>
                   <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
-                    Escaneá el código QR para completar el pago:
+                    {t('dashboard.scanQr')}
                   </span>
                   <QrCode value={result.qr} />
                 </div>
               ) : (
                 <div style={{ padding: 'var(--ws-space-3)', background: 'var(--ws-primary-soft)', borderRadius: 'var(--ws-radius-md)' }}>
                   <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
-                    <i className="bi bi-hourglass-split" /> Pago pendiente
+                    <i className="bi bi-hourglass-split" /> {t('dashboard.paymentPending')}
                   </strong>
                   <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
-                    Código de transacción: <code>{result.transactionId}</code>
+                    {t('dashboard.transactionCode')} <code>{result.transactionId}</code>
                   </p>
                 </div>
               )}
 
               <Button variant="secondary" style={{ width: '100%' }} onClick={onClose}>
-                Entendido
+                {t('dashboard.understood')}
               </Button>
             </div>
           ) : loadingProviders ? (
-            <Spinner label="Buscando métodos de pago…" />
+            <Spinner label={t('dashboard.searchingMethods')} />
           ) : providers ? (
             <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
-              <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Elegí un método de pago:</span>
+              <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>{t('dashboard.chooseMethod')}</span>
               {providers.map((p) => (
                 <button
                   key={p.id}
@@ -749,15 +756,15 @@ function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onCl
               ))}
               <div className="row" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
                 <Button variant="ghost" style={{ flex: 1 }} onClick={onClose}>
-                  Cancelar
+                  {t('common.cancel')}
                 </Button>
                 <Button style={{ flex: 1 }} onClick={pay} disabled={paying || !selectedProvider}>
-                  {paying ? 'Iniciando pago…' : 'Pagar'}
+                  {paying ? t('dashboard.startingPayment') : t('dashboard.pay')}
                 </Button>
               </div>
             </div>
           ) : (
-            <p className="muted" style={{ margin: 0 }}>No hay métodos de pago configurados.</p>
+            <p className="muted" style={{ margin: 0 }}>{t('dashboard.noPaymentMethodsDot')}</p>
           )}
         </div>
       </div>
@@ -766,6 +773,7 @@ function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onCl
 }
 
 function PendingPaymentsSection() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState<PaymentRow | null>(null);
   const { data: payments, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-pending-payments'],
@@ -774,19 +782,19 @@ function PendingPaymentsSection() {
   });
 
   return (
-    <SectionCard title="Pagos pendientes">
+    <SectionCard title={t('dashboard.pendingPayments')}>
       {isLoading ? (
-        <Spinner label="Cargando pagos pendientes…" />
+        <Spinner label={t('dashboard.loadingPending')} />
       ) : isError ? (
-        <p className="muted">No disponible: no se pudieron cargar los pagos pendientes.</p>
+        <p className="muted">{t('dashboard.noPending')}</p>
       ) : (payments ?? []).length === 0 ? (
-        <p className="muted">Sin datos: no tenés pagos pendientes.</p>
+        <p className="muted">{t('dashboard.noPendingData')}</p>
       ) : (
         <table className="table">
           <thead>
             <tr>
-              <th>Referencia</th>
-              <th>Monto</th>
+              <th>{t('dashboard.reference')}</th>
+              <th>{t('dashboard.amountHeader')}</th>
               <th></th>
             </tr>
           </thead>
@@ -801,7 +809,7 @@ function PendingPaymentsSection() {
                   <td>{money(p.amount, p.currency)}</td>
                   <td>
                     <Button variant="secondary" onClick={() => setSelected(p)}>
-                      {hasReference ? 'Retomar pago' : 'Continuar pago'}
+                      {hasReference ? t('dashboard.resumePayment') : t('dashboard.continuePayment')}
                     </Button>
                   </td>
                 </tr>
@@ -819,6 +827,7 @@ function PendingPaymentsSection() {
 // ── Historial de pagos ──────────────────────────────────────────────────
 
 function PaymentsHistorySection() {
+  const { t } = useTranslation();
   const { data: payments, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-payments'],
     queryFn: () => api.get<PaymentRow[]>('/api/v1/payments'),
@@ -838,20 +847,20 @@ function PaymentsHistorySection() {
   }
 
   return (
-    <SectionCard title="Historial de pagos">
+    <SectionCard title={t('dashboard.paymentHistory')}>
       {isLoading ? (
-        <Spinner label="Cargando historial…" />
+        <Spinner label={t('dashboard.loadingHistory')} />
       ) : isError ? (
-        <p className="muted">No disponible: no se pudo cargar el historial de pagos.</p>
+        <p className="muted">{t('dashboard.noHistory')}</p>
       ) : (payments ?? []).length === 0 ? (
-        <p className="muted">Sin datos: no tenés pagos registrados.</p>
+        <p className="muted">{t('dashboard.noHistoryData')}</p>
       ) : (
         <table className="table">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Monto</th>
-              <th>Estado</th>
+              <th>{t('common.date')}</th>
+              <th>{t('dashboard.amountHeader')}</th>
+              <th>{t('common.status')}</th>
               <th></th>
             </tr>
           </thead>
@@ -864,7 +873,7 @@ function PaymentsHistorySection() {
                   <td>{money(p.amount, p.currency)}</td>
                   <td>
                     <StatusBadge
-                      label={PAYMENT_STATUS_ES[p.status] ?? p.status}
+                      label={t(PAYMENT_STATUS_KEY[p.status] ?? p.status)}
                       color={PAYMENT_STATUS_COLOR[p.status]}
                     />
                   </td>
@@ -874,7 +883,7 @@ function PaymentsHistorySection() {
                         href={`/api/v1/blocks/facturacion/invoices/${invoice.id}/html`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        title="Abre el comprobante en una pestaña nueva para imprimirlo a PDF"
+                        title={t('dashboard.receiptTitle')}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -888,11 +897,11 @@ function PaymentsHistorySection() {
                           cursor: 'pointer',
                         }}
                       >
-                        <i className="bi bi-download" /> Descargar comprobante
+                        <i className="bi bi-download" /> {t('dashboard.downloadReceipt')}
                       </a>
                     ) : (
                       <Button variant="secondary" onClick={() => openSimpleReceipt(p)}>
-                        <i className="bi bi-download" /> Descargar comprobante
+                        <i className="bi bi-download" /> {t('dashboard.downloadReceipt')}
                       </Button>
                     )}
                   </td>
@@ -909,6 +918,7 @@ function PaymentsHistorySection() {
 // ── Suscripciones ───────────────────────────────────────────────────────
 
 function MembershipsSection({ user }: { user: AuthUser | null }) {
+  const { t } = useTranslation();
   const { data: memberships, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-memberships'],
     queryFn: () => api.get<Membership[]>('/api/v1/blocks/organizaciones/memberships'),
@@ -921,13 +931,13 @@ function MembershipsSection({ user }: { user: AuthUser | null }) {
   });
 
   return (
-    <SectionCard title="Suscripciones">
+    <SectionCard title={t('dashboard.subscriptions')}>
       {isLoading ? (
-        <Spinner label="Cargando suscripciones…" />
+        <Spinner label={t('dashboard.loadingSubscriptions')} />
       ) : isError ? (
-        <p className="muted">No disponible: el bloque de organizaciones no está instalado.</p>
+        <p className="muted">{t('dashboard.noSubscriptions')}</p>
       ) : mine.length === 0 ? (
-        <p className="muted">Sin suscripciones.</p>
+        <p className="muted">{t('dashboard.noSubscriptionsData')}</p>
       ) : (
         <div className="stack">
           {mine.map((m) => (
@@ -937,8 +947,8 @@ function MembershipsSection({ user }: { user: AuthUser | null }) {
                 <StatusBadge label={m.status} color={membershipStatusColor(m.status)} />
               </div>
               <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>
-                Plan: {m.plan ?? '—'} · Rol: {m.role} · Desde {formatDate(m.startDate)}
-                {m.endDate ? ` hasta ${formatDate(m.endDate)}` : ''}
+                {t('dashboard.membershipLine', { plan: m.plan ?? '—', role: m.role, start: formatDate(m.startDate) })}
+                {m.endDate ? ` ${t('dashboard.until', { date: formatDate(m.endDate) })}` : ''}
               </p>
             </div>
           ))}
@@ -950,10 +960,10 @@ function MembershipsSection({ user }: { user: AuthUser | null }) {
 
 // ── Planes / Suscripción ────────────────────────────────────────────────
 
-const SUBSCRIPTION_STATUS_ES: Record<string, string> = {
-  active: 'Activa',
-  cancelled: 'Cancelada',
-  expired: 'Vencida',
+const SUBSCRIPTION_STATUS_KEY: Record<string, string> = {
+  active: 'status.active',
+  cancelled: 'status.cancelled',
+  expired: 'status.expired',
 };
 
 const SUBSCRIPTION_STATUS_COLOR: Record<string, string> = {
@@ -967,6 +977,7 @@ function asPlanFeatures(v: unknown): string[] {
 }
 
 function PlansSection({ user }: { user: AuthUser | null }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const userId = user?.id ?? '';
 
@@ -1000,10 +1011,10 @@ function PlansSection({ user }: { user: AuthUser | null }) {
   });
 
   return (
-    <SectionCard title="Planes / Suscripción">
+    <SectionCard title={t('dashboard.plansTitle')}>
       {/* Suscripción actual */}
       {myLoading ? (
-        <Spinner label="Cargando tu suscripción…" />
+        <Spinner label={t('dashboard.loadingSubscription')} />
       ) : my ? (
         <div
           className="row"
@@ -1019,32 +1030,32 @@ function PlansSection({ user }: { user: AuthUser | null }) {
             <strong>{my.planName}</strong>
             <p className="muted" style={{ margin: 0 }}>
               <StatusBadge
-                label={SUBSCRIPTION_STATUS_ES[my.status] ?? my.status}
+                label={t(SUBSCRIPTION_STATUS_KEY[my.status] ?? my.status)}
                 color={SUBSCRIPTION_STATUS_COLOR[my.status]}
               />{' '}
-              Desde {formatDate(my.startDate)}
-              {my.endDate ? ` · Vence ${formatDate(my.endDate)}` : ''}
+              {t('dashboard.since', { date: formatDate(my.startDate) })}
+              {my.endDate ? ` · ${t('dashboard.expiresOn', { date: formatDate(my.endDate) })}` : ''}
             </p>
           </div>
           {my.status === 'active' && (
             <Button variant="secondary" onClick={() => cancel.mutate(my.id)} disabled={cancel.isPending}>
-              Cancelar suscripción
+              {t('dashboard.cancelSubscription')}
             </Button>
           )}
         </div>
       ) : (
         <p className="muted" style={{ marginBottom: 'var(--ws-space-4)' }}>
-          No tenés una suscripción activa.
+          {t('dashboard.noActiveSubscription')}
         </p>
       )}
 
       {/* Planes disponibles */}
       {plansLoading ? (
-        <Spinner label="Cargando planes…" />
+        <Spinner label={t('dashboard.loadingPlans')} />
       ) : plansError ? (
-        <p className="muted">No disponible: el bloque de suscripciones no está instalado.</p>
+        <p className="muted">{t('dashboard.noPlans')}</p>
       ) : (plans ?? []).length === 0 ? (
-        <p className="muted">Sin datos: no hay planes disponibles.</p>
+        <p className="muted">{t('dashboard.noPlansData')}</p>
       ) : (
         <div
           style={{
@@ -1068,7 +1079,7 @@ function PlansSection({ user }: { user: AuthUser | null }) {
             >
               <strong style={{ fontSize: 'var(--ws-font-size-lg)' }}>{p.name}</strong>
               <span style={{ fontWeight: 700 }}>{money(p.price, 'ARS')}</span>
-              <span className="muted">{p.durationDays} días</span>
+              <span className="muted">{t('dashboard.days', { count: p.durationDays })}</span>
               {asPlanFeatures(p.features).length > 0 && (
                 <ul style={{ margin: 0, paddingLeft: 'var(--ws-space-4)' }}>
                   {asPlanFeatures(p.features).map((f) => (
@@ -1083,7 +1094,7 @@ function PlansSection({ user }: { user: AuthUser | null }) {
                 onClick={() => subscribe.mutate(p.id)}
                 disabled={subscribe.isPending || !!my}
               >
-                {subscribe.isPending ? 'Contratando…' : 'Contratar'}
+                {subscribe.isPending ? t('dashboard.subscribing') : t('dashboard.subscribe')}
               </Button>
             </div>
           ))}
@@ -1091,12 +1102,12 @@ function PlansSection({ user }: { user: AuthUser | null }) {
       )}
       {subscribe.isError && (
         <p className="muted" style={{ color: 'var(--ws-danger)', marginTop: 'var(--ws-space-3)' }}>
-          No se pudo contratar el plan.
+          {t('dashboard.subscribeError')}
         </p>
       )}
       {subscribe.data?.requirePayment && (
         <p className="muted" style={{ color: 'var(--ws-primary)', marginTop: 'var(--ws-space-3)' }}>
-          <i className="bi bi-credit-card" /> Este plan requiere pago. Completalo desde “Pagos pendientes”.
+          <i className="bi bi-credit-card" /> {t('dashboard.requiresPayment')}
         </p>
       )}
     </SectionCard>
@@ -1120,16 +1131,17 @@ function routineExercises(v: unknown): Array<{ name: string; detail: string }> {
   for (const raw of v) {
     if (typeof raw !== 'object' || raw === null) continue;
     const ex = raw as Record<string, unknown>;
-    const name = typeof ex.name === 'string' && ex.name.trim() ? ex.name.trim() : 'Ejercicio';
+    const name = typeof ex.name === 'string' && ex.name.trim() ? ex.name.trim() : i18next.t('dashboard.exercise');
     const parts: string[] = [];
-    if (ex.sets !== undefined && ex.sets !== null && ex.sets !== '') parts.push(`Series: ${String(ex.sets)}`);
-    if (ex.reps !== undefined && ex.reps !== null && ex.reps !== '') parts.push(`Reps: ${String(ex.reps)}`);
+    if (ex.sets !== undefined && ex.sets !== null && ex.sets !== '') parts.push(i18next.t('dashboard.sets', { n: String(ex.sets) }));
+    if (ex.reps !== undefined && ex.reps !== null && ex.reps !== '') parts.push(i18next.t('dashboard.reps', { n: String(ex.reps) }));
     out.push({ name, detail: parts.length ? parts.join(' · ') : '—' });
   }
   return out;
 }
 
 function RoutineSection({ user }: { user: AuthUser | null }) {
+  const { t } = useTranslation();
   const userId = user?.id ?? '';
   const { data: routines, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-routines', userId],
@@ -1139,13 +1151,13 @@ function RoutineSection({ user }: { user: AuthUser | null }) {
   });
 
   return (
-    <SectionCard title="Mi rutina">
+    <SectionCard title={t('dashboard.myRoutine')}>
       {isLoading ? (
-        <Spinner label="Cargando rutinas…" />
+        <Spinner label={t('dashboard.loadingRoutines')} />
       ) : isError ? (
-        <p className="muted">No disponible: el bloque de academia no está instalado.</p>
+        <p className="muted">{t('dashboard.noRoutines')}</p>
       ) : (routines ?? []).length === 0 ? (
-        <p className="muted">Sin datos: todavía no tenés una rutina asignada por tu entrenador.</p>
+        <p className="muted">{t('dashboard.noRoutinesData')}</p>
       ) : (
         <div className="stack">
           {(routines ?? []).map((r) => (
@@ -1184,6 +1196,7 @@ function RoutineSection({ user }: { user: AuthUser | null }) {
 // ── Mis compras ─────────────────────────────────────────────────────────
 
 function OrdersSection() {
+  const { t } = useTranslation();
   const { data: orders, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-orders'],
     queryFn: () => api.get<Order[]>('/api/v1/blocks/ecommerce/orders'),
@@ -1191,21 +1204,21 @@ function OrdersSection() {
   });
 
   return (
-    <SectionCard title="Mis compras">
+    <SectionCard title={t('dashboard.myPurchases')}>
       {isLoading ? (
-        <Spinner label="Cargando compras…" />
+        <Spinner label={t('dashboard.loadingOrders')} />
       ) : isError ? (
-        <p className="muted">No disponible: el bloque de e-commerce no está instalado.</p>
+        <p className="muted">{t('dashboard.noOrders')}</p>
       ) : (orders ?? []).length === 0 ? (
-        <p className="muted">Sin datos: todavía no tenés pedidos.</p>
+        <p className="muted">{t('dashboard.noOrdersData')}</p>
       ) : (
         <table className="table">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Estado</th>
-              <th>Total</th>
-              <th>Ítems</th>
+              <th>{t('common.date')}</th>
+              <th>{t('common.status')}</th>
+              <th>{t('dashboard.total')}</th>
+              <th>{t('dashboard.items')}</th>
             </tr>
           </thead>
           <tbody>
@@ -1214,7 +1227,7 @@ function OrdersSection() {
                 <td>{new Date(o.createdAt).toLocaleDateString('es-AR')}</td>
                 <td>
                   <StatusBadge
-                    label={ORDER_STATUS_ES[o.status] ?? o.status}
+                    label={t(ORDER_STATUS_KEY[o.status] ?? o.status)}
                     color={ORDER_STATUS_COLOR[o.status]}
                   />
                 </td>

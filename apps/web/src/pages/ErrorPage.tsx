@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface ErrorCopy {
   title: string;
@@ -6,18 +7,9 @@ interface ErrorCopy {
 }
 
 const COPY: Record<number, ErrorCopy> = {
-  400: {
-    title: 'Solicitud incorrecta',
-    message: 'La petición no es válida o está mal formada.',
-  },
-  404: {
-    title: 'Página no encontrada',
-    message: 'La página que buscás no existe o fue movida.',
-  },
-  500: {
-    title: 'Error del servidor',
-    message: 'Ocurrió un error interno. Intentá de nuevo más tarde.',
-  },
+  400: { title: 'error.badRequest', message: 'error.badRequestMsg' },
+  404: { title: 'error.notFound', message: 'error.notFoundMsg' },
+  500: { title: 'error.serverError', message: 'error.serverErrorMsg' },
 };
 
 /**
@@ -25,7 +17,10 @@ const COPY: Record<number, ErrorCopy> = {
  * Usada como página 404 (ruta comodín) y disponible para 400/500 si se necesita.
  */
 export function ErrorPage({ code = 404, message }: { code?: number; message?: string }) {
-  const info = COPY[code] ?? { title: 'Error inesperado', message: 'Ocurrió un error inesperado.' };
+  const { t } = useTranslation();
+  const keys = COPY[code] ?? { title: 'error.unexpected', message: 'error.unexpectedMsg' };
+  const title = t(keys.title);
+  const msg = t(keys.message);
 
   return (
     <div className="auth-screen">
@@ -41,10 +36,10 @@ export function ErrorPage({ code = 404, message }: { code?: number; message?: st
         >
           {code}
         </p>
-        <h2 style={{ marginTop: 'var(--ws-space-3)' }}>{message ?? info.title}</h2>
-        <p className="muted">{info.message}</p>
+        <h2 style={{ marginTop: 'var(--ws-space-3)' }}>{message ?? title}</h2>
+        <p className="muted">{msg}</p>
         <Link to="/" className="btn" style={{ marginTop: 'var(--ws-space-4)' }}>
-          Volver al inicio
+          {t('error.backHome')}
         </Link>
       </div>
     </div>

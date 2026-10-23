@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api, ApiClientError } from '../../lib/api';
 import { SiteLayout } from '../../components/SiteLayout';
 import { ErrorPage } from '../../pages/ErrorPage';
@@ -22,6 +23,7 @@ interface PublicPageData {
  */
 export function PublicPage() {
   const { slug = '' } = useParams<{ slug: string }>();
+  const { t } = useTranslation();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['public-page', slug],
@@ -32,7 +34,7 @@ export function PublicPage() {
   if (isLoading) {
     return (
       <div className="auth-screen">
-        <p className="muted">Cargando…</p>
+        <p className="muted">{t('common.loading')}</p>
       </div>
     );
   }

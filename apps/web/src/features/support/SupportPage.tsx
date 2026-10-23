@@ -20,7 +20,7 @@ const statusLabel = (s: string): string => (s === 'closed' ? 'Cerrado' : 'Abiert
 
 /**
  * Soporte (admin): tabla de tickets con cambio de estado (abierto/cerrado) y
- * eliminación. Consume el bloque de soporte (`/api/v1/blocks/support`).
+ * eliminación. Consume el plugin de soporte (`/api/v1/blocks/support`).
  */
 export function SupportPage() {
   const qc = useQueryClient();

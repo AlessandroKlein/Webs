@@ -12,7 +12,7 @@ tooling y convenciones.
 packages:
   - "apps/*"
   - "packages/*"
-  - "blocks/*"
+  - "plugins/*"
 ```
 
 - **`package.json` raíz** define el paquete `webs` (privado), el gestor de paquetes
@@ -35,7 +35,7 @@ packages:
 | `packages/plugin-sdk/` | `@webs/plugin-sdk` | SDK y contrato de plugins (`definePlugin`, `defineClientPlugin`, manifiesto, hooks, slots, menú). |
 | `packages/i18n/` | `@webs/i18n` | Locales base `es`/`en` y fábrica `createI18n()`. |
 | `packages/ui/` | `@webs/ui` | `ThemeProvider`, `useTheme` y tokens CSS (`styles.css`). |
-| `blocks/example-block/` | `@webs/block-example` | Plugin de referencia que demuestra el contrato completo. |
+| `plugins/example-block/` | `@webs/plugin-example` | Plugin de referencia que demuestra el contrato completo. |
 | `docker/` | `Dockerfile.api`, `Dockerfile.web`, `docker-compose.yml`, `nginx.conf` | Contenedores locales y de producción. |
 | `infra/` | `README.md` | Notas de infraestructura (escalado, Kubernetes futuro). |
 | `.github/workflows/` | `ci.yml` | CI (install → prisma generate → typecheck → lint → build). |
@@ -51,9 +51,8 @@ packages:
 - `@webs/ui` añade un export de estilos: `./styles.css` → `./src/styles/styles.css`.
 - Las dependencias entre paquetes usan el protocolo **`workspace:*`** (por ejemplo,
   `apps/api` depende de `@webs/core`, `@webs/i18n`, `@webs/plugin-sdk`).
-- Los **plugins** son paquetes que viven en `blocks/*` (directorio físico con nombre
-  interno transitorio) y exponen entradas `./server` y
-  `./client` (ver `blocks/example-block/package.json`).
+- Los **plugins** son paquetes que viven en `plugins/*` (directorio físico) y exponen
+  entradas `./server` y `./client` (ver `plugins/example-block/package.json`).
 
 ```jsonc
 // packages/ui/package.json (fragmento)

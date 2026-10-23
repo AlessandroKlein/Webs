@@ -67,7 +67,7 @@ export function AdminLayout() {
   });
 
   const priorityLabel = (p: string) =>
-    p === 'alta' ? 'Alta' : p === 'media' ? 'Media' : 'Normal';
+    p === 'alta' ? t('admin.notifications.high') : p === 'media' ? t('admin.notifications.medium') : t('admin.notifications.normal');
   const priorityColor = (p: string) =>
     p === 'alta' ? 'var(--ws-danger)' : p === 'media' ? '#d97706' : 'var(--ws-muted, #6b7280)';
 
@@ -88,26 +88,27 @@ export function AdminLayout() {
     { to: '/admin', label: t('nav.dashboard'), end: true, perm: null as string | null },
     { to: '/admin/content', label: t('nav.content'), perm: 'content.read' },
     { to: '/admin/pages', label: t('nav.pages'), perm: 'content.read' },
+    { to: '/admin/editor', label: t('nav.editor'), perm: 'content.write' },
     { to: '/admin/email', label: t('nav.email'), perm: 'email.read' },
     { to: '/admin/plugins', label: t('nav.plugins'), perm: 'plugin.read' },
-    { to: '/admin/plugin-settings', label: 'Configuración de plugins', perm: 'plugin.read' },
+    { to: '/admin/plugin-settings', label: t('nav.configPlugins'), perm: 'plugin.read' },
     { to: '/admin/templates', label: t('nav.templates'), perm: 'setting.write' },
-    { to: '/admin/branches', label: 'Sucursales', perm: null },
+    { to: '/admin/branches', label: t('nav.branches'), perm: null },
     { to: '/admin/payments', label: t('nav.payments'), perm: 'user.read' },
     { to: '/admin/users', label: t('nav.users'), perm: 'user.read' },
     { to: '/admin/roles', label: t('nav.roles'), perm: 'role.read' },
     { to: '/admin/settings', label: t('nav.settings'), perm: 'setting.read' },
-    { to: '/admin/updates', label: 'Actualizaciones', perm: 'setting.read' },
-    { to: '/admin/license', label: 'Licencia', perm: 'license.read' },
+    { to: '/admin/updates', label: t('nav.updates'), perm: 'setting.read' },
+    { to: '/admin/license', label: t('nav.license'), perm: 'license.read' },
     { to: '/admin/appearance', label: t('nav.appearance'), perm: 'theme.read' },
     { to: '/admin/translations', label: t('nav.translations'), perm: 'translation.read' },
     { to: '/admin/audit', label: t('nav.audit'), perm: 'audit.read' },
     { to: '/admin/api-tokens', label: t('nav.api'), perm: null },
-    { to: '/admin/menu', label: 'Menú', perm: 'setting.read' },
-    { to: '/admin/support', label: 'Soporte', perm: 'support.read' },
+    { to: '/admin/menu', label: t('nav.menu'), perm: 'setting.read' },
+    { to: '/admin/support', label: t('nav.support'), perm: 'support.read' },
   ].filter((item) => item.perm === null || hasPermission(item.perm));
 
-  // Módulos core del panel que antes figuraban como "Bloques instalados".
+  // Módulos core del panel que antes figuraban como "Plugins instalados".
   const featureNav = [
     { to: '/admin/blog', label: t('admin.blog.title') },
     { to: '/admin/social', label: t('admin.social.title') },
@@ -118,7 +119,7 @@ export function AdminLayout() {
     { to: '/admin/invoices', label: t('admin.invoices.title') },
     { to: '/admin/analytics', label: t('admin.analytics.title') },
     { to: '/admin/notifications', label: t('admin.notifications.title') },
-    { to: '/admin/auth', label: 'Registro/Login' },
+    { to: '/admin/auth', label: t('nav.registerLogin') },
     { to: '/admin/organizations', label: t('admin.organizations.title') },
     { to: '/admin/inventory', label: t('admin.inventory.title') },
   ];
@@ -167,7 +168,7 @@ export function AdminLayout() {
       <div className="main-col">
         <header className="topbar">
           <div className="row">
-            <button className="btn ghost" onClick={() => setCollapsed((c) => !c)} title="Colapsar menú" aria-label="Colapsar menú">
+            <button className="btn ghost" onClick={() => setCollapsed((c) => !c)} title={t('nav.collapseMenu')} aria-label={t('nav.collapseMenu')}>
               <i className="bi bi-list" />
             </button>
             <select
@@ -202,7 +203,7 @@ export function AdminLayout() {
 
           <div className="row">
             <div className="user-menu-wrap">
-              <button className="btn ghost" onClick={() => setBellOpen((o) => !o)} title="Notificaciones" aria-label="Notificaciones">
+              <button className="btn ghost" onClick={() => setBellOpen((o) => !o)} title={t('admin.notifications.title')} aria-label={t('admin.notifications.title')}>
                 <i className="bi bi-bell" />
                 {unread > 0 && <span className="badge" style={{ marginLeft: 4, background: 'var(--ws-danger)', color: '#fff' }}>{unread}</span>}
               </button>
@@ -212,10 +213,10 @@ export function AdminLayout() {
                     className="row"
                     style={{ justifyContent: 'space-between', padding: 'var(--ws-space-2)', borderBottom: '1px solid var(--ws-border)' }}
                   >
-                    <strong>Notificaciones</strong>
+                    <strong>{t('admin.notifications.title')}</strong>
                     {unread > 0 && (
                       <button className="btn ghost" onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>
-                        <i className="bi bi-check2-all" /> Marcar todas
+                        <i className="bi bi-check2-all" /> {t('common.markAllRead')}
                       </button>
                     )}
                   </div>
@@ -234,13 +235,13 @@ export function AdminLayout() {
                           <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
                             <i className="bi bi-flag-fill" style={{ color: priorityColor(n.priority ?? 'normal') }} />{' '}
                             {priorityLabel(n.priority ?? 'normal')}
-                            {n.expiresAt ? ` · vence ${new Date(n.expiresAt).toLocaleDateString()}` : ''}
+                            {n.expiresAt ? ` · ${t('common.expires')} ${new Date(n.expiresAt).toLocaleDateString()}` : ''}
                           </span>
                         </div>
                         {!n.read && (
                           <button
                             className="btn ghost"
-                            title="Marcar como leída"
+                            title={t('common.markRead')}
                             onClick={() => markRead.mutate(n.id)}
                             disabled={markRead.isPending}
                           >
@@ -251,16 +252,16 @@ export function AdminLayout() {
                       <p className="muted" style={{ margin: 0 }}>{n.body}</p>
                     </div>
                   ))}
-                  {(inbox ?? []).length === 0 && <p className="muted" style={{ padding: 'var(--ws-space-2)' }}>Sin notificaciones</p>}
+                  {(inbox ?? []).length === 0 && <p className="muted" style={{ padding: 'var(--ws-space-2)' }}>{t('admin.notifications.noNotifications')}</p>}
                 </div>
               )}
             </div>
-            <Link to="/" className="btn ghost" title="Ver sitio" aria-label="Ver sitio">
-              <i className="bi bi-box-arrow-up-right" /> <span>Ver sitio</span>
+            <Link to="/" className="btn ghost" title={t('nav.viewSite')} aria-label={t('nav.viewSite')}>
+              <i className="bi bi-box-arrow-up-right" /> <span>{t('nav.viewSite')}</span>
             </Link>
             <div className="user-menu-wrap">
-              <button className="btn ghost" onClick={() => setMenuOpen((o) => !o)} aria-label="Menú de usuario">
-                <i className="bi bi-person-circle" /> <span>{user?.displayName ?? user?.email ?? 'Usuario'}</span>
+              <button className="btn ghost" onClick={() => setMenuOpen((o) => !o)} aria-label={t('site.header.userMenu')}>
+                <i className="bi bi-person-circle" /> <span>{user?.displayName ?? user?.email ?? t('common.user')}</span>
               </button>
               {menuOpen && (
                 <div className="dropdown">
@@ -268,11 +269,11 @@ export function AdminLayout() {
                     <i className="bi bi-person" /> {t('nav.account')}
                   </Link>
                   <Link to="/" onClick={() => setMenuOpen(false)}>
-                    <i className="bi bi-box-arrow-up-right" /> Ver sitio
+                    <i className="bi bi-box-arrow-up-right" /> {t('nav.viewSite')}
                   </Link>
                   {hasPermission('user.read') && (
                     <Link to="/admin" onClick={() => setMenuOpen(false)}>
-                      <i className="bi bi-speedometer2" /> Panel admin
+                      <i className="bi bi-speedometer2" /> {t('site.header.adminPanel')}
                     </Link>
                   )}
                   <button onClick={() => void logout()}>

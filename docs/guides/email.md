@@ -92,7 +92,7 @@ fastify.post('/order', async () => {
 });
 ```
 
-El plugin de ejemplo (`@webs/block-example`) incluye un endpoint `POST
+El plugin de ejemplo (`@webs/plugin-example`) incluye un endpoint `POST
 /api/v1/plugins/example/order` que emite `order.created`.
 
 ## Permisos

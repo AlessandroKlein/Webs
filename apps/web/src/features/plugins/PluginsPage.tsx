@@ -10,8 +10,8 @@ import { Spinner } from '../../components/ui/Spinner';
 
 interface InstalledPlugin {
   id: string;
-  // `blockId` refleja el modelo Prisma `BlockInstallation.blockId` (sin renombrar en M1).
-  blockId: string;
+  // `pluginId` refleja el modelo Prisma `PluginInstallation.pluginId`.
+  pluginId: string;
   name: string;
   version: string;
   enabled: boolean;
@@ -161,7 +161,7 @@ export function PluginsPage() {
             <InstalledPluginRow
               key={b.id}
               plugin={b}
-              latestVersion={updateMap.get(b.blockId)}
+              latestVersion={updateMap.get(b.pluginId)}
               onToggle={toggle.mutate}
               onUninstall={uninstall.mutate}
               onUpdate={update.mutate}
@@ -287,19 +287,19 @@ function InstalledPluginRow({
         </div>
         <div className="row">
           {plugin.manifest.settings && (
-            <Link to={`/admin/plugins/${plugin.blockId}`} className="btn secondary">
+            <Link to={`/admin/plugins/${plugin.pluginId}`} className="btn secondary">
               Configurar
             </Link>
           )}
           {latestVersion && (
-            <Button variant="secondary" onClick={() => onUpdate(plugin.blockId)}>
+            <Button variant="secondary" onClick={() => onUpdate(plugin.pluginId)}>
               Actualizar
             </Button>
           )}
-          <Button variant="secondary" onClick={() => onToggle({ id: plugin.blockId, enabled: !plugin.enabled })}>
+          <Button variant="secondary" onClick={() => onToggle({ id: plugin.pluginId, enabled: !plugin.enabled })}>
             {plugin.enabled ? 'Desactivar' : 'Activar'}
           </Button>
-          <Button variant="ghost" onClick={() => onUninstall(plugin.blockId)}>
+          <Button variant="ghost" onClick={() => onUninstall(plugin.pluginId)}>
             {t('common.delete')}
           </Button>
         </div>

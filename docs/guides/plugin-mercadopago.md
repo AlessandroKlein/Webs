@@ -1,6 +1,6 @@
 # Plugin Mercado Pago (referencia)
 
-`blocks/mercadopago` es el **plugin de referencia** de un pago seguro. Demuestra
+`plugins/mercadopago` es el **plugin de referencia** de un pago seguro. Demuestra
 todo el modelo de plugins aplicado a una integración real.
 
 ## Configuración (en **Plugins → Mercado Pago → Configurar**)

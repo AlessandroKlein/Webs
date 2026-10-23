@@ -1,8 +1,17 @@
 # Móvil y escritorio — auditoría y plan de integración
 
-> Estado: **M1** (prototipo entregado) · Relacionado: [plugin-system.md](plugin-system.md),
-> [refactor-global.md](refactor-global.md), [guides/mobile-app.md](../guides/mobile-app.md).
+> Estado: **M3** (app móvil nativa vía **Capacitor** integrada) · Relacionado:
+> [plugin-system.md](plugin-system.md), [refactor-global.md](refactor-global.md),
+> [guides/mobile-app.md](../guides/mobile-app.md),
+> [guides/mobile-capacitor.md](../guides/mobile-capacitor.md).
 > ADR de referencia: [0005-plugin-rename.md](../adr/0005-plugin-rename.md).
+
+> **M3 — Capacitor integrado:** `apps/mobile` (`@webs/mobile`) es ahora un **host
+> Capacitor** (Android/iOS, `@capacitor/core ^6`) que envuelve `apps/web`, además de la PWA
+> de asistencia por QR. Ver la guía operativa
+> [guides/mobile-capacitor.md](../guides/mobile-capacitor.md) para compilar/empaquetar y
+> ejecutar las apps nativas. El companion de escritorio (`@webs/desktop`) se mantiene como
+> puente WebSocket para lectores serial/keyboard-wedge.
 
 ## Resumen ejecutivo
 

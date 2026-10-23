@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
+import { NotFoundError } from '@webs/core';
 import { audit } from '../../lib/audit';
 import { sendMail } from '../mail/service';
 import { ensureDefaultSections, getSectionValue, listSections, setSectionValue } from './service';
 import { collectPluginMenuItems } from '../../lib/plugin-menu';
+import { LEGAL_DOCUMENTS } from './legal-templates';
 
 export default async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
   ensureDefaultSections();
@@ -54,6 +56,31 @@ export default async function settingsRoutes(fastify: FastifyInstance): Promise<
     const value = (s?.value ?? {}) as { fields?: Array<{ key: string; label: string; type?: string; options?: string; required?: boolean }> };
     return { fields: (value.fields ?? []).filter((f) => f.key && f.label) };
   });
+
+  // Contenido legal público por slug (`terms` | `privacy` | `cookies` | `disclaimer`).
+  // Se resuelve desde la sección de ajustes `legal`, por lo que un despliegue nuevo
+  // sirve automáticamente las plantillas por defecto sin necesidad de seed.
+  fastify.get(
+    '/public/legal/:slug',
+    {
+      schema: {
+        tags: ['settings'],
+        params: { type: 'object', properties: { slug: { type: 'string' } } },
+      },
+    },
+    async (request) => {
+      const slug = (request.params as { slug: string }).slug;
+      const document = (LEGAL_DOCUMENTS as Record<string, { field: string; title: string } | undefined>)[slug];
+      if (!document) throw new NotFoundError('Documento legal');
+      const section = await getSectionValue(fastify, 'legal');
+      const value = (section.value ?? {}) as Record<string, unknown>;
+      return {
+        slug,
+        title: document.title,
+        content: (value[document.field] as string) ?? '',
+      };
+    },
+  );
 
   fastify.get(
     '/settings',

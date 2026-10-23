@@ -91,7 +91,7 @@ function FieldLabel({ label, help }: { label: string; help: HelpInfo | null }) {
 /**
  * Formulario auto-generado a partir de un JSON Schema. Es la pieza que permite
  * configurar **todo desde la interfaz sin tocar código**: el backend expone el
- * esquema de cada sección de ajustes (y de cada bloque) y este componente
+ * esquema de cada sección de ajustes (y de cada plugin) y este componente
  * renderiza el formulario correspondiente.
  *
  * Soporta: string, number/integer, boolean, enum (select), object (anidado) y
@@ -144,6 +144,7 @@ function SchemaField({
   const label = schema.title ?? name;
   const widget = schema['x-ui']?.widget;
   const help = readHelp(schema['x-ui']);
+  const rows = typeof schema['x-ui']?.rows === 'number' ? (schema['x-ui']?.rows as number) : undefined;
 
   if (schema.type === 'object' && schema.properties) {
     return (
@@ -222,6 +223,7 @@ function SchemaField({
         <FieldLabel label={label} help={help} />
         <textarea
           className="input"
+          rows={rows}
           value={String(value ?? '')}
           onChange={(e) => onChange(e.target.value)}
         />

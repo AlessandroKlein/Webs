@@ -9,9 +9,9 @@ mapea a la implementación actual.
 > librerías del ejemplo se traducen a sus equivalentes.
 
 > **Nota de naming:** la unidad de extensión se llama **«Plugin»** (antes «Bloque»).
-> El rename de la superficie de usuario está completo, pero el *naming interno*
-> (directorio `blocks/`, modelos `BlockInstallation`/
-> `BlockPlacement`) se conserva de forma transitoria. Ver
+> El rename se completó también en el *naming interno* (directorio `plugins/`, modelos
+> `PluginInstallation`/`PluginPlacement`); solo queda un residuo mínimo `block` por
+> retrocompatibilidad. Ver
 > [`plugin-system.md`](plugin-system.md#8-estado-transitorio-del-rename-bloques-plugins).
 
 ## 1. Principios

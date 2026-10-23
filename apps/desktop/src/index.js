@@ -17,12 +17,42 @@
 //   WS_PORT    Puerto del servidor WebSocket (por defecto 4599).
 
 import readline from 'node:readline';
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 const WS_PORT = Number(process.env.WS_PORT ?? 4599);
 const PORT_NAME = process.env.PORT_NAME ?? '';
 const BAUD_RATE = Number(process.env.BAUD_RATE ?? 9600);
-const VERSION = '1.0.0';
 const BRIDGE_PROTOCOL = 'webs-desktop-bridge/1.0';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Versión del companion. Sigue la versión canónica de la plataforma
+ * (`SYSTEM_VERSION` en apps/api/src/modules/system.ts) sin duplicar el literal.
+ * Si el archivo no está disponible (despliegue standalone), usa la versión del
+ * propio paquete (@webs/desktop) leída en runtime.
+ */
+function readVersion() {
+  const systemTs = path.resolve(__dirname, '../../api/src/modules/system.ts');
+  try {
+    if (existsSync(systemTs)) {
+      const src = readFileSync(systemTs, 'utf8');
+      const match = src.match(/SYSTEM_VERSION\s*=\s*['"]([^'"]+)['"]/);
+      if (match) return match[1];
+    }
+  } catch { /* sigue con el fallback */ }
+
+  try {
+    const pkg = JSON.parse(readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'));
+    if (pkg.version) return pkg.version;
+  } catch { /* último recurso */ }
+
+  return '0.0.0';
+}
+
+const VERSION = readVersion();
 
 /**
  * Normaliza códigos de lectores externos (AIM/GS1): quita saltos de línea y

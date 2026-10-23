@@ -50,7 +50,7 @@ export function ElementView({ element }: { element: PageElement }) {
 /** Renderiza un item: plugin (por id) o elemento de contenido. */
 export function PageItemView({ item }: { item: PageItem }) {
   if (isPageElement(item)) return <ElementView element={item} />;
-  return <PluginById blockId={item} />;
+  return <PluginById pluginId={item} />;
 }
 
 /** Renderiza una sección (aplica la clase de ancho y recorre sus items). */

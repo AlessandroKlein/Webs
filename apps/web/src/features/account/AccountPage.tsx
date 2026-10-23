@@ -109,7 +109,7 @@ export function AccountPage() {
   });
   const { data: blocksData } = useQuery({
     queryKey: ['blocks'],
-    queryFn: () => api.get<{ installed: Array<{ blockId: string; enabled: boolean }> }>('/api/v1/blocks'),
+    queryFn: () => api.get<{ installed: Array<{ pluginId: string; enabled: boolean }> }>('/api/v1/blocks'),
   });
 
   const updateProfile = useMutation({
@@ -136,9 +136,9 @@ export function AccountPage() {
     },
   });
 
-  const twilioInstalled = blocksData?.installed?.some((b) => b.blockId === 'twilio' && b.enabled);
-  const academiaInstalled = blocksData?.installed?.some((b) => b.blockId === 'academia' && b.enabled);
-  const socialLoginInstalled = blocksData?.installed?.some((b) => b.blockId === 'social-login' && b.enabled);
+  const twilioInstalled = blocksData?.installed?.some((b) => b.pluginId === 'twilio' && b.enabled);
+  const academiaInstalled = blocksData?.installed?.some((b) => b.pluginId === 'academia' && b.enabled);
+  const socialLoginInstalled = blocksData?.installed?.some((b) => b.pluginId === 'social-login' && b.enabled);
 
   const { data: profileFieldsData } = useQuery({
     queryKey: ['profile-fields'],

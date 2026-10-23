@@ -97,12 +97,20 @@ Flujo típico:
 ```bash
 cd apps/mobile
 pnpm build:web        # compila apps/web → apps/web/dist
-pnpm sync             # cap sync (copia dist/ a las plataformas)
 pnpm add:android      # (una sola vez) genera la plataforma android/
-pnpm open:android     # abre Android Studio
+pnpm add:ios          # (una sola vez, solo macOS) genera la plataforma ios/
+pnpm sync             # cap sync (copia dist/ y plugins nativos a las plataformas)
+pnpm open:android     # abre Android Studio  (o: npx cap run android)
+pnpm open:ios         # abre Xcode           (o: npx cap run ios)
 ```
 
-Los directorios `android/` e `ios/` (generados) están ignorados por git.
+Los directorios `android/` e `ios/` (generados) están ignorados por git. El
+host incluye `@capacitor/splash-screen` (MIT), configurado en
+`capacitor.config.json` (`launchShowDuration: 500`).
+
+Requisitos nativos: Android Studio + SDK (JDK 17 para Capacitor 6); para iOS,
+Xcode + CocoaPods (solo macOS). Ver
+[`docs/guides/mobile-capacitor.md`](../../docs/guides/mobile-capacitor.md).
 
 ## Estructura
 

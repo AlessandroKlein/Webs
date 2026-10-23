@@ -82,7 +82,7 @@ export function LoginPage() {
   });
   const canRegister = registerSettings?.mode === 'open' || registerSettings?.mode === 'both';
 
-  // Proveedores de login social habilitados (si el bloque no está instalado, la
+  // Proveedores de login social habilitados (si el plugin no está instalado, la
   // consulta falla en silencio y no se muestran botones).
   const { data: socialProviders } = useQuery({
     queryKey: ['social-providers'],
@@ -107,7 +107,7 @@ export function LoginPage() {
       await finalizeAuth(result.accessToken, result.user);
       navigate('/admin', { replace: true });
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Error al autenticar con passkey');
+      setError(err instanceof ApiClientError ? err.message : t('auth.passkeyAuthError'));
     } finally {
       setPasskeyLoading(false);
     }
@@ -123,10 +123,10 @@ export function LoginPage() {
     } catch (err) {
       if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_REQUIRED') {
         setTwoFactorRequired(true);
-        setError('Ingresá el código de tu aplicación de autenticación');
+        setError(t('auth.enter2faCode'));
       } else if (err instanceof ApiClientError && err.code === 'SMS_REQUIRED') {
         setSmsRequired(true);
-        setError('Ingresá el código SMS enviado a tu teléfono');
+        setError(t('auth.enterSmsCode'));
       } else if (err instanceof ApiClientError && err.code === 'TWO_FACTOR_SETUP_REQUIRED') {
         const token = err.raw?.setupToken;
         if (typeof token === 'string') {
@@ -134,7 +134,7 @@ export function LoginPage() {
           navigate('/setup-2fa', { replace: true });
           return;
         }
-        setError('Debés activar 2FA o una passkey para continuar');
+        setError(t('auth.mustEnable2fa'));
       } else {
         setError(err instanceof ApiClientError ? err.message : t('common.error'));
       }
@@ -153,10 +153,10 @@ export function LoginPage() {
     // de al menos 8 caracteres; acá ya lo exigimos con reglas más estrictas.
     const strength = validatePassword(regPassword);
     const errors: string[] = [];
-    if (!regFirstName.trim()) errors.push('El nombre es obligatorio');
-    if (!regLastName.trim()) errors.push('El apellido es obligatorio');
-    if (!regBirthDate) errors.push('La fecha de nacimiento es obligatoria');
-    if (regPassword !== regConfirmPassword) errors.push('Las contraseñas no coinciden');
+    if (!regFirstName.trim()) errors.push(t('auth.nameRequired'));
+    if (!regLastName.trim()) errors.push(t('auth.lastNameRequired'));
+    if (!regBirthDate) errors.push(t('auth.birthDateRequired'));
+    if (regPassword !== regConfirmPassword) errors.push(t('auth.passwordsMismatch'));
     errors.push(...strength.errors);
     if (errors.length > 0) {
       setRegError(errors.join(' · '));
@@ -216,7 +216,7 @@ export function LoginPage() {
     const providerName = socialProvider.name;
     const providerId = socialProviderId.trim();
     if (!providerId) {
-      setSocialError('El providerId es obligatorio');
+      setSocialError(t('auth.providerIdRequired'));
       setSocialStep(null);
       setSocialProvider(null);
       return;
@@ -235,14 +235,14 @@ export function LoginPage() {
       if (res.ok) {
         setSocialResult(
           res.linked
-            ? `Cuenta de ${providerName} vinculada correctamente.`
-            : `Cuenta de ${providerName} registrada (aún sin vínculo de usuario).`,
+            ? t('auth.socialLinked', { provider: providerName })
+            : t('auth.socialRegisteredNoUser', { provider: providerName }),
         );
       } else {
-        setSocialError(res.error ?? 'No se pudo verificar la cuenta social');
+        setSocialError(res.error ?? t('auth.socialVerifyFailed'));
       }
     } catch (err) {
-      setSocialError(err instanceof ApiClientError ? err.message : 'Error al conectar la cuenta social');
+      setSocialError(err instanceof ApiClientError ? err.message : t('auth.socialConnectError'));
     } finally {
       setSocialLoading(false);
       setSocialStep(null);
@@ -268,7 +268,7 @@ export function LoginPage() {
               autoFocus
             />
             <TextField
-              label="Nombre"
+              label={t('auth.firstName')}
               type="text"
               value={regFirstName}
               onChange={(e) => setRegFirstName(e.target.value)}
@@ -276,7 +276,7 @@ export function LoginPage() {
               required
             />
             <TextField
-              label="Apellido"
+              label={t('auth.lastName')}
               type="text"
               value={regLastName}
               onChange={(e) => setRegLastName(e.target.value)}
@@ -284,7 +284,7 @@ export function LoginPage() {
               required
             />
             <div className="field">
-              <label>Fecha de nacimiento</label>
+              <label>{t('auth.birthDate')}</label>
               <input
                 className="input"
                 type="date"
@@ -302,7 +302,7 @@ export function LoginPage() {
               required
             />
             <TextField
-              label="Repetir contraseña"
+              label={t('auth.repeatPassword')}
               type="password"
               value={regConfirmPassword}
               onChange={(e) => setRegConfirmPassword(e.target.value)}
@@ -310,7 +310,7 @@ export function LoginPage() {
               required
             />
             <p className="muted" style={{ fontSize: 'var(--ws-font-size-sm)', margin: 0 }}>
-              Mínimo 8 caracteres, con al menos una letra, un número y un carácter especial.
+              {t('auth.passwordHint')}
             </p>
             <TextField
               label={t('auth.displayName')}
@@ -330,7 +330,7 @@ export function LoginPage() {
             {regError && <p style={{ color: 'var(--ws-danger)' }}>{regError}</p>}
 
             <Button type="submit" disabled={registering} style={{ width: '100%' }}>
-              {registering ? 'Registrando…' : t('auth.createAccount')}
+              {registering ? t('auth.registering') : t('auth.createAccount')}
             </Button>
             <Button
               type="button"
@@ -369,7 +369,7 @@ export function LoginPage() {
 
             {twoFactorRequired && (
               <TextField
-                label="Código de verificación (2FA)"
+                label={t('auth.code2fa')}
                 value={totp}
                 onChange={(e) => setTotp(e.target.value)}
                 autoComplete="one-time-code"
@@ -380,7 +380,7 @@ export function LoginPage() {
 
             {smsRequired && (
               <TextField
-                label="Código SMS"
+                label={t('auth.smsCode')}
                 value={smsCode}
                 onChange={(e) => setSmsCode(e.target.value)}
                 autoComplete="one-time-code"
@@ -391,7 +391,7 @@ export function LoginPage() {
 
             <label className="row" style={{ gap: 'var(--ws-space-2)', marginBottom: 'var(--ws-space-4)' }}>
               <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
-              <span>Recordarme (mantener la sesión abierta)</span>
+              <span>{t('auth.rememberMe')}</span>
             </label>
 
             {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
@@ -402,7 +402,7 @@ export function LoginPage() {
             </Button>
 
             <Button type="button" variant="secondary" onClick={loginWithPasskey} disabled={passkeyLoading} style={{ width: '100%', marginTop: 'var(--ws-space-2)' }}>
-              {passkeyLoading ? 'Verificando…' : 'Iniciar con passkey'}
+              {passkeyLoading ? t('auth.verifying') : t('auth.signInWithPasskey')}
             </Button>
 
             {socialError && <p style={{ color: 'var(--ws-danger)', marginTop: 'var(--ws-space-2)' }}>{socialError}</p>}
@@ -412,7 +412,7 @@ export function LoginPage() {
               <>
                 <hr style={{ border: 'none', borderTop: '1px solid var(--ws-border)', margin: 'var(--ws-space-4) 0' }} />
                 <p className="muted" style={{ margin: 0, textAlign: 'center', fontSize: 'var(--ws-font-size-sm)' }}>
-                  O iniciá sesión con
+                  {t('auth.orSignInWith')}
                 </p>
                 <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
                   {socialProviders.map((p) => (
@@ -447,9 +447,9 @@ export function LoginPage() {
       {socialStep === 'providerId' && socialProvider && (
         <PromptDialog
           open
-          title={`Conectar con ${socialProvider.name}`}
-          label="ID del proveedor (providerId)"
-          confirmLabel="Continuar"
+          title={t('auth.connectWith', { provider: socialProvider.name })}
+          label={t('auth.providerId')}
+          confirmLabel={t('auth.continue')}
           onConfirm={(value) => {
             setSocialProviderId(value.trim());
             setSocialStep('email');
@@ -463,9 +463,9 @@ export function LoginPage() {
       {socialStep === 'email' && socialProvider && (
         <PromptDialog
           open
-          title={`${socialProvider.name} — email`}
-          label="Email (opcional)"
-          confirmLabel="Verificar"
+          title={t('auth.providerEmail', { provider: socialProvider.name })}
+          label={t('auth.emailOptional')}
+          confirmLabel={t('auth.verify')}
           onConfirm={(value) => void verifySocial(value.trim())}
           onCancel={() => {
             setSocialProvider(null);

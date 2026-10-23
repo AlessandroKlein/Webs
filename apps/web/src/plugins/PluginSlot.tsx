@@ -8,8 +8,8 @@ import { getClientPlugin } from './registry';
 
 export interface Placement {
   id: string;
-  // `blockId` refleja el modelo `BlockPlacement.blockId` (sin renombrar en M1).
-  blockId: string;
+  // `pluginId` refleja el modelo Prisma `PluginPlacement.pluginId`.
+  pluginId: string;
   slotId: string;
   order: number;
   enabled: boolean;
@@ -32,18 +32,18 @@ export function PluginSlot({ slotId }: { slotId: string }) {
         ?.filter((p) => p.enabled)
         .sort((a, b) => a.order - b.order)
         .map((p) => (
-          <PluginRenderer key={p.id} blockId={p.blockId} slot={slotId} config={p.config} />
+          <PluginRenderer key={p.id} pluginId={p.pluginId} slot={slotId} config={p.config} />
         ))}
     </div>
   );
 }
 
 function PluginRenderer({
-  blockId,
+  pluginId,
   slot,
   config,
 }: {
-  blockId: string;
+  pluginId: string;
   slot: string;
   config: Record<string, unknown>;
 }) {
@@ -51,14 +51,14 @@ function PluginRenderer({
   const { resolved } = useTheme();
 
   useEffect(() => {
-    const plugin = getClientPlugin(blockId);
+    const plugin = getClientPlugin(pluginId);
     const container = ref.current;
     if (!plugin || !container) return;
 
     const i18n: PluginI18n = {
       locale: i18next.language,
       // Por defecto resuelve en el namespace del plugin (su id).
-      t: (key, options) => i18next.t(key, { ...(options ?? {}), ns: blockId }),
+      t: (key, options) => i18next.t(key, { ...(options ?? {}), ns: pluginId }),
     };
 
     const cleanup = plugin.mount({
@@ -72,12 +72,12 @@ function PluginRenderer({
     });
 
     return typeof cleanup === 'function' ? cleanup : undefined;
-  }, [blockId, slot, config, resolved]);
+  }, [pluginId, slot, config, resolved]);
 
   return <div ref={ref} />;
 }
 
 /** Renderiza un plugin por su id (para el constructor de páginas). */
-export function PluginById({ blockId, config = {} }: { blockId: string; config?: Record<string, unknown> }) {
-  return <PluginRenderer blockId={blockId} slot="page" config={config} />;
+export function PluginById({ pluginId, config = {} }: { pluginId: string; config?: Record<string, unknown> }) {
+  return <PluginRenderer pluginId={pluginId} slot="page" config={config} />;
 }

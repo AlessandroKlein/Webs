@@ -8,7 +8,7 @@ import { Label } from './Label';
  * Campo de clave de activación de licencia (presentacional, sin backend).
  *
  * Normaliza la entrada (mayúsculas, sin caracteres inválidos, agrupación
- * opcional en bloques) y expone un submit controlado por Enter o por el botón
+ * opcional en plugins) y expone un submit controlado por Enter o por el botón
  * "Activar". El consumidor recibe `onChange` (valor normalizado) y `onSubmit`
  * (disparo de la activación) para conectar su lógica.
  */
@@ -34,7 +34,7 @@ export function ActivationKeyField({
   hint?: string;
   label?: string;
   placeholder?: string;
-  /** Tamaño de bloque para agrupar con guiones; `0` desactiva la agrupación. */
+  /** Tamaño de plugin para agrupar con guiones; `0` desactiva la agrupación. */
   groupSize?: number;
   className?: string;
 }) {

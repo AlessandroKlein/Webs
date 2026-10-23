@@ -55,8 +55,8 @@ Webs (monorepo pnpm)
 │   ├── plugin-sdk/   SDK de plugins: manifiesto, hooks, slots (@webs/plugin-sdk)
 │   ├── i18n/         Recursos base es/en + fábrica i18next (@webs/i18n)
 │   └── ui/           Sistema de temas y tokens CSS (@webs/ui)
-├── blocks/           Directorio físico de plugins (nombre interno transitorio)
-│   ├── example-block/  Plugin de referencia (@webs/block-example)
+├── plugins/          Directorio físico de plugins
+│   ├── example-block/  Plugin de referencia (@webs/plugin-example)
 │   └── README.md
 ├── docker/           Dockerfiles + docker-compose + nginx
 ├── infra/            Notas de infraestructura (Kubernetes futuro)

@@ -30,10 +30,35 @@ export default definePlugin(manifest, {
       return { organizationId: ROOT_ORG_ID };
     };
 
+    const resolveTenant = (fastify as unknown as {
+      resolveTenant?: (req: unknown) => Promise<{
+        organizationId?: string | null;
+        chainId?: string | null;
+        isSuperAdmin?: boolean;
+        isChainAdmin?: boolean;
+      }>;
+    }).resolveTenant;
+
+    // Scoping específico para Organization (su PK es `id`, NO tiene `organizationId`):
+    // - super_admin sin org → {} (ve todo)
+    // - admin de cadena → raíz + sucursales ({ OR: [{ id: chainId }, { chainId }] })
+    // - sucursal/usuario → solo su org ({ id: organizationId })
+    // NO usar resolveScope genérico aquí (produce `organizationId`, que Organization no tiene).
+    const resolveOrgScope = async (request: unknown): Promise<Record<string, unknown>> => {
+      const tenant = resolveTenant ? await resolveTenant(request) : null;
+      const orgId = tenant?.organizationId ?? null;
+      const chainId = tenant?.chainId ?? null;
+      const isSuperAdmin = Boolean(tenant?.isSuperAdmin);
+      const isChainAdmin = Boolean(tenant?.isChainAdmin);
+      if (isSuperAdmin && !orgId) return {};
+      if (isChainAdmin && chainId) return { OR: [{ id: chainId }, { chainId }] };
+      return { id: orgId ?? ROOT_ORG_ID };
+    };
+
     // -------- Organizaciones (multi-tenant) --------
 
     fastify.get('/organizations', { preHandler: [authenticate, requireTenant] }, async (request: unknown) => {
-      const orgs = await db.organization.findMany({ where: await resolveScope(request), orderBy: { createdAt: 'desc' } });
+      const orgs = await db.organization.findMany({ where: await resolveOrgScope(request), orderBy: { createdAt: 'desc' } });
       const counts = await db.membership.groupBy({
         by: ['organizationId'],
         _count: { _all: true },

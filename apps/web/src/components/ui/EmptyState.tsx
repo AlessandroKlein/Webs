@@ -3,7 +3,7 @@ import { cn } from './cn';
 
 /**
  * Estado vacío con icono, título, descripción y acción opcional.
- * Reemplaza los bloques "No tenés X" dispersos por una vista consistente.
+ * Reemplaza los plugins "No tenés X" dispersos por una vista consistente.
  */
 export function EmptyState({
   icon = 'bi-inbox',

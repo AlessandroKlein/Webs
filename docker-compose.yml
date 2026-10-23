@@ -56,9 +56,14 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 4000
+      DATABASE_URL: postgresql://webs:webs@postgres:5432/webs?schema=public
       REDIS_URL: redis://redis:6379
       JWT_SECRET: change-me-in-production-please-0123456789
+      JWT_REFRESH_SECRET: change-me-refresh-in-production-0123456789
       CORS_ORIGIN: http://localhost:5173
+      # Superadmin pre-creado por el entrypoint (migraciones + seed).
+      SEED_ADMIN_EMAIL: admin@webs.test
+      SEED_ADMIN_PASSWORD: Admin12345!
     volumes:
       - appdata:/app/data
     ports:

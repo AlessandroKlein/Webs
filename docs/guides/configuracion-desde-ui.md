@@ -75,7 +75,7 @@ Cada plugin instalado permite:
 
 ### Catálogo
 
-Lista los plugins **disponibles** (descubiertos en `blocks/*`) que aún no
+Lista los plugins **disponibles** (descubiertos en `plugins/*`) que aún no
 están instalados. Pulsá **Crear** para instalar
 (`POST /api/v1/plugins/install` con `{ "id": <pluginId> }`).
 
@@ -94,15 +94,15 @@ Ejemplo de body para colocar dos plugins en `content`:
 {
   "slotId": "content",
   "blocks": [
-    { "blockId": "store", "order": 0, "enabled": true, "config": {} },
-    { "blockId": "example", "order": 1, "enabled": true, "config": { "greeting": "Hola" } }
+    { "pluginId": "store", "order": 0, "enabled": true, "config": {} },
+    { "pluginId": "example", "order": 1, "enabled": true, "config": { "greeting": "Hola" } }
   ]
 }
 ```
 
-> El body de `PUT /placements` conserva la key `blocks` y el campo `blockId` de
-> forma transitoria (ver `docs/architecture/plugin-system.md`, sección «Estado
-> transitorio del rename»).
+> El body de `PUT /placements` conserva la key `blocks` de forma transitoria
+> (los items ya usan `pluginId`; ver `docs/architecture/plugin-system.md`, sección
+> «Estado transitorio del rename»).
 
 > El frontend renderiza las colocaciones de cada slot a través del componente
 > `PluginSlot` (`apps/web/src/plugins/PluginSlot.tsx`). La página pública de

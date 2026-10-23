@@ -5,9 +5,10 @@ Android/iOS con [Capacitor](https://capacitorjs.com), cómo autenticarse desde e
 WebView con el JWT existente y cómo queda el soporte de lectores de código para la
 experiencia de trabajadores.
 
-> Estado: la base de Capacitor vive en la rama `feature/mobile-app`
-> (commit `fb9c47c`). No se mergea a `main` directamente; devops la rebasea e
-> integra. El host de Capacitor está en `apps/mobile` (envuelve `apps/web`).
+> El host de Capacitor vive en `apps/mobile` (envuelve `apps/web`), integrado en
+> la rama principal. Los proyectos nativos `android/`/`ios/` se generan con
+> `cap add` y están ignorados por git (se regeneran en cada entorno de build).
+> Incluye `@capacitor/splash-screen` (configurado en `capacitor.config.json`).
 
 ## Arquitectura
 

@@ -382,7 +382,7 @@ export async function installPlugin(app: FastifyInstance, pluginId: string, opts
   }
 
   await cacheDel(app.redis, 'blocks:catalog');
-  return { id: installation.id, blockId: pluginId, manifest };
+  return { id: installation.id, pluginId, manifest };
 }
 
 /** @deprecated Usar {@link installPlugin}. Alias por retrocompatibilidad. */
@@ -590,7 +590,7 @@ export async function updatePlugin(app: FastifyInstance, pluginId: string) {
       data: { name: localManifest.name, version: localManifest.version, manifest: asJson(localManifest) },
     });
     await cacheDel(app.redis, 'blocks:catalog');
-    return { ok: true, blockId: pluginId, version: localManifest.version };
+    return { ok: true, pluginId, version: localManifest.version };
   }
 
   const entry = await findRemotePlugin(pluginId);
@@ -607,7 +607,7 @@ export async function updatePlugin(app: FastifyInstance, pluginId: string) {
       data: { name: manifest.name, version: manifest.version, manifest: asJson(manifest) },
     });
     await cacheDel(app.redis, 'blocks:catalog');
-    return { ok: true, blockId: pluginId, version: manifest.version };
+    return { ok: true, pluginId, version: manifest.version };
   }
 }
 

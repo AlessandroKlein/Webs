@@ -5,23 +5,24 @@ mecanismo tipo *WordPress*: **plugins** autocontenidos que extienden la platafor
 componentes de cliente, ítems de menú, ajustes, permisos, traducciones) sin modificar el núcleo.
 
 > **Terminología (importante):** la unidad de extensión se denomina **«Plugin»** (antes
-> «Bloque»). El rename se completó en la superficie de usuario (manifiesto `plugin.json`,
-> rutas `/api/v1/plugins/*`, SDK `definePlugin`, menú nativo), pero el *naming interno*
-> sigue usando `block` por retrocompatibilidad deliberada. Ver la sección
+> «Bloque»). El rename se completó en la superficie de usuario y en la mayor parte del
+> *naming interno* (manifiesto `plugin.json`, rutas `/api/v1/plugins/*`, SDK `definePlugin`,
+> menú nativo, modelos Prisma, directorio físico y paquetes npm). Solo queda un residuo
+> mínimo `block` por retrocompatibilidad. Ver la sección
 > [Estado transitorio del rename](#8-estado-transitorio-del-rename-bloques-plugins) más abajo.
 
 ## Conceptos clave
 
 | Concepto | Definición | Dónde se define |
 |----------|------------|-----------------|
-| **Plugin** | Paquete autocontenido con un manifiesto `plugin.json`, una entrada de servidor (`server.ts`) y una entrada de cliente (`client.ts`). | `blocks/*` (directorio físico) |
+| **Plugin** | Paquete autocontenido con un manifiesto `plugin.json`, una entrada de servidor (`server.ts`) y una entrada de cliente (`client.ts`). | `plugins/*` (directorio físico) |
 | **Manifiesto** | `plugin.json`: contrato público (metadatos, entradas, settings, permisos, slots, menú). | `packages/plugin-sdk/src/manifest.ts` |
 | **SDK** | `@webs/plugin-sdk`: `definePlugin`, `defineClientPlugin`, tipos de contexto y hooks. | `packages/plugin-sdk/src/*` |
 | **Slot** | Región nombrada del sitio (header, content, sidebar, footer) donde se colocan plugins. | `apps/api/src/plugins/slots.ts` |
-| **Placement (colocación)** | Instancia concreta de un plugin dentro de un slot, con orden y configuración propia. | `packages/plugin-sdk/src/slot.ts` + modelo `BlockPlacement` |
+| **Placement (colocación)** | Instancia concreta de un plugin dentro de un slot, con orden y configuración propia. | `packages/plugin-sdk/src/slot.ts` + modelo `PluginPlacement` |
 | **Menú** | Ítems nativos del menú que cada plugin declara en `manifest.menu` y se fusionan con los del núcleo. | `packages/plugin-sdk/src/manifest.ts` + `apps/api/src/lib/plugin-menu.ts` |
 | **Catálogo** | Plugins *disponibles* (descubiertos del directorio) pero no instalados. | `pluginRegistry.getAvailable()` |
-| **Instalación** | Registro en BD (`BlockInstallation`) de un plugin instalado, con su `config`. | `apps/api/src/plugins/loader.ts` |
+| **Instalación** | Registro en BD (`PluginInstallation`) de un plugin instalado, con su `config`. | `apps/api/src/plugins/loader.ts` |
 
 ## 1. El manifiesto `plugin.json`
 
@@ -32,7 +33,7 @@ El manifiesto es la fuente de verdad estática de un plugin. Se valida en runtim
 
 | Campo | Tipo | Requerido | Descripción / validación |
 |-------|------|-----------|---------------------------|
-| `name` | `string` | Sí | Nombre de paquete estilo npm, p. ej. `@webs/block-example`. |
+| `name` | `string` | Sí | Nombre de paquete estilo npm, p. ej. `@webs/plugin-example`. |
 | `id` | `string` | Sí | Slug único del plugin. Regex `^[a-z0-9][a-z0-9-_]*$`. |
 | `version` | `string` | Sí | Versión semántica (`^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$`). |
 | `type` | `'plugin' \| 'block'` | Sí | Tipo de extensión. Canónico: `plugin`; `block` se acepta por retrocompatibilidad. |
@@ -59,9 +60,9 @@ El manifiesto es la fuente de verdad estática de un plugin. Se valida en runtim
 ### Ejemplo real
 
 ```jsonc
-// blocks/example-block/plugin.json
+// plugins/example-block/plugin.json
 {
-  "name": "@webs/block-example",
+  "name": "@webs/plugin-example",
   "id": "example",
   "version": "0.1.0",
   "type": "plugin",
@@ -145,7 +146,7 @@ export function defineClientPlugin(manifest: PluginManifest, mount: ClientPlugin
 ```
 
 > El `mount` puede usar React, Vue o DOM puro: el contrato solo pide montar en un
-> `HTMLElement` y devolver un cleanup. Ver `blocks/example-block/src/client.ts`.
+> `HTMLElement` y devolver un cleanup. Ver `plugins/example-block/src/client.ts`.
 
 > **Alias @deprecated:** `defineBlock`, `defineClientBlock`, `BlockManifest`,
 > `parseBlockManifest`, `ServerBlock`, `ClientBlock` siguen exportándose como alias de los
@@ -227,12 +228,12 @@ slots tienen permitido ubicarse (whitelist). En el estado actual, el loader solo
 ### Colocaciones
 
 Una **colocación** es la instancia de un plugin dentro de un slot. Persiste en el modelo
-`BlockPlacement` de Prisma (`apps/api/prisma/schema.prisma`):
+`PluginPlacement` de Prisma (`apps/api/prisma/schema.prisma`):
 
 ```prisma
-model BlockPlacement {
+model PluginPlacement {
   id        String   @id @default(uuid())
-  blockId   String
+  pluginId   String
   slotId    String
   order     Int      @default(0)
   enabled   Boolean  @default(true)
@@ -242,8 +243,8 @@ model BlockPlacement {
 }
 ```
 
-> El modelo conserva el nombre interno `BlockPlacement` y el campo `blockId` (ver
-> [Estado transitorio](#8-estado-transitorio-del-rename-bloques-plugins)).
+> El modelo usa el nombre canónico `PluginPlacement` y el campo `pluginId` (el naming
+> interno ya fue renombrado; ver [Estado transitorio](#8-estado-transitorio-del-rename-bloques-plugins)).
 
 El admin puede colocar el mismo plugin varias veces con distinta configuración y orden.
 La API `PUT /api/v1/plugins/placements` reemplaza todas las colocaciones de un slot de forma
@@ -255,7 +256,7 @@ transaccional (`apps/api/src/modules/plugins/routes.ts`).
 
 | Función | Responsabilidad |
 |---------|-----------------|
-| `resolvePluginDir(app)` | Resuelve el directorio de plugins desde `app.config.BLOCK_DIR` (default `../../blocks`). |
+| `resolvePluginDir(app)` | Resuelve el directorio de plugins desde `app.config.BLOCK_DIR` (default `../../plugins`). |
 | `discoverPlugins(pluginDir)` | Escanea el directorio, lee cada `plugin.json` (acepta `block.json`), lo valida y lo añade al **catálogo**. |
 | `resolvePackageDir(app, manifest)` | Localiza el directorio del paquete por `id` o por el tramo final de `name`. |
 | `loadPluginEntry(pkgDir, manifest)` | Importa `manifest.entry` y exige un `default` que sea `ServerPlugin`. |
@@ -263,7 +264,7 @@ transaccional (`apps/api/src/modules/plugins/routes.ts`).
 | `registerPluginPermissions(app, manifest)` | Hace `upsert` de cada `manifest.permissions` en la tabla `Permission`. |
 | `loadAndActivate(app, installation)` | Registra permisos, menú y traducciones, ejecuta `onActivate` y registra el plugin Fastify bajo `/api/v1/plugins/<id>`. |
 | `registerPlugins(app)` | Arranque: registra slots base, descubre el catálogo y activa las instalaciones `enabled`. |
-| `installPlugin(app, id)` | Crea `BlockInstallation` (config = defaults del schema), registra permisos y ejecuta `onInstall`. |
+| `installPlugin(app, id)` | Crea `PluginInstallation` (config = defaults del schema), registra permisos y ejecuta `onInstall`. |
 | `uninstallPlugin(app, id)` | Ejecuta `onUninstall` y borra la instalación. |
 
 > **Alias @deprecated:** `registerBlocks`, `discoverBlocks`, `loadBlockEntry`,
@@ -283,7 +284,7 @@ await app.register(async (instance) => {
 }, { prefix: `${API_PREFIX}/plugins/${manifest.id}` });
 ```
 
-> La configuración del plugin vive en `BlockInstallation.config` (fuente de verdad) y se
+> La configuración del plugin vive en `PluginInstallation.config` (fuente de verdad) y se
 > expone/edita vía `GET/PUT /api/v1/plugins/:id/settings`. El `PUT` valida contra
 > `manifest.settings` con Ajv antes de persistir.
 
@@ -308,7 +309,7 @@ estáticamente en `apps/web/src/plugins/index.ts`:
 
 ```ts
 import { registerClientPlugin } from './registry';
-import examplePlugin from '@webs/block-example/client';
+import examplePlugin from '@webs/plugin-example/client';
 
 registerClientPlugin(examplePlugin);
 ```
@@ -321,7 +322,7 @@ El componente `apps/web/src/plugins/PluginSlot.tsx`:
 
 1. Obtiene las colocaciones del slot vía `GET /api/v1/plugins/placements?slotId=<id>`.
 2. Filtra `enabled`, ordena por `order`.
-3. Monta cada plugin con `getClientPlugin(blockId).mount(ctx)` construyendo el
+3. Monta cada plugin con `getClientPlugin(pluginId).mount(ctx)` construyendo el
    `ClientPluginContext` (container, slot, locale, config, api, i18n, theme).
 
 El sitio público (`apps/web/src/features/public/PublicHome.tsx`) renderiza los slots
@@ -374,8 +375,8 @@ Cada plugin puede aportar ítems al menú principal del panel, **sin una categor
 ```text
 app.ts → registerPlugins(app)
   1. Registrar CORE_SLOTS en pluginRegistry
-  2. discoverPlugins(BLOCK_DIR)         → catálogo (available)
-  3. SELECT * FROM BlockInstallation WHERE enabled = true
+  2. discoverPlugins(pluginDir)         → catálogo (available)
+  3. SELECT * FROM PluginInstallation WHERE enabled = true
   4. Para cada instalación → loadAndActivate()
        ├─ parsePluginManifest(manifest)
        ├─ registerPluginPermissions()
@@ -393,7 +394,7 @@ POST /api/v1/plugins/install  { id }
     1. manifest = pluginRegistry.getAvailableManifest(id)   (404 si no está en el catálogo)
     2. 409 si ya existe instalación
     3. config = schemaDefaults(manifest.settings)
-    4. create BlockInstallation { enabled: true, config, manifest }
+    4. create PluginInstallation { enabled: true, config, manifest }
     5. registerPluginPermissions()
     6. hooks.onInstall(ctx)
 ```
@@ -405,8 +406,8 @@ POST /api/v1/plugins/install  { id }
 ### Activación / desactivación
 
 ```text
-POST /api/v1/plugins/:id/activate     → UPDATE BlockInstallation SET enabled = true
-POST /api/v1/plugins/:id/deactivate   → UPDATE BlockInstallation SET enabled = false
+POST /api/v1/plugins/:id/activate     → UPDATE PluginInstallation SET enabled = true
+POST /api/v1/plugins/:id/deactivate   → UPDATE PluginInstallation SET enabled = false
 ```
 
 Estos endpoints solo cambian el flag `enabled` en BD; no cargan/descargan el plugin en
@@ -419,7 +420,7 @@ DELETE /api/v1/plugins/:id
   uninstallPlugin(app, id)
     1. SELECT instalación (404 si no existe)
     2. hooks.onUninstall(ctx)   (best-effort; los errores se registran como warning)
-    3. DELETE BlockInstallation
+    3. DELETE PluginInstallation
 ```
 
 ### Diagrama de flujo (texto)
@@ -434,7 +435,7 @@ DELETE /api/v1/plugins/:id
             │ servidor                 │                          │ cliente
             ▼                          ▼                          ▼
    definePlugin(manifest,{…})   (permisos + menú)      defineClientPlugin(manifest, mount)
-   ── entry: server.ts         ── BlockInstallation      ── clientEntry: client.ts
+   ── entry: server.ts         ── PluginInstallation      ── clientEntry: client.ts
                                        │                          │
    apps/api/src/plugins/loader.ts      │              apps/web/src/plugins/index.ts
      · discoverPlugins() ──► catálogo  │                · registerClientPlugin()
@@ -448,49 +449,56 @@ DELETE /api/v1/plugins/:id
                                        ▼
                             ┌──────────────────────┐
                             │   PostgreSQL (Prisma) │
-                            │ · BlockInstallation   │
-                            │ · BlockPlacement      │
+                            │ · PluginInstallation   │
+                            │ · PluginPlacement      │
                             │ · Permission          │
                             └──────────────────────┘
 ```
 
 ## 8. Estado transitorio del rename «Bloques» → «Plugins»
 
-El rename de la superficie de usuario está **completo**, pero el *naming interno* sigue
-usando `block` como **shim transitorio de retrocompatibilidad** (ADR-0005). No confundas
-los dos niveles:
+El rename de la superficie de usuario y de la **mayor parte del naming interno** está
+completo. Queda un conjunto **mínimo** de nombres `block` por retrocompatibilidad
+(ADR-0005), que conviene no confundir con los canónicos:
 
-| Nivel | Nombre canónico | Nombre interno (transitorio) |
+| Nivel | Nombre canónico | Residuo `block` (transitorio) |
 |-------|-----------------|-------------------------------|
 | Manifiesto | `plugin.json`, `type: "plugin"` | `block.json`, `type: "block"` aceptados |
 | SDK | `definePlugin`, `defineClientPlugin`, `PluginManifest` | alias `@deprecated` `defineBlock`, `BlockManifest`, … |
 | Rutas API | `/api/v1/plugins/*` | shim `/api/v1/blocks/*` (deprecado) |
 | Loader | `registerPlugins`, `installPlugin`, `discoverPlugins` | alias `@deprecated` `registerBlocks`, `installBlock`, … |
-| Modelos Prisma | — (sin renombrar) | `BlockInstallation` / `BlockPlacement`, campo `blockId` |
+| Modelos Prisma | `PluginInstallation` / `PluginPlacement`, campo `pluginId` | — (renombrados; `@@map` usa `plugin_*`) |
 | Permisos | `plugin.read` / `plugin.manage` | alias `@deprecated` `BlockRead` / `BlockManage` |
-| Directorio físico | — (sin renombrar) | `blocks/*` (`pluginsDir()` → `../../blocks`) |
-| Paquetes npm | — (sin renombrar) | `@webs/block-*` |
+| Directorio físico | `plugins/*` (`pluginsDir()` → `../../plugins`) | — (renombrado) |
+| Paquetes npm | `@webs/plugin-*` | — (renombrado) |
+| Env de directorio | — | `BLOCK_DIR` (clave de config conservada) |
+| Env de registro remoto | — | `BLOCK_REGISTRY_URL` (conservada) |
+| Cache key | — | `blocks:catalog` (conservada) |
 
 **Qué significa en la práctica:**
 
 - **Superficie de usuario = «Plugins».** La UI, las rutas canónicas, el SDK y la
   documentación hablan de plugins.
-- **Interno = «block».**
+- **Interno mayormente renombrado.** El directorio físico es `plugins/`, los modelos
+  Prisma son `PluginInstallation`/`PluginPlacement` (campo `pluginId`, tablas
+  `plugin_installations`/`plugin_placements`) y los paquetes npm son `@webs/plugin-*`
+  (p. ej. `@webs/plugin-example`, en `plugins/example-block/`).
+- **Residuo `block` (deuda técnica menor, sin migración de BD pendiente):**
 
-  - `apps/api/prisma/schema.prisma` (modelos `BlockInstallation`/`BlockPlacement`) y el
-    campo `blockId` no se renombraron (requeriría migración de BD).
-  - Los permisos son `plugin.read`/`plugin.manage` (`PluginRead`/`PluginManage` en
-    `packages/core/src/constants.ts`); los alias `@deprecated` `BlockRead`/`BlockManage`
-    apuntan a los mismos valores y se usan en `seed.ts` y en los `authorize` de las rutas.
-  - El directorio físico `blocks/` se conserva (`pluginsDir()` resuelve `../../blocks`), y
-    la variable de entorno sigue siendo `BLOCK_DIR`.
-  - Los paquetes npm siguen llamándose `@webs/block-*` (p. ej. `@webs/block-example`).
-  - La cache key `blocks:catalog` y la env `BLOCK_REGISTRY_URL` se conservan.
+  - La clave de config / env sigue siendo `BLOCK_DIR` (`apps/api/src/config/env.ts:34`),
+    pero `pluginsDir()` resuelve `../../plugins` por defecto; `blocksDir()` existe como
+    alias `@deprecated`.
+  - El registro remoto usa `BLOCK_REGISTRY_URL` (`env.ts:35`) y la cache key
+    `blocks:catalog` (`catalog.ts:133`).
+  - Los alias `@deprecated` `BlockRead`/`BlockManage` (en `packages/core/src/constants.ts`)
+    apuntan a los mismos valores que `PluginRead`/`PluginManage`; el seed y las rutas ya
+    usan `plugin.read`/`plugin.manage`.
+  - `block.json` y `type: "block"` se siguen aceptando en el manifiesto.
 
-**Deuda técnica post-M1:** renombrar los modelos Prisma (`PluginInstallation`/`PluginPlacement`),
-el directorio físico `blocks/` → `plugins/` y
-los paquetes npm `@webs/plugin-*`. Esto requiere migración de BD y migración de los 42
-paquetes, por lo que se difiere a un milestone posterior.
+**Deuda técnica post-M1 (residuo opcional):** renombrar `BLOCK_DIR`, `BLOCK_REGISTRY_URL`
+y la cache key `blocks:catalog` a sus equivalentes `plugin` cuando se quiera eliminar el
+último rastro del naming `block`. No requiere migración de BD (modelos, directorio y npm
+ya están renombrados), solo una migración de config/cache coordinada.
 
 ## 9. Permisos declarados por plugins
 

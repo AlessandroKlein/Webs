@@ -1,4 +1,10 @@
 import { registerSettingSection } from './registry';
+import {
+  LEGAL_COOKIES_TEMPLATE,
+  LEGAL_DISCLAIMER_TEMPLATE,
+  LEGAL_PRIVACY_TEMPLATE,
+  LEGAL_TERMS_TEMPLATE,
+} from './legal-templates';
 
 /**
  * Secciones de ajustes base de la plataforma. Todo lo que el administrador
@@ -125,12 +131,18 @@ export function registerDefaultSections(): void {
       type: 'object',
       title: 'Páginas legales',
       properties: {
-        privacyPolicy: { type: 'string', title: 'Política de privacidad', 'x-ui': { widget: 'richtext' } },
-        termsOfService: { type: 'string', title: 'Términos de uso', 'x-ui': { widget: 'richtext' } },
-        cookiePolicy: { type: 'string', title: 'Política de cookies', 'x-ui': { widget: 'richtext' } },
+        termsOfService: { type: 'string', title: 'Términos del Servicio', 'x-ui': { widget: 'textarea', rows: 28 } },
+        disclaimer: { type: 'string', title: 'Aviso Legal', 'x-ui': { widget: 'textarea', rows: 28 } },
+        privacyPolicy: { type: 'string', title: 'Política de Privacidad', 'x-ui': { widget: 'textarea', rows: 28 } },
+        cookiePolicy: { type: 'string', title: 'Política de Cookies', 'x-ui': { widget: 'textarea', rows: 28 } },
       },
     },
-    defaults: {},
+    defaults: {
+      termsOfService: LEGAL_TERMS_TEMPLATE,
+      disclaimer: LEGAL_DISCLAIMER_TEMPLATE,
+      privacyPolicy: LEGAL_PRIVACY_TEMPLATE,
+      cookiePolicy: LEGAL_COOKIES_TEMPLATE,
+    },
   });
 
   registerSettingSection({

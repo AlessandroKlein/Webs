@@ -17,7 +17,8 @@
     "copy": "cap copy"
   },
   "dependencies": {
-    "@capacitor/core": "^6.1.0"
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/splash-screen": "^6.0.4"
   },
   "devDependencies": {
     "@capacitor/android": "^6.1.0",

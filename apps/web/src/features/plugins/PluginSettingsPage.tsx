@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PluginManifest } from '@webs/plugin-sdk';
@@ -10,8 +11,8 @@ import { SchemaForm } from '../../components/ui/SchemaForm';
 
 interface InstalledPlugin {
   id: string;
-  // `blockId` refleja el modelo Prisma `BlockInstallation.blockId` (sin renombrar en M1).
-  blockId: string;
+  // `pluginId` refleja el modelo Prisma `PluginInstallation.pluginId`.
+  pluginId: string;
   name: string;
   version: string;
   enabled: boolean;
@@ -26,6 +27,7 @@ interface LocalCatalogItem {
 
 export function PluginSettingsPage() {
   const { category } = useParams();
+  const { t } = useTranslation();
 
   const { data, isLoading } = useQuery({
     queryKey: ['plugins'],
@@ -42,7 +44,7 @@ export function PluginSettingsPage() {
 
   const grouped = new Map<string, InstalledPlugin[]>();
   for (const plugin of data?.installed ?? []) {
-    const cat = categoryById.get(plugin.blockId) || 'Otros';
+    const cat = categoryById.get(plugin.pluginId) || t('plugins.others');
     const list = grouped.get(cat) ?? [];
     list.push(plugin);
     grouped.set(cat, list);
@@ -56,7 +58,7 @@ export function PluginSettingsPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Configuración de plugins</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('plugins.settings')}</h1>
         {categories.map((cat) => (
           <Link
             key={cat}
@@ -74,12 +76,12 @@ export function PluginSettingsPage() {
           <>
             <h2 style={{ textTransform: 'capitalize', margin: 0 }}>{selected}</h2>
             {(grouped.get(selected) ?? []).map((plugin) => (
-              <PluginSettingsCard key={plugin.blockId} plugin={plugin} />
+              <PluginSettingsCard key={plugin.pluginId} plugin={plugin} />
             ))}
           </>
         ) : (
           <Card>
-            <p className="muted" style={{ margin: 0 }}>No hay plugins instalados.</p>
+            <p className="muted" style={{ margin: 0 }}>{t('plugins.noInstalled')}</p>
           </Card>
         )}
       </div>
@@ -89,11 +91,12 @@ export function PluginSettingsPage() {
 
 function PluginSettingsCard({ plugin }: { plugin: InstalledPlugin }) {
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const [value, setValue] = useState<Record<string, unknown> | null>(null);
   const [saved, setSaved] = useState(false);
 
   const save = useMutation({
-    mutationFn: (v: Record<string, unknown>) => api.put(`/api/v1/plugins/${plugin.blockId}/settings`, v),
+    mutationFn: (v: Record<string, unknown>) => api.put(`/api/v1/plugins/${plugin.pluginId}/settings`, v),
     onSuccess: () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
@@ -115,14 +118,14 @@ function PluginSettingsCard({ plugin }: { plugin: InstalledPlugin }) {
         <>
           <SchemaForm schema={m.settings} value={current} onChange={setValue} />
           <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
-            {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>Guardado ✓</span>}
+            {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>{t('plugins.saved')}</span>}
             <Button onClick={() => save.mutate(current)} disabled={save.isPending}>
-              Guardar
+              {t('common.save')}
             </Button>
           </div>
         </>
       ) : (
-        <p className="muted" style={{ margin: 0 }}>Este plugin no expone ajustes</p>
+        <p className="muted" style={{ margin: 0 }}>{t('plugins.noSettings')}</p>
       )}
     </Card>
   );

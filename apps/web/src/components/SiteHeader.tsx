@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import i18next, { setLocale } from '../lib/i18n';
+import { useLocaleStore } from '../lib/locale-store';
 import { api } from '../lib/api';
 import { useAuthStore } from '../lib/auth-store';
 import { useRealtime } from '../lib/realtime';
@@ -27,7 +29,12 @@ interface InboxNotification {
   expiresAt: string | null;
 }
 
-const priorityLabel = (p: string) => (p === 'alta' ? 'Alta' : p === 'media' ? 'Media' : 'Normal');
+const priorityLabel = (p: string) =>
+  p === 'alta'
+    ? i18next.t('admin.notifications.high')
+    : p === 'media'
+      ? i18next.t('admin.notifications.medium')
+      : i18next.t('admin.notifications.normal');
 const priorityColor = (p: string) =>
   p === 'alta' ? 'var(--ws-danger)' : p === 'media' ? '#d97706' : 'var(--ws-text-muted)';
 
@@ -38,7 +45,9 @@ const priorityColor = (p: string) =>
  * Responsive con menú hamburguesa en móvil.
  */
 export function SiteHeader() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const catalog = useLocaleStore((s) => s.catalog);
+  const enabledLocales = useLocaleStore((s) => s.enabled);
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const hasPermission = useAuthStore((s) => s.hasPermission);
@@ -89,8 +98,8 @@ export function SiteHeader() {
   // Fallback: si el menú configurado está vacío, mostramos accesos directos a
   // las páginas públicas principales para que siempre haya navegación.
   const fallbackItems: MenuItem[] = [
-    { label: 'Blog', path: '/blog' },
-    { label: 'Clases', path: '/clases' },
+    { label: t('admin.blog.title'), path: '/blog' },
+    { label: t('nav.classes'), path: '/clases' },
   ];
   const navItems = items.length > 0 ? items : fallbackItems;
   const initial = (user?.displayName ?? user?.email ?? '?').charAt(0).toUpperCase();
@@ -121,9 +130,24 @@ export function SiteHeader() {
         </nav>
 
         <div className="site-actions">
+          <select
+            className="input"
+            style={{ width: 'auto' }}
+            value={i18n.language.split('-')[0]}
+            onChange={(e) => void setLocale(e.target.value)}
+            aria-label={t('lang.label')}
+          >
+            {catalog
+              .filter((l) => enabledLocales.includes(l.code))
+              .map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.nativeLabel}
+                </option>
+              ))}
+          </select>
           {user && (
             <div className="user-menu-wrap">
-              <button className="site-user" onClick={() => setBellOpen((o) => !o)} title="Notificaciones" aria-label="Notificaciones">
+              <button className="site-user" onClick={() => setBellOpen((o) => !o)} title={t('admin.notifications.title')} aria-label={t('admin.notifications.title')}>
                 <i className="bi bi-bell" />
                 {unread > 0 && <span className="badge" style={{ background: 'var(--ws-danger)', color: '#fff' }}>{unread}</span>}
               </button>
@@ -136,7 +160,7 @@ export function SiteHeader() {
                     <strong>{t('admin.notifications.title')}</strong>
                     {unread > 0 && (
                       <button className="btn ghost" onClick={() => markAllRead.mutate()} disabled={markAllRead.isPending}>
-                        <i className="bi bi-check2-all" /> Marcar todas
+                        <i className="bi bi-check2-all" /> {t('common.markAllRead')}
                       </button>
                     )}
                   </div>
@@ -156,7 +180,7 @@ export function SiteHeader() {
                         <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
                           <i className="bi bi-flag-fill" style={{ color: priorityColor(n.priority ?? 'normal') }} />{' '}
                           {priorityLabel(n.priority ?? 'normal')}
-                          {n.expiresAt ? ` · vence ${new Date(n.expiresAt).toLocaleDateString()}` : ''}
+                          {n.expiresAt ? ` · ${t('common.expires')} ${new Date(n.expiresAt).toLocaleDateString()}` : ''}
                         </span>
                       </div>
                       {!n.read && (
@@ -183,8 +207,8 @@ export function SiteHeader() {
                       )}
                       <button
                         className="btn ghost"
-                        title="Eliminar"
-                        aria-label="Eliminar notificación"
+                        title={t('common.delete')}
+                        aria-label={t('admin.notifications.deleteNotification')}
                         onClick={() => remove.mutate(n.id)}
                         disabled={remove.isPending}
                         style={{
@@ -223,16 +247,16 @@ export function SiteHeader() {
               {userOpen && (
                 <div className="dropdown" style={{ right: 0 }}>
                   <Link to="/dashboard" onClick={() => setUserOpen(false)}>
-                    <i className="bi bi-grid-1x2" /> Dashboard
+                    <i className="bi bi-grid-1x2" /> {t('nav.dashboard')}
                   </Link>
                   <Link to="/staff" onClick={() => setUserOpen(false)}>
-                    <i className="bi bi-briefcase" /> Panel de trabajo
+                    <i className="bi bi-briefcase" /> {t('nav.workerDashboard')}
                   </Link>
                   <Link to="/blog" onClick={() => setUserOpen(false)}>
-                    <i className="bi bi-journal-text" /> Blog
+                    <i className="bi bi-journal-text" /> {t('admin.blog.title')}
                   </Link>
                   <Link to="/social" onClick={() => setUserOpen(false)}>
-                    <i className="bi bi-people" /> Red social
+                    <i className="bi bi-people" /> {t('admin.social.title')}
                   </Link>
                   <Link to="/account" onClick={() => setUserOpen(false)}>
                     <i className="bi bi-person" /> {t('site.header.myAccount')}

@@ -32,7 +32,7 @@ interface SocialProvider {
 }
 
 interface SocialLoginSettings {
-  blockId: string;
+  pluginId: string;
   schema: unknown;
   value: {
     providers?: SocialProvider[];
@@ -40,7 +40,7 @@ interface SocialLoginSettings {
   };
 }
 
-/** Proveedores por defecto según `blocks/social-login/block.json`. */
+/** Proveedores por defecto según `plugins/social-login/plugin.json`. */
 const DEFAULT_PROVIDERS: SocialProvider[] = [
   { id: 'google', name: 'Google', enabled: false, clientId: '', clientSecret: '', redirectUri: '' },
   { id: 'facebook', name: 'Facebook', enabled: false, clientId: '', clientSecret: '', redirectUri: '' },

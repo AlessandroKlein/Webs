@@ -1,15 +1,30 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { baseResources, DEFAULT_LOCALE } from '@webs/i18n';
-import { getCookie, setCookie } from '@webs/ui';
 
 const LOCALE_KEY = 'webs-locale';
+
+const readStoredLocale = (): string | null => {
+  try {
+    return window.localStorage.getItem(LOCALE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+const writeStoredLocale = (locale: string): void => {
+  try {
+    window.localStorage.setItem(LOCALE_KEY, locale);
+  } catch {
+    // Sin persistencia disponible (modo incógnito, etc.): seguimos en memoria.
+  }
+};
 
 // Se inicializa con los recursos base (compilados) para evitar el "flash" de
 // claves sin traducir en el primer render; en runtime se cargan además los
 // idiomas habilitados por el administrador vía applyRemoteResources.
 void i18next.use(initReactI18next).init({
-  lng: getCookie(LOCALE_KEY) ?? DEFAULT_LOCALE,
+  lng: readStoredLocale() ?? DEFAULT_LOCALE,
   fallbackLng: 'en',
   resources: baseResources,
   interpolation: { escapeValue: false },
@@ -30,13 +45,13 @@ export function applyRemoteResources(payload: RemoteI18nPayload): void {
   }
 
   // Si el usuario no eligió idioma manualmente, usa el del sitio.
-  if (!getCookie(LOCALE_KEY) && payload.defaultLocale) {
+  if (!readStoredLocale() && payload.defaultLocale) {
     void i18next.changeLanguage(payload.defaultLocale);
   }
 }
 
 export function setLocale(locale: string): Promise<unknown> {
-  setCookie(LOCALE_KEY, locale, 365);
+  writeStoredLocale(locale);
   return i18next.changeLanguage(locale);
 }
 

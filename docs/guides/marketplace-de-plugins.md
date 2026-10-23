@@ -2,7 +2,7 @@
 
 Webs incluye un **catálogo de plugins** instalable desde la UI. Combina:
 
-- **Plugins locales**: los que están en `blocks/` del monorepo (descubiertos al
+- **Plugins locales**: los que están en `plugins/` del monorepo (descubiertos al
   arrancar).
 - **Índice remoto**: un JSON de registro (configurable) que lista plugins
   publicados por terceros, descargables e instalables con un clic.
@@ -53,7 +53,7 @@ Un archivo JSON con una lista de plugins:
 
 ## Dónde se sirve el índice
 
-- **Local (por defecto)**: el archivo `blocks/catalog.json` del monorepo.
+- **Local (por defecto)**: el archivo `plugins/catalog.json` del monorepo.
 - **Remoto**: setea `BLOCK_REGISTRY_URL` con la URL del JSON (GitHub raw, un
   sitio, etc.). Se cachea 5 minutos.
 
@@ -70,7 +70,7 @@ BLOCK_REGISTRY_URL=https://raw.githubusercontent.com/tu-usuario/tu-registro/main
    `src/client.ts`, build).
 2. Agregá la entrada al índice (`catalog.json` o tu índice remoto).
 3. En la UI, **Plugins → Catálogo → Instalar**: Webs clona el repo, ubica el
-   plugin en `blocks/<id>` y ejecuta el flujo de instalación habitual
+   plugin en `plugins/<id>` y ejecuta el flujo de instalación habitual
    (`onInstall`, permisos, menú, traducciones, etc.).
 
 ## API

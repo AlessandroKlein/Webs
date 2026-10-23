@@ -26,7 +26,7 @@ function serializeInstallation(inst: {
     : inst.config;
   return {
     id: inst.id,
-    blockId: inst.pluginId,
+    pluginId: inst.pluginId,
     name: inst.name,
     version: inst.version,
     enabled: inst.enabled,
@@ -249,7 +249,7 @@ export async function pluginCrudRoutes(fastify: FastifyInstance): Promise<void> 
       const value = inst.config !== null && typeof inst.config === 'object' && !Array.isArray(inst.config)
         ? redactSecretFields(manifest.settings, inst.config as Record<string, unknown>)
         : inst.config;
-      return { blockId: pluginId, schema: manifest.settings ?? null, value };
+      return { pluginId, schema: manifest.settings ?? null, value };
     },
   );
 
@@ -289,7 +289,7 @@ export async function pluginCrudRoutes(fastify: FastifyInstance): Promise<void> 
         data: { config: stored as object },
       });
       audit(fastify, request, { actorId: request.user?.sub, action: 'plugin.settings', resource: 'plugin', resourceId: pluginId });
-      return { blockId: pluginId, value: redactSecretFields(manifest.settings, value) };
+      return { pluginId, value: redactSecretFields(manifest.settings, value) };
     },
   );
 }
@@ -357,9 +357,9 @@ export default async function pluginsRoutes(fastify: FastifyInstance): Promise<v
               type: 'array',
               items: {
                 type: 'object',
-                required: ['blockId'],
+                required: ['pluginId'],
                 properties: {
-                  blockId: { type: 'string' },
+                  pluginId: { type: 'string' },
                   order: { type: 'integer' },
                   enabled: { type: 'boolean' },
                   config: { type: 'object' },
@@ -374,14 +374,14 @@ export default async function pluginsRoutes(fastify: FastifyInstance): Promise<v
     async (request) => {
       const { slotId, blocks } = request.body as {
         slotId: string;
-        blocks: { blockId: string; order?: number; enabled?: boolean; config?: object }[];
+        blocks: { pluginId: string; order?: number; enabled?: boolean; config?: object }[];
       };
 
       await fastify.prisma.$transaction([
         fastify.prisma.pluginPlacement.deleteMany({ where: { slotId } }),
         fastify.prisma.pluginPlacement.createMany({
           data: blocks.map((b, i) => ({
-            pluginId: b.blockId,
+            pluginId: b.pluginId,
             slotId,
             order: b.order ?? i,
             enabled: b.enabled ?? true,

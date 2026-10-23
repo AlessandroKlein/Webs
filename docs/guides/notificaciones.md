@@ -11,7 +11,7 @@ El envío exitoso emite el evento `notification.sent` (automatizaciones/auditor�
 
 ## Plugin Twilio (SMS/WhatsApp)
 
-`blocks/twilio` registra el proveedor `twilio` con canales `sms` y `whatsapp`.
+`plugins/twilio` registra el proveedor `twilio` con canales `sms` y `whatsapp`.
 Configurá en **Plugins → Twilio**: `accountSid`, `authToken` (cifrado), `fromNumber`
 (SMS) y `whatsappFrom` (WhatsApp).
 

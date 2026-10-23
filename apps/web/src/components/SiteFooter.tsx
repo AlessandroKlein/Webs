@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
@@ -21,7 +22,7 @@ interface FooterData {
  * enlaces legales y redes sociales — solo muestra los que están completos.
  */
 export function SiteFooter() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data } = useQuery({
     queryKey: ['public-footer'],
     queryFn: () => api.get<FooterData>('/api/v1/public/footer'),
@@ -43,6 +44,14 @@ export function SiteFooter() {
   const legal = (data?.footer.legalLinks ?? []).filter((l) => l.label && l.url);
   const hasContact = data?.footer.contactEmail || data?.footer.contactPhone || data?.footer.contactAddress;
 
+  // Enlaces legales nativos de la plataforma (siempre visibles).
+  const builtInLegal = [
+    { label: t('legal.terms'), url: '/legal/terms' },
+    { label: t('legal.privacy'), url: '/legal/privacy' },
+    { label: t('legal.cookies'), url: '/legal/cookies' },
+    { label: t('legal.disclaimer'), url: '/legal/disclaimer' },
+  ];
+
   // El título de la pestaña refleja el nombre del sitio.
   useEffect(() => {
     document.title = siteName;
@@ -63,16 +72,17 @@ export function SiteFooter() {
           )}
         </div>
 
-        {(legal.length > 0 || social.length > 0) && (
-          <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-4)' }}>
-            {legal.map((l) => (
-              <a key={l.url} href={l.url} target="_blank" rel="noopener">{l.label}</a>
-            ))}
-            {social.map(([name, url]) => (
-              <a key={name} href={url} target="_blank" rel="noopener" title={name}><i className={`bi bi-${name === 'x' ? 'twitter-x' : name}`} /> {name}</a>
-            ))}
-          </div>
-        )}
+        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-4)' }}>
+          {builtInLegal.map((l) => (
+            <Link key={l.url} to={l.url}>{l.label}</Link>
+          ))}
+          {legal.map((l) => (
+            <a key={l.url} href={l.url} target="_blank" rel="noopener">{l.label}</a>
+          ))}
+          {social.map(([name, url]) => (
+            <a key={name} href={url} target="_blank" rel="noopener" title={name}><i className={`bi bi-${name === 'x' ? 'twitter-x' : name}`} /> {name}</a>
+          ))}
+        </div>
       </div>
     </footer>
   );

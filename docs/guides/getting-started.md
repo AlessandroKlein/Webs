@@ -36,7 +36,7 @@ pnpm install
 ```
 
 El repo es un **monorepo pnpm** (workspace). `pnpm-workspace.yaml` incluye
-`apps/*`, `packages/*` y `blocks/*`.
+`apps/*`, `packages/*` y `plugins/*`.
 
 ---
 
@@ -71,8 +71,8 @@ CORS_ORIGIN=http://localhost:5173
 # Logging
 LOG_LEVEL=info
 
-# Directorio de plugins locales (nombre interno transitorio `BLOCK_DIR`)
-BLOCK_DIR=../../blocks
+# Directorio de plugins locales (clave `BLOCK_DIR` conservada por retrocompatibilidad)
+BLOCK_DIR=../../plugins
 
 # Seed del primer superadmin
 SEED_ADMIN_EMAIL=admin@example.com
@@ -138,7 +138,7 @@ Compila todos los paquetes y apps del workspace (incluidos los plugins):
 pnpm build
 ```
 
-Esto ejecuta `pnpm -r build` en orden: `packages/*`, `blocks/*` y `apps/*`.
+Esto ejecuta `pnpm -r build` en orden: `packages/*`, `plugins/*` y `apps/*`.
 
 ---
 

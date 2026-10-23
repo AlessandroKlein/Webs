@@ -1,4 +1,5 @@
 import { useMemo, useState, type DragEvent, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
@@ -6,8 +7,8 @@ import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { Spinner } from '../../components/ui/Spinner';
 import {
-  ELEMENT_TYPES,
   createElement,
+  elementTypeOptions,
   itemLabel,
   isPageElement,
   type Page,
@@ -25,7 +26,7 @@ interface CatalogBlock {
 }
 
 interface InstalledBlock {
-  blockId: string;
+  pluginId: string;
   name: string;
 }
 
@@ -38,9 +39,9 @@ const SIZE_WIDTH: Record<Size, string> = {
 };
 
 const SIZE_LABEL: Record<Size, string> = {
-  full: 'Completo',
-  half: 'Mitad',
-  third: 'Tercio',
+  full: 'pages.sizeFull',
+  half: 'pages.sizeHalf',
+  third: 'pages.sizeThird',
 };
 
 /** Editor inline de un elemento de contenido (título, texto, …). */
@@ -53,6 +54,7 @@ function ElementEditor({
   onChange: (patch: Partial<PageElement>) => void;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className="stack"
@@ -67,7 +69,7 @@ function ElementEditor({
     >
       {element.type === 'heading' && (
         <label className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'center' }}>
-          Nivel
+          {t('pages.level')}
           <select
             className="input"
             style={{ width: 'auto' }}
@@ -86,25 +88,26 @@ function ElementEditor({
           rows={element.type === 'html' ? 4 : 2}
           value={element.content ?? ''}
           onChange={(e) => onChange({ content: e.target.value })}
-          placeholder={element.type === 'html' ? '<div>HTML…</div>' : 'Texto…'}
+          placeholder={element.type === 'html' ? t('pages.htmlPlaceholder') : t('pages.textPlaceholder')}
         />
       ) : element.type !== 'divider' ? (
         <TextField
-          label={element.type === 'spacer' ? 'Alto (px)' : element.type === 'image' ? 'URL de la imagen' : 'Contenido'}
+          label={element.type === 'spacer' ? t('pages.height') : element.type === 'image' ? t('pages.imageUrl') : t('pages.content')}
           value={element.content ?? ''}
           onChange={(e) => onChange({ content: e.target.value })}
         />
       ) : (
-        <p className="muted" style={{ margin: 0 }}>El separador no tiene contenido editable.</p>
+        <p className="muted" style={{ margin: 0 }}>{t('pages.dividerNoContent')}</p>
       )}
       <div className="row" style={{ justifyContent: 'flex-end' }}>
-        <Button variant="secondary" onClick={onClose}>Listo</Button>
+        <Button variant="secondary" onClick={onClose}>{t('pages.done')}</Button>
       </div>
     </div>
   );
 }
 
 export function PagesPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['pages'],
@@ -182,7 +185,7 @@ export function PagesPage() {
     );
   };
 
-  const installedBlocks = (pluginsData?.installed ?? []).map((b) => b.blockId);
+  const installedBlocks = (pluginsData?.installed ?? []).map((b) => b.pluginId);
 
   const addSection = () => setSections((s) => [...s, { blocks: [], size: 'full' }]);
   const removeSection = (i: number) => {
@@ -191,8 +194,8 @@ export function PagesPage() {
   };
   const setSize = (i: number, size: Size) => setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, size } : sec)));
 
-  const addBlock = (i: number, blockId: string) =>
-    setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: [...sec.blocks, blockId] } : sec)));
+  const addBlock = (i: number, pluginId: string) =>
+    setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: [...sec.blocks, pluginId] } : sec)));
 
   const addElement = (i: number, type: PageElementType) =>
     setSections((s) => s.map((sec, idx) => (idx === i ? { ...sec, blocks: [...sec.blocks, createElement(type)] } : sec)));
@@ -262,34 +265,34 @@ export function PagesPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Páginas</h1>
-        <button className={`nav-link ${view === 'editor' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('editor')}>Editor</button>
-        <button className={`nav-link ${view === 'list' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('list')}>Páginas existentes</button>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('pages.title')}</h1>
+        <button className={`nav-link ${view === 'editor' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('editor')}>{t('pages.editor')}</button>
+        <button className={`nav-link ${view === 'list' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('list')}>{t('pages.existing')}</button>
       </aside>
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
       {view === 'editor' && (
       <Card>
-        <h3>{editingId ? `Editar página` : 'Nueva página'}</h3>
+        <h3>{editingId ? t('pages.editPage') : t('pages.newPage')}</h3>
         <form className="row" onSubmit={onSubmit} style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <TextField label="Slug" value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="contacto" required />
-          <TextField label="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
-          <TextField label="Redirección (URL externa)" value={redirectUrl} onChange={(e) => setRedirectUrl(e.target.value)} placeholder="https://…" />
+          <TextField label={t('pages.slug')} value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="contacto" required />
+          <TextField label={t('common.title')} value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <TextField label={t('pages.redirect')} value={redirectUrl} onChange={(e) => setRedirectUrl(e.target.value)} placeholder="https://…" />
           <label className="row" style={{ gap: 6 }}>
-            <input type="checkbox" checked={isHome} onChange={(e) => setIsHome(e.target.checked)} /> Es la página de inicio
+            <input type="checkbox" checked={isHome} onChange={(e) => setIsHome(e.target.checked)} /> {t('pages.isHome')}
           </label>
-          <Button type="submit" disabled={create.isPending || update.isPending}>{editingId ? 'Guardar' : 'Crear'}</Button>
-          {editingId && <Button variant="ghost" onClick={resetForm}>Cancelar</Button>}
-          {saved && <span style={{ color: 'var(--ws-success)' }}>Guardado ✓</span>}
+          <Button type="submit" disabled={create.isPending || update.isPending}>{editingId ? t('common.save') : t('common.create')}</Button>
+          {editingId && <Button variant="ghost" onClick={resetForm}>{t('common.cancel')}</Button>}
+          {saved && <span style={{ color: 'var(--ws-success)' }}>{t('common.saved')}</span>}
         </form>
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--ws-border)', margin: 'var(--ws-space-4) 0' }} />
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h3 style={{ margin: 0 }}>Secciones (bloques + elementos + tamaño)</h3>
-          <Button variant="secondary" onClick={addSection}>+ Agregar sección</Button>
+          <h3 style={{ margin: 0 }}>{t('pages.sections')}</h3>
+          <Button variant="secondary" onClick={addSection}>{t('pages.addSection')}</Button>
         </div>
         <p className="muted" style={{ margin: 'var(--ws-space-1) 0 var(--ws-space-3)' }}>
-          Arrastrá el icono ⠿ para reordenar secciones o elementos. Usá ↑/↓ para mover un elemento, o el selector «Mover a» para cambiarlo de sección.
+          {t('pages.dragHint')}
         </p>
 
         <div className="stack" style={{ marginTop: 'var(--ws-space-3)' }}>
@@ -326,21 +329,21 @@ export function PagesPage() {
                       setDragSection(i);
                     }}
                     onDragEnd={() => { setDragSection(null); setDragOverSection(null); }}
-                    title="Arrastrar para reordenar la sección"
+                    title={t('pages.dragSection')}
                     style={{ cursor: 'grab', fontSize: '1.2rem', color: 'var(--ws-muted)', lineHeight: 1, display: 'inline-flex' }}
                   >
                     <i className="bi bi-grip-vertical" />
                   </span>
-                  <strong>Sección {i + 1}</strong>
-                  <Button variant="ghost" onClick={() => moveSection(i, i - 1)} disabled={i === 0} title="Subir sección" style={{ padding: '2px 6px', lineHeight: 1 }}>↑</Button>
-                  <Button variant="ghost" onClick={() => moveSection(i, i + 1)} disabled={i === sections.length - 1} title="Bajar sección" style={{ padding: '2px 6px', lineHeight: 1 }}>↓</Button>
+                  <strong>{t('pages.section', { n: i + 1 })}</strong>
+                  <Button variant="ghost" onClick={() => moveSection(i, i - 1)} disabled={i === 0} title={t('pages.moveSectionUp')} style={{ padding: '2px 6px', lineHeight: 1 }}>↑</Button>
+                  <Button variant="ghost" onClick={() => moveSection(i, i + 1)} disabled={i === sections.length - 1} title={t('pages.moveSectionDown')} style={{ padding: '2px 6px', lineHeight: 1 }}>↓</Button>
                 </div>
-                <Button variant="ghost" onClick={() => removeSection(i)} title="Eliminar sección">✕</Button>
+                <Button variant="ghost" onClick={() => removeSection(i)} title={t('pages.deleteSection')}>✕</Button>
               </div>
               <div className="row" style={{ marginBottom: 'var(--ws-space-2)', flexWrap: 'wrap', gap: 'var(--ws-space-1)' }}>
                 {(['full', 'half', 'third'] as Size[]).map((size) => (
                   <Button key={size} variant={sec.size === size ? 'secondary' : 'ghost'} onClick={() => setSize(i, size)}>
-                    {SIZE_LABEL[size]}
+                    {t(SIZE_LABEL[size])}
                   </Button>
                 ))}
               </div>
@@ -369,7 +372,7 @@ export function PagesPage() {
                       e.stopPropagation();
                       moveItem(dragItem, { section: i, index: bi });
                     }}
-                    title="Arrastrar para reordenar o mover de sección"
+                    title={t('pages.dragItem')}
                     style={{
                       border: '1px solid var(--ws-border)',
                       borderRadius: 'var(--ws-radius-sm)',
@@ -382,13 +385,13 @@ export function PagesPage() {
                     <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-1)', flexWrap: 'wrap' }}>
                       <i className="bi bi-grip-vertical" style={{ color: 'var(--ws-muted)' }} />
                       <span className="badge" style={{ cursor: 'grab' }}>
-                        {isPageElement(item) ? 'Elemento' : 'Plugin'}
+                        {isPageElement(item) ? t('pages.elementBadge') : t('pages.pluginBadge')}
                       </span>
                       <span style={{ flex: 1, minWidth: 120 }}>{itemLabel(item, blockLabel)}</span>
-                      <Button variant="ghost" onClick={() => moveItem({ section: i, index: bi }, { section: i, index: bi - 1 })} disabled={bi === 0} title="Subir elemento" style={{ padding: '2px 6px', lineHeight: 1 }}>↑</Button>
-                      <Button variant="ghost" onClick={() => moveItem({ section: i, index: bi }, { section: i, index: bi + 1 })} disabled={bi === sec.blocks.length - 1} title="Bajar elemento" style={{ padding: '2px 6px', lineHeight: 1 }}>↓</Button>
+                      <Button variant="ghost" onClick={() => moveItem({ section: i, index: bi }, { section: i, index: bi - 1 })} disabled={bi === 0} title={t('pages.moveItemUp')} style={{ padding: '2px 6px', lineHeight: 1 }}>↑</Button>
+                      <Button variant="ghost" onClick={() => moveItem({ section: i, index: bi }, { section: i, index: bi + 1 })} disabled={bi === sec.blocks.length - 1} title={t('pages.moveItemDown')} style={{ padding: '2px 6px', lineHeight: 1 }}>↓</Button>
                       {isPageElement(item) && (
-                        <Button variant="ghost" onClick={() => setEditingItem(editingItem?.section === i && editingItem.index === bi ? null : { section: i, index: bi })} title="Editar elemento" style={{ padding: '2px 6px', lineHeight: 1 }}>✎</Button>
+                        <Button variant="ghost" onClick={() => setEditingItem(editingItem?.section === i && editingItem.index === bi ? null : { section: i, index: bi })} title={t('pages.editItem')} style={{ padding: '2px 6px', lineHeight: 1 }}>✎</Button>
                       )}
                       <select
                         className="input"
@@ -398,18 +401,18 @@ export function PagesPage() {
                           if (e.target.value !== '') moveItem({ section: i, index: bi }, { section: Number(e.target.value), index: 9999 });
                           e.target.value = '';
                         }}
-                        title="Mover a otra sección"
+                        title={t('pages.moveToSection')}
                       >
-                        <option value="">Mover a…</option>
+                        <option value="">{t('pages.moveTo')}</option>
                         {sections.map((_, si) => (
-                          <option key={si} value={si}>Sección {si + 1}</option>
+                          <option key={si} value={si}>{t('pages.section', { n: si + 1 })}</option>
                         ))}
                       </select>
                       <button
                         type="button"
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ws-danger)', padding: 0, lineHeight: 1 }}
                         onClick={() => removeItem(i, bi)}
-                        title="Quitar elemento"
+                        title={t('pages.removeItem')}
                       >✕</button>
                     </div>
                     {editingItem?.section === i && editingItem.index === bi && isPageElement(item) && (
@@ -423,7 +426,7 @@ export function PagesPage() {
                 ))}
 
                 {sec.blocks.length === 0 && (
-                  <p className="muted" style={{ margin: 0 }}>Sin elementos en esta sección.</p>
+                  <p className="muted" style={{ margin: 0 }}>{t('pages.emptySection')}</p>
                 )}
 
                 <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-1)' }}>
@@ -436,7 +439,7 @@ export function PagesPage() {
                       e.target.value = '';
                     }}
                   >
-                    <option value="">+ Agregar plugin…</option>
+                    <option value="">{t('pages.addPlugin')}</option>
                     {installedBlocks.map((b) => (
                       <option key={b} value={b}>{blockLabel(b)}</option>
                     ))}
@@ -450,8 +453,8 @@ export function PagesPage() {
                       e.target.value = '';
                     }}
                   >
-                    <option value="">+ Agregar elemento…</option>
-                    {ELEMENT_TYPES.map((el) => (
+                    <option value="">{t('pages.addElement')}</option>
+                    {elementTypeOptions().map((el) => (
                       <option key={el.type} value={el.type}>{el.label}</option>
                     ))}
                   </select>
@@ -459,14 +462,14 @@ export function PagesPage() {
               </div>
             </div>
           ))}
-          {sections.length === 0 && <p className="muted">Sin secciones. Agregá una o dejá la redirección para una página externa.</p>}
+          {sections.length === 0 && <p className="muted">{t('pages.noSections')}</p>}
         </div>
 
         <hr style={{ border: 'none', borderTop: '1px solid var(--ws-border)', margin: 'var(--ws-space-4) 0' }} />
-        <h3 style={{ margin: '0 0 var(--ws-space-2)' }}>Vista previa</h3>
+        <h3 style={{ margin: '0 0 var(--ws-space-2)' }}>{t('pages.preview')}</h3>
         <div style={{ border: '1px dashed var(--ws-border)', borderRadius: 'var(--ws-radius-md)', padding: 'var(--ws-space-4)', background: 'var(--ws-surface-2)' }}>
           {sections.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>La página está vacía. Agregá secciones para ver la vista previa.</p>
+            <p className="muted" style={{ margin: 0 }}>{t('pages.emptyPage')}</p>
           ) : (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'flex-start' }}>
               {sections.map((sec, i) => (
@@ -482,10 +485,10 @@ export function PagesPage() {
                   }}
                 >
                   <div className="muted" style={{ fontSize: '0.75rem', marginBottom: 4 }}>
-                    Sección {i + 1} · {SIZE_LABEL[sec.size]}
+                    {t('pages.section', { n: i + 1 })} · {t(SIZE_LABEL[sec.size])}
                   </div>
                   {sec.blocks.length === 0 ? (
-                    <span className="muted" style={{ fontSize: '0.8rem' }}>Sin elementos</span>
+                    <span className="muted" style={{ fontSize: '0.8rem' }}>{t('pages.noElements')}</span>
                   ) : (
                     sec.blocks.map((item, bi) =>
                       isPageElement(item) ? (
@@ -507,14 +510,14 @@ export function PagesPage() {
 
       {view === 'list' && (
       <Card>
-        <h3>Páginas existentes</h3>
+        <h3>{t('pages.existing')}</h3>
         <div style={{ marginBottom: 'var(--ws-space-3)' }}>
           {homePage ? (
             <Button onClick={() => { editPage(homePage); setView('editor'); }} style={{ gap: 'var(--ws-space-1)' }}>
-              <i className="bi bi-house" /> Editar página de inicio
+              <i className="bi bi-house" /> {t('pages.editHome')}
             </Button>
           ) : (
-            <p className="muted" style={{ margin: 0 }}>No hay una página de inicio configurada.</p>
+            <p className="muted" style={{ margin: 0 }}>{t('pages.noHome')}</p>
           )}
         </div>
         <div className="stack">
@@ -522,16 +525,16 @@ export function PagesPage() {
             <div key={p.id} className="row" style={{ justifyContent: 'space-between' }}>
               <span>
                 <strong>{p.title}</strong> <span className="muted">/{p.slug}</span>
-                {p.isHome && <span className="badge" style={{ marginLeft: 6 }}>inicio</span>}
-                {p.redirectUrl && <span className="badge" style={{ marginLeft: 6 }}>redirige</span>}
+                {p.isHome && <span className="badge" style={{ marginLeft: 6 }}>{t('pages.homeBadge')}</span>}
+                {p.redirectUrl && <span className="badge" style={{ marginLeft: 6 }}>{t('pages.redirectBadge')}</span>}
               </span>
               <div className="row">
-                <Button variant="secondary" onClick={() => { editPage(p); setView('editor'); }}>Editar</Button>
-                <Button variant="ghost" onClick={() => remove.mutate(p.id)}>Eliminar</Button>
+                <Button variant="secondary" onClick={() => { editPage(p); setView('editor'); }}>{t('common.edit')}</Button>
+                <Button variant="ghost" onClick={() => remove.mutate(p.id)}>{t('common.delete')}</Button>
               </div>
             </div>
           ))}
-          {(data ?? []).length === 0 && <p className="muted">No hay páginas.</p>}
+          {(data ?? []).length === 0 && <p className="muted">{t('pages.noPages')}</p>}
         </div>
       </Card>
       )}

@@ -31,6 +31,7 @@ import { AuditPage } from './features/audit/AuditPage';
 import { ApiTokensPage } from './features/api-tokens/ApiTokensPage';
 import { AccountPage } from './features/account/AccountPage';
 import { PagesPage } from './features/pages/PagesPage';
+import { EditorPage } from './features/editor/EditorPage';
 import { OrganizationsPage } from './features/organizations/OrganizationsPage';
 import { BranchesPage } from './features/branches/BranchesPage';
 import { InventoryPage } from './features/inventory/InventoryPage';
@@ -57,6 +58,7 @@ import { LicensePage } from './features/license/LicensePage';
 import { SiteLayout } from './components/SiteLayout';
 import { StaffDashboard } from './features/staff/StaffDashboard';
 import { SetupWizard } from './features/setup/SetupWizard';
+import { LegalPage } from './features/legal/LegalPage';
 import { ErrorPage } from './pages/ErrorPage';
 
 interface SetupStatus {
@@ -156,6 +158,7 @@ function MainApp() {
           <Route index element={<DashboardPage />} />
           <Route path="content" element={<ContentPage />} />
           <Route path="pages" element={<PagesPage />} />
+          <Route path="editor" element={<EditorPage />} />
           <Route path="organizations" element={<OrganizationsPage />} />
           <Route path="branches" element={<BranchesPage />} />
           <Route path="inventory" element={<InventoryPage />} />
@@ -188,6 +191,11 @@ function MainApp() {
           <Route path="updates" element={<UpdatesPage />} />
           <Route path="license" element={<LicensePage />} />
         </Route>
+
+        <Route path="/legal/terms" element={<SiteLayout><LegalPage slug="terms" /></SiteLayout>} />
+        <Route path="/legal/privacy" element={<SiteLayout><LegalPage slug="privacy" /></SiteLayout>} />
+        <Route path="/legal/cookies" element={<SiteLayout><LegalPage slug="cookies" /></SiteLayout>} />
+        <Route path="/legal/disclaimer" element={<SiteLayout><LegalPage slug="disclaimer" /></SiteLayout>} />
 
         <Route path="/:slug" element={<PublicPage />} />
         <Route path="*" element={<ErrorPage />} />

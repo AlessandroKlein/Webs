@@ -41,7 +41,7 @@ export function TemplatesPage() {
     <div className="stack">
       <h1>Plantillas</h1>
       <p className="muted">
-        Una plantilla monta un sitio completo: instala y activa bloques, aplica ajustes y crea el
+        Una plantilla monta un sitio completo: instala y activa plugins, aplica ajustes y crea el
         menú. Ideal para arrancar un gimnasio, un mercado, un blog…
       </p>
 
@@ -53,7 +53,7 @@ export function TemplatesPage() {
             <h3>{tpl.name}</h3>
             <p className="muted">{tpl.description}</p>
             <p className="muted">
-              Bloques: {(tpl.blocks ?? []).map((b) => b.id).join(', ') || 'ninguno'}
+              Plugins: {(tpl.blocks ?? []).map((b) => b.id).join(', ') || 'ninguno'}
             </p>
             <p className="muted">
               Menú: {(tpl.menu ?? []).map((m) => m.label).join(' · ') || '—'}

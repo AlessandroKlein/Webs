@@ -19,8 +19,8 @@ de administración — sin que el cliente final toque código.
 
 ## Características clave
 
-- **Sistema de bloques/plugins** estilo WordPress: cada bloque es un paquete con
-  un manifiesto `block.json`, lógica de backend (Fastify), render de frontend,
+- **Sistema de plugins** estilo WordPress: cada plugin es un paquete con
+  un manifiesto `plugin.json`, lógica de backend (Fastify), render de frontend,
   esquema de configuración (JSON Schema) y hooks de ciclo de vida.
 - **Configuración total desde la UI**: nombre del sitio, logo, SEO, políticas
   legales, contacto, colores, CSS personalizado, traducciones… todo se edita
@@ -37,7 +37,7 @@ de administración — sin que el cliente final toque código.
 
 ```
 apps/
-  api/          # Backend Fastify (REST + WS, módulos, loader de bloques)
+  api/          # Backend Fastify (REST + WS, módulos, loader de plugins)
   web/          # Frontend React (sitio público + panel de administración)
 packages/
   core/         # Tipos, errores, constantes y utilidades compartidas
@@ -45,8 +45,8 @@ packages/
   i18n/         # Internacionalización base
   ui/           # Sistema de temas y tokens de diseño
   config/       # ESLint y Prettier compartidos
-blocks/
-  example-block/  # Bloque de referencia (plantilla)
+plugins/
+  example-block/  # Plugin de referencia (plantilla)
 docs/             # Documentación (arquitectura, API, guías, ADRs)
 docker/           # Docker Compose y Dockerfiles
 infra/            # Notas de infraestructura y escalado
@@ -62,9 +62,17 @@ cd Webs
 docker compose up -d --build     # o: make up
 ```
 
-Abrí **http://localhost:5173**: se muestra el **asistente de instalación** con los
-valores de conexión ya pre-cargados (PostgreSQL/MySQL de Docker o SQLite). Elegí
-el motor, configurá sitio/SMTP/admin y listo. Todo sin tocar código.
+El arranque es **llave en mano**: el entrypoint de la API aplica las migraciones
+(`prisma migrate deploy`), ejecuta el seed (permisos, roles, superadmin y la
+organización raíz) y deja la instancia lista para usar. Abrí **http://localhost:5173**
+e iniciá sesión con el superadmin pre-creado:
+
+- **Usuario**: `admin@webs.test`
+- **Contraseña**: `Admin12345!`
+
+(Se controlan con `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` en
+`docker-compose.yml`.) Los datos viven en los volúmenes `pgdata`, `mysqldata` y
+`appdata`; apagá la plataforma con `docker compose down`.
 
 ### Opción B — Desarrollo local (Node + pnpm)
 
@@ -77,7 +85,7 @@ pnpm dev
 ```
 
 - **API**: http://localhost:4000 · Swagger en http://localhost:4000/docs
-- **Web**: http://localhost:5173 · Panel en `/` (login) · Sitio público de ejemplo en `/site`
+- **Web**: http://localhost:5173 · Sitio público en `/` · Panel de administración en `/admin`
 
 > Guías: [instalación](docs/guides/instalacion.md) · [getting-started](docs/guides/getting-started.md).
 

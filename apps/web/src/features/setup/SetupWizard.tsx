@@ -369,7 +369,7 @@ function TemplateStep({ value, onChange }: { value: string; onChange: (id: strin
   return (
     <div className="stack">
       <h2>Plantilla inicial</h2>
-      <p className="muted">Elegí una plantilla para arrancar con bloques y páginas predefinidas. Podés editarla y cambiar los bloques después.</p>
+      <p className="muted">Elegí una plantilla para arrancar con plugins y páginas predefinidas. Podés editarla y cambiar los plugins después.</p>
 
       <label className="row" style={{ gap: 'var(--ws-space-2)' }}>
         <input type="radio" name="template" checked={!value} onChange={() => onChange('')} />
@@ -382,7 +382,7 @@ function TemplateStep({ value, onChange }: { value: string; onChange: (id: strin
           <span>
             <strong>{t.name}</strong>
             {t.description && <span className="muted"> — {t.description}</span>}
-            <span className="muted"> · bloques: {t.blocks.join(', ') || 'ninguno'}</span>
+            <span className="muted"> · plugins: {t.blocks.join(', ') || 'ninguno'}</span>
           </span>
         </label>
       ))}

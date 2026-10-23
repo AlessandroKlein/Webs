@@ -16,17 +16,17 @@ Un **plugin** es la unidad de extensión de la plataforma Webs. Puede aportar:
 > «Estado transitorio del rename»).
 
 Esta guía te lleva de cero a un plugin instalable desde la UI, usando
-[`blocks/example-block`](../../blocks/example-block) como referencia.
+[`plugins/example-block`](../../plugins/example-block) como referencia.
 
 ---
 
 ## Estructura de un plugin
 
-Cada plugin es un **paquete independiente** dentro de `blocks/` (el workspace
-incluye `blocks/*`). Estructura mínima:
+Cada plugin es un **paquete independiente** dentro de `plugins/` (el workspace
+incluye `plugins/*`). Estructura mínima:
 
 ```text
-blocks/mi-plugin/
+plugins/mi-plugin/
 ├── plugin.json         # Manifiesto (contrato público con la plataforma)
 ├── package.json        # Dependencias y scripts de build
 ├── tsconfig.json       # Extiende tsconfig.base.json
@@ -348,7 +348,7 @@ Soportado (subconjunto, ver `packages/plugin-sdk/src/schema.ts`):
 
 Los valores `default` del esquema se usan como configuración inicial al
 instalar (ver `schemaDefaults` en `apps/api/src/plugins/loader.ts`). La
-configuración se guarda en `BlockInstallation.config` y se expone/valida vía
+configuración se guarda en `PluginInstallation.config` y se expone/valida vía
 `GET`/`PUT /api/v1/plugins/:id/settings`.
 
 ---
@@ -401,7 +401,7 @@ entrada de cliente en [`apps/web/src/plugins/index.ts`](../../apps/web/src/plugi
 
 ```ts
 import { registerClientPlugin } from './registry';
-import examplePlugin from '@webs/block-example/client';
+import examplePlugin from '@webs/plugin-example/client';
 import storePlugin from '@acme/plugin-store/client';
 
 registerClientPlugin(examplePlugin);
@@ -439,7 +439,7 @@ Esto genera `dist/server.js`, `dist/server.d.ts`, `dist/client.js` y
 1. Levantá la plataforma (`pnpm dev`) e iniciá sesión como admin.
 2. Andá a **Plugins** en el panel (`/admin/plugins`).
 3. En la sección **Catálogo** verás tu plugin (la API descubre los manifiestos
-   de `blocks/*` a partir de `BLOCK_DIR`).
+   de `plugins/*` a partir de `BLOCK_DIR`).
 4. Pulsá **Crear** (instalar). Esto llama a `POST /api/v1/plugins/install` con
    `{ "id": "store" }`, crea la instalación y ejecuta `onInstall`.
 5. Usá **Editar** para configurarlo (formulario generado desde `settings`),
@@ -463,7 +463,7 @@ Esto genera `dist/server.js`, `dist/server.d.ts`, `dist/client.js` y
 plugin.json ──► descubrimiento (catálogo) ──► POST /plugins/install
                   │                              │
                   │                              ├─ registra permisos
-                  │                              ├─ crea BlockInstallation
+                  │                              ├─ crea PluginInstallation
                   │                              ├─ registra menú (manifest.menu)
                   │                              └─ ejecuta onInstall
                   │
@@ -474,7 +474,7 @@ clientEntry ──► apps/web/src/plugins/index.ts ──► mount() en PluginS
 
 ## Ver también
 
-- [`blocks/example-block`](../../blocks/example-block) — plantilla de referencia.
+- [`plugins/example-block`](../../plugins/example-block) — plantilla de referencia.
 - [`packages/plugin-sdk`](../../packages/plugin-sdk) — contrato y tipos.
 - [`docs/guides/configuracion-desde-ui.md`](./configuracion-desde-ui.md) — uso desde la UI.
 - [`docs/architecture/plugin-system.md`](../architecture/plugin-system.md) — documento central.

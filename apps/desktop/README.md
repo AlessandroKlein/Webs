@@ -68,8 +68,10 @@ echo "CODIGO-QR-DE-PRUEBA" | pnpm --filter @webs/desktop start
 El servidor escucha en `ws://localhost:4599` y envía mensajes JSON:
 
 ```jsonc
-// Al conectarse (informa qué fuente está activa y la versión del protocolo)
-{ "type": "ready", "data": { "protocol": "webs-desktop-bridge/1.0", "version": "1.0.0", "source": "serial", "port": "COM3", "server": "ws://localhost:4599" } }
+// Al conectarse (informa qué fuente está activa y la versión del protocolo).
+// `version` sigue la versión canónica de la plataforma (SYSTEM_VERSION de la
+// API); no es un literal fijo — se lee en runtime.
+{ "type": "ready", "data": { "protocol": "webs-desktop-bridge/1.0", "version": "<SYSTEM_VERSION>", "source": "serial", "port": "COM3", "server": "ws://localhost:4599" } }
 
 // Cada lectura de código (normalizado: sin saltos de línea ni prefijos AIM/GS1)
 { "type": "scan", "data": { "code": "uuid-del-qr", "source": "serial", "port": "COM3", "at": "2026-01-01T00:00:00.000Z" } }

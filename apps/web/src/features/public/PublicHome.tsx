@@ -5,6 +5,7 @@ import { PluginSlot } from '../../plugins/PluginSlot';
 import { PageLayoutView } from '../pages/PageRenderer';
 import type { PageSection } from '../pages/pageTypes';
 import { useAuthStore } from '../../lib/auth-store';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { SiteFooter } from '../../components/SiteFooter';
 import { SiteHeader } from '../../components/SiteHeader';
@@ -120,9 +121,10 @@ const featureCardStyle: CSSProperties = {
  * Página pública (landing) en la raíz `/`: hero con nombre + tagline + CTA
  * (distinto para visitantes vs. logueados), el contenido de la página marcada
  * como inicio (si existe), secciones destacadas (últimos artículos, productos y
- * cursos — solo si hay datos) y el pie con footer/bloques.
+ * cursos — solo si hay datos) y el pie con footer/plugins.
  */
 export function PublicHome() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
   const { data: page } = useQuery({
@@ -198,19 +200,19 @@ export function PublicHome() {
             {user ? (
               <>
                 <Link to="/admin" className="btn" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>
-                  <i className="bi bi-speedometer2" /> Ir al panel
+                  <i className="bi bi-speedometer2" /> {t('site.hero.goToPanel')}
                 </Link>
                 <Link to="/blog" className="btn ghost" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>
-                  Explorar el blog
+                  {t('site.home.exploreBlog')}
                 </Link>
               </>
             ) : (
               <>
                 <Link to="/login" className="btn" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>
-                  <i className="bi bi-box-arrow-in-right" /> Iniciar sesión
+                  <i className="bi bi-box-arrow-in-right" /> {t('site.hero.login')}
                 </Link>
                 <Link to="/store" className="btn ghost" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>
-                  Ver tienda
+                  {t('site.hero.viewStore')}
                 </Link>
               </>
             )}
@@ -236,14 +238,14 @@ export function PublicHome() {
             >
               <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
                 <h2 style={{ margin: 0 }}>
-                  <i className="bi bi-gem" style={{ color: 'var(--ws-primary)' }} /> Contratá un plan
+                  <i className="bi bi-gem" style={{ color: 'var(--ws-primary)' }} /> {t('site.home.getPlan')}
                 </h2>
                 <p className="muted" style={{ margin: 0 }}>
-                  Accedé a funcionalidades premium eligiendo uno de nuestros planes de suscripción.
+                  {t('site.home.getPlanSubtitle')}
                 </p>
               </div>
               <Link to="/dashboard" className="btn" style={{ padding: 'var(--ws-space-3) var(--ws-space-5)' }}>
-                Ver planes <i className="bi bi-arrow-right" />
+                {t('site.home.viewPlans')} <i className="bi bi-arrow-right" />
               </Link>
             </div>
           </section>
@@ -265,9 +267,9 @@ export function PublicHome() {
                 className="row"
                 style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ws-space-3)', marginBottom: 'var(--ws-space-3)' }}
               >
-                <h2 style={{ margin: 0 }}>Últimos artículos</h2>
+                <h2 style={{ margin: 0 }}>{t('site.home.latestPosts')}</h2>
                 <Link to="/blog" className="btn ghost">
-                  Ver blog <i className="bi bi-arrow-right" />
+                  {t('site.home.viewBlog')} <i className="bi bi-arrow-right" />
                 </Link>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 'var(--ws-space-4)' }}>
@@ -308,9 +310,9 @@ export function PublicHome() {
                 className="row"
                 style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ws-space-3)', marginBottom: 'var(--ws-space-3)' }}
               >
-                <h2 style={{ margin: 0 }}>Productos destacados</h2>
+                <h2 style={{ margin: 0 }}>{t('site.home.featuredProducts')}</h2>
                 <Link to="/store" className="btn ghost">
-                  Ver tienda <i className="bi bi-arrow-right" />
+                  {t('site.hero.viewStore')} <i className="bi bi-arrow-right" />
                 </Link>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--ws-space-4)' }}>
@@ -342,7 +344,7 @@ export function PublicHome() {
           {/* Cursos */}
           {courseList.length > 0 && (
             <section style={{ marginBottom: 'var(--ws-space-6)' }}>
-              <h2 style={{ margin: 0, marginBottom: 'var(--ws-space-3)' }}>Cursos</h2>
+              <h2 style={{ margin: 0, marginBottom: 'var(--ws-space-3)' }}>{t('site.home.courses')}</h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 'var(--ws-space-4)' }}>
                 {courseList.map((c) => (
                   <div
@@ -360,7 +362,7 @@ export function PublicHome() {
                     </div>
                     {c.description && <p className="muted" style={{ margin: 'var(--ws-space-2) 0 0' }}>{c.description}</p>}
                     <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)', display: 'inline-block', marginTop: 'var(--ws-space-2)' }}>
-                      <i className="bi bi-journal-text" /> {(Array.isArray(c.lessons) ? c.lessons : []).length} lecciones
+                      <i className="bi bi-journal-text" /> {t('site.home.lessons', { count: (Array.isArray(c.lessons) ? c.lessons : []).length })}
                     </span>
                   </div>
                 ))}

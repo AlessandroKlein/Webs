@@ -4,13 +4,15 @@
  * El `layout` de una página (columna JSON `Page.layout`) es una lista de
  * secciones; cada sección tiene un ancho (`full`/`half`/`third`) y una lista
  * de `items`. Un item puede ser:
- *  - un `string` = id de plugin (bloque) instalado (retrocompatible con el
+ *  - un `string` = id de plugin (plugin) instalado (retrocompatible con el
  *    formato anterior, donde `blocks` era `string[]`), o
  *  - un `PageElement` = elemento de contenido (título, texto, imagen, …).
  *
  * Mantenemos el nombre del campo `blocks` en la sección para no romper la
  * API ni las páginas ya guardadas; sólo ampliamos el tipo de cada entrada.
  */
+
+import i18next from '../../lib/i18n';
 
 export type Size = 'full' | 'half' | 'third';
 
@@ -50,22 +52,24 @@ export function isPageElement(value: unknown): value is PageElement {
   );
 }
 
-export const ELEMENT_TYPES: Array<{ type: PageElementType; label: string }> = [
-  { type: 'heading', label: 'Título' },
-  { type: 'text', label: 'Texto' },
-  { type: 'image', label: 'Imagen' },
-  { type: 'divider', label: 'Separador' },
-  { type: 'spacer', label: 'Espaciador' },
-  { type: 'html', label: 'HTML' },
-];
+export function elementTypeOptions(): Array<{ type: PageElementType; label: string }> {
+  return [
+    { type: 'heading', label: i18next.t('pages.elemHeading') },
+    { type: 'text', label: i18next.t('pages.elemText') },
+    { type: 'image', label: i18next.t('pages.elemImage') },
+    { type: 'divider', label: i18next.t('pages.elemDivider') },
+    { type: 'spacer', label: i18next.t('pages.elemSpacer') },
+    { type: 'html', label: i18next.t('pages.elemHtml') },
+  ];
+}
 
 /** Crea un elemento de contenido con valores por defecto según su tipo. */
 export function createElement(type: PageElementType): PageElement {
   switch (type) {
     case 'heading':
-      return { type, content: 'Nuevo título', level: 2 };
+      return { type, content: i18next.t('pages.elemNewTitle'), level: 2 };
     case 'text':
-      return { type, content: 'Texto de ejemplo.' };
+      return { type, content: i18next.t('pages.elemSampleText') };
     case 'image':
       return { type, content: '' };
     case 'divider':
@@ -88,17 +92,17 @@ export function elementLabel(element: PageElement): string {
   switch (element.type) {
     case 'heading': {
       const tag = `H${element.level ?? 2}`;
-      return `${tag} · ${element.content ?? 'Título'}`;
+      return `${tag} · ${element.content ?? i18next.t('pages.elemHeading')}`;
     }
     case 'text':
-      return `Texto · ${(element.content ?? '').slice(0, 24) || 'vacío'}`;
+      return `${i18next.t('pages.elemText')} · ${(element.content ?? '').slice(0, 24) || i18next.t('pages.elemEmpty')}`;
     case 'image':
-      return `Imagen${element.content ? ' · ' + element.content.slice(0, 24) : ''}`;
+      return `${i18next.t('pages.elemImage')}${element.content ? ' · ' + element.content.slice(0, 24) : ''}`;
     case 'divider':
-      return 'Separador';
+      return i18next.t('pages.elemDivider');
     case 'spacer':
-      return `Espaciador · ${element.content ?? '24'}px`;
+      return `${i18next.t('pages.elemSpacer')} · ${element.content ?? '24'}px`;
     case 'html':
-      return 'HTML';
+      return i18next.t('pages.elemHtml');
   }
 }

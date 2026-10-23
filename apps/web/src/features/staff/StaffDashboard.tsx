@@ -8,8 +8,10 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { BarcodeScanner } from '../../components/ui/BarcodeScanner';
 import { CameraScanner } from '../../components/ui/CameraScanner';
+import { useTranslation } from 'react-i18next';
+import i18next from '../../lib/i18n';
 
-// ── Tipos de datos de los bloques/endpoints ─────────────────────────────
+// ── Tipos de datos de los plugins/endpoints ─────────────────────────────
 
 interface MembershipRow {
   id: string;
@@ -149,11 +151,11 @@ const money = (cents: number, currency: string) => `${(cents / 100).toFixed(2)} 
 const formatDate = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString('es-AR') : '—');
 const formatDateTime = (s: string | null | undefined) => (s ? new Date(s).toLocaleString('es-AR') : '—');
 
-const PAYMENT_STATUS_LABEL: Record<string, string> = {
-  pending: 'Pendiente',
-  approved: 'Aprobado',
-  rejected: 'Rechazado',
-  refunded: 'Reembolsado',
+const PAYMENT_STATUS_KEY: Record<string, string> = {
+  pending: 'status.pending',
+  approved: 'status.approved',
+  rejected: 'status.rejected',
+  refunded: 'status.refunded',
 };
 
 const membershipStatusColor = (status: string): string => {
@@ -184,7 +186,7 @@ function routineExerciseList(v: unknown): RoutineExercise[] {
     if (typeof raw !== 'object' || raw === null) continue;
     const ex = raw as Record<string, unknown>;
     out.push({
-      name: exerciseField(ex.name) || 'Ejercicio',
+      name: exerciseField(ex.name) || i18next.t('dashboard.exercise'),
       day: exerciseField(ex.day),
       sets: exerciseField(ex.sets),
       reps: exerciseField(ex.reps),
@@ -204,7 +206,7 @@ function parseExercisesText(text: string): RoutineExercise[] {
     .filter(Boolean)
     .map((line) => {
       const [name, day, sets, reps, notes, machineUrl, machineImage] = line.split('|').map((p) => p.trim());
-      const ex: RoutineExercise = { name: name || 'Ejercicio' };
+      const ex: RoutineExercise = { name: name || i18next.t('dashboard.exercise') };
       if (day) ex.day = day;
       if (sets) ex.sets = sets;
       if (reps) ex.reps = reps;
@@ -252,9 +254,9 @@ function RoutineExerciseItem({ ex }: { ex: RoutineExercise }) {
       </div>
       {(ex.sets || ex.reps) && (
         <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>
-          {ex.sets ? `Series: ${ex.sets}` : ''}
+          {ex.sets ? i18next.t('dashboard.sets', { n: ex.sets }) : ''}
           {ex.sets && ex.reps ? ' · ' : ''}
-          {ex.reps ? `Reps: ${ex.reps}` : ''}
+          {ex.reps ? i18next.t('dashboard.reps', { n: ex.reps }) : ''}
         </p>
       )}
       {ex.notes && (
@@ -265,7 +267,7 @@ function RoutineExerciseItem({ ex }: { ex: RoutineExercise }) {
       {ex.machineUrl && (
         <p style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
           <a href={ex.machineUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--ws-primary)' }}>
-            <i className="bi bi-box-arrow-up-right" /> Ver máquina
+            <i className="bi bi-box-arrow-up-right" /> {i18next.t('staff.seeMachine')}
           </a>
         </p>
       )}
@@ -311,6 +313,7 @@ function AttendanceSection() {
   const qc = useQueryClient();
   const [result, setResult] = useState<ScanResult | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const { t } = useTranslation();
 
   const { data: records, isLoading, isError } = useQuery({
     queryKey: ['staff-attendance'],
@@ -335,22 +338,22 @@ function AttendanceSection() {
 
   return (
     <div className="stack">
-      <h2 style={{ marginTop: 0 }}>Asistencia</h2>
+      <h2 style={{ marginTop: 0 }}>{t('staff.attendance')}</h2>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Registrar asistencia</h3>
+        <h3 style={{ marginTop: 0 }}>{t('staff.registerAttendance')}</h3>
         <BarcodeScanner
           onCode={handleScan}
-          label="Código QR del miembro"
-          placeholder="Escanear o pegar el código QR"
+          label={t('staff.qrCode')}
+          placeholder={t('staff.scanOrPasteQr')}
           allowCamera
           onRequestCamera={() => setCameraOpen(true)}
           disabled={scan.isPending}
         />
-        {scan.isPending && <p className="muted" style={{ margin: 'var(--ws-space-2) 0 0' }}>Registrando asistencia…</p>}
+        {scan.isPending && <p className="muted" style={{ margin: 'var(--ws-space-2) 0 0' }}>{t('staff.registeringAttendance')}</p>}
         {result && (
           <p style={{ margin: 'var(--ws-space-2) 0 0', color: result.ok ? 'var(--ws-success)' : 'var(--ws-danger)' }}>
-            {result.ok ? '✓ Asistencia registrada' : `✗ ${result.error ?? 'No se pudo registrar'}`}
+            {result.ok ? t('staff.attendanceRegistered') : `✗ ${result.error ?? t('staff.couldNotRegister')}`}
           </p>
         )}
         {scan.error && <p style={{ margin: 'var(--ws-space-2) 0 0', color: 'var(--ws-danger)' }}>{scan.error.message}</p>}
@@ -358,17 +361,17 @@ function AttendanceSection() {
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Registros recientes</h3>
-        {isLoading && <Spinner label="Cargando registros…" />}
-        {isError && !isLoading && <p className="muted">No disponible: el bloque de organizaciones no está instalado.</p>}
-        {!isLoading && !isError && (records ?? []).length === 0 && <p className="muted">Todavía no hay registros.</p>}
+        <h3 style={{ marginTop: 0 }}>{t('staff.recentRecords')}</h3>
+        {isLoading && <Spinner label={t('staff.loadingRecords')} />}
+        {isError && !isLoading && <p className="muted">{t('dashboard.noSubscriptions')}</p>}
+        {!isLoading && !isError && (records ?? []).length === 0 && <p className="muted">{t('staff.noRecords')}</p>}
         {!isLoading && !isError && (records ?? []).length > 0 && (
           <table className="table">
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Método</th>
-                <th>Membresía</th>
+                <th>{t('common.date')}</th>
+                <th>{t('staff.method')}</th>
+                <th>{t('staff.membership')}</th>
               </tr>
             </thead>
             <tbody>
@@ -405,7 +408,7 @@ function MemberAutocomplete({
   value,
   onSelect,
   onPick,
-  placeholder = 'Buscar miembro…',
+  placeholder = i18next.t('staff.searchMember'),
 }: {
   value: string;
   onSelect: (id: string) => void;
@@ -413,6 +416,7 @@ function MemberAutocomplete({
   placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
   const { data: users } = useQuery({
     queryKey: ['staff-members-users'],
     queryFn: () => api.get<MemberUser[]>('/api/v1/blocks/academia/users'),
@@ -434,7 +438,7 @@ function MemberAutocomplete({
 
   return (
     <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-      <label style={fieldLabelStyle}>Miembro</label>
+      <label style={fieldLabelStyle}>{t('staff.member')}</label>
       <input
         className="input"
         value={selected ? memberLabel(selected) : value}
@@ -514,6 +518,7 @@ function RoutinesSection() {
   // Buscar rutinas de un usuario.
   const [lookupDraft, setLookupDraft] = useState('');
   const [lookupMemberId, setLookupMemberId] = useState('');
+  const { t } = useTranslation();
 
   const { data: routines, isLoading, isError } = useQuery({
     queryKey: ['staff-routines'],
@@ -595,10 +600,10 @@ function RoutinesSection() {
 
   return (
     <div className="stack">
-      <h2 style={{ marginTop: 0 }}>Rutinas</h2>
+      <h2 style={{ marginTop: 0 }}>{t('staff.routines')}</h2>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>{editingId ? 'Editar rutina' : 'Nueva rutina (plantilla)'}</h3>
+        <h3 style={{ marginTop: 0 }}>{editingId ? t('staff.editRoutine') : t('staff.newRoutine')}</h3>
         <form
           className="stack"
           onSubmit={(e) => {
@@ -609,15 +614,15 @@ function RoutinesSection() {
           }}
         >
           <div>
-            <label style={fieldLabelStyle}>Nombre de la rutina</label>
+            <label style={fieldLabelStyle}>{t('staff.routineName')}</label>
             <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Tren superior" style={{ width: '100%' }} />
           </div>
           <div>
-            <label style={fieldLabelStyle}>Descripción (opcional)</label>
+            <label style={fieldLabelStyle}>{t('staff.descriptionOptional')}</label>
             <input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notas para la rutina" style={{ width: '100%' }} />
           </div>
           <div>
-            <label style={fieldLabelStyle}>Ejercicios (uno por línea)</label>
+            <label style={fieldLabelStyle}>{t('staff.exercisesOnePerLine')}</label>
             <textarea
               className="input"
               rows={6}
@@ -627,12 +632,12 @@ function RoutinesSection() {
               style={{ width: '100%' }}
             />
             <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
-              Una línea por ejercicio: <code>nombre | día | series | reps | notas | url de máquina</code>. El día puede ser un número o texto libre (Lunes, Martes…). La URL es el link de la máquina; podés agregar una 7ª columna opcional con la URL de una foto.
+              {t('staff.exercisesFormat')}
             </p>
           </div>
           <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)' }}>
             <Button type="submit" disabled={saving}>
-              {editingId ? (update.isPending ? 'Guardando…' : 'Guardar cambios') : (create.isPending ? 'Creando…' : 'Crear rutina')}
+              {editingId ? (update.isPending ? t('staff.saving') : t('staff.saveChanges')) : (create.isPending ? t('staff.creating') : t('staff.createRoutine'))}
             </Button>
             {editingId && <Button variant="ghost" type="button" onClick={resetForm}>Cancelar</Button>}
             {formMsg && <span style={{ color: formMsg.ok ? 'var(--ws-success)' : 'var(--ws-danger)' }}>{formMsg.text}</span>}
@@ -642,10 +647,10 @@ function RoutinesSection() {
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Rutinas existentes (plantillas)</h3>
-        {isLoading && <Spinner label="Cargando rutinas…" />}
-        {isError && !isLoading && <p className="muted">No disponible: el bloque de academia no está instalado.</p>}
-        {!isLoading && !isError && templates.length === 0 && <p className="muted">Todavía no hay plantillas.</p>}
+        <h3 style={{ marginTop: 0 }}>{t('staff.existingTemplates')}</h3>
+        {isLoading && <Spinner label={t('staff.loadingRoutines')} />}
+        {isError && !isLoading && <p className="muted">{t('dashboard.noRoutines')}</p>}
+        {!isLoading && !isError && templates.length === 0 && <p className="muted">{t('staff.noTemplates')}</p>}
         {!isLoading && !isError && templates.map((r) => (
           <div key={r.id} style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)', marginTop: 'var(--ws-space-3)' }}>
             <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--ws-space-1)' }}>
@@ -654,7 +659,7 @@ function RoutinesSection() {
             </div>
             {r.description && <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>{r.description}</p>}
             <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
-              Tipo: Plantilla
+              {t('staff.typeTemplate')}
             </p>
             <div className="stack" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
               {routineExerciseList(r.exercises).map((ex, i) => (
@@ -663,7 +668,7 @@ function RoutinesSection() {
             </div>
             <div className="row" style={{ marginTop: 'var(--ws-space-2)', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
               <Button variant="ghost" onClick={() => startEdit(r)}>
-                <i className="bi bi-pencil" /> Editar
+                <i className="bi bi-pencil" /> {t('common.edit')}
               </Button>
               <Button
                 variant="ghost"
@@ -672,14 +677,14 @@ function RoutinesSection() {
                   setAssignMemberId('');
                 }}
               >
-                <i className="bi bi-person-plus" /> Asignar a miembro
+                <i className="bi bi-person-plus" /> {t('staff.assignToMember')}
               </Button>
             </div>
             {assigningId === r.id && (
               <div className="row" style={{ marginTop: 'var(--ws-space-2)', alignItems: 'flex-end', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
-                <MemberAutocomplete value={assignMemberId} onSelect={setAssignMemberId} placeholder="Buscar miembro…" />
+                <MemberAutocomplete value={assignMemberId} onSelect={setAssignMemberId} placeholder={t('staff.searchMember')} />
                 <Button disabled={assign.isPending || !assignMemberId.trim()} onClick={() => assign.mutate(r.id)}>
-                  {assign.isPending ? 'Asignando…' : 'Asignar'}
+                  {assign.isPending ? t('staff.assigning') : t('staff.assign')}
                 </Button>
                 <Button variant="ghost" onClick={() => setAssigningId(null)}>Cancelar</Button>
               </div>
@@ -689,8 +694,8 @@ function RoutinesSection() {
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Rutinas de un usuario</h3>
-        <p className="muted" style={{ margin: '0 0 var(--ws-space-2)' }}>Buscá por nombre o email para ver qué rutinas tiene asignadas.</p>
+        <h3 style={{ marginTop: 0 }}>{t('staff.userRoutines')}</h3>
+        <p className="muted" style={{ margin: '0 0 var(--ws-space-2)' }}>{t('staff.searchByNameEmail')}</p>
         <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
           <MemberAutocomplete
             value={lookupDraft}
@@ -699,7 +704,7 @@ function RoutinesSection() {
               setLookupDraft(id);
               setLookupMemberId(id);
             }}
-            placeholder="Buscar por nombre/email…"
+            placeholder={t('staff.searchByNameEmailPlaceholder')}
           />
           {lookupMemberId && (
             <Button
@@ -709,16 +714,16 @@ function RoutinesSection() {
                 setLookupMemberId('');
               }}
             >
-              Limpiar
+              {t('staff.clear')}
             </Button>
           )}
         </div>
         {lookupMemberId && (
           <div style={{ marginTop: 'var(--ws-space-3)' }}>
-            {memberLoading && <Spinner label="Buscando rutinas…" />}
-            {memberError && !memberLoading && <p className="muted">No se pudieron cargar las rutinas del miembro.</p>}
+            {memberLoading && <Spinner label={t('staff.loadingMemberRoutines')} />}
+            {memberError && !memberLoading && <p className="muted">{t('staff.couldNotLoadRoutines')}</p>}
             {!memberLoading && !memberError && (memberRoutines ?? []).length === 0 && (
-              <p className="muted">Este usuario no tiene rutinas asignadas.</p>
+              <p className="muted">{t('staff.noUserRoutines')}</p>
             )}
             {!memberLoading && !memberError && (memberRoutines ?? []).map((r) => (
               <div key={r.id} style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)', marginTop: 'var(--ws-space-3)' }}>
@@ -749,6 +754,7 @@ function BookingsSection() {
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
   const [created, setCreated] = useState(false);
+  const { t } = useTranslation();
 
   const { data: services } = useQuery({
     queryKey: ['staff-reservas-services'],
@@ -780,10 +786,10 @@ function BookingsSection() {
 
   return (
     <div className="stack">
-      <h2 style={{ marginTop: 0 }}>Reservas</h2>
+      <h2 style={{ marginTop: 0 }}>{t('staff.bookings')}</h2>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Nueva reserva</h3>
+        <h3 style={{ marginTop: 0 }}>{t('staff.newBooking')}</h3>
         <form
           className="stack"
           onSubmit={(e) => {
@@ -795,44 +801,44 @@ function BookingsSection() {
         >
           <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
             <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={fieldLabelStyle}>Servicio</label>
+              <label style={fieldLabelStyle}>{t('staff.service')}</label>
               <select className="input" value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
-                <option value="">Sin servicio asignado</option>
+                <option value="">{t('staff.noService')}</option>
                 {(services ?? []).map((s) => (
                   <option key={s.id ?? s.name ?? ''} value={s.id ?? ''}>{s.name ?? s.id}</option>
                 ))}
               </select>
             </div>
             <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={fieldLabelStyle}>Nombre / cliente</label>
+              <label style={fieldLabelStyle}>{t('staff.nameClient')}</label>
               <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre de la reserva" />
             </div>
             <div style={{ minWidth: 200 }}>
-              <label style={fieldLabelStyle}>Fecha y hora</label>
+              <label style={fieldLabelStyle}>{t('staff.dateTime')}</label>
               <input className="input" type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
           </div>
           <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)' }}>
-            <Button type="submit" disabled={create.isPending || !name.trim()}>Crear reserva</Button>
-            {created && <span style={{ color: 'var(--ws-success)' }}>Reserva creada.</span>}
+            <Button type="submit" disabled={create.isPending || !name.trim()}>{t('staff.createBooking')}</Button>
+            {created && <span style={{ color: 'var(--ws-success)' }}>{t('staff.bookingCreated')}</span>}
           </div>
           {create.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{create.error.message}</p>}
         </form>
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Reservas existentes</h3>
-        {isLoading && <Spinner label="Cargando reservas…" />}
-        {isError && !isLoading && <p className="muted">No disponible: el bloque de reservas no está instalado.</p>}
-        {!isLoading && !isError && (bookings ?? []).length === 0 && <p className="muted">Todavía no hay reservas.</p>}
+        <h3 style={{ marginTop: 0 }}>{t('staff.existingBookings')}</h3>
+        {isLoading && <Spinner label={t('staff.loadingBookings')} />}
+        {isError && !isLoading && <p className="muted">{t('dashboard.noBookings')}</p>}
+        {!isLoading && !isError && (bookings ?? []).length === 0 && <p className="muted">{t('staff.noBookings')}</p>}
         {!isLoading && !isError && (bookings ?? []).length > 0 && (
           <table className="table">
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Nombre</th>
-                <th>Servicio</th>
-                <th>Estado</th>
+                <th>{t('common.date')}</th>
+                <th>{t('common.name')}</th>
+                <th>{t('staff.service')}</th>
+                <th>{t('common.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -855,6 +861,7 @@ function BookingsSection() {
 // ── Miembros (entrenador) ───────────────────────────────────────────────
 
 function MembersSection() {
+  const { t } = useTranslation();
   const { data: memberships, isLoading, isError } = useQuery({
     queryKey: ['staff-memberships'],
     queryFn: () => api.get<MembershipRow[]>('/api/v1/blocks/organizaciones/memberships'),
@@ -863,21 +870,21 @@ function MembersSection() {
 
   return (
     <div className="stack">
-      <h2 style={{ marginTop: 0 }}>Miembros</h2>
+      <h2 style={{ marginTop: 0 }}>{t('staff.members')}</h2>
       <Card>
-        {isLoading && <Spinner label="Cargando miembros…" />}
-        {isError && !isLoading && <p className="muted">No disponible: el bloque de organizaciones no está instalado.</p>}
-        {!isLoading && !isError && (memberships ?? []).length === 0 && <p className="muted">Todavía no hay miembros.</p>}
+        {isLoading && <Spinner label={t('staff.loadingMembers')} />}
+        {isError && !isLoading && <p className="muted">{t('dashboard.noSubscriptions')}</p>}
+        {!isLoading && !isError && (memberships ?? []).length === 0 && <p className="muted">{t('staff.noMembers')}</p>}
         {!isLoading && !isError && (memberships ?? []).length > 0 && (
           <table className="table">
             <thead>
               <tr>
-                <th>Miembro</th>
-                <th>Organización</th>
-                <th>Plan</th>
-                <th>Rol</th>
-                <th>Estado</th>
-                <th>Vence</th>
+                <th>{t('staff.member')}</th>
+                <th>{t('staff.organization')}</th>
+                <th>{t('staff.plan')}</th>
+                <th>{t('staff.role')}</th>
+                <th>{t('common.status')}</th>
+                <th>{t('staff.expires')}</th>
               </tr>
             </thead>
             <tbody>
@@ -904,6 +911,7 @@ function MembersSection() {
 // ── Pagos (finanzas) ────────────────────────────────────────────────────
 
 function PaymentsSection() {
+  const { t } = useTranslation();
   const { data: summary } = useQuery({
     queryKey: ['staff-payments-summary'],
     queryFn: () => api.get<PaymentSummary>('/api/v1/payments/summary'),
@@ -917,32 +925,32 @@ function PaymentsSection() {
 
   return (
     <div className="stack">
-      <h2 style={{ marginTop: 0 }}>Pagos</h2>
+      <h2 style={{ marginTop: 0 }}>{t('staff.payments')}</h2>
 
       {summary && (
         <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-          <StatCard label="Total" value={String(summary.total)} />
-          <StatCard label="Recaudado" value={money(summary.collectedAmount, 'ARS')} accent="var(--ws-success)" />
-          <StatCard label="Aprobados" value={String(summary.approved)} />
-          <StatCard label="Pendientes" value={String(summary.pending)} />
-          <StatCard label="Rechazados" value={String(summary.rejected)} />
-          <StatCard label="Reembolsados" value={String(summary.refunded)} />
+          <StatCard label={t('staff.total')} value={String(summary.total)} />
+          <StatCard label={t('staff.collected')} value={money(summary.collectedAmount, 'ARS')} accent="var(--ws-success)" />
+          <StatCard label={t('staff.approved')} value={String(summary.approved)} />
+          <StatCard label={t('staff.pending')} value={String(summary.pending)} />
+          <StatCard label={t('staff.rejected')} value={String(summary.rejected)} />
+          <StatCard label={t('staff.refunded')} value={String(summary.refunded)} />
         </div>
       )}
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Transacciones</h3>
-        {isLoading && <Spinner label="Cargando pagos…" />}
-        {isError && !isLoading && <p className="muted">No se pudieron cargar los pagos.</p>}
-        {!isLoading && !isError && (payments ?? []).length === 0 && <p className="muted">No hay transacciones.</p>}
+        <h3 style={{ marginTop: 0 }}>{t('staff.transactions')}</h3>
+        {isLoading && <Spinner label={t('staff.loadingPayments')} />}
+        {isError && !isLoading && <p className="muted">{t('staff.couldNotLoadPayments')}</p>}
+        {!isLoading && !isError && (payments ?? []).length === 0 && <p className="muted">{t('staff.noTransactions')}</p>}
         {!isLoading && !isError && (payments ?? []).length > 0 && (
           <table className="table">
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Proveedor</th>
-                <th>Monto</th>
-                <th>Estado</th>
+                <th>{t('common.date')}</th>
+                <th>{t('staff.provider')}</th>
+                <th>{t('staff.amount')}</th>
+                <th>{t('common.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -951,7 +959,7 @@ function PaymentsSection() {
                   <td>{formatDateTime(p.createdAt)}</td>
                   <td><code>{p.provider}</code></td>
                   <td>{money(p.amount, p.currency)}</td>
-                  <td><span className="badge">{PAYMENT_STATUS_LABEL[p.status] ?? p.status}</span></td>
+                  <td><span className="badge">{t(PAYMENT_STATUS_KEY[p.status] ?? p.status)}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -965,6 +973,7 @@ function PaymentsSection() {
 // ── Recaudación (finanzas) ──────────────────────────────────────────────
 
 function CollectionSection() {
+  const { t } = useTranslation();
   const { data: summary, isLoading } = useQuery({
     queryKey: ['staff-payments-summary'],
     queryFn: () => api.get<PaymentSummary>('/api/v1/payments/summary'),
@@ -981,45 +990,45 @@ function CollectionSection() {
 
   return (
     <div className="stack">
-      <h2 style={{ marginTop: 0 }}>Recaudación</h2>
+      <h2 style={{ marginTop: 0 }}>{t('staff.collection')}</h2>
 
-      {isLoading && <Spinner label="Cargando resumen…" />}
-      {!isLoading && !summary && <p className="muted">No se pudo cargar el resumen de recaudación.</p>}
+      {isLoading && <Spinner label={t('staff.loadingSummary')} />}
+      {!isLoading && !summary && <p className="muted">{t('staff.couldNotLoadSummary')}</p>}
 
       {summary && (
         <>
           <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
-            <StatCard label="Recaudado" value={money(collected, 'ARS')} accent="var(--ws-success)" />
-            <StatCard label="Aprobados" value={String(approved)} />
-            <StatCard label="Pendientes" value={String(pending)} />
-            <StatCard label="Rechazados" value={String(rejected)} />
-            <StatCard label="Reembolsados" value={String(refunded)} />
+            <StatCard label={t('staff.collected')} value={money(collected, 'ARS')} accent="var(--ws-success)" />
+            <StatCard label={t('staff.approved')} value={String(approved)} />
+            <StatCard label={t('staff.pending')} value={String(pending)} />
+            <StatCard label={t('staff.rejected')} value={String(rejected)} />
+            <StatCard label={t('staff.refunded')} value={String(refunded)} />
           </div>
 
           <Card>
-            <h3 style={{ marginTop: 0 }}>Distribución de estados</h3>
+            <h3 style={{ marginTop: 0 }}>{t('staff.statusDistribution')}</h3>
             <div style={{ display: 'flex', height: 18, borderRadius: 4, overflow: 'hidden', marginTop: 'var(--ws-space-2)' }}>
-              <div title={`Aprobados: ${approved}`} style={{ width: `${(approved / denom) * 100}%`, background: 'var(--ws-success)', minWidth: approved ? 4 : 0 }} />
-              <div title={`Pendientes: ${pending}`} style={{ width: `${(pending / denom) * 100}%`, background: 'var(--ws-warning)', minWidth: pending ? 4 : 0 }} />
-              <div title={`Rechazados: ${rejected}`} style={{ width: `${(rejected / denom) * 100}%`, background: 'var(--ws-danger)', minWidth: rejected ? 4 : 0 }} />
-              <div title={`Reembolsados: ${refunded}`} style={{ width: `${(refunded / denom) * 100}%`, background: 'var(--ws-text-muted)', minWidth: refunded ? 4 : 0 }} />
+              <div title={`${t('staff.approved')}: ${approved}`} style={{ width: `${(approved / denom) * 100}%`, background: 'var(--ws-success)', minWidth: approved ? 4 : 0 }} />
+              <div title={`${t('staff.pending')}: ${pending}`} style={{ width: `${(pending / denom) * 100}%`, background: 'var(--ws-warning)', minWidth: pending ? 4 : 0 }} />
+              <div title={`${t('staff.rejected')}: ${rejected}`} style={{ width: `${(rejected / denom) * 100}%`, background: 'var(--ws-danger)', minWidth: rejected ? 4 : 0 }} />
+              <div title={`${t('staff.refunded')}: ${refunded}`} style={{ width: `${(refunded / denom) * 100}%`, background: 'var(--ws-text-muted)', minWidth: refunded ? 4 : 0 }} />
             </div>
             <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-3)', marginTop: 'var(--ws-space-2)' }}>
               <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
                 <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: 'var(--ws-success)', marginRight: 4 }} />
-                Aprobados ({approved})
+                {t('staff.approved')} ({approved})
               </span>
               <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
                 <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: 'var(--ws-warning)', marginRight: 4 }} />
-                Pendientes ({pending})
+                {t('staff.pending')} ({pending})
               </span>
               <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
                 <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: 'var(--ws-danger)', marginRight: 4 }} />
-                Rechazados ({rejected})
+                {t('staff.rejected')} ({rejected})
               </span>
               <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
                 <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 2, background: 'var(--ws-text-muted)', marginRight: 4 }} />
-                Reembolsados ({refunded})
+                {t('staff.refunded')} ({refunded})
               </span>
             </div>
           </Card>
@@ -1032,6 +1041,7 @@ function CollectionSection() {
 // ── Ventas (cajero / vendedor) ──────────────────────────────────────────
 
 function SalesSection() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [barcode, setBarcode] = useState('');
@@ -1062,11 +1072,11 @@ function SalesSection() {
     onSuccess: (r) => {
       if (r.ok) {
         setCart([]);
-        setSaleMsg({ ok: true, text: `Venta cobrada · $${(r.order?.total ?? 0).toFixed(2)}` });
+        setSaleMsg({ ok: true, text: t('staff.saleCharged', { total: (r.order?.total ?? 0).toFixed(2) }) });
         void qc.invalidateQueries({ queryKey: ['staff-sales'] });
         void qc.invalidateQueries({ queryKey: ['staff-inventory'] });
       } else {
-        setSaleMsg({ ok: false, text: r.error ?? 'No se pudo cobrar' });
+        setSaleMsg({ ok: false, text: r.error ?? t('staff.couldNotCharge') });
       }
     },
   });
@@ -1089,24 +1099,24 @@ function SalesSection() {
       const match =
         (list ?? []).find((p) => (p.barcode ?? '').trim() === code.trim()) ?? (list ?? [])[0];
       if (!match) {
-        setBarcodeMsg({ ok: false, text: 'No se encontró un producto con ese código' });
+        setBarcodeMsg({ ok: false, text: t('staff.noProductWithCode') });
         return;
       }
       addToCart(match);
       setBarcode('');
-      setBarcodeMsg({ ok: true, text: `${match.title} agregado al carrito` });
+      setBarcodeMsg({ ok: true, text: t('staff.addedToCart', { title: match.title }) });
     },
-    onError: () => setBarcodeMsg({ ok: false, text: 'No se pudo buscar el producto' }),
+    onError: () => setBarcodeMsg({ ok: false, text: t('staff.couldNotSearchProduct') }),
   });
 
   const cartTotal = cart.reduce((sum, l) => sum + l.price * l.qty, 0);
 
   return (
     <div className="stack">
-      <h2 style={{ marginTop: 0 }}>Ventas</h2>
+      <h2 style={{ marginTop: 0 }}>{t('staff.sales')}</h2>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Cobrar (POS)</h3>
+        <h3 style={{ marginTop: 0 }}>{t('staff.chargePos')}</h3>
 
         <form
           className="row"
@@ -1119,17 +1129,17 @@ function SalesSection() {
           style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}
         >
           <div style={{ flex: 1, minWidth: 240 }}>
-            <label style={fieldLabelStyle}>Código de barras (escáner)</label>
+            <label style={fieldLabelStyle}>{t('staff.barcodeScanner')}</label>
             <input
               className="input"
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
-              placeholder="Escanear o pegar el código de barras"
+              placeholder={t('staff.scanOrPasteBarcode')}
               autoFocus
             />
           </div>
           <Button type="submit" disabled={barcodeLookup.isPending || !barcode.trim()}>
-            {barcodeLookup.isPending ? 'Buscando…' : 'Agregar'}
+            {barcodeLookup.isPending ? t('staff.searching') : t('common.add')}
           </Button>
         </form>
         {barcodeMsg && (
@@ -1140,25 +1150,25 @@ function SalesSection() {
 
         <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap', gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-3)' }}>
           <div style={{ flex: 1, minWidth: 220 }}>
-            <label style={fieldLabelStyle}>Buscar producto</label>
+            <label style={fieldLabelStyle}>{t('staff.searchProduct')}</label>
             <input
               className="input"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nombre o código de barras…"
+              placeholder={t('staff.searchByNameBarcode')}
               style={{ width: '100%' }}
             />
           </div>
           <div style={{ width: 90 }}>
-            <label style={fieldLabelStyle}>Cantidad</label>
+            <label style={fieldLabelStyle}>{t('staff.quantity')}</label>
             <input className="input" type="number" min={1} value={qty} onChange={(e) => setQty(e.target.value)} />
           </div>
         </div>
 
         <div className="stack" style={{ marginTop: 'var(--ws-space-3)', gap: 'var(--ws-space-2)' }}>
-          {productsLoading && <Spinner label="Cargando productos…" />}
+          {productsLoading && <Spinner label={t('staff.loadingProducts')} />}
           {!productsLoading && (products ?? []).length === 0 && (
-            <p className="muted">No se encontraron productos.</p>
+            <p className="muted">{t('staff.noProductsFound')}</p>
           )}
           {!productsLoading &&
             (products ?? []).map((p) => (
@@ -1200,13 +1210,13 @@ function SalesSection() {
                   <div style={{ minWidth: 0 }}>
                     <strong style={{ display: 'block' }}>{p.title}</strong>
                     <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
-                      ${p.price.toFixed(2)} · Stock: {p.stock ?? 0}
+                      ${p.price.toFixed(2)} · {t('staff.stock')}{p.stock ?? 0}
                       {p.barcode ? ` · ${p.barcode}` : ''}
                     </span>
                   </div>
                 </div>
                 <Button variant="secondary" onClick={() => addToCart(p)} disabled={(p.stock ?? 0) <= 0}>
-                  Agregar
+                  {t('common.add')}
                 </Button>
               </div>
             ))}
@@ -1224,12 +1234,12 @@ function SalesSection() {
               </div>
             ))}
             <div className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
-              <strong>Total</strong>
+              <strong>{t('staff.total')}</strong>
               <strong>${cartTotal.toFixed(2)}</strong>
             </div>
             <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)' }}>
               <Button onClick={() => checkout.mutate()} disabled={checkout.isPending || cart.length === 0}>
-                {checkout.isPending ? 'Cobrando…' : 'Cobrar'}
+                {checkout.isPending ? t('staff.charging') : t('staff.charge')}
               </Button>
               {saleMsg && <span style={{ color: saleMsg.ok ? 'var(--ws-success)' : 'var(--ws-danger)' }}>{saleMsg.text}</span>}
             </div>
@@ -1239,17 +1249,17 @@ function SalesSection() {
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Órdenes pagadas</h3>
-        {isLoading && <Spinner label="Cargando ventas…" />}
-        {isError && !isLoading && <p className="muted">No disponible: el bloque de POS no está instalado.</p>}
-        {!isLoading && !isError && (sales ?? []).length === 0 && <p className="muted">Todavía no hay ventas.</p>}
+        <h3 style={{ marginTop: 0 }}>{t('staff.paidOrders')}</h3>
+        {isLoading && <Spinner label={t('staff.loadingSales')} />}
+        {isError && !isLoading && <p className="muted">{t('staff.noPosPlugin')}</p>}
+        {!isLoading && !isError && (sales ?? []).length === 0 && <p className="muted">{t('staff.noSales')}</p>}
         {!isLoading && !isError && (sales ?? []).length > 0 && (
           <table className="table">
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Total</th>
-                <th>Ítems</th>
+                <th>{t('common.date')}</th>
+                <th>{t('staff.total')}</th>
+                <th>{t('staff.items')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1271,6 +1281,7 @@ function SalesSection() {
 // ── Stock (cajero / vendedor) ───────────────────────────────────────────
 
 function StockSection() {
+  const { t } = useTranslation();
   const { data: items, isLoading, isError } = useQuery({
     queryKey: ['staff-inventory'],
     queryFn: () => api.get<InventoryItem[]>('/api/v1/blocks/inventario/inventory'),
@@ -1279,21 +1290,21 @@ function StockSection() {
 
   return (
     <div className="stack">
-      <h2 style={{ marginTop: 0 }}>Stock</h2>
+      <h2 style={{ marginTop: 0 }}>{t('staff.stockTitle')}</h2>
       <Card>
-        {isLoading && <Spinner label="Cargando inventario…" />}
-        {isError && !isLoading && <p className="muted">No disponible: el bloque de inventario no está instalado.</p>}
-        {!isLoading && !isError && (items ?? []).length === 0 && <p className="muted">No hay ítems en el inventario.</p>}
+        {isLoading && <Spinner label={t('staff.loadingInventory')} />}
+        {isError && !isLoading && <p className="muted">{t('staff.noInventoryPlugin')}</p>}
+        {!isLoading && !isError && (items ?? []).length === 0 && <p className="muted">{t('staff.noInventory')}</p>}
         {!isLoading && !isError && (items ?? []).length > 0 && (
           <table className="table">
             <thead>
               <tr>
-                <th>SKU</th>
-                <th>Nombre</th>
-                <th>Cantidad</th>
-                <th>Mínimo</th>
-                <th>Precio</th>
-                <th>Categoría</th>
+                <th>{t('staff.sku')}</th>
+                <th>{t('common.name')}</th>
+                <th>{t('staff.quantity2')}</th>
+                <th>{t('staff.minimum')}</th>
+                <th>{t('staff.price')}</th>
+                <th>{t('staff.category')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1317,9 +1328,10 @@ function StockSection() {
 
 // ── Tickets (soporte) ───────────────────────────────────────────────────
 
-const ticketStatusLabel = (s: string): string => (s === 'closed' ? 'Cerrado' : 'Abierto');
+const ticketStatusLabel = (s: string): string => (s === 'closed' ? i18next.t('staff.closed') : i18next.t('staff.open'));
 
 function TicketsSection() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data: tickets, isLoading, isError } = useQuery({
     queryKey: ['staff-tickets'],
@@ -1335,40 +1347,40 @@ function TicketsSection() {
 
   return (
     <div className="stack">
-      <h2 style={{ marginTop: 0 }}>Tickets</h2>
+      <h2 style={{ marginTop: 0 }}>{t('staff.tickets')}</h2>
       <Card>
-        {isLoading && <Spinner label="Cargando tickets…" />}
-        {isError && !isLoading && <p className="muted">No disponible: el bloque de soporte no está instalado.</p>}
-        {!isLoading && !isError && (tickets ?? []).length === 0 && <p className="muted">Todavía no hay tickets.</p>}
+        {isLoading && <Spinner label={t('staff.loadingTickets')} />}
+        {isError && !isLoading && <p className="muted">{t('staff.noTicketsPlugin')}</p>}
+        {!isLoading && !isError && (tickets ?? []).length === 0 && <p className="muted">{t('staff.noTickets')}</p>}
         {!isLoading && !isError && (tickets ?? []).length > 0 && (
           <table className="table">
             <thead>
               <tr>
-                <th>Asunto</th>
-                <th>Mensaje</th>
-                <th>Estado</th>
-                <th>Fecha</th>
+                <th>{t('staff.subject')}</th>
+                <th>{t('staff.message')}</th>
+                <th>{t('common.status')}</th>
+                <th>{t('common.date')}</th>
               </tr>
             </thead>
             <tbody>
-              {(tickets ?? []).map((t) => (
-                <tr key={t.id}>
-                  <td><strong>{t.subject}</strong></td>
-                  <td><span className="muted">{t.message}</span></td>
+              {(tickets ?? []).map((ticket) => (
+                <tr key={ticket.id}>
+                  <td><strong>{ticket.subject}</strong></td>
+                  <td><span className="muted">{ticket.message}</span></td>
                   <td>
                     <select
                       className="input"
-                      value={t.status}
-                      aria-label={`Estado de ${t.subject}`}
-                      onChange={(e) => patch.mutate({ id: t.id, status: e.target.value })}
+                      value={ticket.status}
+                      aria-label={t('staff.statusOf', { subject: ticket.subject })}
+                      onChange={(e) => patch.mutate({ id: ticket.id, status: e.target.value })}
                       style={{ width: 'auto' }}
                     >
-                      <option value="open">Abierto</option>
-                      <option value="closed">Cerrado</option>
+                      <option value="open">{t('staff.open')}</option>
+                      <option value="closed">{t('staff.closed')}</option>
                     </select>{' '}
-                    <span className="badge">{ticketStatusLabel(t.status)}</span>
+                    <span className="badge">{ticketStatusLabel(ticket.status)}</span>
                   </td>
-                  <td>{formatDateTime(t.createdAt)}</td>
+                  <td>{formatDateTime(ticket.createdAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -1422,6 +1434,7 @@ function renderSection(key: SectionKey) {
 }
 
 export function StaffDashboard() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const [active, setActive] = useState<SectionKey | null>(null);
@@ -1436,21 +1449,21 @@ export function StaffDashboard() {
 
   const sections: SectionDef[] = [];
   if (canTrainer) {
-    sections.push({ key: 'asistencia', label: 'Asistencia', icon: 'bi-qr-code-scan' });
-    sections.push({ key: 'rutinas', label: 'Rutinas', icon: 'bi-clipboard2-pulse' });
-    sections.push({ key: 'reservas', label: 'Reservas', icon: 'bi-calendar3' });
-    sections.push({ key: 'miembros', label: 'Miembros', icon: 'bi-people' });
+    sections.push({ key: 'asistencia', label: t('staff.attendance'), icon: 'bi-qr-code-scan' });
+    sections.push({ key: 'rutinas', label: t('staff.routines'), icon: 'bi-clipboard2-pulse' });
+    sections.push({ key: 'reservas', label: t('staff.bookings'), icon: 'bi-calendar3' });
+    sections.push({ key: 'miembros', label: t('staff.members'), icon: 'bi-people' });
   }
   if (canBilling) {
-    sections.push({ key: 'pagos', label: 'Pagos', icon: 'bi-credit-card' });
-    sections.push({ key: 'recaudacion', label: 'Recaudación', icon: 'bi-cash-stack' });
+    sections.push({ key: 'pagos', label: t('staff.payments'), icon: 'bi-credit-card' });
+    sections.push({ key: 'recaudacion', label: t('staff.collection'), icon: 'bi-cash-stack' });
   }
   if (canSales) {
-    sections.push({ key: 'ventas', label: 'Ventas', icon: 'bi-cart3' });
-    if (canInventory) sections.push({ key: 'stock', label: 'Stock', icon: 'bi-box-seam' });
+    sections.push({ key: 'ventas', label: t('staff.sales'), icon: 'bi-cart3' });
+    if (canInventory) sections.push({ key: 'stock', label: t('staff.stockTitle'), icon: 'bi-box-seam' });
   }
   if (canSupport) {
-    sections.push({ key: 'tickets', label: 'Tickets', icon: 'bi-headset' });
+    sections.push({ key: 'tickets', label: t('staff.tickets'), icon: 'bi-headset' });
   }
 
   const current = sections.find((s) => s.key === active) ?? sections[0] ?? null;
@@ -1468,13 +1481,13 @@ export function StaffDashboard() {
       }}
     >
       <aside style={{ width: 240, maxWidth: '100%' }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Panel de trabajo</h1>
+        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('staff.title')}</h1>
         <p className="muted" style={{ margin: 'var(--ws-space-1) 0 var(--ws-space-4)' }}>
           {user?.displayName ?? user?.email}
         </p>
 
         {sections.length === 0 ? (
-          <p className="muted">No tenés secciones habilitadas para tu rol.</p>
+          <p className="muted">{t('staff.noSections')}</p>
         ) : (
           <nav className="stack" style={{ gap: 'var(--ws-space-1)' }}>
             {sections.map((s) => {
@@ -1521,7 +1534,7 @@ export function StaffDashboard() {
               fontSize: 'var(--ws-font-size-sm)',
             }}
           >
-            <i className="bi bi-speedometer2" /> Administración
+            <i className="bi bi-speedometer2" /> {t('nav.administration')}
           </Link>
         )}
       </aside>
@@ -1531,8 +1544,8 @@ export function StaffDashboard() {
           renderSection(current.key)
         ) : (
           <Card>
-            <h2 style={{ marginTop: 0 }}>Sin acceso</h2>
-            <p className="muted">No tenés permisos para usar el panel de trabajo.</p>
+            <h2 style={{ marginTop: 0 }}>{t('staff.noAccess')}</h2>
+            <p className="muted">{t('staff.noPermissions')}</p>
           </Card>
         )}
       </main>

@@ -17,12 +17,21 @@ export function ensureDefaultSections(): void {
   registerDefaultSections();
 }
 
-export async function getSectionValue(fastify: FastifyInstance, key: string) {
+/** Valor resuelto de una sección de ajustes (defaults + valor guardado, descifrado). */
+export interface SettingSectionValue {
+  key: string;
+  group: string;
+  schema: unknown;
+  defaults: unknown;
+  value: unknown;
+}
+
+export async function getSectionValue(fastify: FastifyInstance, key: string): Promise<SettingSectionValue> {
   const section = getSettingSection(key);
   if (!section) throw new NotFoundError(`Sección de ajustes '${key}'`);
 
   const cacheKey = `setting:value:${key}`;
-  const cached = await cacheGet(fastify.redis, cacheKey);
+  const cached = await cacheGet<SettingSectionValue>(fastify.redis, cacheKey);
   if (cached) return cached;
 
   const setting = await fastify.prisma.setting.findUnique({ where: { key } });

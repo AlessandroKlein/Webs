@@ -24,7 +24,7 @@ El build produce:
 | -------------------------------- | -------------------------------------------------------- |
 | API (Fastify)                    | `tsup src/index.ts` → `apps/api/dist/index.js`           |
 | Frontend (React + Vite)          | `vite build` → `apps/web/dist/`                          |
-| Plugins (server + client)        | `tsup` → `blocks/*/dist/*.js`                            |
+| Plugins (server + client)        | `tsup` → `plugins/*/dist/*.js`                            |
 
 Para arrancar la API compilada:
 
@@ -91,7 +91,7 @@ producción **no uses los valores por defecto**:
 | `JWT_REFRESH_SECRET`  | no* (mín. 16) | Ídem; reservado para evolución del refresh token (ver nota abajo).     |
 | `CORS_ORIGIN`         | no (default `http://localhost:5173`) | Origen(es) del frontend, separados por coma.          |
 | `LOG_LEVEL`           | no (default `info`) | `info` o `warn` en producción.                                 |
-| `BLOCK_DIR`           | no (default `../../blocks`) | Ruta absoluta de plugins en el contenedor (ej. `/app/blocks`). |
+| `BLOCK_DIR`           | no (default `../../plugins`) | Ruta absoluta de plugins en el contenedor (ej. `/app/plugins`). |
 | `SEED_ADMIN_EMAIL`    | no          | Email del superadmin creado por el seed.                                 |
 | `SEED_ADMIN_PASSWORD` | no          | Contraseña del superadmin (**cambiar el default `changeme`**).           |
 

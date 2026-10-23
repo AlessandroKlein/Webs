@@ -1,11 +1,11 @@
-# Backlog de producto — Webs v1.58.0+
+# Backlog de producto — Webs v2.0.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '1.58.0'`
->   (**M1 liberado como v1.58.0**; `CHANGELOG.md` reconstruido en t12). Próximas:
->   **v1.59.0** (buffer de pulido M1) y **v2.0.0** (Milestone 2).
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.0.0'`
+>   (**M1 liberado como v1.58.0** · **M2 liberado como v2.0.0**). Roadmap
+>   planificado hasta **v2.9.0** (M11 — escalabilidad selectable HPA/VPA).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -26,6 +26,15 @@ escalabilidad.
 |-----------|---------|
 | **M1 — Fundación** | Rename Bloques→Plugins · CI + release en verde · bugs · UX · templates · páginas · lectores de código · auditorías · documentación. |
 | **M2 — Expansión** | Sistema de licencias local anti-reverse-engineering (repo *Licensify*, `@licensify/core`) · multi-tenant por cadenas (finanzas separadas por sucursal + consolidadas HQ) · escalabilidad k8s (HPA/stateless/auto-scaling) · mobile real Capacitor · OAuth2 real (state/PKCE) · limpieza de naming interno `block` · sistema de actualización zero-downtime (app + plugins). |
+| **M3 — Consolidación** | Cierre de deuda técnica (F12/F4/F10/F17) · visual page builder (GrapesJS + página de inicio configurable) · i18n multi-idioma (ES/EN/PT) · documentos legales (ToS/Disclaimer/Privacy/Cookies) · mobile Capacitor nativo + desktop · fix de login en Docker · política "todo nativo / sin componentes de pago". |
+| **M4 — Operación** | Pulido admin/UX (categorías del menú `/admin`, buscador, actualizaciones unificadas) · plugin fiscal ARCA (facturación electrónica) · comprobantes/facturas por pago + impresión térmica ESC/POS · checkout unificado + pago en sucursal. |
+| **M5 — Marketplace** | Plugins con fuente remota GitHub + botón "Instalar" · nginx allowlist + multi-sucursal por subdominio · roles/permisos completos · app de claves de licencia para venta · finalización de plugins. |
+| **M6 — Licencias** | Feature-gating por licencia (integración `@licensify/core` con features premium). |
+| **M7 — Acceso rápido** | Generador de APIs de acceso rápido (recurso → modelo + rutas CRUD + SDK tipado web/móvil). |
+| **M8 — Soporte** | Rediseño de `/admin/menu` · sistema de tickets/soporte con estados · chat de usuarios en tiempo real + ventana flotante. |
+| **M9 — Inventario** | Inventario completo: variantes de producto (SKU, código de barras EAN/UPC), categorías/marcas/proveedores, multi-almacén por sucursal, movimientos de stock con ledger auditable, alertas de stock bajo, valoración (costo promedio/FIFO), reportes y export/import CSV, soporte de código de barras/QR integrable con impresoras térmicas (M4). |
+| **M10 — Red social** | Compositor de publicación enriquecido en `SocialPublicPage.tsx`: galería multi-media (imágenes/video con pie, reordenar/eliminar), menciones `@usuario`, hashtags `#tema`, encuestas, selector de visibilidad (Público/Seguidores/Solo yo), selector de emoji, contador de caracteres con límite, vista previa de enlaces, autoguardado de borrador. |
+| **M11 — Escalabilidad** | Escalabilidad Kubernetes selectable por el usuario desde `/admin/scaling`: elegir Horizontal (HPA) vs Vertical (VPA) por workload; VPA con modos Auto/Recommender/Initial; HPA/VPA configurables; guarda de exclusión HPA+VPA sobre la misma métrica; visibilidad de recomendaciones/réplicas/eventos; export YAML del manifiesto generado. |
 
 ---
 
@@ -295,23 +304,425 @@ sección 3 (WB-7 a WB-13).
 - **Métrica:** actualizar un plugin y la app en un entorno de prueba sin downtime
   observable ni pérdida de datos; rollback funcional ante fallo.
 
+### 3.5 Milestone 3 (M3)
+
+> **M3** se libera en **v2.1.0** (bump menor). Cierra la deuda técnica documentada
+> en la QA de M2 (F12/F4/F10/F17) y suma producto final: **visual page builder**
+> (GrapesJS + página de inicio configurable), **i18n multi-idioma**, **documentos
+> legales**, **mobile Capacitor nativo + desktop**, **fix de login en Docker** y la
+> **política "todo nativo / sin componentes de pago"**. La trazabilidad apunta a
+> las tareas M3 (`t51`–`t65`); `t51` es este documento.
+
+#### WB-25 · P0 (M3) — Cierre de deuda F12 (naming residual) + F10 (versión setup) — `t60`
+- **Dado** el contrato público de la plataforma tras el rename a Plugins,
+- **Cuando** se limpia la deuda residual,
+- **Entonces** no quedan referencias de producto a `/api/v1/blocks/*`, al campo
+  `blockId` ni a la prosa "bloque" en `apps/web` (el shim `/api/v1/blocks` queda
+  solo como compatibilidad temporal documentada), y `GET /api/v1/setup/status`
+  devuelve la versión real (`SYSTEM_VERSION`), nunca el literal `'0.2.0'`
+  hardcodeado.
+- **Métrica:** `grep -riE 'block|bloque|0\.2\.0' apps/web apps/api` → 0
+  referencias activas (salvo shim/legado documentado).
+
+#### WB-26 · P1 (M3) — Cierre de deuda F4: permisos de docs `block.*` → `plugin.*` — `t63`
+- **Dado** la documentación publicada (Webs `docs/` y Docs.git `docs/es/webs/`),
+- **Cuando** se sincroniza la doc,
+- **Entonces** no quedan permisos obsoletos `block.read`/`block.manage` (se
+  documentan `plugin.read`/`plugin.manage`) en `docs/api/overview.md`,
+  `docs/architecture/plugin-system.md` ni `docs/guides/roles-permisos.md`.
+- **Métrica:** `grep -riE 'block\.(read|manage)' docs` → 0 resultados.
+
+#### WB-27 · P1 (M3) — Completar mobile Capacitor nativo + desktop (cierra F17) — `t61`
+- **Dado** el host Capacitor existente (`apps/mobile/capacitor.config.json` +
+  `@capacitor`),
+- **Cuando** se agregan las plataformas nativas,
+- **Entonces** `capacitor add android` y `capacitor add ios` generan los
+  proyectos nativos (verificables con `npx cap build`), los scripts y la
+  documentación permiten empaquetar para las stores, y `apps/desktop` funciona
+  como companion de escritorio (Electron/Tauri) con su README de ejecución.
+- **Métrica:** `npx cap build` en verde para Android; README de mobile y desktop
+  con pasos reproducibles.
+
+#### WB-28 · P0 (M3) — Visual page builder (GrapesJS) + página de inicio configurable — `t52`, `t56`, `t57`
+- **Dado** un editor autenticado en `/admin/editor`,
+- **Cuando** arrastra y edita componentes visuales (GrapesJS, self-hosted MIT,
+  sin SaaS de pago) y guarda,
+- **Entonces** el layout se persiste vía `POST /api/v1/pages/save` (Prisma), se
+  renderiza por ruta (`GET` render) y la **página de inicio es configurable**
+  (campo `homePage`); la vista en vivo refleja el contenido sin recargar.
+- **Además:** ADR-0011 documenta la elección (GrapesJS frente a Builder.io/CMS
+  headless) por MIT/self-hosted/sin-pago.
+- **Métrica:** crear→editar→guardar→renderizar una página visualmente y fijarla
+  como inicio, en un flujo end-to-end sin errores.
+
+#### WB-29 · P0 (M3) — i18n multi-idioma (ES/EN/PT + language switcher) — `t52`, `t55`, `t58`
+- **Dado** una instancia configurada con varios idiomas (mínimo ES/EN/PT),
+- **Cuando** un usuario cambia de idioma con el switcher,
+- **Entonces** la interfaz (menú, dashboards, ajustes de plugin, builder, login y
+  páginas legales) se traduce de forma consistente, la preferencia persiste
+  (localStorage/DB) y no quedan strings hardcodeadas (según la auditoría de `t55`,
+  `docs/i18n/audit.md`).
+- **Métrica:** cambiar de idioma no deja textos sin traducir en las pantallas
+  objetivo; cobertura i18n ≥ ES/EN/PT.
+
+#### WB-30 · P0 (M3) — Documentos legales (ToS/Disclaimer/Privacy/Cookies) — `t54`, `t59`
+- **Dado** un sitio desplegado,
+- **Cuando** un visitante accede a `/legal/terms`, `/legal/privacy`,
+  `/legal/cookies` y `/legal/disclaimer`,
+- **Entonces** ve los textos legales con placeholders configurables
+  (`[NOMBRE_EMPRESA]`, `[JURISDICCIÓN]`, `[EMAIL_CONTACTO]`, `[URL]`), la Privacy
+  alineada a GDPR/LGPD y el aviso de cookies, persistidos en DB (default = los
+  templates de `docs/legal/`) y enlazados desde el footer.
+- **Métrica:** las 4 rutas legales responden 200 y el footer las enlaza; la
+  configuración del admin sobreescribe los placeholders.
+
+#### WB-31 · P0 (M3) — Fix de login en Docker — `t53`
+- **Dado** el stack levantado con `docker compose up`,
+- **Cuando** un usuario intenta iniciar sesión en `http://localhost:5173` con las
+  credenciales por defecto (`admin@webs.test` / `Admin12345!`),
+- **Entonces** el login funciona (seed/hash/wizard correctos) sin errores de
+  autenticación ni pasos rotos.
+- **Métrica:** login exitoso en un entorno Docker aislado; sin fallos de seed o
+  hash.
+
+#### WB-32 · P0 (M3) — Política "todo nativo / sin componentes de pago" — `t52`, `t54`
+- **Dado** la política de producto "base web universal sin componentes de pago",
+- **Cuando** se auditan las dependencias y el ecosistema,
+- **Entonces** el builder y los componentes usan soluciones self-hosted con
+  licencias open-source (MIT/Apache/BSD), sin SaaS de pago (Builder.io, CMS
+  headless comercial, etc.), y queda un anexo en `docs/legal/` que documenta la
+  lista de componentes y sus licencias.
+- **Métrica:** auditoría de dependencias sin licencias restrictivas/de pago;
+  anexo de componentes presente.
+
+#### WB-33 · P0 (M3) — QA de Milestone 3 + smoke e2e en Docker — `t62`, `t64`
+- **Dado** el stack completo en Docker,
+- **Cuando** se ejecuta la suite de QA de M3 (login, builder, i18n, legal,
+  mobile/desktop, cierre F12/F10, regresión M1/M2) y el smoke e2e,
+- **Entonces** el entorno es reproducible, las pruebas pasan en verde y el README
+  documenta el arranque (`docker compose up` + credenciales).
+- **Métrica:** `docker compose up` + QA + smoke → exit 0; veredicto **LIBERABLE**.
+
+#### WB-34 · P1 (M3) — Release v2.1.0 + CHANGELOG + workflows verdes — `t65`
+- **Dado** M3 completo y verificado (QA LIBERABLE),
+- **Cuando** se bumpa `SYSTEM_VERSION` a `2.1.0`, se actualiza `CHANGELOG.md`
+  (`[2.1.0]`) y se taggea `v2.1.0`,
+- **Entonces** el release se publica con artefactos y los workflows (CI typecheck
+  + release) quedan en verde.
+- **Métrica:** tag `v2.1.0` público; workflows CI/release ✓; changelog coherente.
+
+### 3.6 Milestone 9 (M9) — Inventario completo
+
+> **M9** se libera en **v2.7.0** (bump menor). Convierte el inventario básico
+> actual (`blocks/inventario`, modelo `InventoryItem`) en un sistema de gestión de
+> stock completo. Se ancla en el **ADR-0023** (modelo de inventario + spec,
+> `t126`). Trazabilidad: `t125`–`t133`; `t125` es este documento.
+
+#### WB-35 · P0 (M9) — Variantes de producto (SKU + código de barras EAN/UPC) — `t127`, `t129`
+- **Dado** un producto con atributos variables (talla/color/tamaño),
+- **Cuando** el operador crea variantes y asigna SKU y código de barras
+  (EAN/UPC),
+- **Entonces** cada variante se registra con su `sku` único y su `barcode`, el
+  stock se contabiliza **por variante** (no solo por producto), y el escaneo del
+  código resuelve la variante exacta.
+- **Métrica:** crear un producto con ≥2 variantes (SKU/barcode) y ver el stock
+  por variante sin colisiones de SKU.
+
+#### WB-36 · P1 (M9) — Catálogo: categorías, marcas y proveedores — `t127`, `t129`
+- **Dado** la necesidad de organizar y trazar el origen de los productos,
+- **Cuando** el operador administra categorías, marcas y proveedores,
+- **Entonces** puede crear/editar/archivar `Category`, `Brand` y `Supplier` (con
+  scoping multi-tenant), asociarlos al producto/variante y filtrar el inventario
+  por cada uno de ellos.
+- **Métrica:** un producto asociado a categoría + marca + proveedor se filtra
+  correctamente por cada criterio.
+
+#### WB-37 · P0 (M9) — Multi-almacén por sucursal (multi-tenant) — `t127`, `t129`
+- **Dado** una cadena con sucursales, cada una con su propio almacén
+  (`Warehouse` ligado a `Organization`),
+- **Cuando** una sucursal consulta o mueve stock,
+- **Entonces** ve y opera **solo** su almacén (scoping fail-closed por
+  `organizationId`/`warehouse`), y la casa matriz ve la vista consolidada de
+  todos sus almacenes.
+- **Métrica:** la sucursal A no lee ni mueve stock del almacén de la sucursal B;
+  HQ ve el agregado correcto.
+
+#### WB-38 · P0 (M9) — Movimientos de stock con ledger auditable — `t128`, `t129`
+- **Dado** la operación diaria del depósito,
+- **Cuando** se registra una entrada, salida, ajuste o transferencia entre
+  almacenes,
+- **Entonces** se crea un `StockMovement` inmutable (cantidad antes/después,
+  motivo, usuario, referencia a venta/compra) y el `StockLevel` se actualiza de
+  forma consistente; el ledger no se edita ni borra (solo se reversa con un
+  movimiento opuesto).
+- **Métrica:** secuencia entrada→salida→transferencia con ledger correcto y
+  stock final exacto; intento de edición del ledger rechazado.
+
+#### WB-39 · P0 (M9) — Alertas de stock bajo por umbral — `t128`, `t129`
+- **Dado** un `StockLevel` con umbral mínimo y crítico por almacén,
+- **Cuando** la cantidad cae por debajo de un umbral,
+- **Entonces** el sistema marca el ítem como "stock bajo/crítico", lo expone en
+  un listado/endpoint de alertas y (opcional) notifica al responsable.
+- **Métrica:** un movimiento que cruza el umbral genera la alerta; reponer el
+  stock la elimina.
+
+#### WB-40 · P1 (M9) — Valoración de inventario (costo promedio/FIFO) — `t128`, `t129`
+- **Dado** movimientos de entrada con precio de compra,
+- **Cuando** se calcula la valoración,
+- **Entonces** el sistema aplica **costo promedio ponderado** (base) y permite
+  **FIFO** opcional, y reporta el valor total del stock por producto/almacén.
+- **Métrica:** valoración correcta en un caso de prueba con entradas a distintos
+  costos (promedio y FIFO).
+
+#### WB-41 · P1 (M9) — Reportes y export/import CSV — `t128`, `t129`
+- **Dado** la necesidad de análisis y migración de datos,
+- **Cuando** el operador genera reportes (niveles de stock, movimientos,
+  valoración) o exporta/importa CSV,
+- **Entonces** obtiene reportes filtrables (rango de fechas, almacén, categoría)
+  y archivos CSV que respetan el formato del sistema (import validado, con
+  errores por fila sin corromper datos).
+- **Métrica:** exportar stock y re-importarlo no corrompe datos; reporte de
+  movimientos por rango correcto.
+
+#### WB-42 · P1 (M9) — Código de barras/QR + impresión térmica (integra M4) — `t129`
+- **Dado** los lectores de código (M1) y la impresión térmica ESC/POS (M4),
+- **Cuando** se escanea un código de barras/QR o se imprime una etiqueta,
+- **Entonces** el sistema resuelve el producto/variante por `barcode`, y puede
+  generar etiquetas (barcode/QR) para impresoras térmicas reutilizando el stream
+  ESC/POS de M4.
+- **Métrica:** escanear un barcode ubica la variante; generar una etiqueta
+  produce el stream ESC/POS sin requerir hardware.
+
+#### WB-43 · P0 (M9) — QA + i18n + documentación de M9 — `t130`, `t131`, `t132`
+- **Dado** el inventario completo implementado,
+- **Cuando** se ejecuta la QA en Docker aislado (CRUD variantes, movimientos,
+  multi-almacén, alertas, valoración, reportes/CSV, i18n es/en/pt) y se
+  documenta,
+- **Entonces** el veredicto es **LIBERABLE**, los strings nuevos están traducidos
+  (es/en/pt) y la guía de uso + referencia de API están publicadas.
+- **Métrica:** `docker compose up` + QA → exit 0; mkdocs en verde; sin strings
+  hardcodeados.
+
+#### WB-44 · P1 (M9) — Release v2.7.0 + CHANGELOG + workflows verdes — `t133`
+- **Dado** M9 completo y verificado (QA LIBERABLE),
+- **Cuando** se bumpa `SYSTEM_VERSION` a `2.7.0`, se actualiza `CHANGELOG.md`
+  (`[2.7.0]`) y se taggea `v2.7.0`,
+- **Entonces** el release se publica y los workflows (CI typecheck + release)
+  quedan en verde.
+- **Métrica:** tag `v2.7.0` público; workflows CI/release ✓; changelog coherente.
+
+### 3.7 Milestone 10 (M10) — Compositor de publicación enriquecido
+
+> **M10** se libera en **v2.8.0** (bump menor). Enriquece el compositor "Nueva
+> publicación" de la red social (`apps/web/src/features/public/SocialPublicPage.tsx`).
+> Hoy el compositor acepta solo `text` + una `mediaUrl`/`mediaType` única. M10 lo
+> convierte en un compositor completo. Se ancla en el **ADR-0024** (modelo de
+> datos + contrato API + seguridad del unfurl, `t142`). Trazabilidad:
+> `t143` (backend), `t144` (frontend), `t145` (QA). `t141` es este documento.
+
+#### WB-45 · P0 (M10) — Galería multi-media (varias imágenes/video, reordenar/eliminar/pie) — `t143`, `t144`
+- **Dado** el compositor de "Nueva publicación",
+- **Cuando** el autor adjunta varias imágenes y/o un video y las reordena,
+  elimina o les agrega un pie (caption),
+- **Entonces** cada ítem se sube como `mediaUrls[]` (con su `type` y `caption`
+  por ítem), el orden se mantiene al publicar y en el render, y eliminar/reordenar
+  no deja adjuntos huérfanos.
+- **Métrica:** publicar una entrada con ≥3 imágenes + 1 video (con pie) muestra
+  la galería en el orden elegido; eliminar un ítem lo quita de la publicación.
+
+#### WB-46 · P0 (M10) — Menciones `@usuario` — `t143`, `t144`
+- **Dado** que el autor escribe `@` seguido de texto en el compositor,
+- **Cuando** publica,
+- **Entonces** el sistema detecta/autocompleta menciones a usuarios existentes,
+  las guarda indexadas (resolubles y no spamean), enlaza al perfil en el render y
+  notifica al mencionado; las menciones a usuarios inexistentes no rompen el post.
+- **Métrica:** `@juan` enlaza al perfil y notifica a `juan`; `@noexiste` queda como
+  texto plano sin error.
+
+#### WB-47 · P1 (M10) — Hashtags `#tema` — `t143`, `t144`
+- **Dado** que el autor escribe `#` seguido de texto,
+- **Cuando** publica,
+- **Entonces** el sistema extrae e indexa los hashtags, los resalta/enlaza en el
+  render y permite filtrar el feed por hashtag (`GET /posts?tag=`).
+- **Métrica:** `#webs` queda enlazado y el feed filtrado por `#webs` devuelve solo
+  posts con ese tag.
+
+#### WB-48 · P0 (M10) — Encuestas — `t143`, `t144`
+- **Dado** que el autor agrega una encuesta (pregunta + opciones) a la
+  publicación,
+- **Cuando** los usuarios votan,
+- **Entonces** la encuesta acepta un voto por usuario (`SocialPollVote`), muestra
+  el conteo/porcentaje en vivo sin revelar quién votó qué, y cierra según su
+  duración/estado.
+- **Métrica:** una encuesta con 3 opciones registra N votos únicos (voto duplicado
+  rechazado) y muestra resultados correctos.
+
+#### WB-49 · P0 (M10) — Selector de visibilidad (Público/Seguidores/Solo yo) — `t143`, `t144`
+- **Dado** el compositor,
+- **Cuando** el autor elige visibilidad `public` / `followers` / `private`,
+- **Entonces** la visibilidad se persiste en el post y el feed/API **filtra en
+  servidor** (no leak): un post `private` solo lo ve su autor, y `followers` solo
+  sus seguidores; la retrocompat (posts sin visibilidad) los trata como `public`.
+- **Métrica:** un post `private` no aparece en el feed de otro usuario ni en su
+  respuesta de API.
+
+#### WB-50 · P1 (M10) — Selector de emoji — `t144`
+- **Dado** el compositor,
+- **Cuando** el autor abre el selector de emoji e inserta uno,
+- **Entonces** el emoji se inserta en la posición del cursor sin recargar, con
+  búsqueda por categoría/nombre.
+- **Métrica:** insertar un emoji en medio del texto no mueve el cursor al final ni
+  pierde el contenido.
+
+#### WB-51 · P0 (M10) — Contador de caracteres con límite — `t144`
+- **Dado** el compositor con un límite de caracteres definido (configurable),
+- **Cuando** el autor escribe,
+- **Entonces** un contador muestra `usados/límite` en tiempo real, impide
+  publicar si se excede el límite y muestra estado de advertencia cerca del tope.
+- **Métrica:** con límite 500, al escribir 501 caracteres el botón "Publicar" se
+  deshabilita y el contador indica exceso.
+
+#### WB-52 · P1 (M10) — Vista previa de enlaces — `t143`, `t144`
+- **Dado** que el autor pega una URL en el texto,
+- **Cuando** el compositor detecta el enlace,
+- **Entonces** se muestra una tarjeta de vista previa (título/descripción/imagen)
+  obtenida por unfurl **SSRF-safe** (deniega loopback/metadata), y el autor puede
+  descartarla antes de publicar.
+- **Métrica:** pegar `https://example.com` muestra la preview; una URL a
+  `127.0.0.1`/`169.254.169.254` es rechazada sin fuga.
+
+#### WB-53 · P0 (M10) — Autoguardado de borrador — `t144`
+- **Dado** que el autor redacta una publicación larga,
+- **Cuando** la composición cambia (o se navega/cierra el modal),
+- **Entonces** el borrador se autoguarda localmente (y se restaura al reabrir el
+  compositor), se descarta al publicar y no interfiere con otros borradores.
+- **Métrica:** escribir, cerrar y reabrir el compositor restaura el texto/adjuntos;
+  publicar limpia el borrador.
+
+### 3.8 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
+
+> **M11** se libera en **v2.9.0** (bump menor). Permite al usuario **elegir** el
+> tipo de escalabilidad Kubernetes por workload desde un panel `/admin/scaling`.
+> **Contexto ya aplicado (M2/`t26`, ADR-0008):** HPA horizontal en
+> `deploy/k8s/hpa-api.yaml` (CPU/mem 70%, 2→10 réplicas) + `deployment-api.yaml`
+> (requests/limits + probes + stateless con Redis pub/sub). **No se reinventa eso.**
+> Se ancla en el **ADR-0025** (selector HPA/VPA + modos verticales, `t151`).
+> Trazabilidad: `t152` (backend), `t153` (frontend), `t154` (QA). `t150` es este
+> documento.
+
+#### WB-54 · P0 (M11) — Selector HPA vs VPA persistido por workload (api/web) — `t152`, `t153`
+- **Dado** el panel `/admin/scaling`,
+- **Cuando** el operador elige para cada workload (`api`, `web`) el modo
+  `horizontal` (HPA) o `vertical` (VPA),
+- **Entonces** la selección se persiste (settings/ConfigMap `webs-scaling`) vía
+  `PUT /api/v1/system/scaling` y se aplica al workload elegido sin afectar al
+  otro; `GET /api/v1/system/scaling` devuelve la selección vigente.
+- **Métrica:** elegir VPA para `api` y HPA para `web` persiste ambos y el
+  manifiesto/estado de cada workload refleja su modo.
+
+#### WB-55 · P0 (M11) — Modo vertical `Auto` (aplica recomendaciones) — `t152`
+- **Dado** un workload configurado en modo VPA `Auto`,
+- **Cuando** el VPA recommender calcula nuevas recomendaciones de CPU/memoria,
+- **Entonces** el `VerticalPodAutoscaler` se emite con `updateMode: Auto` y aplica
+  las recomendaciones (reiniciando pods cuando corresponde), actualizando
+  requests/limits del workload.
+- **Métrica:** el YAML generado tiene `updateMode: Auto`; un cambio de
+  recomendación se refleja en el pod tras el reinicio.
+
+#### WB-56 · P0 (M11) — Modo vertical `Recommender` (solo recomendaciones visibles) — `t152`, `t153`
+- **Dado** un workload en modo VPA `Recommender`,
+- **Cuando** el recommender publica recomendaciones,
+- **Entonces** el VPA se emite con `updateMode: Off` (no aplica), y las
+  recomendaciones se muestran en el panel sin modificar los pods.
+- **Métrica:** con `updateMode: Off`, las recomendaciones aparecen en `/admin/scaling`
+  y los requests/limits del workload permanecen sin cambios.
+
+#### WB-57 · P0 (M11) — Modo vertical `Initial` (aplica en creación) — `t152`
+- **Dado** un workload en modo VPA `Initial`,
+- **Cuando** se crea un pod nuevo,
+- **Entonces** el VPA se emite con `updateMode: Initial` y aplica las
+  recomendaciones solo al crear el pod, sin reiniciar pods ya existentes.
+- **Métrica:** el YAML tiene `updateMode: Initial`; pods existentes no se
+  reinician por recomendaciones.
+
+#### WB-58 · P0 (M11) — Parámetros HPA configurables (min/max, target CPU/mem) — `t152`, `t153`
+- **Dado** un workload en modo HPA,
+- **Cuando** el operador configura `minReplicas`, `maxReplicas`,
+  `cpuTargetPct` y `memTargetPct`,
+- **Entonces** el HPA del workload se genera con esos valores (persistidos y
+  re-aplicables), y el escalado horizontal usa los nuevos targets.
+- **Métrica:** cambiar max réplicas de 10 a 20 y target CPU de 70% a 80% se
+  refleja en el HPA aplicado y en el YAML exportado.
+
+#### WB-59 · P0 (M11) — Límites VPA configurables (min/max CPU/mem, minAllowed/maxAllowed) — `t152`, `t153`
+- **Dado** un workload en modo VPA,
+- **Cuando** el operador configura `minAllowed`/`maxAllowed` de CPU y memoria y
+  `controlledResources: ["cpu","memory"]`,
+- **Entonces** el VPA respeta esos límites (nunca recomienda/aplica fuera del
+  rango) y los persiste por workload.
+- **Métrica:** con `maxAllowed.memory=2Gi`, ninguna recomendación/aplicación
+  excede 2Gi.
+
+#### WB-60 · P1 (M11) — Guarda de exclusión HPA+VPA sobre la misma métrica — `t152`
+- **Dado** la regla de que HPA y VPA no deben actuar a la vez sobre CPU/memoria
+  del mismo workload,
+- **Cuando** el operador intenta activar ambos (o la configuración lo viola),
+- **Entonces** el selector impone uno u otro por workload y `PUT
+  /api/v1/system/scaling` rechaza con `422` la combinación conflictiva,
+  documentando la alternativa de coexistencia VPA(CPU/mem) + HPA(metrics custom,
+  p. ej. KEDA por cola Redis).
+- **Métrica:** una configuración HPA(CPU)+VPA(CPU) sobre `api` es rechazada con
+  422 y mensaje claro; VPA(CPU/mem)+HPA(metric custom) es aceptada.
+
+#### WB-61 · P1 (M11) — Visibilidad del estado (recomendaciones actuales, réplicas, eventos) — `t152`, `t153`
+- **Dado** el panel `/admin/scaling`,
+- **Cuando** el operador consulta un workload,
+- **Entonces** ve las recomendaciones actuales del VPA (cuando aplica), las
+  réplicas actuales/objetivo del HPA y los eventos recientes de escalado, sin
+  acceder a `kubectl` manualmente.
+- **Métrica:** el panel refleja el estado del workload consultado (recomendación
+  VPA o réplicas HPA) en una lectura.
+
+#### WB-62 · P1 (M11) — Export YAML del manifiesto generado según la selección — `t152`, `t153`
+- **Dado** la selección de escalabilidad de un workload,
+- **Cuando** el operador pide exportar el manifiesto,
+- **Entonces** el sistema genera/descarga el YAML correcto (HPA `autoscaling/v2` o
+  VPA `autoscaling.k8s.io/v1`) coherente con la configuración persistida, listo
+  para `kubectl apply`.
+- **Métrica:** exportar un workload en modo VPA `Recommender` produce un YAML con
+  `updateMode: Off` y los `minAllowed`/`maxAllowed` configurados.
+
 ---
 
 ## 4. Roadmap de releases
 
 | Release | Versión | Alcance |
 |---------|---------|---------|
-| **R1 — Fundación** | **v1.58.0** | WB-1→WB-17: rename Bloques→Plugins + menú nativo, CI + release en verde, bugs B1/B2 (inventario/tienda, social-login), constructor de páginas + templates, UX de pago + dashboards, lectores de código, auditorías + QA + docs + changelog. |
-| **R2 — Pulido M1** | **v1.59.0** | Buffer de hardening/UX: cierre de hallazgos de QA, alias de compatibilidad `blocks`→`plugins` estable, refinamiento de templates y dashboards. |
-| **R3 — Expansión** | **v2.0.0** | WB-18→WB-24: sistema de licencias (*Licensify*, `@licensify/core`), multi-tenant por cadenas (finanzas separadas + consolidadas HQ), escalabilidad k8s (HPA/stateless/auto-scaling), mobile real Capacitor, OAuth2 real (state/PKCE), limpieza de naming interno `block`, sistema de actualización zero-downtime (app + plugins). |
-| **R4 — Pulido M2** | **v2.1.0** | Buffer post-M2: cierre de hallazgos de QA de licencias/multi-tenant/actualizaciones, estabilización de aliases de retrocompatibilidad del naming cleanup, refinamiento de UX de actualización y cadenas. |
-| **R5 — Escala** | **v2.2.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas, más proveedores OAuth2, empaquetado de stores (iOS/Android). |
+| **R1 — Fundación** | **v1.58.0** ✓ | WB-1→WB-17: rename Bloques→Plugins + menú nativo, CI + release en verde, bugs B1/B2 (inventario/tienda, social-login), constructor de páginas + templates, UX de pago + dashboards, lectores de código, auditorías + QA + docs + changelog. |
+| **R2 — Pulido M1** | **v1.59.0** | Buffer de hardening/UX (absorbido en v2.0.0): cierre de hallazgos de QA, alias de compatibilidad `blocks`→`plugins` estable, refinamiento de templates y dashboards. |
+| **R3 — Expansión** | **v2.0.0** ✓ | WB-18→WB-24: sistema de licencias (*Licensify*, `@licensify/core`), multi-tenant por cadenas (finanzas separadas + consolidadas HQ), escalabilidad k8s (HPA/stateless/auto-scaling), mobile real Capacitor, OAuth2 real (state/PKCE), limpieza de naming interno `block`, sistema de actualización zero-downtime (app + plugins). |
+| **R4 — Consolidación** | **v2.1.0** | WB-25→WB-34: cierre de deuda (F12/F4/F10/F17), visual page builder (GrapesJS + página de inicio configurable), i18n ES/EN/PT, documentos legales (ToS/Disclaimer/Privacy/Cookies), mobile Capacitor nativo + desktop, fix de login en Docker, política "todo nativo / sin componentes de pago", QA + docs + release. |
+| **R5 — Operación** | **v2.2.0** | M4: pulido admin/UX (categorías `/admin`, buscador, actualizaciones unificadas), plugin fiscal ARCA, comprobantes/facturas por pago + impresión térmica ESC/POS, checkout unificado + pago en sucursal. |
+| **R6 — Marketplace** | **v2.3.0** | M5: plugins con fuente remota GitHub + botón "Instalar", nginx allowlist + multi-sucursal por subdominio, roles/permisos completos, app de claves de licencia para venta, finalización de plugins. |
+| **R7 — Licencias** | **v2.4.0** | M6: feature-gating por licencia (integra `@licensify/core` con features premium). |
+| **R8 — Acceso rápido** | **v2.5.0** | M7: generador de APIs de acceso rápido (recurso → modelo + rutas CRUD + SDK tipado web/móvil). |
+| **R9 — Soporte** | **v2.6.0** | M8: rediseño de `/admin/menu`, sistema de tickets/soporte con estados, chat de usuarios en tiempo real + ventana flotante. |
+| **R10 — Inventario** | **v2.7.0** | M9: WB-35→WB-44 — inventario completo (variantes/SKU/EAN-UPC, catálogo, multi-almacén por sucursal, movimientos con ledger auditable, alertas de stock bajo, valoración costo promedio/FIFO, reportes + export/import CSV, código de barras/QR + impresión térmica). |
+| **R11 — Red social** | **v2.8.0** | M10: WB-45→WB-53 — compositor de publicación enriquecido (galería multi-media, menciones, hashtags, encuestas, visibilidad, emoji, contador de caracteres, vista previa de enlaces, autoguardado de borrador). |
+| **R12 — Escalabilidad** | **v2.9.0** | M11: WB-54→WB-62 — escalabilidad Kubernetes selectable (HPA configurable vs VPA Auto/Recommender/Initial, guarda de exclusión, visibilidad de estado, export YAML) desde `/admin/scaling`. |
+| **R13 — Backlog** | **v2.10.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
 
 **Criterio de corte entre R1 y R2:** R1 sale solo con P0/P1 de M1 en verde
 (typecheck + release ✓) y sin bugs bloqueantes (B1, B2 corregidos). R3 es un
 bump **mayor** (v2.0.0) porque introduce licenciamiento, multi-tenancy y el
 sistema de actualización, que cambian el contrato de despliegue, datos y
-operación (zero-downtime).
+operación (zero-downtime). **R4 es un bump menor (v2.1.0)**: consolida la deuda
+técnica de M2 (F12/F4/F10/F17) y suma producto sin cambiar el contrato de datos
+(builder visual, i18n, legal, mobile/desktop, login Docker). **R10 (v2.7.0) es un
+bump menor** acotado al dominio de inventario: introduce un modelo de datos nuevo
+(`Variant`, `Warehouse`, `StockMovement`/ledger) y migra desde el inventario
+básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/POS
+(`shareInventory`).
 
 ---
 
@@ -340,3 +751,37 @@ operación (zero-downtime).
 | *(futuro)* k8s | WB-20 |
 | *(futuro)* mobile Capacitor | WB-21 |
 | *(futuro)* naming cleanup | WB-23 |
+| t51-backlog-m3 | WB-25→WB-34 (este documento) |
+| t52-adr-m3 | WB-28 (ADR-0011), WB-29 (ADR-0012), WB-32 (política deps) |
+| t53-devops-login | WB-31 |
+| t54-legal | WB-30 (redacción), WB-32 (anexo) |
+| t55-i18n-audit | WB-29 (auditoría) |
+| t56-builder-back | WB-28 (backend) |
+| t57-builder-front | WB-28 (frontend) |
+| t58-i18n | WB-29 (implementación) |
+| t59-legal-ui | WB-30 (integración) |
+| t60-deuda | WB-25 |
+| t61-mobile-desktop | WB-27 |
+| t62-qa-m3 | WB-33 (QA) |
+| t63-docs-m3 | WB-26 (F4) + docs de WB-27→WB-30 |
+| t64-docker-e2e | WB-33 (smoke) |
+| t65-release | WB-34 |
+| t125-backlog-m9 | WB-35→WB-44 (este documento) |
+| t126-adr-inventario | WB-35→WB-42 (ADR-0023 + spec) |
+| t127-modelo-inventario | WB-35, WB-36, WB-37 (modelo de datos) |
+| t128-operaciones-stock | WB-38, WB-39, WB-40, WB-41 (operaciones) |
+| t129-ui-inventario | WB-35→WB-42 (frontend) |
+| t130-i18n-m9 | WB-43 (i18n) |
+| t131-docs-m9 | WB-43 (documentación) |
+| t132-qa-m9 | WB-43 (QA) |
+| t133-release | WB-44 |
+| t141-backlog-m10 | WB-45→WB-53 (este documento) |
+| t142-adr-social | WB-45→WB-53 (ADR-0024 + spec) |
+| t143-backend-social | WB-45, WB-46, WB-47, WB-48, WB-49, WB-52 (backend) |
+| t144-frontend-compositor | WB-45→WB-53 (frontend UI) |
+| t145-qa-m10 | WB-45→WB-53 (QA) |
+| t150-backlog-m11 | WB-54→WB-62 (este documento) |
+| t151-adr-scaling | WB-54→WB-62 (ADR-0025 + spec) |
+| t152-backend-scaling | WB-54→WB-62 (API, manifiestos, guarda, export YAML) |
+| t153-frontend-scaling | WB-54, WB-56, WB-58, WB-59, WB-61, WB-62 (panel `/admin/scaling`) |
+| t154-qa-m11 | WB-54→WB-62 (QA) |
