@@ -1,12 +1,13 @@
-# Backlog de producto — Webs v2.6.0+
+# Backlog de producto — Webs v2.9.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.6.0'`
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.9.0'`
 >   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** · **M5 v2.3.0**
->   · **M6 v2.4.0** · **M7 v2.5.0** · **M8 v2.6.0** liberados). Roadmap planificado
->   hasta **v2.16.0** (M18 — plugin de publicidad/ads: monetización).
+>   · **M6 v2.4.0** · **M7 v2.5.0** · **M8 v2.6.0** · **M9 v2.7.0** · **M10 v2.8.0**
+>   · **M11 v2.9.0** liberados). Roadmap planificado hasta **v2.16.0**
+>   (M18 — plugin de publicidad/ads: monetización).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -1321,7 +1322,71 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 - **Métrica:** exportar un workload en modo VPA `Recommender` produce un YAML con
   `updateMode: Off` y los `minAllowed`/`maxAllowed` configurados.
 
-### 3.14 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
+### 3.14 Milestone 12 (M12) — Vista RAW/Code de actualizaciones
+
+> Alcance: ver los datos crudos de una actualización (app o plugin) desde
+> `/admin/updates` con un toggle **Code / RAW** en JSON y YAML. Todo nativo
+> (resaltado de sintaxis autohospedado, sin CDN ni servicio externo), con
+> redacción de campos sensibles y permiso `update.manage` (solo admin).
+
+#### WB-182 · P0 — ADR-0026 + spec de la vista RAW/Code — `t160`
+- **Dado** el sistema de actualizaciones existente (app M2 `t29` y plugins `t28`,
+  ADR-0010),
+- **Cuando** se diseña la vista RAW/Code,
+- **Entonces** existe un ADR-0026 + spec que documenta el endpoint de datos
+  crudos (JSON/YAML), la redacción de secretos y el toggle Code/RAW en
+  `/admin/updates`, con alternativas evaluadas (export vs streaming, librería de
+  resaltado vs autohospedado).
+- **Métrica:** `docs/adr/0026-*.md` presente y consistente con la implementación.
+
+#### WB-183 · P0 — Endpoint de datos crudos (JSON/YAML) + redacción — `t161`
+- **Dado** una actualización disponible (app o plugin) con su manifiesto,
+  changelog, archivos cambiados, checksums y firma,
+- **Cuando** un administrador consulta el endpoint de datos crudos,
+- **Entonces** recibe el detalle completo en **JSON** o **YAML** (según
+  `Accept` o query `?format=`), sin exponer secretos: los campos sensibles
+  (tokens, claves privadas, `clientSecret`) se redactan (`«redacted»`), y solo
+  se sirve a usuarios con permiso `update.manage` (403 en otro caso).
+- **Métrica:** respuesta JSON y YAML válidas; `grep -i 'secret|token'` sobre la
+  salida no devuelve valores reales; sin `update.manage` → 403.
+
+#### WB-184 · P0 — Toggle Code/RAW en `/admin/updates` — `t162`
+- **Dado** la página `/admin/updates`,
+- **Cuando** el administrador alterna el toggle **Code / RAW**,
+- **Entonces** ve el payload crudo (JSON o YAML) con resaltado de sintaxis
+  autohospedado (sin CDN), y botones **copiar** y **descargar** (`.json`/`.yaml`),
+  manteniendo la vista legible existente como vista por defecto.
+- **Métrica:** copiar porta el texto exacto al portapapeles; descargar produce un
+  archivo válido; auditoría de red sin requests a dominios externos.
+
+#### WB-185 · P1 — i18n de la vista RAW/Code — `t163`
+- **Dado** la vista `/admin/updates` y los textos del toggle/descarga,
+- **Cuando** se cambia el idioma (ES/EN/PT),
+- **Entonces** todos los textos nuevos están traducidos vía `packages/i18n`.
+- **Métrica:** sin cadenas hardcodeadas; cobertura ES/EN/PT.
+
+#### WB-186 · P1 — Documentación de la vista RAW/Code — `t164`
+- **Dado** el endpoint y la vista Code/RAW,
+- **Cuando** se cierra M12,
+- **Entonces** `docs/` documenta el endpoint (campos, formatos, redacción,
+  permisos) y el uso del toggle Code/RAW en `/admin/updates`.
+- **Métrica:** docs en verde; sin contradicciones con el código.
+
+#### WB-187 · P0 — QA de la vista RAW/Code — `t165`
+- **Dado** el entorno en Docker,
+- **Cuando** corre QA de M12,
+- **Entonces** se verifica: endpoint JSON/YAML sin secretos, 403 sin permiso,
+  toggle Code/RAW + copiar/descargar, y regresión del flujo de actualización.
+- **Métrica:** suite QA en verde.
+
+#### WB-188 · P1 — Release v2.10.0 — `t166`
+- **Dado** M12 completo (WB-182→WB-187) y CI/release en verde,
+- **Cuando** se taggea `v2.10.0`,
+- **Entonces** `CHANGELOG.md` añade `[2.10.0]` y `SYSTEM_VERSION` pasa a
+  `2.10.0`, con release publicado.
+- **Métrica:** changelog coherente; release v2.10.0 público con workflows verdes.
+
+### 3.15 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
 
 > **M13** se libera en **v2.11.0** (bump menor). Cronológicamente es **posterior a
 > M12 (v2.10.0, backlog pendiente — vista RAW/Code de actualizaciones)**, cuya
@@ -1443,7 +1508,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 
 ---
 
-### 3.15 Milestone 14 (M14) — Experiencia pública: home editable + editor + header configurable
+### 3.16 Milestone 14 (M14) — Experiencia pública: home editable + editor + header configurable
 
 > **Alcance:** la experiencia pública (lo que ve un visitante/usuario sin ser
 > admin): página de inicio editable, editor de bloques más intuitivo, header
@@ -1537,7 +1602,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 
 ---
 
-### 3.16 Milestone 15 (M15) — Videoteca/streaming: series y películas
+### 3.17 Milestone 15 (M15) — Videoteca/streaming: series y películas
 
 > **Alcance:** plugin `videoteca` (id `videoteca`, package `@webs/plugin-videoteca`,
 > categoría "contenido") para crear un catálogo de series y películas con embeds
@@ -1627,7 +1692,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 
 ---
 
-### 3.17 Milestone 16 (M16) — Tracking tipo Trakt: historial, scrobble, watchlist
+### 3.18 Milestone 16 (M16) — Tracking tipo Trakt: historial, scrobble, watchlist
 
 > **Alcance:** plugin de seguimiento de lo que ve cada usuario (réplica de
 > trakt.tv): historial de reproducción con `watched_at`, scrobble automático,
@@ -1720,7 +1785,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 
 ---
 
-### 3.18 Milestone 17 (M17) — Pulido profesional + visibilidad condicional por plugin
+### 3.19 Milestone 17 (M17) — Pulido profesional + visibilidad condicional por plugin
 
 > **Alcance — 3 frentes del pedido del usuario:**
 > 1. **Pulido profesional** — personalizar de forma profesional TODAS las páginas
@@ -1837,7 +1902,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 
 ---
 
-### 3.19 Milestone 18 (M18) — Plugin de publicidad/ads (monetización)
+### 3.20 Milestone 18 (M18) — Plugin de publicidad/ads (monetización)
 
 > **Alcance:** plugin `ads` (`@webs/plugin-ads`, categoría "monetización") para
 > monetizar la plataforma con publicidad de terceros y publicidad propia
@@ -1961,10 +2026,10 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 | **R7 — Licencias** | **v2.4.0** ✓ | M6: WB-104→WB-113 — feature-gating por licencia en UI (catálogo de features core+premium ya expuesto por `/api/v1/license`, mapeo feature→menú/plugin/datos, filtro server-side de menú/catálogo/instalación, `LicenseProvider`+`hasFeature` en frontend, upsell, i18n + docs + QA + release). |
 | **R8 — Acceso rápido** | **v2.5.0** ✓ | M7: WB-114→WB-122 — generador de APIs de acceso rápido (recurso → modelo + rutas CRUD con validación/sanitización + permisos RBAC + scoping multi-tenant, SDK/API client tipado TS web/móvil, UI "Acceso rápido" con copiar/descargar, ADR-0020 + spec + i18n + docs + QA + release). |
 | **R9 — Soporte** | **v2.6.0** ✓ | M8: WB-123→WB-134 — rediseño de `/admin/menu` (items reales core+plugins sin duplicados), sistema de tickets/soporte en `/admin/support` con estados pendiente/en curso/terminado, chat de usuarios en tiempo real (WS/SSE) + ventana flotante y retirada de `/admin/chat`, ADR-0021/0022 + spec + i18n + docs + QA + release. |
-| **R10 — Inventario** | **v2.7.0** | M9: WB-35→WB-44 — inventario completo (variantes/SKU/EAN-UPC, catálogo, multi-almacén por sucursal, movimientos con ledger auditable, alertas de stock bajo, valoración costo promedio/FIFO, reportes + export/import CSV, código de barras/QR + impresión térmica). |
-| **R11 — Red social** | **v2.8.0** | M10: WB-45→WB-53 — compositor de publicación enriquecido (galería multi-media, menciones, hashtags, encuestas, visibilidad, emoji, contador de caracteres, vista previa de enlaces, autoguardado de borrador). |
-| **R12 — Escalabilidad** | **v2.9.0** | M11: WB-54→WB-62 — escalabilidad Kubernetes selectable (HPA configurable vs VPA Auto/Recommender/Initial, guarda de exclusión, visibilidad de estado, export YAML) desde `/admin/scaling`. |
-| **R13 — Actualizaciones** | **v2.10.0** | M12: vista RAW/Code de los datos de actualización en `/admin/updates` (endpoint datos crudos manifest + changelog + archivos + checksums + firma en JSON/YAML, toggle Code/RAW con syntax highlight autohospedado + copiar/descargar, redacción de secretos, permiso `update.manage`). |
+| **R10 — Inventario** | **v2.7.0** ✓ | M9: WB-35→WB-44 — inventario completo (variantes/SKU/EAN-UPC, catálogo, multi-almacén por sucursal, movimientos con ledger auditable, alertas de stock bajo, valoración costo promedio/FIFO, reportes + export/import CSV, código de barras/QR + impresión térmica). |
+| **R11 — Red social** | **v2.8.0** ✓ | M10: WB-45→WB-53 — compositor de publicación enriquecido (galería multi-media, menciones, hashtags, encuestas, visibilidad, emoji, contador de caracteres, vista previa de enlaces, autoguardado de borrador). |
+| **R12 — Escalabilidad** | **v2.9.0** ✓ | M11: WB-54→WB-62 — escalabilidad Kubernetes selectable (HPA configurable vs VPA Auto/Recommender/Initial, guarda de exclusión, visibilidad de estado, export YAML) desde `/admin/scaling`. |
+| **R13 — Actualizaciones** | **v2.10.0** | M12: WB-182→WB-188 — vista RAW/Code de los datos de actualización en `/admin/updates` (endpoint datos crudos manifest + changelog + archivos + checksums + firma en JSON/YAML, toggle Code/RAW con syntax highlight autohospedado + copiar/descargar, redacción de secretos, permiso `update.manage`). |
 | **R14 — IoT** | **v2.11.0** | M13: WB-78→WB-89 — serie temporal local (base separada `webs_iot` + modelo genérico de mediciones, retención/downsampling, consultas con agregación) + plugins `invernadero` (IP/URL + Bearer, control de actuadores) y `sema` (IP/URL + X-API-Key), UI de conexión mínima con test + dashboards con gráficos, multi-tenant + seguridad (token cifrado, SSRF-safe), i18n + docs + QA + release. |
 | **R15 — Experiencia pública** | **v2.12.0** | M14: WB-135→WB-144 — página de inicio (/) editable (hero/CTA como secciones + mejora de estilo), editor de bloques (GrapesJS) más intuitivo (paleta/preview/acciones/edición inline), header público configurable (menú `main` + dropdown `user`), selector de idioma en la cuenta del usuario (`/account`), ADR-0029 + i18n + docs + QA + release. |
 | **R16 — Videoteca** | **v2.13.0** | M15: WB-145→WB-153 — plugin `videoteca` para series y películas (catálogo + temporadas/episodios), embed de video multi-plataforma vía oEmbed + video propio, botón ver/descargar con enlaces oficiales (nunca rip), metadatos TMDB (clave por tenant) + Wikipedia/Wikidata + IDs externos (links salientes, sin scraping), ADR-0030 + i18n + docs + QA + release. |
@@ -2104,6 +2169,14 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t152-backend-scaling | WB-54→WB-62 (API, manifiestos, guarda, export YAML) |
 | t153-frontend-scaling | WB-54, WB-56, WB-58, WB-59, WB-61, WB-62 (panel `/admin/scaling`) |
 | t154-qa-m11 | WB-54→WB-62 (QA) |
+| t159-backlog-m12 | WB-182→WB-188 (este documento) |
+| t160-adr-updates-raw | WB-182 (ADR-0026 + spec) |
+| t161-backend-updates-raw | WB-183 (endpoint datos crudos JSON/YAML + redacción/permisos) |
+| t162-frontend-updates-raw | WB-184 (toggle Code/RAW + resaltado + copiar/descargar) |
+| t163-i18n-m12 | WB-185 (i18n) |
+| t164-docs-m12 | WB-186 (docs) |
+| t165-qa-m12 | WB-187 (QA) |
+| t166-release-m12 | WB-188 (release v2.10.0) |
 | t167-backlog-m13 | WB-78→WB-89 (este documento) |
 | t168-adr-iot | WB-78, WB-87 (ADR-0027 serie temporal + ADR-0028 patrón plugins IoT + spec) |
 | t169-iot-db | WB-78, WB-79 (provisionar `webs_iot` + job retención/downsampling) |

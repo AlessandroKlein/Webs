@@ -3,6 +3,31 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.10.0] - 2026-10-24
+
+### Añadido
+
+- **Vista RAW/Code de actualizaciones (ADR-0026, M12)**: endpoint
+  `GET /api/v1/system/update/raw?target=app|plugin&format=json|yaml` que expone manifiesto +
+  changelog + archivos + sha256 + firma Ed25519 (clave pública, sin privada) para auditar
+  actualizaciones, con redacción de secretos (denylist de claves sensibles + heurística de
+  patrones sobre valores) y permiso `update.manage`.
+- **Panel RAW en `/admin/updates`**: toggle JSON/YAML con resaltado de sintaxis autocontenido,
+  botones Copiar/Descargar (`RawUpdateView.tsx` + `SyntaxHighlight.tsx`), consumiendo
+  `/system/update/raw`; helper `getText()` en `lib/api.ts` para respuestas de texto plano.
+- **i18n M12**: 12 claves `updates.raw.*` en `es`/`en`/`pt` (paridad total).
+- **Docs M12**: ADR-0026, spec en `docs/architecture/update-raw-view.md`, guía
+  `docs/guides/update-raw-view.md` e índice actualizado.
+
+### Deuda técnica
+
+- Hallazgo MEDIO (pre-existente M2, no regresión M12): la firma/archivos/checksum de la vista
+  RAW quedan vacíos porque `release.yml` no adjunta `webs-<v>.tar.gz` + sidecars `.sha256`/`.sig`
+  y `UPDATE_PUBLIC_KEY` no está configurada. Fix recomendado en pipeline de release + config.
+- Heredada: cache `blocks:catalog` (t101), `navItems` hardcodeado en AdminLayout (t122), `gen.*`
+  huérfanos (t110), errores backend hardcoded (t108), rename residual (F12/F4/F10/F17) y hueco
+  ADR 0013–0022 (t126).
+
 ## [2.9.0] - 2026-10-24
 
 ### Añadido

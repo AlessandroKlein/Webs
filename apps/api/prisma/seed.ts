@@ -84,6 +84,9 @@ const PERMISSIONS: Array<{ key: string; description: string }> = [
   // Escalabilidad (selector HPA/VPA, ADR-0025)
   { key: 'scaling.read', description: 'Ver configuración de escalabilidad' },
   { key: 'scaling.write', description: 'Editar configuración de escalabilidad' },
+
+  // Actualizaciones (vista RAW/Code, ADR-0026)
+  { key: 'update.manage', description: 'Auditar datos crudos de actualizaciones' },
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);

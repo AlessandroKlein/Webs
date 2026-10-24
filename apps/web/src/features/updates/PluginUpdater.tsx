@@ -6,6 +6,8 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
+import { RawUpdateView } from './RawUpdateView';
+import { useTranslation } from 'react-i18next';
 import {
   isBusyPluginPhase,
   pluginPhaseLabel,
@@ -22,7 +24,10 @@ import {
 export function PluginUpdater() {
   const qc = useQueryClient();
   const canWrite = useAuthStore((s) => s.hasPermission)('setting.write');
+  const canRaw = useAuthStore((s) => s.hasPermission)('update.manage');
   const [actionError, setActionError] = useState<string | null>(null);
+  const [rawPlugin, setRawPlugin] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const { data: plugins, isFetching } = useQuery({
     queryKey: ['plugin-updates-check'],
@@ -133,6 +138,24 @@ export function PluginUpdater() {
                         Actualizar
                       </Button>
                     </div>
+                  )}
+                  {canRaw && (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setRawPlugin(rawPlugin === p.pluginId ? null : p.pluginId)}
+                      >
+                        {rawPlugin === p.pluginId ? t('updates.rawHide') : t('updates.rawShow')}
+                      </Button>
+                    </div>
+                  )}
+                  {rawPlugin === p.pluginId && (
+                    <RawUpdateView
+                      target="plugin"
+                      id={p.pluginId}
+                      version={p.latestVersion || undefined}
+                    />
                   )}
                   {record?.phase === 'done' && canWrite && (
                     <div className="flex flex-wrap gap-2">

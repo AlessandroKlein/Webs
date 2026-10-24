@@ -24,6 +24,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Generador de APIs](architecture/api-generator.md) | **Spec técnica (ADR-0020)**: recurso declarativo (JSON Schema) → CRUD en caliente vía router genérico `/api/v1/generated/:resource` + SDK tipado (codegen + schema runtime). |
 | [Multi-tenant por cadenas](architecture/multi-tenant.md) | Organización padre/hija, scoping por filas, finanzas separadas + vista consolidada y contexto de tenant en runtime. |
 | [Actualización zero-downtime](architecture/update-system.md) | Módulo `apps/api/src/modules/update`: check/apply/rollback, swap atómico y actualización de plugins. |
+| [Vista RAW de actualizaciones](architecture/update-raw-view.md) | **Spec técnica (ADR-0026, implementado M12)**: endpoint `/system/update/raw` (app+plugin) que expone manifiesto + changelog + archivos + sha256 + firma Ed25519 (clave pública, sin privada), redacción de secretos, permiso `update.manage` y vista `/admin/updates` con resaltado autohospedado JSON/YAML. Guía: `guides/update-raw-view.md`. |
 | [Base universal](architecture/base-universal.md) | De la base + plugins + plantilla a la app final (blog/tienda/gimnasio/logística), definiendo la página de inicio. |
 | [Política de dependencias](architecture/politica-dependencias.md) | «Todo nativo, sin modo de pago»: auditoría de dependencias (MIT/Apache/BSD, sin SaaS de pago). |
 | [Móvil y escritorio](architecture/mobile-desktop.md) | Auditoría + plan de integración: PWA/Capacitor (`@webs/mobile`) y companion de escritorio (`@webs/desktop`). |
@@ -71,6 +72,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [ADR-0023 — Modelo de inventario](adr/0023-inventory.md) | Inventario completo: variantes SKU/EAN-UPC, multi-almacén, ledger inmutable, valoración promedio/FIFO y alertas. |
 | [ADR-0024 — Compositor social enriquecido](adr/0024-compositor-social-enriquecido.md) | Galería multi-media, menciones/hashtags, encuestas, visibilidad y preview de enlaces (nativo, retrocompatible). |
 | [ADR-0025 — Escalabilidad selectable](adr/0025-scalable-selectable.md) | Selector HPA vs VPA por workload con modos verticales Auto/Recommender/Initial y guarda de exclusión. |
+| [ADR-0026 — Vista RAW de actualizaciones](adr/0026-update-raw-view.md) | Endpoint `/system/update/raw` para auditar manifiesto/changelog/archivos/sha256/firma Ed25519 (clave pública), redacción de secretos, permiso `update.manage` y resaltado de sintaxis autohospedado (JSON/YAML, copiar/descargar). |
 | [ADR-0027 — Serie temporal local IoT](adr/0027-iot-serie-temporal.md) | Base separada `webs_iot`, tabla genérica `measurements`, pool `pg` dedicado (sin Prisma), retención + downsampling y `IotDevice` scoped. |
 | [ADR-0028 — Patrón de plugins IoT](adr/0028-iot-plugin-pattern.md) | Cliente HTTP de dispositivo (Bearer/X-Auth-Token/X-API-Key), collector configurable, SSRF-safe, token cifrado y contrato de rutas fail-closed. |
 | [ADR-0029 — Experiencia pública](adr/0029-experiencia-publica.md) | Home `/` editable como composición de `Page.layout` (sección `hero`, elementos `button`/`featured`), editor GrapesJS intuitivo y header/dropdown configurables (`main`/`user`); selector de idioma fuera del header. |
@@ -110,6 +112,7 @@ Además de este índice, el repositorio de documentación incluye:
 - `docs/guides/` — guías operativas (arranque, crear un plugin, configuración desde UI,
   roles y permisos, despliegue, feature-gating por licencia, claves de licencia para la venta,
   generador de APIs de acceso rápido, generador de SDK/API client, tickets de soporte,
-  chat en tiempo real y ventana flotante, inventario completo M9, compositor social enriquecido M10).
+  chat en tiempo real y ventana flotante, inventario completo M9, compositor social enriquecido M10,
+  vista RAW/Code de actualizaciones M12).
 - `docs/api/` — referencia de la API (visión general, flujo de autenticación, WebSocket,
   inventario).

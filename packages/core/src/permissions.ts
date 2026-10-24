@@ -35,6 +35,7 @@ export const PERMISSION_AREAS = [
   'reports',
   'generated',
   'scaling',
+  'update',
 ] as const;
 
 export type PermissionArea = (typeof PERMISSION_AREAS)[number];
@@ -135,6 +136,8 @@ export const PERMISSION_CATALOG: PermissionDefinition[] = [
   // scaling
   { key: 'scaling.read', description: 'Ver configuración de escalabilidad', area: 'scaling' },
   { key: 'scaling.write', description: 'Editar configuración de escalabilidad', area: 'scaling' },
+  // update
+  { key: 'update.manage', description: 'Auditar datos crudos de actualizaciones', area: 'update' },
 ];
 
 const BASE_KEYS = new Set(PERMISSION_CATALOG.map((p) => p.key));

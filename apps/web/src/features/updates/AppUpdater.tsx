@@ -5,6 +5,8 @@ import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { UpdateStatus, type UpdatePhase } from '../../components/ui/UpdateStatus';
 import { Changelog, type ReleaseNote } from '../../components/ui/Changelog';
+import { RawUpdateView } from './RawUpdateView';
+import { useTranslation } from 'react-i18next';
 import {
   appPhaseToUi,
   isBusyAppPhase,
@@ -40,9 +42,12 @@ function toReleases(info: AppUpdateInfo): ReleaseNote[] {
 export function AppUpdater({ compact = false }: { compact?: boolean }) {
   const qc = useQueryClient();
   const canWrite = useAuthStore((s) => s.hasPermission)('setting.write');
+  const canRaw = useAuthStore((s) => s.hasPermission)('update.manage');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [rollingBack, setRollingBack] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [showRaw, setShowRaw] = useState(false);
+  const { t } = useTranslation();
 
   const { data: info, isFetching } = useQuery({
     queryKey: ['app-update-check'],
@@ -144,6 +149,13 @@ export function AppUpdater({ compact = false }: { compact?: boolean }) {
         </Button>,
       );
     }
+    if (info && canRaw) {
+      action.push(
+        <Button key="raw" variant="ghost" size="sm" onClick={() => setShowRaw((v) => !v)}>
+          {showRaw ? t('updates.rawHide') : t('updates.rawView')}
+        </Button>,
+      );
+    }
     if (terminal?.phase === 'done' && canWrite) {
       action.push(
         <Button key="rollback" variant="secondary" loading={rollback.isPending} onClick={() => rollback.mutate()}>
@@ -170,6 +182,9 @@ export function AppUpdater({ compact = false }: { compact?: boolean }) {
       )}
       {!compact && info && toReleases(info).length > 0 && (
         <Changelog releases={toReleases(info)} />
+      )}
+      {showRaw && info && (
+        <RawUpdateView target="app" version={info.latest || info.version} />
       )}
     </div>
   );

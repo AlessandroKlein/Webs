@@ -105,6 +105,9 @@ export const Permission = {
   ScalingRead: 'scaling.read',
   ScalingWrite: 'scaling.write',
 
+  // Actualizaciones (vista RAW/Code, ADR-0026)
+  UpdateManage: 'update.manage',
+
   // Soporte
   SupportRead: 'support.read',
   SupportManage: 'support.manage',

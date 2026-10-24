@@ -143,6 +143,37 @@ export function pluginPhaseToUi(phase: PluginUpdatePhase): UiUpdatePhase {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Vista RAW/Code (ADR-0026). Contrato de GET /api/v1/system/update/raw.
+// ---------------------------------------------------------------------------
+
+export interface RawUpdateFile {
+  path: string;
+  url?: string;
+  size?: number;
+  sha256?: string;
+}
+
+export interface RawUpdateSignature {
+  algorithm: 'ed25519';
+  encoding: 'base64' | 'base64url';
+  value: string | null;
+  publicKeyPem: string | null;
+}
+
+export interface RawUpdatePayload {
+  kind: 'app' | 'plugin';
+  id: string | null;
+  name: string;
+  version: string;
+  manifest: unknown;
+  changelog: string | null;
+  files: RawUpdateFile[];
+  integrity?: { sha256: string };
+  signature: RawUpdateSignature;
+  source: { url: string | null; releasedAt: string | null };
+}
+
 /** Etiqueta legible de una fase de actualización de plugin (para estados inline). */
 export function pluginPhaseLabel(phase: PluginUpdatePhase): string {
   switch (phase) {

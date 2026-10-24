@@ -132,6 +132,35 @@ export async function downloadFile(path: string, filename: string): Promise<void
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Petición autenticada que devuelve TEXTO plano (p. ej. YAML) en vez de JSON.
+ *
+ * Útil para endpoints que responden `text/yaml` o similares (la vista RAW/Code
+ * de actualizaciones, ADR-0026), donde `api.get` (que hace `res.json()`) no
+ * sirve. Aplica el mismo refresh de token ante un 401.
+ */
+export async function getText(path: string): Promise<string> {
+  const doFetch = (token: string | null) =>
+    fetch(`${BASE_URL}${path}`, {
+      credentials: 'include',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...getScopeHeaders(),
+      },
+    });
+
+  let res = await doFetch(getAccessToken());
+  if (res.status === 401) {
+    const refreshed = await tryRefresh();
+    if (refreshed) res = await doFetch(getAccessToken());
+  }
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: ApiErrorBody } | null;
+    throw new ApiClientError(res.status, body?.error, body ?? undefined);
+  }
+  return res.text();
+}
+
 /** Petición autenticada con un token concreto (sin refresh): para flujos de setup. */
 async function requestWithToken<T>(path: string, token: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
