@@ -18,7 +18,8 @@ con **auto-scaling** (HPA) y **load balancing** sin sticky sessions.
 | API | `deployment-api.yaml` + `service-api.yaml` | `replicas: 3`, probes, `maxUnavailable: 0` |
 | Web (nginx) | `deployment-web.yaml` + `service-web.yaml` | Estáticos + reverse proxy a `api` |
 | Ingress | `ingress.yaml` | NGINX + TLS + security headers + WebSocket |
-| HPA | `hpa-api.yaml` | CPU/memoria 70 %, 2→10 réplicas |
+| HPA | `hpa-api.yaml` | CPU/memoria 70 %, 2→10 réplicas (alternativa horizontal) |
+| VPA | `vpa-api.yaml` + `vpa-web.yaml` | Escalado vertical de requests/limits (alternativa al HPA, ADR-0025) |
 | PDB | `pdb.yaml` | `minAvailable: 1` (api y web) |
 | Migración | `migration-job.yaml` | `prisma migrate deploy` (schema t22) |
 
@@ -84,10 +85,18 @@ dedicado. Los manifiestos de app no despliegan Postgres ni Redis.
    kubectl apply -f deploy/k8s/service-web.yaml
    ```
 
-6. **Auto-scaling y disponibilidad**:
+6. **Auto-scaling y disponibilidad** (elegir HPA *o* VPA por workload — ver
+   "Escalabilidad selectable" más abajo):
 
    ```bash
+   # Opción A — horizontal (default): HPA sobre CPU/memoria.
    kubectl apply -f deploy/k8s/hpa-api.yaml
+
+   # Opción B — vertical (requiere el operador VPA): VPA de requests/limits.
+   # (NO aplicar hpa-api.yaml y vpa-api.yaml a la vez sobre el mismo workload.)
+   kubectl apply -f deploy/k8s/vpa-api.yaml
+   kubectl apply -f deploy/k8s/vpa-web.yaml
+
    kubectl apply -f deploy/k8s/pdb.yaml
    ```
 
@@ -117,6 +126,70 @@ kubectl -n webs get hpa api --watch
 # Health de una réplica (liveness/readiness)
 kubectl -n webs exec deploy/api -- wget -qO- http://localhost:4000/health
 kubectl -n webs exec deploy/api -- wget -qO- http://localhost:4000/health/ready
+```
+
+## Escalabilidad selectable (HPA/VPA)
+
+Desde el Milestone 11 (ADR-0025), cada workload (`api`, `web`) elige **cómo**
+escala: **horizontal** (HPA, añade/quita réplicas) o **vertical** (VPA, ajusta
+requests/limits). La elección se persiste en el ConfigMap `webs-config` (claves
+`SCALING_*`) y es la **fuente de verdad** que la API expone vía
+`GET/PUT /api/v1/system/scaling` y `GET /system/scaling/export` (implementación
+de la tarea t153). Los manifiestos HPA/VPA no leen estas claves en runtime: el
+generador emite el manifiesto activo a partir de ellas.
+
+### Claves del ConfigMap
+
+| Clave | Valores | Default | Aplica si |
+|---|---|---|---|
+| `SCALING_API_MODE` | `horizontal` \| `vertical` | `horizontal` | workload `api` |
+| `SCALING_API_VPA_UPDATE_MODE` | `Auto` \| `Recommender` \| `Initial` | `Recommender` | `MODE=vertical` |
+| `SCALING_API_HPA_MIN` / `_MAX` | entero | `2` / `10` | `MODE=horizontal` |
+| `SCALING_API_HPA_CPU_TARGET` / `_MEM_TARGET` | % (1–100) | `70` / `70` | `MODE=horizontal` |
+| `SCALING_API_VPA_MIN_CPU` / `_MAX_CPU` | cantidad | `250m` / `2` | `MODE=vertical` |
+| `SCALING_API_VPA_MIN_MEM` / `_MAX_MEM` | cantidad | `256Mi` / `2Gi` | `MODE=vertical` |
+
+Las mismas claves existen para `web` con prefijo `SCALING_WEB_*` (HPA `2`→`8`,
+VPA `50m`/`64Mi` → `1`/`512Mi`).
+
+### Mapeo de modos VPA
+
+| `SCALING_*_VPA_UPDATE_MODE` | `updatePolicy.updateMode` | Efecto |
+|---|---|---|
+| `Auto` | `Auto` | Aplica las recomendaciones en vivo (re-escribe requests/limits) |
+| `Recommender` | `Off` | Solo calcula y expone recomendaciones (no muta pods) |
+| `Initial` | `Initial` | Aplica recomendaciones solo al crear el pod |
+
+El operador VPA (`autoscaling.k8s.io/v1`) debe estar instalado para cualquiera
+de los tres modos; sin él, los objetos `VerticalPodAutoscaler` no tienen efecto.
+
+### Regla de exclusión HPA ↔ VPA
+
+El HPA (CPU/memoria) y el VPA (CPU/memoria) **no deben coexistir** sobre el
+mismo workload: el HPA calcula su métrica de utilización sobre los requests que
+el VPA reescribe, generando oscilación. El selector lo impone:
+
+- `SCALING_<W>_MODE=horizontal` → aplicar `hpa-api.yaml` (y NO el VPA).
+- `SCALING_<W>_MODE=vertical` → aplicar `vpa-<w>.yaml` (y NO el HPA).
+
+Coexistencia **permitida**: VPA (CPU/memoria) + HPA sobre **métrica custom**
+(por ejemplo, KEDA escalando por profundidad de cola Redis), porque operan
+sobre dimensiones distintas. Esta es la salida recomendada cuando se necesita
+reactividad ante ráfagas además del ajuste vertical.
+
+### Verificación
+
+```bash
+# Sintaxis (no aplica a un cluster real)
+kubectl apply --dry-run=client -f deploy/k8s/vpa-api.yaml
+kubectl apply --dry-run=client -f deploy/k8s/vpa-web.yaml
+kubectl apply --dry-run=client -f deploy/k8s/
+
+# Estado de los objetos de escalado
+kubectl -n webs get hpa,vpa
+
+# Recomendaciones VPA (cuando updateMode=Off, no muta pods)
+kubectl -n webs describe vpa api
 ```
 
 ## Notas de operación

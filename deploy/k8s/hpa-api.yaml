@@ -1,5 +1,10 @@
 # HorizontalPodAutoscaler de la API (ADR-0008). Escala por CPU y memoria;
 # los requests/limits en deployment-api.yaml son la base de la métrica.
+#
+# EXCLUSIÓN HPA+VPA (ADR-0025): si `SCALING_API_MODE=vertical` (ConfigMap), NO
+# aplicar este HPA: coexiste mal con `vpa-api.yaml` porque ambos controlan la
+# misma métrica Resource (CPU/memoria). Usar uno u otro según el selector.
+# Alternativa compatible: VPA(CPU/mem) + HPA sobre métrica CUSTOM (KEDA).
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:

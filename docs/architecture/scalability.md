@@ -149,6 +149,10 @@ El [ADR-0025](../adr/0025-scalable-selectable.md) extiende el HPA de M2 para que
 elija, **desde el panel y por workload** (`api`, `web`), entre escalado **horizontal (HPA)** y
 **vertical (VPA)**, con los modos verticales **Auto / Recommender / Initial**.
 
+> **Estado (M11, implementado)**: módulo `apps/api/src/modules/scaling.ts` (registrado bajo
+> `/api/v1`), panel `/admin/scaling` (`apps/web`), manifiestos `deploy/k8s/vpa-api.yaml` +
+> `vpa-web.yaml`, y `deploy/k8s/configmap.yaml` con las 20 claves `SCALING_*` (10 por workload).
+
 ### Selector por workload
 
 | Workload | Modo | Efecto |
@@ -157,8 +161,10 @@ elija, **desde el panel y por workload** (`api`, `web`), entre escalado **horizo
 | `api` | `vertical` | `VerticalPodAutoscaler` (`autoscaling.k8s.io/v1`) con `updateMode` Auto/Off/Initial. |
 | `web` | `horizontal` / `vertical` | Ídem para el deployment de nginx. |
 
-La selección se **persiste en el `ConfigMap` `webs-scaling`** (namespace `webs`), clave
-`scaling.json`:
+La selección se **persiste en la tabla `settings`** (clave `scaling`, JSON) vía
+`PUT /api/v1/system/scaling`, por lo que **sobrevive al reinicio** de la API. Los manifiestos de
+`deploy/k8s/configmap.yaml` exponen el equivalente como claves `SCALING_*` (10 por workload) para
+arranques en cluster; el panel y la API son la fuente de verdad en runtime.
 
 ```jsonc
 {
@@ -195,6 +201,22 @@ otro por workload**.
 - **Coexistencia** (cuando se quieren ambos): `VPA` sobre **CPU/memoria** + `HPA` sobre
   **métricas custom** (p. ej. `KEDA` por longitud de cola Redis `webs:queue:*`), de modo que el
   HPA no usa las métricas que el VPA controla.
+
+### Panel `/admin/scaling` y generación del manifiesto
+
+La UI (`apps/web`, ruta `/admin/scaling`) consume `GET/PUT /api/v1/system/scaling` y
+`GET /api/v1/system/scaling/export?workload=api|web&format=yaml`:
+
+1. El operador elige **HPA** (modo `horizontal`, con `min`/`max` réplicas y target CPU/mem) o
+   **VPA** (modo `vertical`, con `updateMode` Auto/Off/Initial y `minAllowed`/`maxAllowed` CPU/mem)
+   por workload.
+2. Al guardar, el backend valida la regla de exclusión (422 si conflicto) y persiste en `settings`.
+3. El botón **Export YAML** descarga el manifiesto `HorizontalPodAutoscaler` (`autoscaling/v2`) o
+   `VerticalPodAutoscaler` (`autoscaling.k8s.io/v1`) según el modo elegido, listo para `kubectl apply`.
+
+> Aplicar el VPA requiere el **operador VPA** instalado en el cluster (prerrequisito). Sin el CRD,
+> `kubectl apply -f deploy/k8s/vpa-api.yaml` falla — ver §6 de
+> [`docs/guides/despliegue.md`](../guides/despliegue.md).
 
 ### Contrato de endpoints
 

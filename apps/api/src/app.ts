@@ -35,6 +35,7 @@ import mediaRoutes from './modules/media/routes';
 import notificationsRoutes from './modules/notifications/routes';
 import expensesRoutes from './modules/expenses';
 import systemRoutes from './modules/system';
+import scalingRoutes from './modules/scaling';
 import updateRoutes from './modules/update';
 import pluginUpdateRoutes from './modules/update/plugins';
 import pagesRoutes from './modules/pages/routes';
@@ -153,6 +154,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(notificationsRoutes, { prefix: API_PREFIX });
   await app.register(expensesRoutes, { prefix: API_PREFIX });
   await app.register(systemRoutes, { prefix: API_PREFIX });
+  await app.register(scalingRoutes, { prefix: API_PREFIX });
   await app.register(updateRoutes, { prefix: API_PREFIX });
   await app.register(pluginUpdateRoutes, { prefix: API_PREFIX });
   await app.register(pagesRoutes, { prefix: API_PREFIX });

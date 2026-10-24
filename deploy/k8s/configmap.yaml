@@ -23,3 +23,42 @@ data:
   # Clave pública Ed25519 (PEM SPKI) que verifica los artefactos de update.
   # Es pública, por eso va en ConfigMap. Generar con el CLI de @licensify/core.
   UPDATE_PUBLIC_KEY: ""
+
+  # ---------------------------------------------------------------------------
+  # Escalabilidad selectable (ADR-0025). El selector decide, POR WORKLOAD (api o
+  # web), si se escala HORIZONTAL (HPA, réplicas) o VERTICAL (VPA, requests/
+  # limits). Los manifiestos HPA/VPA no leen estas claves en runtime: son la
+  # fuente de verdad que la API usa en GET/PUT /api/v1/system/scaling y
+  # /system/scaling/export para EMITIR el manifiesto activo. Ver
+  # deploy/k8s/README.md → "Escalabilidad selectable (HPA/VPA)".
+  # REGLA DE EXCLUSIÓN: HPA y VPA sobre CPU/memoria del MISMO workload no deben
+  # coexistir. El valor *_MODE impone uno u otro.
+  # ---------------------------------------------------------------------------
+  # --- Workload API ----------------------------------------------------------
+  # 'horizontal' (HPA) | 'vertical' (VPA).
+  SCALING_API_MODE: "horizontal"
+  # Modo VPA (solo si SCALING_API_MODE=vertical):
+  # Auto=updateMode:Auto · Recommender=updateMode:Off · Initial=updateMode:Initial
+  SCALING_API_VPA_UPDATE_MODE: "Recommender"
+  # Parámetros HPA (solo si SCALING_API_MODE=horizontal).
+  SCALING_API_HPA_MIN: "2"
+  SCALING_API_HPA_MAX: "10"
+  SCALING_API_HPA_CPU_TARGET: "70"
+  SCALING_API_HPA_MEM_TARGET: "70"
+  # Límites VPA (solo si SCALING_API_MODE=vertical).
+  SCALING_API_VPA_MIN_CPU: "250m"
+  SCALING_API_VPA_MAX_CPU: "2"
+  SCALING_API_VPA_MIN_MEM: "256Mi"
+  SCALING_API_VPA_MAX_MEM: "2Gi"
+
+  # --- Workload WEB ----------------------------------------------------------
+  SCALING_WEB_MODE: "horizontal"
+  SCALING_WEB_VPA_UPDATE_MODE: "Recommender"
+  SCALING_WEB_HPA_MIN: "2"
+  SCALING_WEB_HPA_MAX: "8"
+  SCALING_WEB_HPA_CPU_TARGET: "70"
+  SCALING_WEB_HPA_MEM_TARGET: "70"
+  SCALING_WEB_VPA_MIN_CPU: "50m"
+  SCALING_WEB_VPA_MAX_CPU: "1"
+  SCALING_WEB_VPA_MIN_MEM: "64Mi"
+  SCALING_WEB_VPA_MAX_MEM: "512Mi"

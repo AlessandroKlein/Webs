@@ -168,8 +168,8 @@ location /ws {
 
 ## 6. Kubernetes (conceptual)
 
-La estructura objetivo está descrita en [`infra/README.md`](../../infra/README.md).
-Manifiestos previstos en un directorio `k8s/`:
+La estructura objetivo está descrita en [`infra/README.md`](../../infra/README.md) y los
+manifiestos viven en [`deploy/k8s/`](../../deploy/k8s/):
 
 | Recurso             | Componente                                                              |
 | ------------------- | ----------------------------------------------------------------------- |
@@ -180,6 +180,41 @@ Manifiestos previstos en un directorio `k8s/`:
 
 La API no requiere afinidad de sesión porque es stateless; Redis y PostgreSQL
 son los únicos componentes con estado compartido.
+
+### 6.1 Escalado vertical (VPA) — paso opcional
+
+Además del `HorizontalPodAutoscaler` (`deploy/k8s/hpa-api.yaml`), el repo incluye
+`VerticalPodAutoscaler` para `api` y `web`:
+
+```bash
+# Requisito: el operador VPA debe estar instalado en el cluster
+# (kubernetes/autoscaler: recommender + updater + admission-controller).
+# Sin el CRD, este apply falla con "no matches for kind VerticalPodAutoscaler".
+
+kubectl apply -f deploy/k8s/vpa-api.yaml
+kubectl apply -f deploy/k8s/vpa-web.yaml
+```
+
+Los manifiestos VPA arrancan en modo `Recommender` (`updateMode: Off`): **calculan y publican
+recomendaciones sin aplicarlas**, de modo que podés verlas sin riesgo antes de pasar a `Auto`.
+
+### 6.2 Elegir el modo desde el panel
+
+En lugar de editar YAML a mano, el panel **`/admin/scaling`** (permiso `scaling.read`/`scaling.write`)
+gestiona la selección por workload (`api`, `web`) y genera el manifiesto:
+
+1. **HPA** (horizontal): `min`/`max` réplicas + target de CPU y memoria.
+2. **VPA** (vertical): `updateMode` **Auto** (aplica recomendaciones), **Recommender** (solo
+   recomienda, `Off`) o **Initial** (aplica solo al crear el pod), más `minAllowed`/`maxAllowed`
+   de CPU y memoria.
+
+El botón **Export YAML** descarga el manifiesto `HorizontalPodAutoscaler` o
+`VerticalPodAutoscaler` según la selección, listo para `kubectl apply`.
+
+> **Regla de exclusión**: HPA y VPA no se activan a la vez sobre CPU/memoria del mismo workload
+> (se pisan). El panel lo valida (422 si conflicto). Para combinar ambos, usá VPA sobre CPU/mem
+> + HPA sobre métricas custom (KEDA por cola Redis). Ver
+> [`scalability.md`](../architecture/scalability.md#escalabilidad-selectable-adr-0025).
 
 ---
 

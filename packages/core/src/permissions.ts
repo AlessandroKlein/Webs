@@ -34,6 +34,7 @@ export const PERMISSION_AREAS = [
   'academy',
   'reports',
   'generated',
+  'scaling',
 ] as const;
 
 export type PermissionArea = (typeof PERMISSION_AREAS)[number];
@@ -131,6 +132,9 @@ export const PERMISSION_CATALOG: PermissionDefinition[] = [
   // generated
   { key: 'generated.read', description: 'Ver recursos generados', area: 'generated' },
   { key: 'generated.manage', description: 'Crear/editar recursos generados', area: 'generated' },
+  // scaling
+  { key: 'scaling.read', description: 'Ver configuración de escalabilidad', area: 'scaling' },
+  { key: 'scaling.write', description: 'Editar configuración de escalabilidad', area: 'scaling' },
 ];
 
 const BASE_KEYS = new Set(PERMISSION_CATALOG.map((p) => p.key));

@@ -101,6 +101,10 @@ export const Permission = {
   BillingWrite: 'billing.write',
   RefundManage: 'refund.manage',
 
+  // Escalabilidad (selector HPA/VPA, ADR-0025)
+  ScalingRead: 'scaling.read',
+  ScalingWrite: 'scaling.write',
+
   // Soporte
   SupportRead: 'support.read',
   SupportManage: 'support.manage',

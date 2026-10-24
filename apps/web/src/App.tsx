@@ -58,6 +58,7 @@ import { UpdatesPage } from './features/updates/UpdatesPage';
 import { LicensePage } from './features/license/LicensePage';
 import { LicenseKeysPage } from './features/license/LicenseKeysPage';
 import { GeneratedPage } from './features/generated/GeneratedPage';
+import { ScalingPage } from './features/scaling/ScalingPage';
 import { SiteLayout } from './components/SiteLayout';
 import { StaffDashboard } from './features/staff/StaffDashboard';
 import { SetupWizard } from './features/setup/SetupWizard';
@@ -191,6 +192,7 @@ function MainApp() {
           <Route path="menu" element={<MenuEditorPage />} />
           <Route path="support" element={<SupportPage />} />
           <Route path="updates" element={<UpdatesPage />} />
+          <Route path="scaling" element={<ScalingPage />} />
           <Route path="license" element={<LicensePage />} />
           <Route path="license/keys" element={<LicenseKeysPage />} />
           <Route path="generated" element={<GeneratedPage />} />

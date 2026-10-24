@@ -80,6 +80,10 @@ const PERMISSIONS: Array<{ key: string; description: string }> = [
   // Generador de APIs (ADR-0020)
   { key: 'generated.read', description: 'Ver recursos generados' },
   { key: 'generated.manage', description: 'Crear/editar recursos generados' },
+
+  // Escalabilidad (selector HPA/VPA, ADR-0025)
+  { key: 'scaling.read', description: 'Ver configuración de escalabilidad' },
+  { key: 'scaling.write', description: 'Editar configuración de escalabilidad' },
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);

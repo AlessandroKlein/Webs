@@ -3,6 +3,29 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.9.0] - 2026-10-24
+
+### Añadido
+
+- **Escalabilidad selectable (ADR-0025, M11)**: panel HPA/VPA con modos verticales
+  Auto/Recommender/Initial + export YAML. Módulo `GET/PUT /api/v1/system/scaling` y
+  `GET /system/scaling/export?workload=api|web&format=yaml` (permisos `scaling.read`/`scaling.write`,
+  guarda de exclusión HPA+VPA sobre CPU/mem), manifiestos `deploy/k8s/vpa-api.yaml` +
+  `vpa-web.yaml`, y `configmap.yaml` con 20 claves `SCALING_*`.
+- **Manifiestos VPA**: `VerticalPodAutoscaler` (`autoscaling.k8s.io/v1`) para `api` y `web`
+  (modo `Off` por defecto, `controlledResources: [cpu, memory]`, `minAllowed`/`maxAllowed`),
+  `configmap.yaml` parametrizado con 20 claves `SCALING_*` por workload y README con la regla
+  de exclusión HPA↔VPA (coexistencia solo con HPA sobre métrica custom/KEDA).
+- **i18n M11**: claves `scaling.*` en `es`/`en`/`pt` (33 claves, paridad total).
+- **Docs M11**: `docs/adr/0025-scalable-selectable.md`, spec en `docs/architecture/scalability.md`
+  y guía `docs/guides/despliegue.md` §6 actualizada al panel `/admin/scaling`.
+
+### Deuda técnica
+
+- Heredada: cache `blocks:catalog` (t101), `navItems` hardcodeado en AdminLayout (t122), `gen.*`
+  huérfanos (t110), errores backend hardcoded (t108), rename residual (F12/F4/F10/F17) y hueco
+  ADR 0013–0022 (t126).
+
 ## [2.8.0] - 2026-10-24
 
 ### Añadido

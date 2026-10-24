@@ -1,0 +1,40 @@
+# VerticalPodAutoscaler del frontend (ADR-0025). Escala VERTICAL los
+# requests/limits de CPU/memoria del contenedor `web` (nginx sirviendo los
+# estáticos + reverse proxy). Aplica la misma regla de exclusión que
+# `vpa-api.yaml`: NO coexistir con un HPA sobre CPU/memoria del mismo workload.
+#
+# MAPEO DE MODOS (ADR-0025): `updatePolicy.updateMode` se GENERA desde
+# `SCALING_WEB_VPA_UPDATE_MODE` (ConfigMap):
+#   - Auto        → updateMode: Auto
+#   - Recommender → updateMode: Off      ← default (solo recomendaciones)
+#   - Initial     → updateMode: Initial
+# Precondición: operador VPA instalado en el cluster.
+# minAllowed/maxAllowed son valores por defecto; el generador los sustituye
+# desde SCALING_WEB_VPA_MIN_CPU/MAX_CPU/MIN_MEM/MAX_MEM.
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: web
+  namespace: webs
+  labels:
+    app.kubernetes.io/name: webs
+    app.kubernetes.io/component: web
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: web
+        mode: "Auto"
+        controlledValues: "RequestsAndLimits"
+        controlledResources: ["cpu", "memory"]
+        minAllowed:
+          cpu: 50m
+          memory: 64Mi
+        maxAllowed:
+          cpu: "1"
+          memory: 512Mi

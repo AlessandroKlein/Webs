@@ -147,6 +147,7 @@ export function AdminLayout() {
     { to: '/admin/templates', label: t('nav.templates'), section: 'configuracion', perm: 'setting.write' },
     { to: '/admin/branches', label: t('nav.branches'), section: 'configuracion', perm: null },
     { to: '/admin/updates', label: t('nav.updates'), section: 'configuracion', perm: 'setting.read' },
+    { to: '/admin/scaling', label: t('nav.scaling'), section: 'configuracion', perm: 'scaling.read' },
     { to: '/admin/license', label: t('nav.license'), section: 'configuracion', perm: 'license.read' },
     { to: '/admin/license/keys', label: t('nav.licenseKeys'), section: 'configuracion', perm: 'license.read' },
     { to: '/admin/users', label: t('nav.users'), section: 'usuarios', perm: 'user.read' },

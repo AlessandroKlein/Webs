@@ -1,0 +1,51 @@
+# VerticalPodAutoscaler de la API (ADR-0025). Escala VERTICAL (requests/limits
+# de CPU/memoria del contenedor `api`) según las recomendaciones del VPA
+# Recommender, en lugar de añadir réplicas.
+#
+# REGLA DE EXCLUSIÓN HPA+VPA (ADR-0025, decisión 4):
+#   NO activar a la vez este VPA (CPU/memoria) y el HPA de `hpa-api.yaml`
+#   (también CPU/memoria) sobre el MISMO Deployment `api`. Ambos escribirían
+#   requests/limits y réplicas de forma conflictiva (el HPA calcula su métrica
+#   sobre los requests que el VPA reescribe).
+#   El selector (ConfigMap `SCALING_API_MODE`) impone uno u otro:
+#     - SCALING_API_MODE=horizontal → aplicar `hpa-api.yaml` (NO este VPA).
+#     - SCALING_API_MODE=vertical   → aplicar este VPA (NO el HPA).
+#   Coexistencia permitida: VPA(CPU/mem) + HPA sobre métrica CUSTOM (p. ej.
+#   KEDA por profundidad de cola Redis), nunca sobre la misma métrica Resource.
+#
+# MAPEO DE MODOS (ADR-0025, decisión 2): `updatePolicy.updateMode` se GENERA a
+# partir de `SCALING_API_VPA_UPDATE_MODE` (ConfigMap, sección escalabilidad):
+#   - Auto        → updateMode: Auto     (aplica las recomendaciones en vivo)
+#   - Recommender → updateMode: Off      (solo muestra recomendaciones)  ← default
+#   - Initial     → updateMode: Initial  (aplica solo al crear el pod)
+# Precondición: el operador VPA (autoscaling.k8s.io) debe estar instalado.
+# Los minAllowed/maxAllowed son los valores por defecto; el generador
+# (/system/scaling/export) los sustituye desde SCALING_API_VPA_MIN_CPU/MAX_CPU/
+# MIN_MEM/MAX_MEM.
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: api
+  namespace: webs
+  labels:
+    app.kubernetes.io/name: webs
+    app.kubernetes.io/component: api
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: api
+        mode: "Auto"
+        controlledValues: "RequestsAndLimits"
+        controlledResources: ["cpu", "memory"]
+        minAllowed:
+          cpu: 250m
+          memory: 256Mi
+        maxAllowed:
+          cpu: "2"
+          memory: 2Gi
