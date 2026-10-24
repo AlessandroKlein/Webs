@@ -112,6 +112,27 @@ export default definePlugin(manifest, {
         realtime.sendToUser(msg.to, 'chat.message', msg);
         if (msg.from && msg.from !== msg.to) realtime.sendToUser(msg.from, 'chat.message', msg);
       }
+
+      // Push notification al destinatario (solo si es un usuario real, no la sala
+      // 'general' ni el remitente anónimo). Se emite `notification.created` para
+      // actualizar la campana en vivo (ADR-0022).
+      if (msg.to && msg.to !== 'general' && msg.to !== 'anon') {
+        const notification = await db.notification.create({
+          data: {
+            title: 'Nuevo mensaje',
+            body: msg.body.slice(0, 160),
+            userId: msg.to,
+            priority: 'normal',
+            organizationId: msg.organizationId,
+          },
+        });
+        if (fastify.events) {
+          await fastify.events.emit('notification.created', { notification });
+        }
+        if (realtime) {
+          realtime.sendToUser(msg.to, 'notification.created', notification);
+        }
+      }
       return msg;
     });
 

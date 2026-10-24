@@ -3,6 +3,46 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.6.0] - 2026-10-24
+
+### Añadido
+
+- **Menú admin con fuente única**: `GET /api/v1/menu` devuelve los ítems core
+  (seed `CORE_MENU_ITEMS`, 22 ítems) + los de plugins, con campo `source`
+  (`core`/`plugin`), dedup server-side por path (el core gana) y orden/permissions
+  coherentes (`buildAdminMenu`). Editor `/admin/menu` rediseñado: los core son
+  editables (orden, sección, permiso, feature) y los de plugin quedan solo lectura
+  (ya no se reenvían al guardar, eliminando la duplicación).
+- **Sistema de tickets (ADR-0021)**: modelo `Ticket` con estados
+  `pending/in_progress/done` y prioridades `low/normal/high/urgent` (migración
+  `0008_tickets`), 5 endpoints `/api/v1/support/tickets` (list/detail/create/
+  transition/delete) con scoping fail-closed y permisos `support.read`/
+  `support.manage`; retrocompat del plugin `support` (estados legacy). Frontend
+  `/admin/support` rediseñado (tabs por estado, cambio en línea, modal de creación,
+  confirmación de borrado).
+- **Chat en tiempo real (ADR-0022)**: DM vía `POST /messages` → evento
+  `chat.message` + `notification.created` por WebSocket (Redis pub/sub), ventana
+  flotante `ChatWidget` (FAB con badge de no leídos, toast y panel) montada
+  globalmente fuera de `/admin`; retirada la ruta `/admin/chat` y el módulo
+  `ChatPage`.
+- **i18n M8 (ES/EN/PT)** de menú admin, soporte/tickets y chat (+ ventana
+  flotante); y **docs M8** (`tickets-soporte.md`, `chat-tiempo-real.md`,
+  `menu-admin-redesign.md` marcada como implementada).
+
+### Deuda técnica
+
+- **MENOR (t122)**: `AdminLayout` del frontend aún usa `navItems` hardcodeados en
+  lugar de consumir `GET /menu` (el backend ya es la fuente única).
+- MEDIUM (t101): caché `blocks:catalog` 60s sin invalidar en activate/deactivate de
+  licencia.
+- MENOR (t110): `DELETE /generated/:key` no limpia los permisos `gen.<key>.*`
+  (huérfanos).
+- MENOR (t108): errores del motor generador en español hardcodeados (sin mapeo
+  error-code→clave i18n).
+- Heredada: F12 (rename residual `blockId` + shim `/api/v1/blocks/*` + prosa
+  "bloque"), F4 (docs `block.read`/`block.manage` históricas), F10 (`GET /setup/status`
+  versión real), F17 (wrapper Capacitor real).
+
 ## [2.5.0] - 2026-10-23
 
 ### Añadido

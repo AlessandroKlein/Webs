@@ -84,6 +84,47 @@ const PERMISSIONS: Array<{ key: string; description: string }> = [
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);
 
+/**
+ * Ítems core del menú `/admin` (spec `docs/architecture/menu-admin-redesign.md`).
+ * Refleja los 22 ítems que hoy viven hardcodeados en
+ * `apps/web/src/layouts/AdminLayout.tsx:132-155` (mismos `path`/`section`/`perm`/
+ * `feature`). `label` guarda la CLAVE i18n (p. ej. `nav.dashboard`); el frontend
+ * la resuelve con `t(label)` al renderizar (los ítems de plugin ya traen `label`
+ * resuelto por `resolveLabel`).
+ */
+const CORE_MENU_ITEMS: Array<{
+  label: string;
+  path: string;
+  section: string;
+  order: number;
+  feature: string;
+  permissions: string[];
+}> = [
+  { label: 'nav.dashboard', path: '/admin', section: 'panel', order: 1, feature: 'core', permissions: [] },
+  { label: 'nav.content', path: '/admin/content', section: 'contenido', order: 2, feature: 'core', permissions: ['content.read'] },
+  { label: 'nav.pages', path: '/admin/pages', section: 'contenido', order: 3, feature: 'core', permissions: ['content.read'] },
+  { label: 'nav.editor', path: '/admin/editor', section: 'contenido', order: 4, feature: 'core', permissions: ['content.write'] },
+  { label: 'nav.payments', path: '/admin/payments', section: 'ventas', order: 5, feature: 'core', permissions: ['user.read'] },
+  { label: 'nav.email', path: '/admin/email', section: 'comunicacion', order: 6, feature: 'core', permissions: ['email.read'] },
+  { label: 'nav.support', path: '/admin/support', section: 'comunicacion', order: 7, feature: 'core', permissions: ['support.read'] },
+  { label: 'nav.appearance', path: '/admin/appearance', section: 'apariencia', order: 8, feature: 'core', permissions: ['theme.read'] },
+  { label: 'nav.translations', path: '/admin/translations', section: 'apariencia', order: 9, feature: 'core', permissions: ['translation.read'] },
+  { label: 'nav.menu', path: '/admin/menu', section: 'apariencia', order: 10, feature: 'core', permissions: ['setting.read'] },
+  { label: 'nav.plugins', path: '/admin/plugins', section: 'integraciones', order: 11, feature: 'core', permissions: ['plugin.read'] },
+  { label: 'nav.generated', path: '/admin/generated', section: 'integraciones', order: 12, feature: 'generator', permissions: ['generated.read'] },
+  { label: 'nav.api', path: '/admin/api-tokens', section: 'integraciones', order: 13, feature: 'core', permissions: [] },
+  { label: 'nav.settings', path: '/admin/settings', section: 'configuracion', order: 14, feature: 'core', permissions: ['setting.read'] },
+  { label: 'nav.templates', path: '/admin/templates', section: 'configuracion', order: 15, feature: 'core', permissions: ['setting.write'] },
+  { label: 'nav.branches', path: '/admin/branches', section: 'configuracion', order: 16, feature: 'core', permissions: [] },
+  { label: 'nav.updates', path: '/admin/updates', section: 'configuracion', order: 17, feature: 'core', permissions: ['setting.read'] },
+  { label: 'nav.license', path: '/admin/license', section: 'configuracion', order: 18, feature: 'core', permissions: ['license.read'] },
+  { label: 'nav.licenseKeys', path: '/admin/license/keys', section: 'configuracion', order: 19, feature: 'core', permissions: ['license.read'] },
+  { label: 'nav.users', path: '/admin/users', section: 'usuarios', order: 20, feature: 'core', permissions: ['user.read'] },
+  { label: 'nav.roles', path: '/admin/roles', section: 'usuarios', order: 21, feature: 'core', permissions: ['role.read'] },
+  { label: 'nav.audit', path: '/admin/audit', section: 'usuarios', order: 22, feature: 'core', permissions: ['audit.read'] },
+];
+
+
 const ROLES: Array<{
   key: string;
   name: string;
@@ -257,6 +298,16 @@ async function main() {
       },
     });
   }
+
+  // 5. Menú de administración `/admin`: ítems core (spec `docs/architecture/menu-admin-redesign.md`).
+  //    `key:'admin'` es la única fuente de verdad de los ítems core del panel;
+  //    los ítems de plugin se agregan dinámicamente en `collectPluginMenuItems`.
+  //    `key:'main'` queda reservada para el menú PÚBLICO (templates.ts la siembra).
+  await prisma.menu.upsert({
+    where: { key: 'admin' },
+    update: { name: 'Menú de administración', items: CORE_MENU_ITEMS },
+    create: { key: 'admin', name: 'Menú de administración', items: CORE_MENU_ITEMS },
+  });
 
   console.log(`✔ Seed completado. Superadmin: ${adminEmail} · Organización: ${organization.slug}`);
 }

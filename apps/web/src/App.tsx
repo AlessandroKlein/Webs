@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Providers } from './app/providers';
 import { useAuthStore } from './lib/auth-store';
@@ -37,7 +37,6 @@ import { BranchesPage } from './features/branches/BranchesPage';
 import { InventoryPage } from './features/inventory/InventoryPage';
 import { BlogPage } from './features/blog/BlogPage';
 import { SocialPage } from './features/social/SocialPage';
-import { ChatPage } from './features/chat/ChatPage';
 import { CalendarPage } from './features/calendar/CalendarPage';
 import { FormsPage } from './features/forms/FormsPage';
 import { CommercePage } from './features/commerce/CommercePage';
@@ -54,6 +53,7 @@ import { SocialPublicPage } from './features/public/SocialPublicPage';
 import { UserDashboardPage } from './features/dashboard/UserDashboardPage';
 import { MenuEditorPage } from './features/menu/MenuEditorPage';
 import { SupportPage } from './features/support/SupportPage';
+import { ChatWidget } from './features/chat/ChatWidget';
 import { UpdatesPage } from './features/updates/UpdatesPage';
 import { LicensePage } from './features/license/LicensePage';
 import { LicenseKeysPage } from './features/license/LicenseKeysPage';
@@ -168,7 +168,6 @@ function MainApp() {
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="blog" element={<BlogPage />} />
           <Route path="social" element={<SocialPage />} />
-          <Route path="chat" element={<ChatPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="forms" element={<FormsPage />} />
           <Route path="commerce" element={<CommercePage />} />
@@ -205,6 +204,22 @@ function MainApp() {
         <Route path="/:slug" element={<PublicPage />} />
         <Route path="*" element={<ErrorPage />} />
       </Routes>
+      <ChatWidgetHost />
     </BrowserRouter>
   );
+}
+
+/** Widget de chat flotante: solo fuera de /admin y de las pantallas de auth. */
+function ChatWidgetHost() {
+  const { pathname } = useLocation();
+  if (
+    pathname.startsWith('/admin') ||
+    pathname === '/login' ||
+    pathname === '/setup-2fa' ||
+    pathname === '/verify-email' ||
+    pathname === '/reset-password'
+  ) {
+    return null;
+  }
+  return <ChatWidget />;
 }

@@ -38,23 +38,29 @@ export default definePlugin(manifest, {
         data: {
           subject: body?.subject?.trim() || 'Consulta',
           message: body?.message?.trim() || '',
-          status: 'open',
+          status: 'pending',
+          priority: 'normal',
           organizationId: await resolveOrgId(request),
         },
       });
     });
 
-    // Cambiar el estado (open/closed).
+    // Cambiar el estado (pending/in_progress/done; acepta open/closed por retrocompatibilidad).
     fastify.patch('/tickets/:id', { preHandler: [authenticate] }, async (request: unknown) => {
       const { params, body } = request as {
         params?: { id?: string };
         body?: { status?: string };
       };
-      const status = body?.status;
-      if (status !== 'open' && status !== 'closed') {
-        return { ok: false, error: 'status debe ser open o closed' };
+      const raw = body?.status;
+      // Retrocompat: mapea los valores legacy 'open'/'closed' a los estados del enum.
+      const status = raw === 'open' ? 'pending' : raw === 'closed' ? 'done' : raw;
+      if (status !== 'pending' && status !== 'in_progress' && status !== 'done') {
+        return { ok: false, error: 'status debe ser pending, in_progress o done' };
       }
-      return db.ticket.update({ where: { id: params?.id }, data: { status } });
+      const data: Record<string, unknown> = { status };
+      if (status === 'done') data.resolvedAt = new Date();
+      else data.resolvedAt = null;
+      return db.ticket.update({ where: { id: params?.id }, data });
     });
 
     // Eliminar un ticket.

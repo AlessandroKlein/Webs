@@ -20,6 +20,20 @@ enum OrganizationType {
   branch
 }
 
+// Estados y prioridades del sistema de tickets (ADR-0021).
+enum TicketStatus {
+  pending
+  in_progress
+  done
+}
+
+enum TicketPriority {
+  low
+  normal
+  high
+  urgent
+}
+
 // ---------------------------------------------------------------------------
 // Identidad, roles y permisos
 // ---------------------------------------------------------------------------
@@ -305,14 +319,20 @@ model Comment {
 }
 
 model Ticket {
-  id             String   @id @default(uuid())
-  organizationId String
-  subject        String
-  message        String
-  status         String   @default("open")
-  createdAt      DateTime @default(now())
+  id               String         @id @default(uuid())
+  organizationId   String
+  subject          String
+  message          String
+  status           TicketStatus   @default(pending)
+  priority         TicketPriority @default(normal)
+  assignedToUserId String?
+  authorId         String?
+  resolvedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@index([organizationId])
+  @@index([status])
   @@map("tickets")
 }
 

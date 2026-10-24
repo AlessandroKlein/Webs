@@ -30,6 +30,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Inventario completo](architecture/inventory.md) | **Spec técnica (ADR-0023)**: variantes SKU/EAN-UPC, catálogo, multi-almacén por sucursal, ledger inmutable, valoración promedio/FIFO, alertas y reportes/CSV. |
 | [Compositor social enriquecido](architecture/compositor-social.md) | **Spec técnica (ADR-0024)**: galería multi-media, menciones/hashtags, encuestas, visibilidad, unfurl SSRF-safe y retrocompat. |
 | [Categorización del menú admin](architecture/menu-categorias.md) | **Spec**: taxonomía de secciones (Panel, Contenido, Ventas, Comunicación, Comunidad, Apariencia, Integraciones, Configuración, Usuarios) y criterio de clasificación de cada ítem del panel `/admin`. |
+| [Rediseño del menú admin](architecture/menu-admin-redesign.md) | **Spec + implementación M8**: fuente única de verdad del menú `/admin` (`GET /menu` con `source` core/plugin), dedup server-side por `path`, seed `CORE_MENU_ITEMS` y orden/permisos coherentes. |
 | [Facturación electrónica ARCA](architecture/facturacion-electronica.md) | Plugin `arca`: WSAA (X.509 CMS/PKCS#7), WSFE (CAE) vs WSMTXCA (CAEA), homologación vs producción y settings por organización. |
 | [Comprobantes y facturas](architecture/comprobantes-facturas.md) | `Invoice` fiscal, numeración `pppp-tt-ssssssss`, template HTML editable, ESC/POS 80/58 mm y generación automática por pago aprobado. |
 | [Pagos y checkout unificado](architecture/pagos-checkout.md) | `createCheckoutPayment`/`createPosPayment`, registro de proveedores, webhook idempotente, `metadata.kind` y cobro físico POS. |
@@ -60,6 +61,8 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [ADR-0018 — Permisos y roles completos](adr/0018-roles-permisos.md) | Catálogo canónico de permisos agrupado por dominio + integración de permisos de plugins + edición de roles desde UI. |
 | [ADR-0019 — Feature-gating por licencia](adr/0019-feature-gating.md) | `LICENSE_FEATURES` + `hasFeature()` como única puerta; `feature` declarativa en menú/plugin/dashboard; server 403 en instalación; UI con LicenseProvider + upsell. |
 | [ADR-0020 — Generador de APIs](adr/0020-api-generator.md) | Recursos declarativos (JSON Schema) en tablas JSONB + router genérico en caliente + SDK tipado codegen/runtime; feature premium `generator`. |
+| [ADR-0021 — Tickets de soporte](adr/0021-tickets.md) | Ampliación del modelo `Ticket`: estados `pending/in_progress/done`, prioridad, asignación opcional, scoping fail-closed y permisos `support.read/manage`. |
+| [ADR-0022 — Chat en tiempo real](adr/0022-chat-realtime.md) | WebSocket (existente) como canal de entrega sin recarga + ventana flotante por usuario/org; se descarta SSE. |
 | [ADR-0023 — Modelo de inventario](adr/0023-inventory.md) | Inventario completo: variantes SKU/EAN-UPC, multi-almacén, ledger inmutable, valoración promedio/FIFO y alertas. |
 | [ADR-0024 — Compositor social enriquecido](adr/0024-compositor-social-enriquecido.md) | Galería multi-media, menciones/hashtags, encuestas, visibilidad y preview de enlaces (nativo, retrocompatible). |
 | [ADR-0025 — Escalabilidad selectable](adr/0025-scalable-selectable.md) | Selector HPA vs VPA por workload con modos verticales Auto/Recommender/Initial y guarda de exclusión. |
@@ -89,5 +92,6 @@ Además de este índice, el repositorio de documentación incluye:
 
 - `docs/guides/` — guías operativas (arranque, crear un plugin, configuración desde UI,
   roles y permisos, despliegue, feature-gating por licencia, claves de licencia para la venta,
-  generador de APIs de acceso rápido, generador de SDK/API client).
+  generador de APIs de acceso rápido, generador de SDK/API client, tickets de soporte,
+  chat en tiempo real y ventana flotante).
 - `docs/api/` — referencia de la API (visión general, flujo de autenticación, WebSocket).

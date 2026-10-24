@@ -14,19 +14,6 @@
   "author": "Webs",
   "license": "MIT",
   "category": "comunicacion",
-  "menu": [
-    {
-      "id": "admin",
-      "label": {
-        "en": "Chat",
-        "es": "Chat"
-      },
-      "path": "/admin/chat",
-      "section": "comunicacion",
-      "order": 3,
-      "target": "admin"
-    }
-  ],
   "entry": "./dist/server.js",
   "clientEntry": "./dist/client.js",
   "apiVersion": "1.0.0",

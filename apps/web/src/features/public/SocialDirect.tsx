@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
+import { useRealtime } from '../../lib/realtime';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/ui/Button';
 import { Spinner } from '../../components/ui/Spinner';
 
@@ -95,9 +97,19 @@ export function Avatar({
  * con campo para enviar. Se abre desde el icono bi-send del header de `/social`.
  */
 export function SocialDirect({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const me = user?.id ?? '';
+
+  // Tiempo real (ADR-0022): refresca el hilo y las conversaciones cuando llega
+  // un mensaje nuevo por WebSocket (`chat.message`), sin recargar la página.
+  useRealtime((event) => {
+    if (event === 'chat.message') {
+      void qc.invalidateQueries({ queryKey: ['chat-messages'] });
+      void qc.invalidateQueries({ queryKey: ['chat-conversations'] });
+    }
+  });
 
   const [query, setQuery] = useState('');
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -221,9 +233,9 @@ export function SocialDirect({ onClose }: { onClose: () => void }) {
         }}
       >
         <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
-          <i className="bi bi-send" /> Mensajes
+          <i className="bi bi-send" /> {t('chat.messages')}
         </strong>
-        <Button variant="ghost" onClick={onClose} aria-label="Cerrar mensajes">
+        <Button variant="ghost" onClick={onClose} aria-label={t('chat.closeMessages')}>
           <i className="bi bi-x-lg" />
         </Button>
       </header>
@@ -242,7 +254,7 @@ export function SocialDirect({ onClose }: { onClose: () => void }) {
           <div style={{ padding: 'var(--ws-space-3)', borderBottom: '1px solid var(--ws-border)' }}>
             <input
               className="input"
-              placeholder="Buscar usuarios…"
+              placeholder={t('chat.searchUsersPlaceholder')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               style={{ width: '100%' }}
@@ -272,14 +284,14 @@ export function SocialDirect({ onClose }: { onClose: () => void }) {
                         onClick={() => (followed ? unfollow.mutate(u.id) : follow.mutate(u.id))}
                         disabled={follow.isPending || unfollow.isPending}
                       >
-                        {followed ? 'Dejar de seguir' : 'Seguir'}
+                        {followed ? t('social.unfollow') : t('social.follow')}
                       </Button>
                       <Button
                         variant="ghost"
                         style={{ padding: 'var(--ws-space-1) var(--ws-space-2)' }}
                         onClick={() => openChat(u.id)}
-                        title="Enviar mensaje"
-                        aria-label="Enviar mensaje"
+                        title={t('chat.sendMessage')}
+                        aria-label={t('chat.sendMessage')}
                       >
                         <i className="bi bi-chat-dots" />
                       </Button>
@@ -288,7 +300,7 @@ export function SocialDirect({ onClose }: { onClose: () => void }) {
                 })}
                 {results.length === 0 && (
                   <p style={{ color: 'var(--ws-text-muted)', padding: 'var(--ws-space-3)', margin: 0 }}>
-                    Sin resultados.
+                    {t('chat.noResults')}
                   </p>
                 )}
               </>
@@ -323,7 +335,7 @@ export function SocialDirect({ onClose }: { onClose: () => void }) {
                 ))}
                 {(conversations ?? []).length === 0 && (
                   <p style={{ color: 'var(--ws-text-muted)', padding: 'var(--ws-space-3)', margin: 0 }}>
-                    Aún no hay conversaciones. Busca un usuario para empezar.
+                    {t('chat.noConversations')}
                   </p>
                 )}
               </>
@@ -352,7 +364,7 @@ export function SocialDirect({ onClose }: { onClose: () => void }) {
                 className="stack"
                 style={{ flex: 1, overflowY: 'auto', padding: 'var(--ws-space-4)', gap: 'var(--ws-space-2)' }}
               >
-                {messagesLoading && <Spinner label="Cargando…" />}
+                {messagesLoading && <Spinner label={t('common.loading')} />}
                 {(messages ?? []).map((m) => {
                   const isMine = m.from === me;
                   return (
@@ -382,7 +394,7 @@ export function SocialDirect({ onClose }: { onClose: () => void }) {
                   );
                 })}
                 {(messages ?? []).length === 0 && !messagesLoading && (
-                  <p style={{ color: 'var(--ws-text-muted)', margin: 0 }}>Envía el primer mensaje.</p>
+                  <p style={{ color: 'var(--ws-text-muted)', margin: 0 }}>{t('chat.sendFirst')}</p>
                 )}
                 <div ref={bottomRef} />
               </div>
@@ -394,13 +406,13 @@ export function SocialDirect({ onClose }: { onClose: () => void }) {
               >
                 <input
                   className="input"
-                  placeholder="Escribe un mensaje…"
+                  placeholder={t('chat.messagePlaceholder')}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   style={{ flex: 1 }}
                 />
                 <Button type="submit" disabled={send.isPending || !draft.trim()}>
-                  Enviar
+                  {t('chat.send')}
                 </Button>
               </form>
             </>
@@ -408,7 +420,7 @@ export function SocialDirect({ onClose }: { onClose: () => void }) {
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <p style={{ color: 'var(--ws-text-muted)', margin: 0 }}>
                 <i className="bi bi-send" style={{ marginRight: 'var(--ws-space-2)' }} />
-                Selecciona una conversación o busca un usuario.
+                {t('chat.selectConversation')}
               </p>
             </div>
           )}

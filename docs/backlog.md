@@ -1,12 +1,12 @@
-# Backlog de producto — Webs v2.4.0+
+# Backlog de producto — Webs v2.5.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.4.0'`
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.5.0'`
 >   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** · **M5 v2.3.0**
->   · **M6 v2.4.0** liberados). Roadmap planificado hasta **v2.11.0** (M13 — IoT:
->   serie temporal local + plugins invernadero/sema).
+>   · **M6 v2.4.0** · **M7 v2.5.0** liberados). Roadmap planificado hasta
+>   **v2.11.0** (M13 — IoT: serie temporal local + plugins invernadero/sema).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -32,7 +32,7 @@ escalabilidad.
 | **M5 — Marketplace** | Plugins con fuente remota GitHub + botón "Instalar" · nginx allowlist + multi-sucursal por subdominio · roles/permisos completos · app de claves de licencia para venta · finalización de plugins. |
 | **M6 — Licencias** | Feature-gating por licencia (integración `@licensify/core` con features premium). |
 | **M7 — Acceso rápido** | Generador de APIs de acceso rápido (recurso → modelo + rutas CRUD + SDK tipado web/móvil) con validación/sanitización, permisos RBAC, scoping multi-tenant y feature-gating por licencia (premium). |
-| **M8 — Soporte** | Rediseño de `/admin/menu` · sistema de tickets/soporte con estados · chat de usuarios en tiempo real + ventana flotante. |
+| **M8 — Soporte** | Rediseño de `/admin/menu` (elementos reales core+plugins) · sistema de tickets/soporte con estados (pendiente/en curso/terminado) · chat de usuarios en tiempo real + ventana flotante · retirar `/admin/chat`. |
 | **M9 — Inventario** | Inventario completo: variantes de producto (SKU, código de barras EAN/UPC), categorías/marcas/proveedores, multi-almacén por sucursal, movimientos de stock con ledger auditable, alertas de stock bajo, valoración (costo promedio/FIFO), reportes y export/import CSV, soporte de código de barras/QR integrable con impresoras térmicas (M4). |
 | **M10 — Red social** | Compositor de publicación enriquecido en `SocialPublicPage.tsx`: galería multi-media (imágenes/video con pie, reordenar/eliminar), menciones `@usuario`, hashtags `#tema`, encuestas, selector de visibilidad (Público/Seguidores/Solo yo), selector de emoji, contador de caracteres con límite, vista previa de enlaces, autoguardado de borrador. |
 | **M11 — Escalabilidad** | Escalabilidad Kubernetes selectable por el usuario desde `/admin/scaling`: elegir Horizontal (HPA) vs Vertical (VPA) por workload; VPA con modos Auto/Recommender/Initial; HPA/VPA configurables; guarda de exclusión HPA+VPA sobre la misma métrica; visibilidad de recomendaciones/réplicas/eventos; export YAML del manifiesto generado. |
@@ -927,7 +927,115 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
   quedan en verde.
 - **Métrica:** tag `v2.5.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.10 Milestone 9 (M9) — Inventario completo
+### 3.10 Milestone 8 (M8) — Menú, soporte/tickets y chat en tiempo real
+
+> **M8** se libera en **v2.6.0** (bump menor). Resuelve tres historias de
+> operación diaria: (1) **rediseñar `/admin/menu`** para que muestre los
+> elementos **reales** del menú (items core de Prisma + items de plugins vía
+> `collectPluginMenuItems`), sin duplicados ni categorías fantasma; (2) **crear
+> `/admin/support`** con un sistema de **tickets** y gestión de estados
+> (pendiente / en curso / terminado); (3) **retirar `/admin/chat`** y mejorar el
+> **chat de usuarios** con entrega en tiempo real (WebSocket/SSE, sin recargar) y
+> una **ventana flotante** de notificación. Se ancla en los **ADR-0021** (tickets)
+> y **ADR-0022** (chat real-time) + spec del menú, `t114`. Trazabilidad:
+> `t113`–`t124`; `t113` es este documento.
+
+#### WB-123 · P0 (M8) — ADR-0021 (tickets) + ADR-0022 (chat real-time) + spec de menú — `t114`
+- **Dado** las decisiones de modelo de tickets (estados/prioridad/scoping) y de
+  transporte del chat (WebSocket vs SSE),
+- **Cuando** se registran las decisiones,
+- **Entonces** existen `docs/adr/0021-tickets.md`, `docs/adr/0022-chat-realtime.md`
+  y una spec del rediseño de `/admin/menu`, ancladas en archivos reales
+  (`modules/menu/routes.ts`, `lib/plugin-menu.ts`, plugin de chat, `schema.prisma`).
+- **Métrica:** ADR-0021 + ADR-0022 + spec presentes y consistentes.
+
+#### WB-124 · P0 (M8) — GET /menu (admin) devuelve los items reales (core + plugins) — `t115`
+- **Dado** el endpoint `GET /api/v1/menu` (admin),
+- **Cuando** un administrador consulta el menú,
+- **Entonces** devuelve los items core (Prisma `Menu`) + los items de plugins
+  (`collectPluginMenuItems`), **sin duplicados**, con orden y `permissions`
+  coherentes.
+- **Métrica:** `/admin/menu` refleja exactamente esos items; typecheck/lint verde.
+
+#### WB-125 · P0 (M8) — Rediseñar `/admin/menu` (elementos reales + edición) — `t118`
+- **Dado** el panel `/admin/menu` consumiendo el `GET /menu` corregido,
+- **Cuando** el administrador edita orden, visibilidad y permisos de los items,
+- **Entonces** los cambios se guardan correctamente y se renderizan sin
+  duplicados ni categorías fantasma, con la UI acorde al design system
+  (Tailwind + shadcn).
+- **Métrica:** reordenar/ocultar un item persiste y se refleja en el menú público.
+
+#### WB-126 · P0 (M8) — Modelo `Ticket` + CRUD + transición de estados — `t116`
+- **Dado** el modelo `Ticket` (subject, message, status `pending|in_progress|done`,
+  priority, author),
+- **Cuando** un usuario/operador crea un ticket y lo transiciona
+  (`PATCH /api/v1/support/tickets/:id` con `status`),
+- **Entonces** el CRUD funciona y la transición pendiente → en curso → terminado
+  queda registrada, sin saltos inválidos.
+- **Métrica:** crear un ticket y recorrer los 3 estados sin errores.
+
+#### WB-127 · P0 (M8) — Scoping multi-tenant + permisos de soporte — `t116`
+- **Dado** el sistema de tickets,
+- **Cuando** un usuario accede a los tickets,
+- **Entonces** el scoping es fail-closed por `organizationId` (una org no ve los
+  tickets de otra) y se aplican los permisos `support.read` / `support.manage`.
+- **Métrica:** usuario de la org A no lista ni muta tickets de la org B; 403/404.
+
+#### WB-128 · P0 (M8) — Frontend `/admin/support`: tickets + gestión de estados — `t119`
+- **Dado** el panel `/admin/support`,
+- **Cuando** el operador crea, lista por estado y cambia estado/prioridad de los
+  tickets,
+- **Entonces** la vista por columnas o filtros (pendientes / en curso /
+  terminados) es clara y usa `/api/v1/support/tickets`.
+- **Métrica:** flujo crear → mover a "en curso" → "terminado" sin recargar.
+
+#### WB-129 · P0 (M8) — Chat de usuarios en tiempo real (WS/SSE, sin recargar) — `t117`
+- **Dado** el chat de usuarios,
+- **Cuando** llega un mensaje nuevo,
+- **Entonces** se entrega en tiempo real (WebSocket o SSE) por
+  usuario/organización, **sin recargar** la página, con notificación push.
+- **Métrica:** dos usuarios ven el mensaje al instante (sin F5).
+
+#### WB-130 · P0 (M8) — Retirar `/admin/chat` + ventana flotante de notificación — `t117`, `t120`
+- **Dado** el menú de administración,
+- **Cuando** se navega,
+- **Entonces** `/admin/chat` ya no aparece (módulo retirado del menú) y el chat de
+  usuarios muestra una **ventana flotante** de notificación cuando llega un
+  mensaje estando en otra sección.
+- **Métrica:** `/admin/chat` ausente del menú; ventana flotante visible al recibir
+  un mensaje en otra pantalla.
+
+#### WB-131 · P1 (M8) — i18n ES/EN/PT de menú, tickets y chat — `t121`
+- **Dado** las pantallas nuevas de M8,
+- **Cuando** el usuario cambia de idioma,
+- **Entonces** `/admin/menu`, `/admin/support`, el chat y la ventana flotante
+  están localizados en ES/EN/PT con paridad de claves.
+- **Métrica:** los 3 idiomas sin claves faltantes; typecheck/lint verde.
+
+#### WB-132 · P1 (M8) — Documentación de M8 — `t122`
+- **Dado** M8 implementado,
+- **Cuando** se consulta la documentación,
+- **Entonces** existen guías de tickets/soporte, del chat en tiempo real + ventana
+  flotante y del rediseño de `/admin/menu`, sincronizadas en `docs/` y Docs.git.
+- **Métrica:** `mkdocs build` verde; guías ancladas en archivos reales.
+
+#### WB-133 · P0 (M8) — QA v2.6.0 — `t123`
+- **Dado** el entorno Docker aislado,
+- **Cuando** se ejecuta la QA de M8,
+- **Entonces** se verifica: menú real sin duplicados, tickets CRUD + transición de
+  estados con scoping, chat en tiempo real sin recargar + ventana flotante, y
+  `/admin/chat` retirado; regresión de M1–M7 intacta.
+- **Métrica:** veredicto LIBERABLE (sin hallazgos bloqueantes).
+
+#### WB-134 · P1 (M8) — Release v2.6.0 + CHANGELOG + workflows verdes — `t124`
+- **Dado** M8 completo y verificado (QA LIBERABLE),
+- **Cuando** se bumpa `SYSTEM_VERSION` a `2.6.0`, se actualiza `CHANGELOG.md`
+  (`[2.6.0]`) y se taggea `v2.6.0`,
+- **Entonces** el release se publica y los workflows (CI typecheck + release)
+  quedan en verde.
+- **Métrica:** tag `v2.6.0` público; workflows CI/release ✓; changelog coherente.
+
+### 3.11 Milestone 9 (M9) — Inventario completo
 
 > **M9** se libera en **v2.7.0** (bump menor). Convierte el inventario básico
 > actual (`blocks/inventario`, modelo `InventoryItem`) en un sistema de gestión de
@@ -1027,7 +1135,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
   quedan en verde.
 - **Métrica:** tag `v2.7.0` público; workflows CI/release ✓; changelog coherente.
 
-### 3.11 Milestone 10 (M10) — Compositor de publicación enriquecido
+### 3.12 Milestone 10 (M10) — Compositor de publicación enriquecido
 
 > **M10** se libera en **v2.8.0** (bump menor). Enriquece el compositor "Nueva
 > publicación" de la red social (`apps/web/src/features/public/SocialPublicPage.tsx`).
@@ -1115,7 +1223,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 - **Métrica:** escribir, cerrar y reabrir el compositor restaura el texto/adjuntos;
   publicar limpia el borrador.
 
-### 3.12 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
+### 3.13 Milestone 11 (M11) — Escalabilidad selectable HPA/VPA
 
 > **M11** se libera en **v2.9.0** (bump menor). Permite al usuario **elegir** el
 > tipo de escalabilidad Kubernetes por workload desde un panel `/admin/scaling`.
@@ -1208,7 +1316,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 - **Métrica:** exportar un workload en modo VPA `Recommender` produce un YAML con
   `updateMode: Off` y los `minAllowed`/`maxAllowed` configurados.
 
-### 3.13 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
+### 3.14 Milestone 13 (M13) — IoT: serie temporal local + plugins invernadero/sema
 
 > **M13** se libera en **v2.11.0** (bump menor). Cronológicamente es **posterior a
 > M12 (v2.10.0, backlog pendiente — vista RAW/Code de actualizaciones)**, cuya
@@ -1341,8 +1449,8 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 | **R5 — Operación** | **v2.2.0** ✓ | M4: WB-63→WB-77 — pulido admin/UX (categorías `/admin`, fix CSS templates, buscador, actualizaciones unificadas, limpieza de plugins), plugin fiscal `arca` (ARCA/AFIP), comprobantes/facturas por pago (template editable + impresión térmica ESC/POS + "Mis comprobantes"), checkout unificado + pago en sucursal (suscripción→pago, POS). |
 | **R6 — Marketplace** | **v2.3.0** ✓ | M5: WB-90→WB-103 — plugins con fuente remota GitHub + botón "Instalar" (badge de origen), nginx allowlist + multi-sucursal por subdominio, roles/permisos completos + patrón "crear", app de claves de licencia para venta + E2E local, finalización de plugins, ADRs (0016/0017/0018) + i18n + docs + QA + release. |
 | **R7 — Licencias** | **v2.4.0** ✓ | M6: WB-104→WB-113 — feature-gating por licencia en UI (catálogo de features core+premium ya expuesto por `/api/v1/license`, mapeo feature→menú/plugin/datos, filtro server-side de menú/catálogo/instalación, `LicenseProvider`+`hasFeature` en frontend, upsell, i18n + docs + QA + release). |
-| **R8 — Acceso rápido** | **v2.5.0** | M7: WB-114→WB-122 — generador de APIs de acceso rápido (recurso → modelo + rutas CRUD con validación/sanitización + permisos RBAC + scoping multi-tenant, SDK/API client tipado TS web/móvil, UI "Acceso rápido" con copiar/descargar, ADR-0020 + spec + i18n + docs + QA + release). |
-| **R9 — Soporte** | **v2.6.0** | M8: rediseño de `/admin/menu`, sistema de tickets/soporte con estados, chat de usuarios en tiempo real + ventana flotante. |
+| **R8 — Acceso rápido** | **v2.5.0** ✓ | M7: WB-114→WB-122 — generador de APIs de acceso rápido (recurso → modelo + rutas CRUD con validación/sanitización + permisos RBAC + scoping multi-tenant, SDK/API client tipado TS web/móvil, UI "Acceso rápido" con copiar/descargar, ADR-0020 + spec + i18n + docs + QA + release). |
+| **R9 — Soporte** | **v2.6.0** | M8: WB-123→WB-134 — rediseño de `/admin/menu` (items reales core+plugins sin duplicados), sistema de tickets/soporte en `/admin/support` con estados pendiente/en curso/terminado, chat de usuarios en tiempo real (WS/SSE) + ventana flotante y retirada de `/admin/chat`, ADR-0021/0022 + spec + i18n + docs + QA + release. |
 | **R10 — Inventario** | **v2.7.0** | M9: WB-35→WB-44 — inventario completo (variantes/SKU/EAN-UPC, catálogo, multi-almacén por sucursal, movimientos con ledger auditable, alertas de stock bajo, valoración costo promedio/FIFO, reportes + export/import CSV, código de barras/QR + impresión térmica). |
 | **R11 — Red social** | **v2.8.0** | M10: WB-45→WB-53 — compositor de publicación enriquecido (galería multi-media, menciones, hashtags, encuestas, visibilidad, emoji, contador de caracteres, vista previa de enlaces, autoguardado de borrador). |
 | **R12 — Escalabilidad** | **v2.9.0** | M11: WB-54→WB-62 — escalabilidad Kubernetes selectable (HPA configurable vs VPA Auto/Recommender/Initial, guarda de exclusión, visibilidad de estado, export YAML) desde `/admin/scaling`. |
@@ -1450,6 +1558,18 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t109-docs-m7 | WB-120 |
 | t110-qa-m7 | WB-121 |
 | t111-release-m7 | WB-122 |
+| t113-backlog-m8 | WB-123→WB-134 (este documento) |
+| t114-adr-m8 | WB-123 (ADR-0021 tickets + ADR-0022 chat + spec menú) |
+| t115-menu-fix | WB-124 (GET /menu admin core+plugins) |
+| t116-tickets-back | WB-126, WB-127 (modelo Ticket + CRUD + estados + scoping + permisos) |
+| t117-chat-back | WB-129, WB-130 (real-time WS/SSE + retirar /admin/chat) |
+| t118-menu-front | WB-125 (rediseño /admin/menu) |
+| t119-support-front | WB-128 (frontend /admin/support) |
+| t120-chat-front | WB-130 (ventana flotante + quitar /admin/chat) |
+| t121-i18n-m8 | WB-131 |
+| t122-docs-m8 | WB-132 |
+| t123-qa-m8 | WB-133 |
+| t124-release-m8 | WB-134 |
 | t125-backlog-m9 | WB-35→WB-44 (este documento) |
 | t126-adr-inventario | WB-35→WB-42 (ADR-0023 + spec) |
 | t127-modelo-inventario | WB-35, WB-36, WB-37 (modelo de datos) |
