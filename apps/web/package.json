@@ -43,7 +43,7 @@
     "@types/qrcode": "^1.5.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.2",
     "@webs/config": "workspace:*",
     "eslint": "^9.13.0",
     "eslint-plugin-react-hooks": "^5.0.0",
