@@ -1,8 +1,9 @@
 # Inventario completo (M9 — v2.7.0)
 
-> **Estado:** Diseño objetivo (ADR-0023). Este documento es la **especificación técnica** del
-> sistema de inventario completo. Implementación en las tareas M9 (`t127` modelo, `t128`
-> operaciones, `t129` frontend/UI); QA + i18n + documentación en `t130`–`t132`.
+> **Estado:** Implementado (M9 — v2.7.0, tareas `t134` modelo, `t135` operaciones, `t136` UI).
+> Este documento describe el **sistema de inventario completo** y su especificación técnica. La
+> referencia de la API implementada (endpoints reales) está en `docs/api/inventory.md`; la guía de
+> uso, en `docs/guides/inventario-completo.md`.
 
 ## 1. Resumen
 
@@ -262,8 +263,8 @@ agregado.
 
 ## 7. API REST objetivo
 
-> Permisos nuevos `inventory.read`/`inventory.write` (ADR-0004), sembrados en roles admin. Todas las
-> rutas pasan `authenticate` + `requireTenant` (fail-closed); las de escritura exigen `inventory.write`.
+> Permisos nuevos `inventory.read`/`inventory.manage` (ADR-0004), sembrados en roles admin. Todas las
+> rutas pasan `authenticate` + `requireTenant` (fail-closed); las de escritura exigen `inventory.manage`.
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
@@ -275,6 +276,8 @@ agregado.
 | GET/POST/PATCH/DELETE | `/api/v1/inventory/brands[/:id]`, `/suppliers[/:id]` | CRUD de marcas/proveedores. |
 | GET/POST/PATCH/DELETE | `/api/v1/inventory/warehouses[/:id]` | CRUD de almacenes (scoped por sucursal). |
 | GET | `/api/v1/inventory/stock` | Niveles de stock (filtro por almacén/categoría/producto). |
+| POST | `/api/v1/inventory/stock/receive` | Entrada de compra (con `unitCost`). |
+| POST | `/api/v1/inventory/stock/issue` | Salida/consumo (validación no-negativo). |
 | POST | `/api/v1/inventory/stock/adjust` | Ajuste manual (objetivo o delta + motivo). |
 | POST | `/api/v1/inventory/stock/transfer` | Transferencia entre almacenes (2 movimientos). |
 | POST | `/api/v1/inventory/stock/receive` | Entrada de compra (con `unitCost`). |
@@ -289,6 +292,8 @@ agregado.
 
 - Se conserva un **alias retrocompatible** `/api/v1/plugins/inventario/*` durante M9 para no romper
   el frontend actual; se retira en la limpieza post-M9.
+- La **referencia de la API implementada** (endpoints reales, cuerpos de request, validaciones y
+  códigos de respuesta) está en `docs/api/inventory.md`.
 
 ## 8. Scoping multi-tenant fail-closed
 
@@ -315,12 +320,12 @@ agregado.
 4. Re-sincronizar `Product.stock` como agregado de `StockLevel`.
 5. Mantener `InventoryItem` en modo solo lectura (deprecado) durante la transición; eliminarlo al
    final de M9.
-6. Backfill de permisos `inventory.read`/`inventory.write` en roles existentes.
+6. Backfill de permisos `inventory.read`/`inventory.manage` en roles existentes.
 
 ## 10. Permisos y roles
 
 - `inventory.read`: listados, búsquedas, niveles, movimientos, alertas y reportes.
-- `inventory.write`: CRUD de productos/variantes/catálogo/almacenes y movimientos (receive/adjust/
-  transfer).
+- `inventory.manage`: CRUD de productos/variantes/catálogo/almacenes y movimientos (receive/issue/
+  adjust/transfer).
 - Sembrados en `admin` (y heredables por `super_admin`/admin de cadena); `manager`/`user` solo leen
   dentro de su organización (ADR-0006).

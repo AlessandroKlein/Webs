@@ -217,6 +217,15 @@ model Product {
   images         Json    @default("[]")
   sizes          Json    @default("[]")
   barcode        String?
+  categoryId     String?
+  brandId        String?
+  supplierId     String?
+
+  categoryRef Category?    @relation("ProductCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+  brandRef    Brand?       @relation("ProductBrand", fields: [brandId], references: [id], onDelete: SetNull)
+  supplierRef Supplier?    @relation("ProductSupplier", fields: [supplierId], references: [id], onDelete: SetNull)
+  variants    Variant[]
+  stockLevels StockLevel[]
 
   @@index([organizationId])
   @@map("products")
@@ -455,6 +464,7 @@ model Organization {
   children       Organization[]   @relation("OrgHierarchy")
   chainRoot      Organization?    @relation("OrgChain", fields: [chainId], references: [id], onDelete: SetNull)
   chainBranches  Organization[]   @relation("OrgChain")
+  warehouses     Warehouse[]
   createdAt      DateTime         @default(now())
 
   @@index([parentId])
@@ -1010,4 +1020,156 @@ model GeneratedRecord {
 
   @@index([resourceId, organizationId])
   @@map("generated_records")
+}
+
+// ---------------------------------------------------------------------------
+// Inventario completo (M9 — ADR-0023). Modelo core: variantes, catálogo,
+// almacenes por sucursal y niveles de stock. Importes en centavos (Int).
+// ---------------------------------------------------------------------------
+
+// Variante de producto (SKU/EAN-UPC + atributos). `sku`/`barcode` son únicos
+// por organización (no globales). El stock se contabiliza siempre por variante.
+model Variant {
+  id             String   @id @default(uuid())
+  organizationId String
+  productId      String
+  sku            String
+  barcode        String?
+  name           String
+  attributes     Json     @default("{}")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockLevels StockLevel[]
+
+  @@unique([organizationId, sku])
+  @@unique([organizationId, barcode])
+  @@index([productId])
+  @@map("variants")
+}
+
+// Categoría de producto (jerárquica). El texto libre legado `Product.category`
+// se migra aquí y luego se elimina.
+model Category {
+  id             String     @id @default(uuid())
+  organizationId String
+  parentId       String?
+  name           String
+  active         Boolean    @default(true)
+  parent         Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Category[] @relation("CategoryTree")
+  products       Product[]  @relation("ProductCategory")
+  createdAt      DateTime   @default(now())
+
+  @@index([organizationId])
+  @@index([parentId])
+  @@map("inventory_categories")
+}
+
+model Brand {
+  id             String    @id @default(uuid())
+  organizationId String
+  name           String
+  active         Boolean   @default(true)
+  products       Product[] @relation("ProductBrand")
+  createdAt      DateTime  @default(now())
+
+  @@index([organizationId])
+  @@map("inventory_brands")
+}
+
+model Supplier {
+  id             String    @id @default(uuid())
+  organizationId String
+  name           String
+  contactName    String?
+  email          String?
+  phone          String?
+  active         Boolean   @default(true)
+  products       Product[] @relation("ProductSupplier")
+  createdAt      DateTime  @default(now())
+
+  @@index([organizationId])
+  @@map("inventory_suppliers")
+}
+
+// Almacén ligado a una organización/sucursal. Con `shareInventory=true` se
+// asocia a la raíz de la cadena (ADR-0006). `isDefault` recibe el stock cuando
+// la operación no especifica almacén.
+model Warehouse {
+  id             String   @id @default(uuid())
+  organizationId String
+  name           String
+  code           String
+  address        String?
+  isDefault      Boolean  @default(false)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stockLevels  StockLevel[]
+
+  @@index([organizationId])
+  @@map("inventory_warehouses")
+}
+
+// Nivel de stock por producto(+variante) y almacén, con umbrales mínimo/crítico
+// y costo promedio ponderado (centavos). Único por (almacén, producto, variante).
+model StockLevel {
+  id               String   @id @default(uuid())
+  organizationId   String
+  warehouseId      String
+  productId        String
+  variantId        String?
+  quantity         Int      @default(0)
+  minQuantity      Int      @default(0)
+  criticalQuantity Int      @default(0)
+  averageCost      Int      @default(0)
+  updatedAt        DateTime @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   Variant?  @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, productId, variantId])
+  @@index([organizationId])
+  @@index([warehouseId])
+  @@map("inventory_stock_levels")
+}
+
+model StockMovement {
+  id             String   @id @default(uuid())
+  organizationId String
+  warehouseId    String
+  productId      String
+  variantId      String?
+  type           String // entrada | salida | ajuste | transferencia
+  quantity       Int // delta: + entrada, - salida
+  quantityBefore Int
+  quantityAfter  Int
+  reason         String?
+  userId         String
+  referenceType  String? // venta | compra | ajuste | transferencia
+  referenceId    String?
+  unitCost       Int? // costo de la operación (centavos)
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([warehouseId])
+  @@index([productId, variantId])
+  @@index([referenceType, referenceId])
+  @@map("inventory_stock_movements")
+}
+
+model InventoryLot {
+  id           String   @id @default(uuid())
+  stockLevelId String
+  quantity     Int
+  unitCost     Int
+  receivedAt   DateTime @default(now())
+
+  @@index([stockLevelId, receivedAt])
+  @@map("inventory_lots")
 }

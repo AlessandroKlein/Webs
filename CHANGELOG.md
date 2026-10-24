@@ -3,6 +3,47 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.7.0] - 2026-10-24
+
+### Añadido
+
+- **Inventario completo (ADR-0023)**: modelo de datos core — `Product` extendido
+  (categoría/marca/proveedor) + `Variant` (SKU + código de barras EAN/UPC únicos por
+  organización) + `Category` (self-FK) / `Brand` / `Supplier` + `Warehouse` ligado a
+  `Organization` (almacén por defecto `MAIN`) + `StockLevel` (producto+variante+
+  almacén con `minQuantity`/`criticalQuantity`). Migración `0009_inventory_core`.
+- **Operaciones de stock (ADR-0023 §4–§7)**: `StockMovement` (ledger inmutable con
+  `quantityBefore/After`, motivo, usuario y referencia) + `InventoryLot` (capas FIFO);
+  motor transaccional `recordMovement` (valida no-negativo → ledger → actualiza
+  `StockLevel` → resincroniza `Product.stock`); valoración por costo promedio
+  ponderado (base) + FIFO opcional; 4 endpoints (receive/issue/adjust/transfer) +
+  alertas por umbral + 3 reportes + export/import CSV. Migración
+  `0010_stock_operations`.
+- **API `/api/v1/inventory/*`**: ~24 endpoints CRUD (products/variants/categories/
+  brands/suppliers/warehouses/stock + movements/alerts/reports/export.csv/import),
+  scoping multi-tenant fail-closed (`resolveScope`/`requireTenant`) y permisos
+  `inventory.read`/`inventory.manage`.
+- **UI `/admin/inventory`**: `InventoryPage` reescrita con 6 pestañas (Productos /
+  Stock+Almacenes / Movimientos / Alertas / Reportes / Catálogo) y modales de
+  creación/edición (producto, variante, catálogo, almacén, movimiento), reemplazando
+  la vista legacy `/api/v1/blocks/inventario`.
+- **i18n M9 (ES/EN/PT)** del inventario y **docs M9** (`docs/guides/inventario-completo.md`
+  + `docs/api/inventory.md` + ADR-0023 + `docs/architecture/inventory.md`).
+
+### Deuda técnica
+
+- **LOW (t139)**: `Warehouse.code` sin `@@unique([organizationId, code])` — se pueden
+  crear dos almacenes con el mismo código en una organización (el import CSV resuelve
+  por código, quedando ambiguo). Recomendado agregar el constraint.
+- Nota (t126): los ADR 0013–0022 no existen en `docs/adr/` (hueco de numeración de
+  M4–M8), pendiente de completar por sus milestones.
+- Heredada: MENOR (t122) `AdminLayout` con `navItems` hardcodeados; MEDIUM (t101)
+  caché `blocks:catalog`; MENOR (t110) `DELETE /generated/:key` no limpia permisos
+  `gen.<key>.*`; MENOR (t108) errores del generador en español hardcodeados; F12
+  (rename residual `blockId` + shim `/api/v1/blocks/*`), F4 (docs `block.read`/
+  `block.manage` históricas), F10 (`GET /setup/status` versión real), F17 (wrapper
+  Capacitor real).
+
 ## [2.6.0] - 2026-10-24
 
 ### Añadido

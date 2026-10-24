@@ -27,7 +27,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Base universal](architecture/base-universal.md) | De la base + plugins + plantilla a la app final (blog/tienda/gimnasio/logística), definiendo la página de inicio. |
 | [Política de dependencias](architecture/politica-dependencias.md) | «Todo nativo, sin modo de pago»: auditoría de dependencias (MIT/Apache/BSD, sin SaaS de pago). |
 | [Móvil y escritorio](architecture/mobile-desktop.md) | Auditoría + plan de integración: PWA/Capacitor (`@webs/mobile`) y companion de escritorio (`@webs/desktop`). |
-| [Inventario completo](architecture/inventory.md) | **Spec técnica (ADR-0023)**: variantes SKU/EAN-UPC, catálogo, multi-almacén por sucursal, ledger inmutable, valoración promedio/FIFO, alertas y reportes/CSV. |
+| [Inventario completo](architecture/inventory.md) | **Spec técnica (ADR-0023, implementado)**: variantes SKU/EAN-UPC, catálogo, multi-almacén por sucursal, ledger inmutable, valoración promedio/FIFO, alertas y reportes/CSV. Guía: `guides/inventario-completo.md`; API: `api/inventory.md`. |
 | [Compositor social enriquecido](architecture/compositor-social.md) | **Spec técnica (ADR-0024)**: galería multi-media, menciones/hashtags, encuestas, visibilidad, unfurl SSRF-safe y retrocompat. |
 | [Categorización del menú admin](architecture/menu-categorias.md) | **Spec**: taxonomía de secciones (Panel, Contenido, Ventas, Comunicación, Comunidad, Apariencia, Integraciones, Configuración, Usuarios) y criterio de clasificación de cada ítem del panel `/admin`. |
 | [Rediseño del menú admin](architecture/menu-admin-redesign.md) | **Spec + implementación M8**: fuente única de verdad del menú `/admin` (`GET /menu` con `source` core/plugin), dedup server-side por `path`, seed `CORE_MENU_ITEMS` y orden/permisos coherentes. |
@@ -35,6 +35,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Comprobantes y facturas](architecture/comprobantes-facturas.md) | `Invoice` fiscal, numeración `pppp-tt-ssssssss`, template HTML editable, ESC/POS 80/58 mm y generación automática por pago aprobado. |
 | [Pagos y checkout unificado](architecture/pagos-checkout.md) | `createCheckoutPayment`/`createPosPayment`, registro de proveedores, webhook idempotente, `metadata.kind` y cobro físico POS. |
 | [Serie temporal local IoT](architecture/iot-serie-temporal.md) | **Spec técnica (ADR-0027/0028)**: base separada `webs_iot`, `IotDevice`, flujo de recolección, contrato de rutas y matriz de mapeo invernadero/SEMA. |
+| [Experiencia pública](architecture/experiencia-publica.md) | **Spec técnica (ADR-0029)**: home `/` editable (sección `hero` + elementos `button`/`featured`), editor GrapesJS intuitivo (duplicar/borrar, preview, edición inline) y header/dropdown configurables (claves `main`/`user`). |
 | [Refactorización global](architecture/refactor-global.md) | **Diseño objetivo**: plugins, multi-tenant por cadenas, licencias Licensify, escalabilidad y sistema de estilos. |
 
 ### Registros de decisiones de arquitectura (ADR)
@@ -68,6 +69,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [ADR-0025 — Escalabilidad selectable](adr/0025-scalable-selectable.md) | Selector HPA vs VPA por workload con modos verticales Auto/Recommender/Initial y guarda de exclusión. |
 | [ADR-0027 — Serie temporal local IoT](adr/0027-iot-serie-temporal.md) | Base separada `webs_iot`, tabla genérica `measurements`, pool `pg` dedicado (sin Prisma), retención + downsampling y `IotDevice` scoped. |
 | [ADR-0028 — Patrón de plugins IoT](adr/0028-iot-plugin-pattern.md) | Cliente HTTP de dispositivo (Bearer/X-Auth-Token/X-API-Key), collector configurable, SSRF-safe, token cifrado y contrato de rutas fail-closed. |
+| [ADR-0029 — Experiencia pública](adr/0029-experiencia-publica.md) | Home `/` editable como composición de `Page.layout` (sección `hero`, elementos `button`/`featured`), editor GrapesJS intuitivo y header/dropdown configurables (`main`/`user`); selector de idioma fuera del header. |
 
 ### Documentos legales (templates)
 
@@ -93,5 +95,6 @@ Además de este índice, el repositorio de documentación incluye:
 - `docs/guides/` — guías operativas (arranque, crear un plugin, configuración desde UI,
   roles y permisos, despliegue, feature-gating por licencia, claves de licencia para la venta,
   generador de APIs de acceso rápido, generador de SDK/API client, tickets de soporte,
-  chat en tiempo real y ventana flotante).
-- `docs/api/` — referencia de la API (visión general, flujo de autenticación, WebSocket).
+  chat en tiempo real y ventana flotante, inventario completo M9).
+- `docs/api/` — referencia de la API (visión general, flujo de autenticación, WebSocket,
+  inventario).

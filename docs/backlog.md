@@ -1,12 +1,12 @@
-# Backlog de producto — Webs v2.5.0+
+# Backlog de producto — Webs v2.6.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.5.0'`
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.6.0'`
 >   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** · **M5 v2.3.0**
->   · **M6 v2.4.0** · **M7 v2.5.0** liberados). Roadmap planificado hasta
->   **v2.11.0** (M13 — IoT: serie temporal local + plugins invernadero/sema).
+>   · **M6 v2.4.0** · **M7 v2.5.0** · **M8 v2.6.0** liberados). Roadmap planificado
+>   hasta **v2.13.0** (M15 — videoteca/streaming: series y películas).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -38,6 +38,8 @@ escalabilidad.
 | **M11 — Escalabilidad** | Escalabilidad Kubernetes selectable por el usuario desde `/admin/scaling`: elegir Horizontal (HPA) vs Vertical (VPA) por workload; VPA con modos Auto/Recommender/Initial; HPA/VPA configurables; guarda de exclusión HPA+VPA sobre la misma métrica; visibilidad de recomendaciones/réplicas/eventos; export YAML del manifiesto generado. |
 | **M12 — Actualizaciones** | Vista RAW/Code de los datos de actualización en `/admin/updates`: endpoint de datos crudos (manifest + changelog + archivos cambiados + checksums + firma Ed25519) en JSON/YAML; toggle Code/RAW con resaltado de sintaxis autohospedado + copiar + descargar; redacción de campos sensibles (sin secretos), permiso `update.manage` (solo admin). |
 | **M13 — IoT** | Serie temporal local (ThingSpeak-like, 100% local) con base de datos separada `webs_iot` + modelo genérico de mediciones, retención/downsampling y consultas con agregación; plugins `invernadero` (IP/URL + Bearer, control de actuadores) y `sema` (IP/URL + X-API-Key) con conexión mínima + test, dashboards con gráficos de históricos; multi-tenant por organización, token cifrado + SSRF-safe, i18n, docs, QA y release. |
+| **M14 — Experiencia pública** | Página de inicio (/) totalmente editable (hero/CTA como secciones del layout + mejora de estilo) · editor de bloques (GrapesJS) más intuitivo (paleta/preview/acciones/edición inline) · header público configurable (menú `main` + dropdown `user`) · selector de idioma en la cuenta del usuario (`/account`). |
+| **M15 — Videoteca** | Plugin `videoteca` (`@webs/plugin-videoteca`, categoría "contenido") para catálogo de series y películas: título, sinopsis, portada, año, géneros, reparto, temporadas/episodios; embed de video multi-plataforma vía oEmbed (YouTube/Vimeo/Dailymotion/Twitch/TikTok) + video propio (mp4/HLS); botón ver/descargar con enlaces oficiales (Netflix/Prime/Apple TV/YouTube Movies + archivos propios, nunca rip); metadatos opcionales TMDB (clave por tenant) + Wikipedia/Wikidata + IDs externos como links salientes (sin scraping). |
 
 ---
 
@@ -1438,6 +1440,190 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 
 ---
 
+### 3.15 Milestone 14 (M14) — Experiencia pública: home editable + editor + header configurable
+
+> **Alcance:** la experiencia pública (lo que ve un visitante/usuario sin ser
+> admin): página de inicio editable, editor de bloques más intuitivo, header
+> público configurable (menú de navegación + dropdown de usuario) y selector de
+> idioma movido a la cuenta del usuario. **M14 = v2.12.0.** El selector de idioma
+> ya se movió de `SiteHeader.tsx` a `/account`; aquí se documenta como hecho.
+
+#### WB-135 · P0 (M14) — ADR-0029 + spec de experiencia pública — `t197`
+- **Dado** el alcance de experiencia pública (home editable, editor, header),
+- **Cuando** se registran las decisiones,
+- **Entonces** existen `docs/adr/0029-*.md` y
+  `docs/architecture/experiencia-publica.md` que definen: home editable con `hero`
+  como sección, editor más intuitivo (paleta/preview/acciones/edición inline),
+  header con menú público (clave `main`) editable + dropdown de usuario (clave
+  `user`, ítems default: dashboard/blog/social/account/admin/logout), y selector
+  de idioma **solo** en `/account` y `/admin`.
+- **Métrica:** ADR + spec presentes y consistentes con la implementación.
+
+#### WB-136 · P0 (M14) — Página de inicio (/) totalmente editable — `t199`
+- **Dado** que un administrador edita la página de inicio,
+- **Cuando** configura `hero` y CTA como secciones del layout,
+- **Entonces** el contenido hardcodeado de `PublicHome.tsx` se reemplaza por la
+  sección `hero` editable, con reordenar/ocultar secciones destacadas y estilo
+  responsive, renderizado igual en el editor y en `/`.
+- **Métrica:** editar hero/CTA + reordenar + publicar se refleja en `/` sin errores.
+
+#### WB-137 · P0 (M14) — Editor de bloques (GrapesJS) más intuitivo — `t200`
+- **Dado** un editor en el editor visual de páginas,
+- **Cuando** agrega/edita bloques,
+- **Entonces** dispone de paleta agrupada, vista previa fiel, acciones
+  (guardar/duplicar/borrar/mover), edición inline e indicadores de estado, con
+  i18n, sin pasos confusos.
+- **Métrica:** editar una página completa (agregar/reordenar/editar/guardar) sin
+  recurrir a la API.
+
+#### WB-138 · P0 (M14) — Header: menú público + dropdown configurables (backend) — `t198`
+- **Dado** un menú público con clave `main` y un dropdown `user`,
+- **Cuando** el admin los configura (GET/PUT) y un visitante/usuario navega,
+- **Entonces** el backend expone `/public/menu` (nunca `/admin/*`), con scoping
+  multi-tenant fail-closed y permisos `menu.read`/`menu.manage`, devolviendo los
+  ítems visibles exactamente como están definidos.
+- **Métrica:** menú y dropdown configurables por organización sin filtrar datos de
+  otra org.
+
+#### WB-139 · P0 (M14) — Header: render del menú + dropdown en el sitio — `t201`
+- **Dado** que el menú público `main` y el dropdown `user` están configurados,
+- **Cuando** `SiteHeader` renderiza la cabecera,
+- **Entonces** muestra los ítems desde `/public/menu` (con iconos), con fallback
+  claro si está vacío, y el selector de idioma **no** aparece en el header.
+- **Métrica:** ítems visibles == ítems del menú `main`; dropdown muestra los del
+  menú `user`.
+
+#### WB-140 · P1 (M14) — Selector de idioma en la configuración de usuario — `t203`
+- **Dado** que el selector de idioma ya se movió de `SiteHeader.tsx` a la cuenta
+  del usuario (hecho en v2.12.0),
+- **Cuando** se cierra M14,
+- **Entonces** la documentación registra el cambio: el selector está en `/account`
+  (+`/admin`) y ausente del header público.
+- **Métrica:** doc referencia el selector en `/account`; sin referencias al
+  selector en `SiteHeader`.
+
+#### WB-141 · P1 (M14) — i18n ES/EN/PT — `t202`
+- **Dado** los textos de home, editor y header,
+- **Cuando** el usuario cambia de idioma,
+- **Entonces** la experiencia pública queda traducida (ES/EN/PT) sin strings
+  hardcodeadas.
+- **Métrica:** paridad i18n en home/editor/header.
+
+#### WB-142 · P1 (M14) — Documentación — `t203`
+- **Dado** el cierre de M14,
+- **Cuando** se actualiza la documentación,
+- **Entonces** `docs/` refleja la experiencia pública (home editable, editor,
+  header, selector de idioma), con el ADR-0029 con su "Estado de implementación"
+  actualizado y la guía `experiencia-publica.md`.
+- **Métrica:** build de docs en verde; sin contradicciones con la implementación.
+
+#### WB-143 · P0 (M14) — QA — `t204`
+- **Dado** M14 completo en Docker,
+- **Cuando** corre la QA,
+- **Entonces** verifica en verde: home editable, editor intuitivo, header
+  menú+dropdown configurables, selector de idioma en `/account` y **ausente** del
+  header, scoping multi-tenant fail-closed e i18n paridad.
+- **Métrica:** suite QA M14 exit 0.
+
+#### WB-144 · P1 (M14) — Release v2.12.0 — `t205`
+- **Dado** M14 completo y workflows en verde,
+- **Cuando** se taggea `v2.12.0`,
+- **Entonces** `CHANGELOG.md` se actualiza con `[2.12.0]`, `SYSTEM_VERSION` pasa a
+  `2.12.0` y el release se publica con artefactos.
+- **Métrica:** changelog coherente con `git tag`; release público.
+
+---
+
+### 3.16 Milestone 15 (M15) — Videoteca/streaming: series y películas
+
+> **Alcance:** plugin `videoteca` (id `videoteca`, package `@webs/plugin-videoteca`,
+> categoría "contenido") para crear un catálogo de series y películas con embeds
+> de video multi-plataforma (oEmbed), botón de ver/descargar con enlaces
+> oficiales, y metadatos opcionales de terceros (TMDB/Wikipedia/Wikidata).
+> **M15 = v2.13.0.** Solo contenido con derechos o enlaces oficiales; **nunca**
+> rip de contenido protegido ni scraping.
+
+#### WB-145 · P0 (M15) — ADR-0030 + spec del plugin videoteca — `t208`
+- **Dado** el alcance del plugin `videoteca`,
+- **Cuando** se registran las decisiones,
+- **Entonces** existe `docs/adr/0030-*.md` + spec que definen el modelo de datos
+  (película/serie/temporada/episodio), las fuentes de video (oEmbed + video
+  propio), el botón ver/descargar (solo enlaces oficiales/legales) y la
+  integración de metadatos (TMDB primaria por tenant, Wikipedia/Wikidata respaldo,
+  IDs externos como links salientes sin scraping).
+- **Métrica:** ADR + spec presentes y consistentes con la implementación.
+
+#### WB-146 · P0 (M15) — Modelo de datos y catálogo (backend) — `t209`
+- **Dado** un administrador que crea contenido,
+- **Cuando** guarda una película/serie con título, sinopsis, portada, año,
+  géneros, reparto y temporadas/episodios,
+- **Entonces** el backend persiste los modelos (`Movie`, `Series`, `Season`,
+  `Episode`) con scoping multi-tenant (`organizationId`) y expone CRUD bajo
+  `/api/v1/plugins/videoteca/*`.
+- **Métrica:** crear/leer/actualizar/borrar película y serie (con N temporadas y
+  M episodios) sin errores y aislado por organización.
+
+#### WB-147 · P0 (M15) — Embed de video multi-plataforma (oEmbed) + video propio — `t210`
+- **Dado** una película/episodio con una o varias fuentes de video,
+- **Cuando** el usuario la reproduce,
+- **Entonces** se embebe vía oEmbed (YouTube, Vimeo, Dailymotion, Twitch, TikTok)
+  o se sirve video propio (mp4/HLS) con `<video>`, con URL validada (https) y sin
+  exponer claves.
+- **Métrica:** reproducir un embed por cada proveedor + un mp4 propio en verde.
+
+#### WB-148 · P0 (M15) — Botón "ver/descargar" con enlaces oficiales — `t213`
+- **Dado** una película/serie con plataformas configuradas,
+- **Cuando** el usuario pulsa "ver/descargar",
+- **Entonces** se muestran enlaces oficiales (Netflix, Prime Video, Apple TV,
+  YouTube Movies) o archivos propios con derechos; **nunca** se ofrece rip de
+  contenido protegido.
+- **Métrica:** el botón solo expone enlaces oficiales/legales; sin enlaces a
+  fuentes piratas.
+
+#### WB-149 · P0 (M15) — Metadatos TMDB (primaria, clave por tenant) — `t211`
+- **Dado** un tenant con su propia API key de TMDB,
+- **Cuando** el admin busca/enriquece un título,
+- **Entonces** los metadatos (título, sinopsis, portada, año, géneros, reparto)
+  se obtienen de TMDB usando la clave del tenant (sin clave compartida/global),
+  con caché y sin scraping.
+- **Métrica:** enriquecer un título desde TMDB con clave por tenant; sin clave →
+  el campo queda manual.
+
+#### WB-150 · P1 (M15) — Wikipedia/Wikidata + IDs externos (links salientes) — `t211`
+- **Dado** un título con metadatos o un ID externo,
+- **Cuando** se consultan fuentes secundarias,
+- **Entonces** Wikipedia/Wikidata (gratis) sirven de respaldo y cross-link, y los
+  IDs IMDb/TheTVDB/Letterboxd/JustWatch se renderizan como **links salientes**
+  (sin scraping de esas plataformas).
+- **Métrica:** cross-link Wikidata↔TMDB + link saliente IMDb/TheTVDB/Letterboxd/
+  JustWatch funcional; cero scraping.
+
+#### WB-151 · P0 (M15) — Frontend: catálogo y páginas de detalle — `t212`
+- **Dado** un visitante en el sitio,
+- **Cuando** navega el catálogo de series/películas,
+- **Entonces** ve listado (filtros por género/año) y página de detalle con
+  sinopsis, portada, reparto y temporadas/episodios, renderizando el embed y el
+  botón ver/descargar.
+- **Métrica:** listado → detalle → reproducir de una película y de un episodio
+  sin errores.
+
+#### WB-152 · P1 (M15) — i18n + documentación — `t214`, `t215`
+- **Dado** los textos del catálogo, reproductor y botones,
+- **Cuando** el usuario cambia de idioma,
+- **Entonces** la videoteca queda traducida (ES/EN/PT) y `docs/` documenta el
+  plugin, el flujo de metadatos y la política de enlaces legales.
+- **Métrica:** paridad i18n en catálogo/detalle/reproductor; build de docs verde.
+
+#### WB-153 · P0 (M15) — QA + release v2.13.0 — `t216`, `t217`
+- **Dado** M15 completo en Docker,
+- **Cuando** corre la QA y se bumpa la versión,
+- **Entonces** el veredicto es **LIBERABLE** (catálogo, embeds, ver/descargar,
+  metadatos, multi-tenant, i18n), `CHANGELOG.md` se actualiza con `[2.13.0]`,
+  `SYSTEM_VERSION` pasa a `2.13.0` y se taggea `v2.13.0` con workflows verdes.
+- **Métrica:** QA LIBERABLE; tag `v2.13.0` público; CI/release ✓.
+
+---
+
 ## 4. Roadmap de releases
 
 | Release | Versión | Alcance |
@@ -1450,13 +1636,15 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 | **R6 — Marketplace** | **v2.3.0** ✓ | M5: WB-90→WB-103 — plugins con fuente remota GitHub + botón "Instalar" (badge de origen), nginx allowlist + multi-sucursal por subdominio, roles/permisos completos + patrón "crear", app de claves de licencia para venta + E2E local, finalización de plugins, ADRs (0016/0017/0018) + i18n + docs + QA + release. |
 | **R7 — Licencias** | **v2.4.0** ✓ | M6: WB-104→WB-113 — feature-gating por licencia en UI (catálogo de features core+premium ya expuesto por `/api/v1/license`, mapeo feature→menú/plugin/datos, filtro server-side de menú/catálogo/instalación, `LicenseProvider`+`hasFeature` en frontend, upsell, i18n + docs + QA + release). |
 | **R8 — Acceso rápido** | **v2.5.0** ✓ | M7: WB-114→WB-122 — generador de APIs de acceso rápido (recurso → modelo + rutas CRUD con validación/sanitización + permisos RBAC + scoping multi-tenant, SDK/API client tipado TS web/móvil, UI "Acceso rápido" con copiar/descargar, ADR-0020 + spec + i18n + docs + QA + release). |
-| **R9 — Soporte** | **v2.6.0** | M8: WB-123→WB-134 — rediseño de `/admin/menu` (items reales core+plugins sin duplicados), sistema de tickets/soporte en `/admin/support` con estados pendiente/en curso/terminado, chat de usuarios en tiempo real (WS/SSE) + ventana flotante y retirada de `/admin/chat`, ADR-0021/0022 + spec + i18n + docs + QA + release. |
+| **R9 — Soporte** | **v2.6.0** ✓ | M8: WB-123→WB-134 — rediseño de `/admin/menu` (items reales core+plugins sin duplicados), sistema de tickets/soporte en `/admin/support` con estados pendiente/en curso/terminado, chat de usuarios en tiempo real (WS/SSE) + ventana flotante y retirada de `/admin/chat`, ADR-0021/0022 + spec + i18n + docs + QA + release. |
 | **R10 — Inventario** | **v2.7.0** | M9: WB-35→WB-44 — inventario completo (variantes/SKU/EAN-UPC, catálogo, multi-almacén por sucursal, movimientos con ledger auditable, alertas de stock bajo, valoración costo promedio/FIFO, reportes + export/import CSV, código de barras/QR + impresión térmica). |
 | **R11 — Red social** | **v2.8.0** | M10: WB-45→WB-53 — compositor de publicación enriquecido (galería multi-media, menciones, hashtags, encuestas, visibilidad, emoji, contador de caracteres, vista previa de enlaces, autoguardado de borrador). |
 | **R12 — Escalabilidad** | **v2.9.0** | M11: WB-54→WB-62 — escalabilidad Kubernetes selectable (HPA configurable vs VPA Auto/Recommender/Initial, guarda de exclusión, visibilidad de estado, export YAML) desde `/admin/scaling`. |
 | **R13 — Actualizaciones** | **v2.10.0** | M12: vista RAW/Code de los datos de actualización en `/admin/updates` (endpoint datos crudos manifest + changelog + archivos + checksums + firma en JSON/YAML, toggle Code/RAW con syntax highlight autohospedado + copiar/descargar, redacción de secretos, permiso `update.manage`). |
 | **R14 — IoT** | **v2.11.0** | M13: WB-78→WB-89 — serie temporal local (base separada `webs_iot` + modelo genérico de mediciones, retención/downsampling, consultas con agregación) + plugins `invernadero` (IP/URL + Bearer, control de actuadores) y `sema` (IP/URL + X-API-Key), UI de conexión mínima con test + dashboards con gráficos, multi-tenant + seguridad (token cifrado, SSRF-safe), i18n + docs + QA + release. |
-| **R15 — Backlog** | **v2.12.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
+| **R15 — Experiencia pública** | **v2.12.0** | M14: WB-135→WB-144 — página de inicio (/) editable (hero/CTA como secciones + mejora de estilo), editor de bloques (GrapesJS) más intuitivo (paleta/preview/acciones/edición inline), header público configurable (menú `main` + dropdown `user`), selector de idioma en la cuenta del usuario (`/account`), ADR-0029 + i18n + docs + QA + release. |
+| **R16 — Videoteca** | **v2.13.0** | M15: WB-145→WB-153 — plugin `videoteca` para series y películas (catálogo + temporadas/episodios), embed de video multi-plataforma vía oEmbed + video propio, botón ver/descargar con enlaces oficiales (nunca rip), metadatos TMDB (clave por tenant) + Wikipedia/Wikidata + IDs externos (links salientes, sin scraping), ADR-0030 + i18n + docs + QA + release. |
+| **R17 — Backlog** | **v2.14.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
 
 **Criterio de corte entre R1 y R2:** R1 sale solo con P0/P1 de M1 en verde
 (typecheck + release ✓) y sin bugs bloqueantes (B1, B2 corregidos). R3 es un
@@ -1602,3 +1790,24 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t177-docs-m13 | WB-88 (documentación) |
 | t178-qa-m13 | WB-89 (QA) |
 | t179-release-m13 | WB-89 (release v2.11.0) |
+| t196-backlog-m14 | WB-135→WB-144 (este documento) |
+| t197-adr-m14 | WB-135 (ADR-0029 + spec experiencia pública) |
+| t198-header-back | WB-138 (menú público `main` + dropdown `user` configurables, backend) |
+| t199-home | WB-136 (home editable: hero/CTA + estilo) |
+| t200-editor | WB-137 (editor GrapesJS más intuitivo) |
+| t201-header-front | WB-139 (render menú + dropdown desde `/public/menu`) |
+| t202-i18n-m14 | WB-141 |
+| t203-docs-m14 | WB-140 (selector idioma `/account`), WB-142 (docs) |
+| t204-qa-m14 | WB-143 |
+| t205-release-m14 | WB-144 |
+| t207-backlog-m15 | WB-145→WB-153 (este documento) |
+| t208-adr-m15 | WB-145 (ADR-0030 + spec videoteca) |
+| t209-videoteca-modelo | WB-146 (modelo de datos + CRUD + multi-tenant) |
+| t210-embed | WB-147 (oEmbed multi-plataforma + video propio) |
+| t211-metadatos | WB-149 (TMDB), WB-150 (Wikipedia/Wikidata + IDs externos) |
+| t212-videoteca-front | WB-151 (catálogo + páginas de detalle) |
+| t213-ver-descargar | WB-148 (botón ver/descargar enlaces oficiales) |
+| t214-i18n-m15 | WB-152 (i18n) |
+| t215-docs-m15 | WB-152 (docs) |
+| t216-qa-m15 | WB-153 (QA) |
+| t217-release-m15 | WB-153 (release v2.13.0) |

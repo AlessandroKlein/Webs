@@ -97,7 +97,7 @@ e impresión térmica ESC/POS de M4.
   CRUD de productos/variantes, catálogo (`/categories`, `/brands`, `/suppliers`), almacenes
   (`/warehouses`), stock (`/stock`, `/stock/adjust`, `/stock/transfer`), movimientos
   (`/movements`, solo lectura), alertas (`/alerts`) y reportes/export (`/reports/*` + `/export.csv`
-  + `/import`). Permisos nuevos `inventory.read`/`inventory.write` (patrón `<recurso>.<accion>` de
+  + `/import`). Permisos nuevos `inventory.read`/`inventory.manage` (patrón `<recurso>.<accion>` de
   ADR-0004), sembrados en roles admin.
 
 ### 6. Scoping multi-tenant fail-closed
@@ -133,7 +133,7 @@ e impresión térmica ESC/POS de M4.
 
 - Especificación técnica completa (tablas Prisma, endpoints, flujos de movimiento/valoración/alertas,
   formato CSV y plan de migración): `docs/architecture/inventory.md`.
-- Implementación en las tareas M9 `t127` (modelo), `t128` (operaciones), `t129` (frontend/UI), con
-  QA + i18n en `t130`/`t132` y documentación en `t131`.
+- Implementación en las tareas M9 `t134` (modelo de datos), `t135` (operaciones de stock), `t136`
+  (UI), con QA + i18n en `t130`–`t132` y documentación en `t138`.
 - Relación con ADR-0006 (scoping fail-closed y granularidad `shareInventory`), ADR-0004 (permisos
   `inventory.*`) y reutiliza ESC/POS de M4 para impresión térmica (WB-42).
