@@ -28,7 +28,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Política de dependencias](architecture/politica-dependencias.md) | «Todo nativo, sin modo de pago»: auditoría de dependencias (MIT/Apache/BSD, sin SaaS de pago). |
 | [Móvil y escritorio](architecture/mobile-desktop.md) | Auditoría + plan de integración: PWA/Capacitor (`@webs/mobile`) y companion de escritorio (`@webs/desktop`). |
 | [Inventario completo](architecture/inventory.md) | **Spec técnica (ADR-0023, implementado)**: variantes SKU/EAN-UPC, catálogo, multi-almacén por sucursal, ledger inmutable, valoración promedio/FIFO, alertas y reportes/CSV. Guía: `guides/inventario-completo.md`; API: `api/inventory.md`. |
-| [Compositor social enriquecido](architecture/compositor-social.md) | **Spec técnica (ADR-0024)**: galería multi-media, menciones/hashtags, encuestas, visibilidad, unfurl SSRF-safe y retrocompat. |
+| [Compositor social enriquecido](architecture/compositor-social.md) | **Spec técnica (ADR-0024, implementado M10)**: galería multi-media, menciones/hashtags, encuestas, visibilidad, unfurl SSRF-safe y retrocompat. |
 | [Categorización del menú admin](architecture/menu-categorias.md) | **Spec**: taxonomía de secciones (Panel, Contenido, Ventas, Comunicación, Comunidad, Apariencia, Integraciones, Configuración, Usuarios) y criterio de clasificación de cada ítem del panel `/admin`. |
 | [Rediseño del menú admin](architecture/menu-admin-redesign.md) | **Spec + implementación M8**: fuente única de verdad del menú `/admin` (`GET /menu` con `source` core/plugin), dedup server-side por `path`, seed `CORE_MENU_ITEMS` y orden/permisos coherentes. |
 | [Facturación electrónica ARCA](architecture/facturacion-electronica.md) | Plugin `arca`: WSAA (X.509 CMS/PKCS#7), WSFE (CAE) vs WSMTXCA (CAEA), homologación vs producción y settings por organización. |
@@ -36,6 +36,10 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Pagos y checkout unificado](architecture/pagos-checkout.md) | `createCheckoutPayment`/`createPosPayment`, registro de proveedores, webhook idempotente, `metadata.kind` y cobro físico POS. |
 | [Serie temporal local IoT](architecture/iot-serie-temporal.md) | **Spec técnica (ADR-0027/0028)**: base separada `webs_iot`, `IotDevice`, flujo de recolección, contrato de rutas y matriz de mapeo invernadero/SEMA. |
 | [Experiencia pública](architecture/experiencia-publica.md) | **Spec técnica (ADR-0029)**: home `/` editable (sección `hero` + elementos `button`/`featured`), editor GrapesJS intuitivo (duplicar/borrar, preview, edición inline) y header/dropdown configurables (claves `main`/`user`). |
+| [Videoteca](architecture/videoteca.md) | **Spec técnica (ADR-0030)**: catálogo de series/películas (`ScreenWork` + `Season`/`Episode`/`VideoSource`/`DownloadLink`), embed oEmbed server-side (SSRF-safe), metadatos TMDB/Wikipedia y botón ver/descargar oficial. Legal: `legal/10-videoteca-derechos-de-autor-y-cumplimiento.md`. |
+| [Tracking tipo Trakt](architecture/tracking-trakt.md) | **Spec técnica (ADR-0031)**: historial, scrobble (nativo + extensión MV3), watchlist/colección/valoraciones, import/export CSV/JSON y gating en dos niveles (licencia + membresía). |
+| [Pulido profesional y visibilidad condicional](architecture/pulido-profesional-y-visibilidad.md) | **Spec técnica (ADR-0032)**: visibilidad condicional por plugin instalado (`requiredCapabilities` + endpoint `/organizations/:id/capabilities` fail-closed) y estándar de pulido (tokens, estados, a11y, responsive, checklist de plugins). |
+| [Publicidad (ads)](architecture/ads-publicidad.md) | **Spec técnica (ADR-0033)**: plugin `ads` — modelo agregado (`AdPlacement`/`AdCampaign`/`AdCreative`/`AdStat` por día), entrega server-side rotativa, AdSense/script genérico tras consentimiento IAB TCF v2.2, tracking anti-fraude. |
 | [Refactorización global](architecture/refactor-global.md) | **Diseño objetivo**: plugins, multi-tenant por cadenas, licencias Licensify, escalabilidad y sistema de estilos. |
 
 ### Registros de decisiones de arquitectura (ADR)
@@ -70,6 +74,10 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [ADR-0027 — Serie temporal local IoT](adr/0027-iot-serie-temporal.md) | Base separada `webs_iot`, tabla genérica `measurements`, pool `pg` dedicado (sin Prisma), retención + downsampling y `IotDevice` scoped. |
 | [ADR-0028 — Patrón de plugins IoT](adr/0028-iot-plugin-pattern.md) | Cliente HTTP de dispositivo (Bearer/X-Auth-Token/X-API-Key), collector configurable, SSRF-safe, token cifrado y contrato de rutas fail-closed. |
 | [ADR-0029 — Experiencia pública](adr/0029-experiencia-publica.md) | Home `/` editable como composición de `Page.layout` (sección `hero`, elementos `button`/`featured`), editor GrapesJS intuitivo y header/dropdown configurables (`main`/`user`); selector de idioma fuera del header. |
+| [ADR-0030 — Plugin videoteca](adr/0030-videoteca.md) | Catálogo de series/películas scoped: `ScreenWork` (movie/series) + `Season`/`Episode`/`VideoSource`/`DownloadLink`; embed oEmbed server-side (allowlist + SSRF); metadatos TMDB (primaria) + Wikipedia/Wikidata (respaldo); ver/descargar oficial con disclaimer (nunca rip). |
+| [ADR-0031 — Tracking tipo Trakt](adr/0031-tracking-trakt.md) | Historial, scrobble (nativo + extensión MV3), watchlist/colección/valoraciones, import/export CSV/JSON; catálogo global `TrackMedia` compacto + gating licencia/membresía; sin llamadas a Trakt. |
+| [ADR-0032 — Pulido + visibilidad condicional](adr/0032-pulido-profesional-visibilidad-condicional.md) | Mecanismo declarativo de visibilidad por plugin instalado (capacidades derivadas de `id`/`provides`, endpoint ligero cacheable, `requiredCapabilities` fail-closed) + estándar de pulido profesional (tokens, estados, a11y, responsive, checklist de plugins). |
+| [ADR-0033 — Plugin de publicidad (ads)](adr/0033-ads-publicidad.md) | Modelo agregado (`AdPlacement`/`AdCampaign`/`AdCreative`/`AdStat` por día), entrega server-side rotativa, AdSense/script genérico tras consentimiento IAB TCF v2.2, tracking anti-fraude y scoping multi-tenant. |
 
 ### Documentos legales (templates)
 
@@ -80,6 +88,13 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Política de Privacidad](legal/03-politica-de-privacidad.md) | Privacidad alineada con GDPR/LGPD. |
 | [Política de Cookies](legal/04-politica-de-cookies.md) | Cookies de sesión y preferencias. |
 | [Cumplimiento componentes sin pago](legal/05-cumplimiento-componentes-sin-pago.md) | Licencias de dependencias open-source. |
+| [Facturación electrónica AFIP/ARCA](legal/06-facturacion-electronica-afip-arca.md) | Requisitos de factura electrónica Argentina: tipos A/B/C/M, CAE/CAEA, datos del emisor/receptor, monotributo vs responsable inscripto y homologación vs producción. |
+| [Términos de suscripción y pago](legal/07-terminos-suscripcion-pago.md) | Renovación, cancelación, reembolsos y medios de pago. |
+| [Checklist de cumplimiento del checkout](legal/08-checklist-cumplimiento-checkout.md) | Precios claros, impuestos, resumen y consentimiento. |
+| [Referencia técnica de facturación](legal/09-referencia-tecnica-facturacion.md) | Mapa de datos obligatorios AFIP → modelo de la plataforma (para el equipo técnico). |
+| [Videoteca — derechos de autor y cumplimiento](legal/10-videoteca-derechos-de-autor-y-cumplimiento.md) | Botón «ver/descargar» (DMCA/Ley 11.723), ToS de TMDB, CC BY-SA de Wikipedia/Wikidata, no-scraping y embedding oEmbed. |
+| [Tracking tipo Trakt — privacidad y cumplimiento](legal/11-tracking-historial-y-privacidad.md) | Privacidad del historial/scrobble (GDPR art. 6/13/15/17/20 + Ley 25.326), ToS de plataformas de terceros, metadatos, suscripciones/feature-gating, portabilidad y menores. |
+| [Publicidad — consentimiento y cumplimiento](legal/12-publicidad-ads-consentimiento.md) | Políticas de AdSense/Ad Manager, consentimiento EEE/UK/CH (IAB TCF v2.2), GDPR/ePrivacy + Ley 25.326 + LGPD para cookies publicitarias, transparencia, términos para anunciantes y menores. |
 | [Instrucciones de personalización](legal/README.md) | Cómo adaptar los templates legales. |
 
 ## Convenciones de este repositorio de documentación
@@ -95,6 +110,6 @@ Además de este índice, el repositorio de documentación incluye:
 - `docs/guides/` — guías operativas (arranque, crear un plugin, configuración desde UI,
   roles y permisos, despliegue, feature-gating por licencia, claves de licencia para la venta,
   generador de APIs de acceso rápido, generador de SDK/API client, tickets de soporte,
-  chat en tiempo real y ventana flotante, inventario completo M9).
+  chat en tiempo real y ventana flotante, inventario completo M9, compositor social enriquecido M10).
 - `docs/api/` — referencia de la API (visión general, flujo de autenticación, WebSocket,
   inventario).

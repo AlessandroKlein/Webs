@@ -6,7 +6,7 @@
 > - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.6.0'`
 >   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** · **M5 v2.3.0**
 >   · **M6 v2.4.0** · **M7 v2.5.0** · **M8 v2.6.0** liberados). Roadmap planificado
->   hasta **v2.13.0** (M15 — videoteca/streaming: series y películas).
+>   hasta **v2.16.0** (M18 — plugin de publicidad/ads: monetización).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
 >   P2 = deseable / backlog continuo.
@@ -40,6 +40,9 @@ escalabilidad.
 | **M13 — IoT** | Serie temporal local (ThingSpeak-like, 100% local) con base de datos separada `webs_iot` + modelo genérico de mediciones, retención/downsampling y consultas con agregación; plugins `invernadero` (IP/URL + Bearer, control de actuadores) y `sema` (IP/URL + X-API-Key) con conexión mínima + test, dashboards con gráficos de históricos; multi-tenant por organización, token cifrado + SSRF-safe, i18n, docs, QA y release. |
 | **M14 — Experiencia pública** | Página de inicio (/) totalmente editable (hero/CTA como secciones del layout + mejora de estilo) · editor de bloques (GrapesJS) más intuitivo (paleta/preview/acciones/edición inline) · header público configurable (menú `main` + dropdown `user`) · selector de idioma en la cuenta del usuario (`/account`). |
 | **M15 — Videoteca** | Plugin `videoteca` (`@webs/plugin-videoteca`, categoría "contenido") para catálogo de series y películas: título, sinopsis, portada, año, géneros, reparto, temporadas/episodios; embed de video multi-plataforma vía oEmbed (YouTube/Vimeo/Dailymotion/Twitch/TikTok) + video propio (mp4/HLS); botón ver/descargar con enlaces oficiales (Netflix/Prime/Apple TV/YouTube Movies + archivos propios, nunca rip); metadatos opcionales TMDB (clave por tenant) + Wikipedia/Wikidata + IDs externos como links salientes (sin scraping). |
+| **M16 — Tracking** | Plugin de seguimiento tipo Trakt (réplica de trakt.tv): historial de reproducción con `watched_at`; scrobble automático (nativo en la videoteca M15 + extensión de navegador Manifest V3); watchlist, favoritos, valoraciones; import/export CSV/JSON con dedupe por IDs imdb/tmdb/trakt; catálogo compartido compacto referenciado por ID entero (sin duplicar metadatos por usuario); feature-gating free/paid (historial+watchlist vs scrobble ilimitado+listas+export/import+estadísticas); metadatos vía conectores M15 (TMDB/Wikipedia/Wikidata + IDs externos). |
+| **M17 — Pulido profesional** | Pulido profesional de TODAS las páginas (dashboard, admin, públicas y UI de los ~42 plugins): consistencia visual, espaciado, tipografía, responsive, accesibilidad, estados vacíos/carga y contraste; visibilidad condicional por plugin (cada sección/dato solo aparece si el plugin está INSTALADO: menú, tarjetas, tablas, páginas públicas); pulido de plugins hasta el estándar profesional. |
+| **M18 — Publicidad/Ads** | Plugin `ads` (`@webs/plugin-ads`, categoría "monetización"): publicidad de terceros (Google AdSense `ca-pub-XXX` + auto ads + unidades manuales `data-ad-slot` + Ad Manager + inyección de script genérico para cualquier red); publicidad propia/self-serve (anunciante → campaña → creatividad imagen/texto/HTML → ubicación/slot → targeting por tenant/página/idioma/dispositivo/programación → rotación); ubicaciones (header, sidebar, in-content, footer, preroll/midroll del reproductor de videoteca M15, sticky); tracking de impresiones/clics agregado por hora/día (sin una fila por impresión) con dedupe y anti-fraude; consentimiento GDPR/ePrivacy (CMP / IAB TCF v2.2) que bloquea scripts de terceros hasta consentir; multi-tenant (publisherId + campañas por organización); admin `/admin/ads`; i18n ES/EN/PT; legal (políticas AdSense, consentimiento, transparencia, sin clics incentivados). |
 
 ---
 
@@ -1624,6 +1627,327 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 
 ---
 
+### 3.17 Milestone 16 (M16) — Tracking tipo Trakt: historial, scrobble, watchlist
+
+> **Alcance:** plugin de seguimiento de lo que ve cada usuario (réplica de
+> trakt.tv): historial de reproducción con `watched_at`, scrobble automático,
+> watchlist, favoritos, valoraciones, import/export y feature-gating de
+> suscripción (free/paid). **M16 = v2.14.0.** Almacenamiento compacto: catálogo
+> compartido (ScreenWork/Season/Episode de M15) referenciado por ID entero; los
+> registros por usuario solo guardan `mediaId` + `watched_at` + `progress`
+> smallint(0-100) + `rating` tinyint + flags (nunca títulos duplicados). El
+> ADR-0031 + spec (t219) y el reuso de conectores de metadatos de M15 (t220)
+> alimentan este alcance.
+
+#### WB-154 · P0 (M16) — Modelo de datos de tracking con catálogo compacto — `t221`
+- **Dado** un usuario que ve contenido,
+- **Cuando** se registra cualquier evento de seguimiento,
+- **Entonces** se persiste en modelos compactos (`WatchEvent`, `Watchlist`,
+  `Favorite`, `Rating`, `PlaybackSession`) que referencian el catálogo compartido
+  (`ScreenWork`/`Season`/`Episode` de M15) por ID entero (tmdb/trakt/tvdb), con
+  `watched_at`, `progress` smallint(0-100), `rating` tinyint y flags, **sin**
+  duplicar títulos/metadatos por usuario, y con scoping multi-tenant.
+- **Métrica:** un evento de un usuario ocupa solo IDs + datos propios; sin
+  columnas de metadatos duplicadas por usuario.
+
+#### WB-155 · P0 (M16) — API scrobble start/pause/stop + check-in — `t222`
+- **Dado** que un usuario reproduce contenido,
+- **Cuando** el reproductor (nativo o extensión) emite start/pause/stop,
+- **Entonces** la API registra el scrobble con `watched_at` y progreso, y un
+  check-in marca "viendo ahora", con validación de `mediaId` y scoping por
+  usuario.
+- **Métrica:** start→pause→stop de un título deja un `WatchEvent` coherente
+  (progreso y timestamp) sin duplicados.
+
+#### WB-156 · P0 (M16) — Endpoints de sync (history/watchlist/favorites/ratings) — `t222`
+- **Dado** un cliente (web o extensión) autenticado,
+- **Cuando** sincroniza su estado,
+- **Entonces** los endpoints devuelven/actualizan historial, watchlist, favoritos
+  y valoraciones del usuario, con paginación y filtros, aislados por usuario y
+  organización.
+- **Métrica:** sync round-trip (push + pull) del estado completo sin pérdida.
+
+#### WB-157 · P0 (M16) — Import/export CSV/JSON con dedupe — `t222`
+- **Dado** un usuario que quiere migrar su historial/listas,
+- **Cuando** exporta o importa (visto, favoritos, historial, lista para ver),
+- **Entonces** se generan CSV y JSON round-trippable, y la importación dedupe por
+  IDs (imdb/tmdb/trakt) sin crear entradas repetidas.
+- **Métrica:** exportar → importar el mismo archivo no duplica registros (count
+  estable).
+
+#### WB-158 · P0 (M16) — Dashboard de tracking (UI) — `t224`
+- **Dado** un usuario en su panel,
+- **Cuando** navega su tracking,
+- **Entonces** ve "viendo ahora", historial, watchlist, favoritos y valoraciones
+  con estados claros y acciones (añadir/quitar/valorar), renderizando los títulos
+  desde el catálogo compartido.
+- **Métrica:** listar/ver/valorar/quitar un título del watchlist y del historial
+  sin errores.
+
+#### WB-159 · P0 (M16) — Scrobbler nativo + extensión de navegador — `t225`
+- **Dado** que el usuario ve contenido (en la videoteca M15 o en plataformas de
+  terceros),
+- **Cuando** reproduce,
+- **Entonces** el frontend de la videoteca emite eventos start/pause/stop a
+  nuestra API (scrobble nativo), y una extensión de navegador (Manifest V3,
+  Chrome/Firefox) detecta `<video>` en Netflix/Prime/YouTube/etc. y emite
+  scrobble, al estilo "Universal Trakt Scrobbler".
+- **Métrica:** scrobble nativo (videoteca) y scrobble vía extensión en ≥1
+  plataforma de terceros registran el evento correcto.
+
+#### WB-160 · P0 (M16) — Feature-gating de suscripción free/paid — `t223`
+- **Dado** el sistema de licencias existente (features + `MembershipPlan`),
+- **Cuando** un usuario usa tracking,
+- **Entonces** el tier gratuito permite historial + watchlist básico, y el plan
+  pago desbloquea scrobble automático ilimitado, listas ilimitadas, export/import
+  y estadísticas, con el mismo feature-gating de M6 (server-side + UI upsell).
+- **Métrica:** un usuario free no accede a features paid; un usuario paid sí.
+
+#### WB-161 · P1 (M16) — i18n ES/EN/PT — `t226`
+- **Dado** los textos de tracking (dashboard, listas, estados, import/export),
+- **Cuando** el usuario cambia de idioma,
+- **Entonces** el tracking queda traducido (ES/EN/PT) sin strings hardcodeadas.
+- **Métrica:** paridad i18n en dashboard/estados/import-export.
+
+#### WB-162 · P1 (M16) — Docs + QA + release v2.14.0 — `t227`, `t228`, `t229`
+- **Dado** M16 completo en Docker,
+- **Cuando** corre la QA y se bumpa la versión,
+- **Entonces** el veredicto es **LIBERABLE** (modelo compacto, scrobble
+  nativo+extensión, sync, import/export, feature-gating, i18n), `docs/` documenta
+  el plugin, `CHANGELOG.md` se actualiza con `[2.14.0]`, `SYSTEM_VERSION` pasa a
+  `2.14.0` y se taggea `v2.14.0` con workflows verdes.
+- **Métrica:** QA LIBERABLE; tag `v2.14.0` público; CI/release ✓.
+
+---
+
+### 3.18 Milestone 17 (M17) — Pulido profesional + visibilidad condicional por plugin
+
+> **Alcance — 3 frentes del pedido del usuario:**
+> 1. **Pulido profesional** — personalizar de forma profesional TODAS las páginas
+>    (dashboard, admin, públicas y las UI de los ~42 plugins): consistencia visual,
+>    espaciado, tipografía, responsive, accesibilidad (WCAG), estados
+>    vacíos/carga/error y contraste.
+> 2. **Visibilidad condicional** — cada sección/dato solo debe aparecer cuando el
+>    plugin correspondiente está **INSTALADO**; si no está instalado, no debe
+>    aparecer (ni en menú, ni en tarjetas, ni en tablas, ni en páginas públicas).
+> 3. **Pulido de plugins** — los ~42 plugins aún no están 100% pulidos; ampliar y
+>    pulir cada UI hasta el estándar profesional.
+>
+> **M17 = v2.15.0.** El ADR-0032 + spec (t231) fija la política de visibilidad y el
+> mapa sección↔plugin; t232–t238 implementan, pulean, verifican y publican.
+>
+> **Mapa de visibilidad sección/dato → plugin gatillante** (extraído de
+> `plugin.json` `menu[]`/`slots` y de los dashboards actuales — referencia para
+> ADR-0032, t232 y t234):
+
+| Sección / dato (admin o dashboard) | Plugin gatillante |
+|------------------------------------|-------------------|
+| Analytics (panel) | `analytics` |
+| Blog (contenido) | `blog` |
+| Formularios (contenido) | `formularios` |
+| Calendario (comunidad) | `calendario` |
+| Social (comunidad) | `social` |
+| Tienda / Commerce (ventas) | `ecommerce` + `carrito` |
+| Facturas (ventas) | `facturacion` |
+| Inventario / Stock (ventas) | `inventario` |
+| Organizaciones / Sucursales / Miembros | `organizaciones` |
+| Notificaciones | `notificaciones` |
+| Auth / Social-login (integraciones) | `register` + `social-login` |
+| Tickets (soporte) | `support` |
+| Rutinas (academia) | `academia` |
+| Reservas (bookings) | `reservas` |
+| Suscripciones | `suscripciones` |
+| Chat / Chat-IA | `chat` / `chat-ia` |
+| Checkout / método de pago (slot `payment`) | `mercadopago` / `stripe` / `paypal` / `ebanx` / `payway` / `modo` |
+| Envíos (slot shipping) | `andreani` / `oca` / `mercadolibre` / `correo` |
+| Search (header) / SEO | `search` / `seo` |
+| Almacenamiento (S3) | `storage-s3` |
+
+#### WB-163 · P0 (M17) — ADR-0032 + spec de pulido y visibilidad condicional — `t231`
+- **Dado** el pedido de pulido profesional y visibilidad condicional,
+- **Cuando** se registra la decisión,
+- **Entonces** existe `docs/adr/0032-*.md` que fija (a) los tokens/reglas del pulido
+  profesional (tipografía, espaciado, color/contraste, responsive, accesibilidad,
+  estados), (b) la política de visibilidad condicional (una sección/dato se muestra
+  solo si su plugin está instalado+habilitado) y (c) el mapa completo sección↔plugin
+  (todas las secciones de admin, dashboards, tablas y slots públicos), consistente
+  con `plugin.json` `menu[]`/`slots` y con los dashboards reales.
+- **Métrica:** ADR-0032 presente; mapa cubre las ~43 entradas `menu[]` y todos los
+  slots `content`/`footer`/`header`/`payment`.
+
+#### WB-164 · P0 (M17) — Visibilidad condicional en el backend (server-side) — `t232`
+- **Dado** un set de plugins instalados+habilitados por organización,
+- **Cuando** la API sirve menú, dashboards, tablas o páginas públicas,
+- **Entonces** un resolver central (`pluginVisibility`) decide qué secciones/datos
+  se exponen, y la API **no** devuelve datos de secciones cuyo plugin no está
+  instalado (ni en menú, ni en tarjetas, ni en tablas, ni en `BlockPlacement` de
+  páginas públicas), con scoping multi-tenant.
+- **Métrica:** con el plugin `inventario` desinstalado, `GET` del menú y del
+  dashboard no incluye la sección/datos de stock; reinstalar la vuelve visible.
+
+#### WB-165 · P0 (M17) — Pulido profesional de dashboard, admin y páginas públicas — `t233`
+- **Dado** el dashboard (usuario/trabajador), el admin y las páginas públicas,
+- **Cuando** se navega por ellas,
+- **Entonces** muestran consistencia visual (tokens `--ws-*`), espaciado y
+  tipografía coherentes, contraste AA, responsive en móvil/tablet/desktop, estados
+  vacíos/carga/error en todas las listas/tablas/tarjetas, y navegación accesible
+  (foco, roles, teclado).
+- **Métrica:** auditoría Lighthouse accesibilidad ≥ 95 en las rutas principales;
+  0 colores/espaciados hardcodeados fuera de tokens.
+
+#### WB-166 · P0 (M17) — Visibilidad condicional en la UI (frontend) — `t234`
+- **Dado** el estado de instalación de plugins,
+- **Cuando** un usuario navega menú/dashboards/tablas/páginas públicas,
+- **Entonces** la UI oculta la sección/dato de un plugin no instalado (sin dejar
+  huecos ni enlaces rotos), y lo muestra al instalarlo, usando la misma señal
+  server-side (sin lógica duplicada ni parpadeos).
+- **Métrica:** instalar/desinstalar un plugin alterna la visibilidad de su
+  sección/dato sin cambios de código en la UI.
+
+#### WB-167 · P0 (M17) — Pulido de los ~42 plugins al estándar profesional — `t235`
+- **Dado** las UIs admin y públicas de los ~42 plugins en `plugins/*`,
+- **Cuando** se audita y pule cada plugin,
+- **Entonces** cada UI usa los mismos tokens/estados/responsive del estándar, sus
+  formularios validan y muestran feedback, y sus páginas públicas renderizan sin
+  inconsistencias.
+- **Métrica:** checklist de pulido por plugin completado; 0 plugins marcados
+  "pendiente de pulido" al cierre de QA.
+
+#### WB-168 · P1 (M17) — i18n ES/EN/PT del pulido y de la visibilidad — `t236`
+- **Dado** los nuevos textos (estados, mensajes de visibilidad, etiquetas de
+  plugins pulidos),
+- **Cuando** el usuario cambia de idioma,
+- **Entonces** todo queda traducido (ES/EN/PT) sin strings hardcodeadas.
+- **Métrica:** paridad i18n en las rutas/plugins tocados.
+
+#### WB-169 · P1 (M17) — QA de pulido y visibilidad condicional — `t237`
+- **Dado** la plataforma en Docker aislado,
+- **Cuando** corre la QA de M17,
+- **Entonces** se verifica visibilidad condicional (instalar/desinstalar), el
+  checklist de pulido profesional (dashboard/admin/públicas/plugins), i18n y
+  regresión de M1–M16, con veredicto **LIBERABLE**.
+- **Métrica:** QA LIBERABLE; 0 regresiones bloqueantes.
+
+#### WB-170 · P1 (M17) — Release v2.15.0 — `t238`
+- **Dado** M17 completo y QA en verde,
+- **Cuando** se taggea `v2.15.0`,
+- **Entonces** `CHANGELOG.md` se actualiza con `[2.15.0]`, `SYSTEM_VERSION` pasa a
+  `2.15.0` y el release se publica con workflows verdes.
+- **Métrica:** tag `v2.15.0` público; CI/release ✓.
+
+---
+
+### 3.19 Milestone 18 (M18) — Plugin de publicidad/ads (monetización)
+
+> **Alcance:** plugin `ads` (`@webs/plugin-ads`, categoría "monetización") para
+> monetizar la plataforma con publicidad de terceros y publicidad propia
+> (self-serve), con consentimiento GDPR/ePrivacy, tracking agregado anti-fraude y
+> multi-tenant. **M18 = v2.16.0.** El ADR-0033 + spec (t241) fija la arquitectura
+> (inyección de scripts, servidor de ads propio, CMP y modelo de datos);
+> t242–t251 implementan, pulean, verifican y publican.
+
+#### WB-171 · P0 (M18) — ADR-0033 + spec de publicidad/ads — `t241`
+- **Dado** el pedido de monetización con publicidad,
+- **Cuando** se registra la decisión,
+- **Entonces** existe `docs/adr/0033-*.md` que fija: (a) modelo de datos
+  (Advertiser/Campaign/Creative/AdSlot/AdPlacement/AdEventAgregado),
+  (b) arquitectura de inyección (script genérico + AdSense/Ad Manager),
+  (c) servidor de ads self-serve (targeting/rotación), (d) tracking agregado por
+  hora/día con dedupe/anti-fraude y (e) CMP (IAB TCF v2.2), consistente con el
+  resto de la plataforma (multi-tenant, feature-gating, todo nativo sin pago).
+- **Métrica:** ADR-0033 presente y cubre los 9 frentes del alcance.
+
+#### WB-172 · P0 (M18) — Publicidad de terceros (AdSense/Ad Manager/script genérico) — `t242`
+- **Dado** una organización con su `publisherId` (Google AdSense `ca-pub-XXX`) configurado,
+- **Cuando** se publica una página,
+- **Entonces** se inyectan los scripts de AdSense (auto ads y unidades manuales
+  `data-ad-slot`) y/o Ad Manager, y un mecanismo de "script genérico" permite
+  inyectar el snippet de cualquier otra red, con el `publisherId` y las unidades
+  scoped por organización (multi-tenant).
+- **Métrica:** con `publisherId` válido, se renderiza una unidad manual en el slot
+  configurado; el script genérico inyecta un snippet de red arbitrario.
+
+#### WB-173 · P0 (M18) — Publicidad propia/self-serve (anunciante→campaña→creatividad→slot→targeting→rotación) — `t243`
+- **Dado** un anunciante autenticado,
+- **Cuando** crea una campaña con creatividades (imagen/texto/HTML) y las asigna a
+  ubicaciones con targeting (tenant, página, idioma, dispositivo, programación
+  horaria/fechas),
+- **Entonces** el servidor de ads elige la creatividad correcta según el targeting
+  y la rotación (peso/round-robin), y la sirve en el slot, con scoping multi-tenant.
+- **Métrica:** campaña con targeting por idioma solo se sirve en páginas de ese
+  idioma; rotación alterna creatividades.
+
+#### WB-174 · P0 (M18) — Ubicaciones de anuncios (header/sidebar/in-content/footer/preroll-midroll/sticky) — `t244`
+- **Dado** las ubicaciones definidas por el admin,
+- **Cuando** se renderiza una página o el reproductor de la videoteca (M15),
+- **Entonces** los anuncios se muestran en header, sidebar, in-content, footer,
+  preroll/midroll (en puntos de reproducción del video) y sticky, sin romper el
+  layout ni el responsive.
+- **Métrica:** cada tipo de ubicación renderiza en su posición; preroll/midroll
+  se dispara en los puntos de la videoteca.
+
+#### WB-175 · P0 (M18) — Tracking de impresiones/clics agregado + dedupe + anti-fraude — `t245`
+- **Dado** impresiones y clics de anuncios,
+- **Cuando** se registran,
+- **Entonces** se agregan por hora/día (contadores por creatividad/slot/tenant,
+  **sin** una fila por impresión), con dedupe (la misma impresión/clic no se cuenta
+  dos veces) y heurísticas anti-fraude (rate-limit, huella de clic, sin clics
+  incentivados), y las métricas se exponen agregadas en el admin y por API.
+- **Métrica:** un millón de impresiones produce filas agregadas (no 1M filas);
+  el mismo clic repetido no infla el contador.
+
+#### WB-176 · P0 (M18) — Consentimiento GDPR/ePrivacy (CMP / IAB TCF v2.2) — `t246`
+- **Dado** un visitante en una jurisdicción que requiere consentimiento,
+- **Cuando** carga la página,
+- **Entonces** una CMP (IAB TCF v2.2) muestra el aviso, y los scripts de terceros
+  (AdSense/Ad Manager/redes) se **bloquean** hasta que el usuario consiente; el
+  estado de consentimiento se persiste y la publicidad solo se carga con el
+  consentimiento otorgado.
+- **Métrica:** sin consentimiento, no se cargan scripts de terceros; al consentir,
+  se cargan y se registra la cadena TC (TCF v2.2).
+
+#### WB-177 · P0 (M18) — Admin /admin/ads (campañas, creatividades, ubicaciones, stats, settings) — `t247`
+- **Dado** un admin autenticado,
+- **Cuando** navega a `/admin/ads`,
+- **Entonces** gestiona campañas, creatividades, ubicaciones, configuración
+  (publisherId, redes, consentimiento) y ve las stats agregadas (impresiones/clics
+  por hora/día), con permisos `ads.manage`/`ads.read` y scoping multi-tenant.
+- **Métrica:** crear una campaña→creatividad→ubicación y ver su stats sin errores.
+
+#### WB-178 · P1 (M18) — i18n ES/EN/PT — `t248`
+- **Dado** los textos de ads (admin, CMP, avisos de consentimiento),
+- **Cuando** el usuario cambia de idioma,
+- **Entonces** todo queda traducido (ES/EN/PT) sin strings hardcodeadas, incluyendo
+  el aviso de consentimiento y las políticas.
+- **Métrica:** paridad i18n en admin/ads, CMP y avisos.
+
+#### WB-179 · P0 (M18) — Legal (políticas AdSense, consentimiento, transparencia, sin clics incentivados) — `t249`
+- **Dado** los requisitos legales de publicidad,
+- **Cuando** se documenta e implementa el cumplimiento,
+- **Entonces** existen documentos y avisos que cubren las políticas de AdSense, el
+  consentimiento (GDPR/ePrivacy), la transparencia sobre publicidad y la
+  prohibición de clics incentivados, integrados en `docs/legal/` y en la CMP.
+- **Métrica:** página de política de ads accesible; aviso de consentimiento
+  conforme; sin patrones de clic incentivado en el código.
+
+#### WB-180 · P1 (M18) — QA del plugin de ads — `t250`
+- **Dado** la plataforma en Docker aislado,
+- **Cuando** corre la QA de M18,
+- **Entonces** se verifica inyección de AdSense/script genérico, self-serve
+  (campaña→creatividad→targeting→rotación), ubicaciones (incl. preroll/midroll),
+  tracking agregado+dedupe, CMP (bloqueo hasta consentir), multi-tenant, i18n y
+  legal, con regresión de M1–M17 y veredicto **LIBERABLE**.
+- **Métrica:** QA LIBERABLE; 0 regresiones bloqueantes.
+
+#### WB-181 · P1 (M18) — Release v2.16.0 — `t251`
+- **Dado** M18 completo y QA en verde,
+- **Cuando** se taggea `v2.16.0`,
+- **Entonces** `CHANGELOG.md` se actualiza con `[2.16.0]`, `SYSTEM_VERSION` pasa a
+  `2.16.0` y el release se publica con workflows verdes.
+- **Métrica:** tag `v2.16.0` público; CI/release ✓.
+
+---
+
 ## 4. Roadmap de releases
 
 | Release | Versión | Alcance |
@@ -1644,7 +1968,10 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 | **R14 — IoT** | **v2.11.0** | M13: WB-78→WB-89 — serie temporal local (base separada `webs_iot` + modelo genérico de mediciones, retención/downsampling, consultas con agregación) + plugins `invernadero` (IP/URL + Bearer, control de actuadores) y `sema` (IP/URL + X-API-Key), UI de conexión mínima con test + dashboards con gráficos, multi-tenant + seguridad (token cifrado, SSRF-safe), i18n + docs + QA + release. |
 | **R15 — Experiencia pública** | **v2.12.0** | M14: WB-135→WB-144 — página de inicio (/) editable (hero/CTA como secciones + mejora de estilo), editor de bloques (GrapesJS) más intuitivo (paleta/preview/acciones/edición inline), header público configurable (menú `main` + dropdown `user`), selector de idioma en la cuenta del usuario (`/account`), ADR-0029 + i18n + docs + QA + release. |
 | **R16 — Videoteca** | **v2.13.0** | M15: WB-145→WB-153 — plugin `videoteca` para series y películas (catálogo + temporadas/episodios), embed de video multi-plataforma vía oEmbed + video propio, botón ver/descargar con enlaces oficiales (nunca rip), metadatos TMDB (clave por tenant) + Wikipedia/Wikidata + IDs externos (links salientes, sin scraping), ADR-0030 + i18n + docs + QA + release. |
-| **R17 — Backlog** | **v2.14.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
+| **R17 — Tracking** | **v2.14.0** | M16: WB-154→WB-162 — plugin de seguimiento tipo Trakt (historial con `watched_at`, scrobble nativo + extensión de navegador Manifest V3, watchlist/favoritos/valoraciones, import/export CSV/JSON con dedupe por IDs, feature-gating free/paid, catálogo compacto por ID sin duplicar metadatos), ADR-0031 + i18n + docs + QA + release. |
+| **R18 — Pulido profesional** | **v2.15.0** | M17: WB-163→WB-170 — pulido profesional de dashboard/admin/públicas + UI de los ~42 plugins, visibilidad condicional por plugin (sección/dato oculto si no está instalado), pulido de plugins, ADR-0032 + i18n + QA + release. |
+| **R19 — Publicidad/Ads** | **v2.16.0** | M18: WB-171→WB-181 — plugin de publicidad (AdSense/Ad Manager + script genérico, self-serve con campañas/creatividades/targeting/rotación, ubicaciones incl. preroll/midroll de videoteca M15, tracking agregado anti-fraude, consentimiento CMP/IAB TCF v2.2, multi-tenant, admin /admin/ads, i18n, legal, QA y release). |
+| **R20 — Backlog** | **v2.17.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
 
 **Criterio de corte entre R1 y R2:** R1 sale solo con P0/P1 de M1 en verde
 (typecheck + release ✓) y sin bugs bloqueantes (B1, B2 corregidos). R3 es un
@@ -1811,3 +2138,36 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t215-docs-m15 | WB-152 (docs) |
 | t216-qa-m15 | WB-153 (QA) |
 | t217-release-m15 | WB-153 (release v2.13.0) |
+| t218-backlog-m16 | WB-154→WB-162 (este documento) |
+| t219-adr-m16 | ADR-0031 + spec (alcance general M16, alimenta WB-154→WB-162) |
+| t220-conectores-m16 | reuso conectores metadatos M15 (TMDB/Wikipedia/Wikidata + IDs externos) |
+| t221-tracking-modelo | WB-154 |
+| t222-tracking-api | WB-155, WB-156, WB-157 |
+| t223-feature-gating | WB-160 |
+| t224-tracking-ui | WB-158 |
+| t225-scrobbler | WB-159 |
+| t226-i18n-m16 | WB-161 |
+| t227-docs-m16 | WB-162 (docs) |
+| t228-qa-m16 | WB-162 (QA) |
+| t229-release-m16 | WB-162 (release v2.14.0) |
+| t230-backlog-m17 | WB-163→WB-170 (este documento) |
+| t231-adr-m17 | WB-163 (ADR-0032 + spec + mapa sección↔plugin) |
+| t232-visibilidad-backend | WB-164 |
+| t233-pulido-frontend | WB-165 |
+| t234-visibilidad-ui | WB-166 |
+| t235-pulido-plugins | WB-167 |
+| t236-i18n-m17 | WB-168 |
+| t237-qa-m17 | WB-169 |
+| t238-release-m17 | WB-170 |
+| t240-backlog-m18 | WB-171→WB-181 (este documento) |
+| t241-adr-m18 | WB-171 (ADR-0033 + spec) |
+| t242-ads-terceros | WB-172 |
+| t243-ads-selfserve | WB-173 |
+| t244-ads-ubicaciones | WB-174 |
+| t245-ads-tracking | WB-175 |
+| t246-ads-consentimiento | WB-176 |
+| t247-ads-admin | WB-177 |
+| t248-i18n-m18 | WB-178 |
+| t249-legal-m18 | WB-179 |
+| t250-qa-m18 | WB-180 |
+| t251-release-m18 | WB-181 |

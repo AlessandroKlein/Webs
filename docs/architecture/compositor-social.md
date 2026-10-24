@@ -30,12 +30,11 @@ model SocialPost {
   mediaUrl       String?                    // legacy (espejo del primer ítem)
   mediaType      String?                    // legacy
   visibility     String   @default("public") // public | followers | private
-  pollId         String?                    // FK a SocialPoll (opcional)
   preview        Json?                      // { url, title, description?, image?, siteName?, fetchedAt }
   likes          Int      @default(0)
   createdAt      DateTime @default(now())
 
-  poll           SocialPoll?  @relation(fields: [pollId], references: [id])
+  poll           SocialPoll?   // back-relation (option B): la FK vive en SocialPoll.postId
   mentions       SocialMention[]
   hashtags       SocialHashtag[]
 
@@ -120,6 +119,13 @@ model SocialPollVote {
 ```
 
 Todos los modelos llevan `organizationId` y se operan bajo el scoping fail-closed de ADR-0006.
+
+> **Estado: implementado (M10, v2.8.0).** Los modelos y endpoints descritos abajo quedaron
+> implementados por t143 (backend), t144 (compositor) y t145 (feed). Desviación respecto de un
+> borrador previo del spec: la encuesta usa **option B** — `SocialPoll.postId @unique` como FK real
+> (`social_polls → social_posts`) y `SocialPost.poll` como back-relation (sin columna `pollId` en
+> `social_posts`), resolviendo una FK circular inválida del borrador. El resto coincide 1:1 con el
+> código (`apps/api/prisma/schema.prisma:392-474`).
 
 ## 3. Contrato API (plugin `social`)
 
@@ -208,17 +214,25 @@ El fetcher de vista previa de enlaces:
   rompe. `mediaUrl` se retira en un cleanup posterior.
 - `poll`/`preview`/`mediaUrls`/`visibility` son opcionales.
 
-## 8. Migración y pasos de implementación
+## 8. Implementación (M10, v2.8.0)
 
-1. **Migración Prisma** (additive): `ALTER TABLE social_posts ADD COLUMN media_urls jsonb DEFAULT '[]',
-   visibility varchar(16) DEFAULT 'public', poll_id uuid NULL, preview jsonb NULL`; crear
-   `social_mentions`, `social_hashtags`, `social_polls`, `social_poll_votes`. Sin backfill destructivo.
-2. **API** (`t143`): extender `POST /posts`, filtros de `GET /posts`, `POST /posts/:id/vote`,
-   `GET /posts/:id/votes`, unfurl SSRF-safe + notificación de menciones.
-3. **Frontend** (`t144`): galería multi-media, menciones/hashtags (autocomplete + render enlazado),
-   encuestas con conteo en vivo, selector de visibilidad, emoji, contador de caracteres, preview de
-   enlaces y autoguardado de borrador.
-4. **QA + i18n** (`t145`): tests de visibilidad (no leak), un voto por usuario, SSRF y retrocompat.
+1. **Migración Prisma** `0011_social_rich` (aditiva): `social_posts` + `mediaUrls`/`visibility`/
+   `preview`; nuevas tablas `social_mentions`, `social_hashtags`, `social_polls`,
+   `social_poll_votes` (option B para la FK de la encuesta). Sin backfill destructivo.
+2. **Backend (t143)**: `plugins/social/src/server.ts` — `POST /posts` transaccional (galería
+   `mediaUrls[]` + legacy `mediaUrl`, `visibility`, `poll`, extracción de hashtags/menciones, unfurl
+   SSRF-safe con `node:dns` re-validando IP, notificación de menciones); `GET /posts` con filtros
+   `tag`/`mention` + visibilidad server-side; `GET /posts/:id`, `POST /posts/:id/vote` (upsert
+   `@@unique([pollId,userId])`), `GET /posts/:id/votes`. Retrocompat: posts viejos → `visibility
+   public`, `mediaUrl` legacy → `mediaUrls[0]`.
+3. **Compositor (t144)**: `apps/web/src/features/public/SocialComposer.tsx` (~400 líneas) — galería
+   multi-media (subir múltiple, reordenar, eliminar, caption), selector de visibilidad, contador
+   con límite 500, autocompletado de menciones/hashtags (`detectToken` + dropdown), emoji picker
+   (48 emojis), encuestas (pregunta + 2..20 opciones), preview de enlace inline y autoguardado de
+   borrador en `localStorage` (`webs.social.draft.v1`). Corregido `SOCIAL_BASE` →
+   `/api/v1/plugins/social` (el shim `/blocks` era solo CRUD y daba 404).
+4. **Feed (t145)**: nuevos componentes `apps/web/src/features/public/social/` + `SocialPublicPage`
+   — galerías, encuestas interactivas con conteo, menciones/hashtags clicables.
 
 ## 9. Referencias
 

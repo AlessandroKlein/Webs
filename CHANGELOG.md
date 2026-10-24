@@ -3,6 +3,42 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.8.0] - 2026-10-24
+
+### Añadido
+
+- **Compositor de publicación social enriquecido (ADR-0024, M10)**: galería multi-media
+  (`SocialPost.mediaUrls Json[]` con caption por ítem), menciones `@usuario` y hashtags `#tema`
+  (extraídos del texto, indexados y notificados), encuestas (`SocialPoll`/`SocialPollVote` con un
+  voto por usuario), selector de visibilidad (`public`/`followers`/`private` filtrado en servidor),
+  preview de enlaces SSRF-safe, emoji picker, contador de caracteres (límite 500) y autoguardado de
+  borrador en `localStorage`. Migración `0011_social_rich`.
+- **Backend social ampliado**: `POST /posts` transaccional, `GET /posts` con filtros `tag`/`mention`
+  + visibilidad server-side, `POST /posts/:id/vote` y `GET /posts/:id/votes`; retrocompat con posts
+  legacy (`mediaUrl` único, sin `visibility`).
+- **Compositor y feed**: `SocialComposer.tsx` (~400 líneas) + componentes `features/public/social/`
+  con galerías, encuestas interactivas y menciones/hashtags clicables.
+- **i18n M10**: 40 claves `social.*` en `es`/`en`/`pt` con paridad total (visibilidad, galería,
+  encuesta, emoji, mención, preview de enlace y publicación).
+- **Docs M10**: guía `docs/guides/compositor-social.md` + spec `docs/architecture/compositor-social.md`
+  (marcada «implementado M10»), README y Docs.git sincronizados.
+
+### Corregido
+
+- **Almacenes**: `Warehouse.code` ahora único por organización (`@@unique([organizationId, code])`),
+  con deduplicación de códigos legacy; migración `0012_warehouse_code_unique` (deuda QA M9).
+- **Social**: `SOCIAL_BASE` corregido de `/api/v1/blocks/social` → `/api/v1/plugins/social` (el shim
+  `/blocks` solo cubre CRUD; la ruta legacy daba 404).
+
+### Deuda técnica
+
+- **MEDIO** — link preview (unfurl SSRF-safe) se persiste en `SocialPost.preview` pero el feed aún no
+  lo renderiza como tarjeta (título/imagen/descripción).
+- **LOW** — hallazgo menor de QA M10 (notificación de mención).
+- Heredada: cache `blocks:catalog` (t101), `navItems` hardcodeado en AdminLayout (t122), `gen.*`
+  huérfanos (t110), errores backend hardcoded (t108), rename residual (F12/F4/F10/F17) y hueco
+  ADR 0013–0022 (t126).
+
 ## [2.7.0] - 2026-10-24
 
 ### Añadido

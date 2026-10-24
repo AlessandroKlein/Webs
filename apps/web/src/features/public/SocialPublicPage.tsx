@@ -1,6 +1,6 @@
-import { useState, type CSSProperties, type ChangeEvent, type FormEvent } from 'react';
+import { useState, type CSSProperties, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, useQueries } from '@tanstack/react-query';
 import { api, uploadFile } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
@@ -9,19 +9,19 @@ import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { SiteLayout } from '../../components/SiteLayout';
 import { SocialDirect, Avatar } from './SocialDirect';
+import { SocialComposer } from './SocialComposer';
+import { PostText } from './social/PostText';
+import { PostGallery } from './social/PostGallery';
+import { PostPoll } from './social/PostPoll';
+import { postMedia, type SocialPost, type SocialPoll } from './social/types';
 
-const SOCIAL_BASE = '/api/v1/blocks/social';
+const SOCIAL_BASE = '/api/v1/plugins/social';
 const MEDIA_UPLOAD = '/api/v1/media/upload';
 
-interface SocialPost {
-  id: string;
-  author: string;
-  text: string;
-  mediaUrl: string | null;
-  mediaType: string | null;
-  likes: number;
-  createdAt: string;
+interface SocialPostDetail extends SocialPost {
+  poll?: SocialPoll | null;
 }
+
 
 interface SocialUser {
   id: string;
@@ -67,19 +67,22 @@ export function SocialPublicPage() {
   const [confirmDeletePost, setConfirmDeletePost] = useState<SocialPost | null>(null);
   const [showNewPost, setShowNewPost] = useState(false);
   const [showDirect, setShowDirect] = useState(false);
-
-  // Nueva publicación
-  const [text, setText] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
-  const [mediaType, setMediaType] = useState<'image' | 'video' | ''>('');
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [authorFilter, setAuthorFilter] = useState<{ id: string; label: string } | null>(null);
 
   // Historias
   const [storyAuthor, setStoryAuthor] = useState<string | null>(null);
   const [storyIndex, setStoryIndex] = useState(0);
 
   const { data: allPosts, isLoading: allLoading } = useQuery({
-    queryKey: ['social-posts', 'all'],
-    queryFn: () => api.get<SocialPost[]>(`${SOCIAL_BASE}/posts`),
+    queryKey: ['social-posts', 'all', tagFilter, authorFilter?.id],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (tagFilter) params.set('tag', tagFilter);
+      if (authorFilter) params.set('author', authorFilter.id);
+      const qs = params.toString();
+      return api.get<SocialPost[]>(`${SOCIAL_BASE}/posts${qs ? `?${qs}` : ''}`);
+    },
   });
 
   const { data: followingPosts, isLoading: followingLoading } = useQuery({
@@ -105,18 +108,6 @@ export function SocialPublicPage() {
     queryFn: () => api.get<StoryGroup[]>(`${SOCIAL_BASE}/stories`),
   });
 
-  const publish = useMutation({
-    mutationFn: (payload: { author: string; text: string; mediaUrl: string | null; mediaType: string | null }) =>
-      api.post(`${SOCIAL_BASE}/posts`, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['social-posts'] });
-      setText('');
-      setMediaUrl('');
-      setMediaType('');
-      setShowNewPost(false);
-    },
-  });
-
   const like = useMutation({
     mutationFn: ({ id, value }: { id: string; value: boolean }) =>
       api.patch(`${SOCIAL_BASE}/posts/${id}/like`, { like: value }),
@@ -140,12 +131,6 @@ export function SocialPublicPage() {
         `${SOCIAL_BASE}/follow?followerId=${encodeURIComponent(myId ?? '')}&followingId=${encodeURIComponent(targetId)}`,
       ),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['social-follows'] }),
-  });
-
-  const uploadMedia = useMutation({
-    mutationFn: (file: File) => uploadFile<{ url: string }>(MEDIA_UPLOAD, file),
-    onSuccess: (r) => setMediaUrl(r.url),
-    onError: () => setMediaUrl(''),
   });
 
   const uploadStory = useMutation({
@@ -183,6 +168,37 @@ export function SocialPublicPage() {
   const posts = activeTab === 'following' && user ? followingPosts : allPosts;
   const isLoading = activeTab === 'following' && user ? followingLoading : allLoading;
 
+  // Encuestas: el feed (GET /posts) no incluye la relación `poll`, así que se
+  // consulta el detalle de cada post (GET /posts/:id → poll con votes). React
+  // Query cachea por id; al votar se invalida la entrada puntual.
+  const pollQueries = useQueries({
+    queries: (posts ?? []).map((p) => ({
+      queryKey: ['social-post', p.id],
+      queryFn: () => api.get<SocialPostDetail>(`${SOCIAL_BASE}/posts/${p.id}`),
+      staleTime: 60_000,
+    })),
+  });
+  const pollByPostId = new Map<string, SocialPoll>();
+  pollQueries.forEach((q, i) => {
+    const p = (posts ?? [])[i];
+    const poll = q.data?.poll;
+    if (p && poll) pollByPostId.set(p.id, poll);
+  });
+
+  const clearFilters = () => {
+    setTagFilter(null);
+    setAuthorFilter(null);
+    setTab('all');
+  };
+  const onMention = (username: string) => {
+    const u = userList.find((x) => (x.username ?? '').toLowerCase() === username.toLowerCase());
+    if (u) setAuthorFilter({ id: u.id, label: u.username ?? u.displayName ?? username });
+  };
+  const onHashtag = (tag: string) => setTagFilter(tag);
+  const onVoted = (postId: string) => {
+    qc.invalidateQueries({ queryKey: ['social-post', postId] });
+  };
+
   const myStories = (stories ?? []).find((g) => g.author === myId);
   const openGroup = storyAuthor ? (stories ?? []).find((g) => g.author === storyAuthor) ?? null : null;
   const currentStory = openGroup ? openGroup.stories[storyIndex] ?? null : null;
@@ -204,25 +220,6 @@ export function SocialPublicPage() {
   const prevStory = () => {
     if (!openGroup || openGroup.stories.length === 0) return;
     setStoryIndex((i) => (i - 1 + openGroup.stories.length) % openGroup.stories.length);
-  };
-
-  const onSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!text.trim() || !myId) return;
-    publish.mutate({
-      author: myId,
-      text: text.trim(),
-      mediaUrl: mediaUrl.trim() || null,
-      mediaType: mediaUrl.trim() ? mediaType || 'image' : null,
-    });
-  };
-
-  const onNewPostFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setMediaType(file.type.startsWith('video/') ? 'video' : 'image');
-    uploadMedia.mutate(file);
-    e.currentTarget.value = '';
   };
 
   const onStoryFile = (e: ChangeEvent<HTMLInputElement>) => {
@@ -486,6 +483,32 @@ export function SocialPublicPage() {
           </button>
         </div>
 
+        {(tagFilter || authorFilter) && (
+          <div
+            className="row"
+            style={{
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 'var(--ws-space-2)',
+              marginBottom: 'var(--ws-space-3)',
+              padding: 'var(--ws-space-2) var(--ws-space-3)',
+              background: 'var(--ws-primary-soft)',
+              borderRadius: 'var(--ws-radius-md)',
+            }}
+          >
+            <span style={{ fontSize: 'var(--ws-font-size-sm)', color: 'var(--ws-primary)', minWidth: 0 }}>
+              {authorFilter ? `Publicaciones de @${authorFilter.label}` : `Filtrando por #${tagFilter}`}
+            </span>
+            <button
+              className="btn ghost"
+              onClick={clearFilters}
+              style={{ padding: 'var(--ws-space-1) var(--ws-space-2)', fontSize: 'var(--ws-font-size-sm)', flexShrink: 0 }}
+            >
+              <i className="bi bi-x-lg" /> Limpiar
+            </button>
+          </div>
+        )}
+
         {/* Feed */}
         {isLoading ? (
           <Spinner label="Cargando…" />
@@ -523,6 +546,22 @@ export function SocialPublicPage() {
                         </span>
                       )}
                     </div>
+                    {isMine && p.visibility && p.visibility !== 'public' && (
+                      <span
+                        style={{
+                          fontSize: 'var(--ws-font-size-xs)',
+                          color: 'var(--ws-text-muted)',
+                          border: '1px solid var(--ws-border)',
+                          borderRadius: 'var(--ws-radius-md)',
+                          padding: '1px 6px',
+                          whiteSpace: 'nowrap',
+                        }}
+                        title={p.visibility === 'private' ? 'Visible solo para vos' : 'Visible para tus seguidores'}
+                      >
+                        <i className={`bi ${p.visibility === 'private' ? 'bi-eye-slash' : 'bi-people'}`} />{' '}
+                        {p.visibility === 'private' ? 'Solo yo' : 'Seguidores'}
+                      </span>
+                    )}
                     {isFollowable && (
                       <Button
                         variant={followed ? 'secondary' : 'primary'}
@@ -540,20 +579,7 @@ export function SocialPublicPage() {
                     )}
                   </div>
 
-                  {p.mediaUrl &&
-                    (p.mediaType === 'video' ? (
-                      <video
-                        src={p.mediaUrl}
-                        controls
-                        style={{ width: '100%', maxHeight: 520, background: '#000', display: 'block' }}
-                      />
-                    ) : (
-                      <img
-                        src={p.mediaUrl}
-                        alt={p.text}
-                        style={{ width: '100%', maxHeight: 520, objectFit: 'cover', display: 'block' }}
-                      />
-                    ))}
+                  <PostGallery media={postMedia(p)} alt={p.text} />
 
                   <div className="stack" style={{ gap: 'var(--ws-space-2)', padding: 'var(--ws-space-3)' }}>
                     <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-3)' }}>
@@ -580,9 +606,18 @@ export function SocialPublicPage() {
                       <strong>{p.likes} Me gusta</strong>
                     </div>
 
-                    <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                      <strong>{authorName}</strong> {p.text}
+                    <p style={{ margin: 0 }}>
+                      <strong>{authorName}</strong>{' '}
+                      <PostText text={p.text} onMention={onMention} onHashtag={onHashtag} />
                     </p>
+                    {pollByPostId.get(p.id) && (
+                      <PostPoll
+                        poll={pollByPostId.get(p.id)!}
+                        postId={p.id}
+                        myId={myId}
+                        onVoted={() => onVoted(p.id)}
+                      />
+                    )}
                     <span style={{ color: 'var(--ws-text-muted)', fontSize: 'var(--ws-font-size-sm)' }}>
                       {new Date(p.createdAt).toLocaleString()}
                     </span>
@@ -596,83 +631,11 @@ export function SocialPublicPage() {
 
       {/* Modal: nueva publicación */}
       {showNewPost && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: 'var(--ws-space-4)',
-          }}
-          onClick={() => setShowNewPost(false)}
-        >
-          <div
-            style={{
-              background: 'var(--ws-surface)',
-              border: '1px solid var(--ws-border)',
-              borderRadius: 'var(--ws-radius-lg)',
-              boxShadow: 'var(--ws-shadow-lg)',
-              padding: 'var(--ws-space-6)',
-              width: '100%',
-              maxWidth: 480,
-              maxHeight: '90vh',
-              overflowY: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 style={{ marginTop: 0 }}>Nueva publicación</h3>
-            <form className="stack" onSubmit={onSubmit} style={{ gap: 'var(--ws-space-3)' }}>
-              <textarea
-                className="input"
-                rows={4}
-                placeholder="¿Qué estás pensando?"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-              />
-
-              {mediaUrl &&
-                (mediaType === 'video' ? (
-                  <video
-                    src={mediaUrl}
-                    controls
-                    style={{ width: '100%', maxHeight: 360, borderRadius: 'var(--ws-radius-md)', background: '#000', display: 'block' }}
-                  />
-                ) : (
-                  <img
-                    src={mediaUrl}
-                    alt="Vista previa"
-                    style={{ width: '100%', maxHeight: 360, objectFit: 'cover', borderRadius: 'var(--ws-radius-md)', display: 'block' }}
-                  />
-                ))}
-
-              <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
-                <label className="btn secondary" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  {uploadMedia.isPending ? 'Subiendo…' : 'Foto / video'}
-                  <input
-                    type="file"
-                    accept="image/*,video/*"
-                    style={{ display: 'none' }}
-                    onChange={onNewPostFile}
-                  />
-                </label>
-                <Button type="submit" disabled={publish.isPending || !text.trim()}>
-                  Publicar
-                </Button>
-                <Button variant="ghost" onClick={() => setShowNewPost(false)}>
-                  Cancelar
-                </Button>
-              </div>
-
-              {uploadMedia.error && (
-                <p style={{ color: 'var(--ws-danger)', margin: 0 }}>No se pudo subir el archivo.</p>
-              )}
-              {publish.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{publish.error.message}</p>}
-            </form>
-          </div>
-        </div>
+        <SocialComposer
+          userId={myId ?? ''}
+          users={userList}
+          onClose={() => setShowNewPost(false)}
+        />
       )}
 
       {/* Visor de historias a pantalla completa */}

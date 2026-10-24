@@ -394,14 +394,83 @@ model SocialPost {
   organizationId String
   author         String
   text           String
+  mediaUrls      Json     @default("[]")
   mediaUrl       String?
   mediaType      String?
+  visibility     String   @default("public")
+  preview        Json?
   likes          Int      @default(0)
   createdAt      DateTime @default(now())
 
+  poll     SocialPoll?
+  mentions SocialMention[]
+  hashtags SocialHashtag[]
+
   @@index([organizationId])
   @@index([createdAt])
+  @@index([author, createdAt])
   @@map("social_posts")
+}
+
+model SocialMention {
+  id             String   @id @default(uuid())
+  postId         String
+  organizationId String
+  userId         String
+  createdAt      DateTime @default(now())
+
+  post SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@index([organizationId])
+  @@map("social_mentions")
+}
+
+model SocialHashtag {
+  id             String   @id @default(uuid())
+  postId         String
+  organizationId String
+  tag            String
+  createdAt      DateTime @default(now())
+
+  post SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, tag])
+  @@index([tag])
+  @@index([organizationId])
+  @@map("social_hashtags")
+}
+
+model SocialPoll {
+  id             String    @id @default(uuid())
+  postId         String    @unique
+  organizationId String
+  question       String
+  options        Json
+  endsAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  post  SocialPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  votes SocialPollVote[]
+
+  @@index([organizationId])
+  @@map("social_polls")
+}
+
+model SocialPollVote {
+  id             String   @id @default(uuid())
+  pollId         String
+  organizationId String
+  userId         String
+  optionId       String
+  createdAt      DateTime @default(now())
+
+  poll SocialPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([organizationId])
+  @@map("social_poll_votes")
 }
 
 model Follow {
@@ -1111,6 +1180,7 @@ model Warehouse {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   stockLevels  StockLevel[]
 
+  @@unique([organizationId, code])
   @@index([organizationId])
   @@map("inventory_warehouses")
 }
