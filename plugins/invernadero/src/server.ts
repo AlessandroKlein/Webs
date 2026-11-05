@@ -23,6 +23,15 @@ const ACTUATOR_ROLES = new Set([
   'pump', 'valve', 'fan', 'extractor', 'heater', 'humidifier', 'light', 'roof', 'window', 'shade', 'alarm',
 ]);
 
+/**
+ * El loader monta este plugin en DOS prefijos (`/api/v1/plugins/invernadero` y
+ * `/api/v1/blocks/invernadero`), así que `register()` corre dos veces en el
+ * mismo proceso. Las rutas duplicadas no molestan (prefijos distintos), pero
+ * los collectors/timers deben arrancar una sola vez: si no, cada dispositivo se
+ * sondea dos veces y el primer ciclo inserta filas duplicadas.
+ */
+let runtimeStarted = false;
+
 function asNumber(v: unknown): number | null {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
   if (typeof v === 'string' && v !== '' && Number.isFinite(Number(v))) return Number(v);
@@ -193,6 +202,9 @@ export default definePlugin(manifest, {
       });
       return { events: events.map((e: { tsRaw: number | bigint }) => ({ ...e, tsRaw: serializeTsRaw(e.tsRaw) })) };
     });
+
+    if (runtimeStarted) return;
+    runtimeStarted = true;
 
     // --- Collectors: sondeo periódico de los dispositivos habilitados. ---
     const collectors = new Map<string, ReturnType<typeof startCollector>>();

@@ -288,6 +288,13 @@ await app.register(async (instance) => {
 > expone/edita vía `GET/PUT /api/v1/plugins/:id/settings`. El `PUT` valida contra
 > `manifest.settings` con Ajv antes de persistir.
 
+> **`register()` corre dos veces por proceso.** `registerPluginRoutes()` monta el mismo cuerpo
+> también en el alias deprecado `/api/v1/blocks/<id>` (`apps/api/src/plugins/loader.ts:282-283`),
+> así que hay dos `app.register` del mismo plugin. Las rutas no chocan (prefijos distintos), pero
+> los efectos laterales sí se duplican: `setInterval`, collectors, listeners de eventos y
+> suscripciones. Guardalos con una bandera a nivel de módulo, como hacen
+> `plugins/sema/src/server.ts` y `plugins/invernadero/src/server.ts` (`runtimeStarted`).
+
 ### Registro en memoria
 
 `apps/api/src/plugins/registry.ts` mantiene mapas en memoria, incluyendo los ítems de menú:

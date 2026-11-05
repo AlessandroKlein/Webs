@@ -20,6 +20,15 @@ const manifest = manifestJson as unknown as PluginManifest;
 type Rep = { code: (n: number) => Rep; send: (p: unknown) => unknown };
 type Req = { params?: Record<string, string>; body?: Record<string, unknown>; query?: Record<string, string> };
 
+/**
+ * El loader monta este plugin en DOS prefijos (`/api/v1/plugins/sema` y
+ * `/api/v1/blocks/sema`), así que `register()` corre dos veces en el mismo
+ * proceso. Las rutas duplicadas no molestan (prefijos distintos), pero los
+ * collectors/timers deben arrancar una sola vez: si no, cada dispositivo se
+ * sondea dos veces y el primer ciclo inserta filas duplicadas.
+ */
+let runtimeStarted = false;
+
 function stripToken(device: IotDeviceRecord): Omit<IotDeviceRecord, 'tokenCipher'> {
   const { tokenCipher, ...rest } = device;
   void tokenCipher;
@@ -116,6 +125,9 @@ export default definePlugin(manifest, {
       });
       return { events: events.map((e: { tsRaw: number | bigint }) => ({ ...e, tsRaw: serializeTsRaw(e.tsRaw) })) };
     });
+
+    if (runtimeStarted) return;
+    runtimeStarted = true;
 
     // --- Collectors: sondeo periódico de los dispositivos habilitados. ---
     const collectors = new Map<string, ReturnType<typeof startCollector>>();

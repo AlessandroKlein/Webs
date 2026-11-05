@@ -32,6 +32,14 @@ Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 - Drawer móvil del menú: no hereda el modo colapsado, `scroll-lock`, `inert` en el contenido,
   `role=dialog`/`aria-modal` y foco visible en la búsqueda.
 
+### Corregido
+
+- **Doble registro de plugins**: `registerPluginRoutes` monta cada plugin en `/api/v1/plugins/<id>` y
+  en el alias `/api/v1/blocks/<id>`, así que el `register()` del plugin corría dos veces por proceso
+  y cada dispositivo IoT quedaba con dos collectors (doble polling HTTP y filas de eventos
+  duplicadas en el primer ciclo). Los collectors, timers y la purga de SEMA e Invernadero arrancan
+  ahora una sola vez por proceso.
+
 ### Seguridad
 
 - **`requiresPlugin`**: los ítems de menú respaldados por plugin solo se muestran si el plugin está
