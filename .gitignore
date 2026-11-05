@@ -50,3 +50,6 @@ tmp/
 
 # Estado interno del equipo (AgentTeams)
 .agent-teams/
+
+# Agent team (notas de trabajo)
+.agent-teams/
