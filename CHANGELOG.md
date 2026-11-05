@@ -3,6 +3,36 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.13.0] - 2026-11-05
+
+### Añadido
+
+- **Configuración versionada de dispositivos IoT (fase 1 del servidor central)**: modelo
+  `IotDeviceConfigVersion` (tabla `iot_device_config_versions`, migración
+  `0017_iot_device_config_versions`) con `deviceId`, `version`, `status`
+  (`draft`/`applied`/`failed`), `config` Json, `hash`, `error`, `authorId`, `appliedAt`,
+  `createdAt`, unique `(deviceId, version)` y FK `ON DELETE CASCADE`; rutas
+  `GET/POST /devices/:id/config`, `POST /devices/:id/config/:version/publish` y
+  `GET /devices/:id/config/versions[/:version]`; `DeviceClient.put()` en `@webs/iot` publica al
+  equipo con `PUT /api/v1/config` y cierra el loop con el ack real (`{"ok":true}`): si el equipo
+  rechaza, la versión queda `failed` y la última `applied` no se toca, con reintento por `publish`
+  (a diferencia del servidor PHP de Invernadero, que marca `applied` al insertar sin esperar al
+  equipo).
+- **Panel "Configuración del dispositivo"** en los dashboards de Invernadero y SEMA: editor JSON
+  para leer la configuración del dispositivo, guardar borrador, publicar con ack y consultar el
+  historial.
+
+### Corregido
+
+- **`IotRouteDeps.allowlist` en `/devices/:id/test`**: el cliente de la prueba de conexión se
+  creaba sin la lista blanca de hosts; ahora respeta `allowlist` (mitigación SSRF coherente con el
+  resto de rutas del plugin).
+
+### Deuda técnica
+
+- El editor de configuración es JSON libre (no schema-driven, sin formulario por sección) y SEMA e
+  Invernadero aceptan `PUT /config` completo (reemplazo total, no parcial).
+
 ## [2.12.0] - 2026-11-05
 
 ### Añadido

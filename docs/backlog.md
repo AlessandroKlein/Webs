@@ -1,9 +1,9 @@
-# Backlog de producto — Webs v2.12.0+
+# Backlog de producto — Webs v2.13.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.12.0'`
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.13.0'`
 >   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** · **M5 v2.3.0**
 >   · **M6 v2.4.0** · **M7 v2.5.0** · **M8 v2.6.0** · **M9 v2.7.0** · **M10 v2.8.0**
 >   · **M11 v2.9.0** · **M12 v2.10.0** liberados; **M13 v2.11.0** en release).
