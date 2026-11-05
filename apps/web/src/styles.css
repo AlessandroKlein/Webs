@@ -30,7 +30,7 @@
   border-color: var(--ws-primary);
 }
 .card-clickable:focus-visible {
-  outline: 2px solid var(--ws-primary-soft);
+  outline: 2px solid var(--ws-primary);
   outline-offset: 2px;
 }
 .card-clickable.active {
@@ -79,7 +79,7 @@
 .site-nav-link:focus-visible,
 .dropdown button:focus-visible,
 .wysiwyg-btn:focus-visible {
-  outline: 2px solid var(--ws-primary-soft);
+  outline: 2px solid var(--ws-primary);
   outline-offset: 2px;
 }
 .btn-sm {
@@ -146,7 +146,7 @@
   width: 100%;
 }
 .input:focus {
-  outline: 2px solid var(--ws-primary-soft);
+  outline: 2px solid var(--ws-primary);
   border-color: var(--ws-primary);
 }
 textarea.input {
@@ -417,7 +417,7 @@ input[type='radio'] {
   color: var(--ws-text);
   background-color: var(--ws-surface);
   border-color: var(--ws-primary);
-  box-shadow: 0 0 0 0.25rem var(--ws-primary-soft);
+  box-shadow: 0 0 0 0.25rem var(--ws-primary);
 }
 .form-control::placeholder {
   color: var(--ws-text-subtle);
@@ -457,7 +457,7 @@ input[type='radio'] {
 }
 .form-check-input:focus {
   border-color: var(--ws-primary);
-  box-shadow: 0 0 0 0.25rem var(--ws-primary-soft);
+  box-shadow: 0 0 0 0.25rem var(--ws-primary);
 }
 .form-control.is-invalid,
 .form-select.is-invalid,

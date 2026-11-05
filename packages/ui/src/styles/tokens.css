@@ -28,7 +28,7 @@
   /* Texto */
   --ws-text: #111827;
   --ws-text-muted: #6b7280;
-  --ws-text-subtle: #9ca3af;
+  --ws-text-subtle: #6b7280;
 
   /* Bordes y separadores */
   --ws-border: #e5e7eb;
@@ -95,7 +95,7 @@
 
   --ws-text: #e5e7eb;
   --ws-text-muted: #9ca3af;
-  --ws-text-subtle: #6b7280;
+  --ws-text-subtle: #9ca3af;
 
   --ws-border: #263041;
   --ws-border-strong: #38445c;

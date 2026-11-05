@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Dialog } from '../../components/ui/Dialog';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Spinner } from '../../components/ui/Spinner';
+import { useAuthStore } from '../../lib/auth-store';
 import { DeviceConfigForm } from './DeviceConfigForm';
 import { deleteDevice, listDevices, type IotDevice } from './iot-api';
 
@@ -101,6 +102,7 @@ export function DevicesList({
 }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('iot.write');
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<IotDevice | null>(null);
   const [deleting, setDeleting] = useState<IotDevice | null>(null);
@@ -124,10 +126,12 @@ export function DevicesList({
     <div className={className}>
       <div className="mb-3 flex items-center justify-between gap-2">
         <h3 className="text-base font-semibold">{t('iot.devices')}</h3>
-        <Button onClick={() => setCreating(true)}>
-          <i className="bi bi-plus-lg" aria-hidden="true" />
-          {t('iot.newDevice')}
-        </Button>
+        {canWrite && (
+          <Button onClick={() => setCreating(true)}>
+            <i className="bi bi-plus-lg" aria-hidden="true" />
+            {t('iot.newDevice')}
+          </Button>
+        )}
       </div>
 
       {devices.isLoading ? (
@@ -148,8 +152,8 @@ export function DevicesList({
               device={d}
               selected={selectedId === d.id}
               onSelect={onSelectDevice ? () => onSelectDevice(d) : undefined}
-              onEdit={() => setEditing(d)}
-              onDelete={() => setDeleting(d)}
+              onEdit={canWrite ? () => setEditing(d) : undefined}
+              onDelete={canWrite ? () => setDeleting(d) : undefined}
             />
           ))}
         </ul>
