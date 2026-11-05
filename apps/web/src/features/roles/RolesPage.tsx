@@ -6,7 +6,9 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { RoleFormDialog, type PermissionAreaGroup, type RoleFormValues } from './RoleFormDialog';
+import { PageHeader } from '../../components/ui/PageHeader';
 import type { Page } from '@webs/core';
 
 interface RoleRow {
@@ -108,7 +110,7 @@ export function RolesPage() {
   return (
     <div className="stack">
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0 }}>{t('nav.roles')}</h1>
+        <PageHeader title={t('nav.roles')} />
         <Button onClick={() => setDialog({ mode: 'create' })}>
           <i className="bi bi-plus-lg" aria-hidden="true" />
           {t('roles.createRole')}
@@ -164,6 +166,7 @@ export function RolesPage() {
             ))}
           </tbody>
         </table>
+        {(data?.items ?? []).length === 0 && <EmptyState title={t('roles.empty')} />}
       </Card>
 
       {dialog && (

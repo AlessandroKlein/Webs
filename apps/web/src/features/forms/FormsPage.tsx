@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 const FORMS_BASE = '/api/v1/blocks/formularios';
 const DOCS_BASE = '/api/v1/blocks/documentos';
@@ -199,7 +200,7 @@ export function FormsPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.forms.title')}</h1>
+        <PageHeader title={t('admin.forms.title')} />
         <button
           className={`nav-link ${view === 'forms' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}

@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { Badge } from '../../components/ui/Badge';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 /** Ítem tal como lo expone `GET /api/v1/menu` (spec `menu-admin-redesign.md`). */
 interface AdminMenuItem {
@@ -131,7 +132,7 @@ export function MenuEditorPage() {
   return (
     <div className="stack" style={{ gap: 'var(--ws-space-4)' }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ws-space-3)' }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.menu')}</h1>
+        <PageHeader title={t('nav.menu')} />
         <div className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'center' }}>
           {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>{t('common.saved')}</span>}
           {save.error && <span style={{ color: 'var(--ws-danger)' }}>{save.error.message}</span>}

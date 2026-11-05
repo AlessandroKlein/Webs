@@ -121,3 +121,47 @@ export function rangeWindow(range: SeriesRange, now = new Date()): { from: strin
   else from.setDate(from.getDate() - 30);
   return { from: from.toISOString(), to };
 }
+
+/** Evento/alarma persistido por el colector del plugin (task-20). */
+export interface DeviceEvent {
+  id: string;
+  kind: 'event' | 'alarm';
+  /** NO es fecha: uptime ms (SEMA) o epoch s (Invernadero). Usar `receivedAt`. */
+  tsRaw: number | null;
+  type?: string | null;
+  source?: string | null;
+  rule?: string | null;
+  severity?: string | null;
+  value?: number | null;
+  message?: string | null;
+  receivedAt: string;
+}
+
+export interface EventsQuery {
+  kind?: 'event' | 'alarm';
+  limit?: number;
+}
+
+/** Eventos recientes del dispositivo, orden `receivedAt DESC`. */
+export function fetchEvents(
+  basePath: string,
+  id: string,
+  q: EventsQuery = {},
+): Promise<DeviceEvent[]> {
+  const params = new URLSearchParams();
+  if (q.kind) params.set('kind', q.kind);
+  if (q.limit) params.set('limit', String(q.limit));
+  return api
+    .get<{ events: DeviceEvent[] }>(`${strip(basePath)}/devices/${id}/events?${params.toString()}`)
+    .then((r) => r.events);
+}
+
+export type SeverityTone = 'danger' | 'warning' | 'neutral';
+
+/** Normaliza severidad (SEMA string / Invernadero '0'..'3') a tono de Badge. */
+export function severityTone(severity: string | null | undefined): SeverityTone {
+  const s = String(severity ?? '').trim().toUpperCase();
+  if (s === '2' || s === '3' || s === 'ERROR' || s === 'CRITICAL') return 'danger';
+  if (s === '1' || s === 'WARNING') return 'warning';
+  return 'neutral';
+}

@@ -5,6 +5,8 @@ import { useAuthStore } from '../../lib/auth-store';
 import { useLicense } from '../../lib/use-license';
 import { api } from '../../lib/api';
 import { Card } from '../../components/ui/Card';
+import { StatCard } from '../../components/ui/StatCard';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 interface Metrics {
   users?: number;
@@ -52,26 +54,16 @@ export function DashboardPage() {
 
   return (
     <div className="stack">
-      <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
-        <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
-          <h1>{t('nav.dashboard')}</h1>
-          <p className="muted" style={{ margin: 0 }}>{user?.email}</p>
-        </div>
-      </div>
+      <PageHeader title={t('nav.dashboard')} description={user?.email} />
 
       <div className="grid-2">
         {visibleMetrics.map((m) => (
-          <Card key={m.key}>
-            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
-                <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>{m.label}</span>
-                <span style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1 }}>
-                  {isLoading ? '…' : formatValue(data?.[m.key])}
-                </span>
-              </div>
-              <i className={`bi ${m.icon}`} style={{ color: 'var(--ws-primary)' }} />
-            </div>
-          </Card>
+          <StatCard
+            key={m.key}
+            label={m.label}
+            value={isLoading ? '…' : formatValue(data?.[m.key])}
+            icon={<i className={`bi ${m.icon}`} />}
+          />
         ))}
       </div>
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, downloadFile } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
@@ -6,6 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
 import { RichTextEditor } from '../../components/ui/RichTextEditor';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 interface EmailTemplate {
   id: string;
@@ -46,6 +48,7 @@ interface EmailEvent {
 type View = 'templates' | 'new-template' | 'campaigns' | 'automations';
 
 export function EmailPage() {
+  const { t } = useTranslation();
   const [view, setView] = useState<View>('templates');
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const { data: variables } = useQuery({
@@ -71,7 +74,7 @@ export function EmailPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Correos</h1>
+        <PageHeader title={t('nav.email')} />
         <button className={`nav-link ${view === 'templates' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('templates')}>Plantillas</button>
         <button className={`nav-link ${view === 'new-template' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={openNewTemplate}>Nueva plantilla</button>
         <button className={`nav-link ${view === 'campaigns' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('campaigns')}>Campañas</button>

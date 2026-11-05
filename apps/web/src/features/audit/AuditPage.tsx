@@ -6,6 +6,9 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { Spinner } from '../../components/ui/Spinner';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { formatDate } from '../../lib/format';
 import type { Page } from '@webs/core';
 
 interface AuditRow {
@@ -57,7 +60,7 @@ export function AuditPage() {
 
   return (
     <div className="stack">
-      <h1>{t('nav.audit')}</h1>
+      <PageHeader title={t('nav.audit')} />
 
       <Card>
         <div className="grid-2" style={{ gap: 'var(--ws-space-2)' }}>
@@ -90,7 +93,7 @@ export function AuditPage() {
           <tbody>
             {(data?.items ?? []).map((a) => (
               <tr key={a.id}>
-                <td>{new Date(a.createdAt).toLocaleString()}</td>
+                <td>{formatDate(a.createdAt)}</td>
                 <td>
                   <code>{a.action}</code>
                 </td>
@@ -103,6 +106,9 @@ export function AuditPage() {
             ))}
           </tbody>
         </table>
+        {(data?.items ?? []).length === 0 && (
+          <EmptyState title={t('audit.empty')} />
+        )}
         {data && <p className="muted">Total: {data.total}</p>}
       </Card>
     </div>

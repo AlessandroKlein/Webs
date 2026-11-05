@@ -14,6 +14,8 @@ import { Badge } from '../../components/ui/Badge';
 import { KeyValueEditor } from '../../components/ui/KeyValueEditor';
 import { CameraScanner } from '../../components/ui/CameraScanner';
 import { useDesktopBridge } from '../../lib/useDesktopBridge';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { formatMoney } from '../../lib/format';
 
 const INV = '/api/v1/inventory';
 
@@ -128,7 +130,7 @@ interface ValuationReport {
 
 type Tab = 'products' | 'stock' | 'movements' | 'alerts' | 'reports' | 'catalog';
 
-const fmtMoney = (cents: number): string => (cents / 100).toFixed(2);
+const fmtMoney = formatMoney;
 
 const LEVEL_TONE = { critico: 'danger', bajo: 'warning' } as const;
 const MOVE_TONE: Record<StockMovement['type'], 'success' | 'danger' | 'info' | 'warning'> = {
@@ -794,7 +796,7 @@ export function InventoryPage() {
     <div className="stack" style={{ gap: 'var(--ws-space-4)' }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.inventory.title')}</h1>
+          <PageHeader title={t('admin.inventory.title')} />
         </div>
         {canManage && (
           <div className="row" style={{ gap: 'var(--ws-space-2)' }}>

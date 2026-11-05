@@ -5,6 +5,9 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
+import { Alert } from '../../components/ui/Alert';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { useTranslation } from 'react-i18next';
 
 interface Template {
   id: string;
@@ -30,6 +33,7 @@ function templateMatches(tpl: Template, q: string): boolean {
 }
 
 export function TemplatesPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [applied, setApplied] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +61,7 @@ export function TemplatesPage() {
 
   return (
     <div className="stack">
-      <h1>Plantillas</h1>
+      <PageHeader title={t('nav.templates')} />
       <p className="muted">
         Una plantilla monta un sitio completo: instala y activa plugins, aplica ajustes y crea el
         menú. Ideal para arrancar un gimnasio, un mercado, un blog…
@@ -71,7 +75,7 @@ export function TemplatesPage() {
         style={{ maxWidth: 360 }}
       />
 
-      {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
+      {error && <Alert variant="danger">{error}</Alert>}
 
       <div className="grid-2">
         {filtered.map((tpl) => (

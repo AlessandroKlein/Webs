@@ -6,6 +6,8 @@ import { api } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
+import { Alert } from '../../components/ui/Alert';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 interface AppearanceValue {
   defaultTheme?: string;
@@ -23,6 +25,7 @@ export function AppearancePage() {
 
   const [primaryColor, setPrimaryColor] = useState('#4f46e5');
   const [customCss, setCustomCss] = useState('');
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (data?.value?.primaryColor) setPrimaryColor(data.value.primaryColor);
@@ -47,13 +50,15 @@ export function AppearancePage() {
 
   const save = useMutation({
     mutationFn: (value: AppearanceValue) => api.put('/api/v1/settings/appearance', value),
+    onSuccess: () => setSaved(true),
+    onError: () => setSaved(false),
   });
 
   if (isLoading) return <Spinner />;
 
   return (
     <div className="stack">
-      <h1>{t('nav.appearance')}</h1>
+      <PageHeader title={t('nav.appearance')} />
 
       <Card>
         <h3>{t('theme.label')}</h3>
@@ -61,7 +66,7 @@ export function AppearancePage() {
           className="input"
           style={{ width: 'auto' }}
           value={mode}
-          onChange={(e) => setMode(e.target.value as ThemeMode)}
+          onChange={(e) => { setSaved(false); setMode(e.target.value as ThemeMode); }}
         >
           <option value="light">{t('theme.light')}</option>
           <option value="dark">{t('theme.dark')}</option>
@@ -76,7 +81,7 @@ export function AppearancePage() {
             className="input"
             type="color"
             value={primaryColor}
-            onChange={(e) => setPrimaryColor(e.target.value)}
+            onChange={(e) => { setSaved(false); setPrimaryColor(e.target.value); }}
             style={{ width: 64, padding: 4 }}
           />
           <span className="muted">{primaryColor}</span>
@@ -92,7 +97,7 @@ export function AppearancePage() {
           className="input"
           rows={12}
           value={customCss}
-          onChange={(e) => setCustomCss(e.target.value)}
+          onChange={(e) => { setSaved(false); setCustomCss(e.target.value); }}
           placeholder={':root { --ws-primary: #0f766e; }'}
         />
       </Card>
@@ -105,6 +110,17 @@ export function AppearancePage() {
           {t('common.save')}
         </Button>
       </div>
+
+      {saved && (
+        <Alert variant="success" role="status">
+          {t('common.saved')}
+        </Alert>
+      )}
+      {save.error && (
+        <Alert variant="danger">
+          {save.error instanceof Error ? save.error.message : t('common.error')}
+        </Alert>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 const EC_BASE = '/api/v1/blocks/ecommerce';
 const INV_BASE = '/api/v1/blocks/inventario';
@@ -345,7 +346,7 @@ export function CommercePage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.commerce.title')}</h1>
+        <PageHeader title={t('admin.commerce.title')} />
         {(
           [
             ['products', t('admin.commerce.products')],

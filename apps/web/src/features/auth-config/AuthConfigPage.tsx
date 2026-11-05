@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 const REGISTER = '/api/v1/blocks/register';
 const SOCIAL_LOGIN = '/api/v1/plugins/social-login';
@@ -87,7 +88,7 @@ export function AuthConfigPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)' }}>{t('admin.auth.title')}</h1>
+        <PageHeader title={t('admin.auth.title')} />
         <button
           className={`nav-link ${view === 'registro' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}

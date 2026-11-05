@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
@@ -6,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 interface PermissionItem {
   key: string;
@@ -29,6 +31,7 @@ interface AdminTokenRow extends ApiTokenRow {
 }
 
 export function ApiTokensPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ['api-tokens'],
@@ -98,7 +101,7 @@ export function ApiTokensPage() {
 
   return (
     <div className="stack">
-      <h1>API Tokens</h1>
+      <PageHeader title={t('nav.api')} />
       <p className="muted">
         Los tokens de API (JWT) permiten que aplicaciones, scripts o integraciones accedan a la API
         REST con permisos limitados. Guardalos de forma segura: solo se muestran una vez.

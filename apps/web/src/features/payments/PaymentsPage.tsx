@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useTenantStore } from '../../lib/tenant-store';
@@ -7,6 +8,8 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { cn } from '../../components/ui/cn';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 interface PaymentRow {
   id: string;
@@ -55,6 +58,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export function PaymentsPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [status, setStatus] = useState('');
   const [provider, setProvider] = useState('');
@@ -112,7 +116,7 @@ export function PaymentsPage() {
   return (
     <div className="stack">
       <div className="flex flex-wrap items-center gap-3">
-        <h1>Pagos</h1>
+        <PageHeader title={t('nav.payments')} />
         <ScopeBadge />
       </div>
 
@@ -190,7 +194,7 @@ export function PaymentsPage() {
             ))}
           </tbody>
         </table>
-        {(data ?? []).length === 0 && <p className="muted">No hay transacciones.</p>}
+        {(data ?? []).length === 0 && <EmptyState title={t('payments.empty')} />}
       </Card>
 
       <CostsPanel />

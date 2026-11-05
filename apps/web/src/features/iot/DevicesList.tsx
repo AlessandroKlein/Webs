@@ -8,15 +8,9 @@ import { Dialog } from '../../components/ui/Dialog';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Spinner } from '../../components/ui/Spinner';
 import { useAuthStore } from '../../lib/auth-store';
+import { formatDate } from '../../lib/format';
 import { DeviceConfigForm } from './DeviceConfigForm';
 import { deleteDevice, listDevices, type IotDevice } from './iot-api';
-
-function formatSeen(value: string | null): string {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
-}
 
 /** Fila de listado de un dispositivo IoT (seleccionable para ver su dashboard). */
 export function DeviceListItem({
@@ -64,7 +58,7 @@ export function DeviceListItem({
         </div>
         <div className="truncate text-sm text-muted">
           {device.baseUrl} · {t('iot.lastSeen')}:{' '}
-          {device.lastSeenAt ? formatSeen(device.lastSeenAt) : t('common.never')}
+          {device.lastSeenAt ? formatDate(device.lastSeenAt) : t('common.never')}
         </div>
       </div>
       <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>

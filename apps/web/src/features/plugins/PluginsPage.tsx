@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 interface InstalledPlugin {
   id: string;
@@ -202,7 +203,7 @@ export function PluginsPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.plugins')}</h1>
+        <PageHeader title={t('nav.plugins')} />
         <button className={`nav-link ${tab === 'installed' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('installed')}>{t('plugins.installed')}</button>
         <button className={`nav-link ${tab === 'catalog' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('catalog')}>{t('plugins.catalog')}</button>
         {tab === 'catalog' && Object.keys(groupedCatalog).map((cat) => (

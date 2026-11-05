@@ -11,6 +11,7 @@ import { Dialog } from '../../components/ui/Dialog';
 import { TextField } from '../../components/ui/TextField';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Tabs } from '../../components/ui/Tabs';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 const BASE = '/api/v1/support/tickets';
 
@@ -111,7 +112,7 @@ export function SupportPage() {
     <div className="stack" style={{ gap: 'var(--ws-space-4)' }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ws-space-3)' }}>
         <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
-          <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('support.title')}</h1>
+          <PageHeader title={t('support.title')} />
           <p className="muted" style={{ margin: 0 }}>{t('support.subtitle')}</p>
         </div>
         <Button onClick={() => setCreateOpen(true)}>

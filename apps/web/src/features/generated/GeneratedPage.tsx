@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Dialog } from '../../components/ui/Dialog';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { copyText } from '../../components/ui/clipboard';
+import { PageHeader } from '../../components/ui/PageHeader';
 import {
   buildSchema,
   fieldToSchema,
@@ -90,7 +91,7 @@ export function GeneratedPage() {
     <div className="stack" style={{ gap: 'var(--ws-space-6)' }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div className="stack" style={{ gap: 4 }}>
-          <h1 style={{ margin: 0 }}>{t('generated.title')}</h1>
+          <PageHeader title={t('generated.title')} />
           <p className="muted" style={{ margin: 0 }}>
             {t('generated.subtitle')}
           </p>

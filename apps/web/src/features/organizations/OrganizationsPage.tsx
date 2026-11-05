@@ -8,6 +8,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { QrCode } from '../../components/ui/QrCode';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 const BASE = '/api/v1/blocks/organizaciones';
 
@@ -117,7 +118,7 @@ export function OrganizationsPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.organizations.title')}</h1>
+        <PageHeader title={t('admin.organizations.title')} />
         <button className={`nav-link ${view === 'organizations' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('organizations')}>{t('admin.organizations.organizations')}</button>
         <button className={`nav-link ${view === 'plans' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('plans')}>{t('admin.organizations.plans')}</button>
         <button className={`nav-link ${view === 'memberships' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('memberships')}>{t('admin.organizations.memberships')}</button>

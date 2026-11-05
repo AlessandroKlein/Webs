@@ -9,6 +9,7 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { PromptDialog } from '../../components/ui/PromptDialog';
 import { TextField } from '../../components/ui/TextField';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 interface SettingsSection {
   key: string;
@@ -52,7 +53,7 @@ export function SettingsPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)' }}>{t('nav.settings')}</h1>
+        <PageHeader title={t('nav.settings')} />
         {sections.map((section) => (
           <button
             key={section.key}

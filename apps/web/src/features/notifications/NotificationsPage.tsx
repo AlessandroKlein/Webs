@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 const NOTIFICACIONES = '/api/v1/blocks/notificaciones';
 
@@ -42,7 +43,7 @@ export function NotificationsPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)' }}>{t('admin.notifications.title')}</h1>
+        <PageHeader title={t('admin.notifications.title')} />
         <button
           className={`nav-link ${view === 'inbox' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}

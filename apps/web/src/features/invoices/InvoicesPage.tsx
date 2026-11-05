@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 const INV_BASE = '/api/v1/plugins/facturacion';
 
@@ -84,7 +85,7 @@ export function InvoicesPage() {
     <div className="stack">
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <div>
-          <h1>{t('admin.invoices.title')}</h1>
+          <PageHeader title={t('admin.invoices.title')} />
           <p className="muted">{t('admin.invoices.subtitle')}</p>
         </div>
         <Link

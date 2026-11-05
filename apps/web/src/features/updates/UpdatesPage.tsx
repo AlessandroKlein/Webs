@@ -1,6 +1,8 @@
 import { AppUpdater } from './AppUpdater';
+import { useTranslation } from 'react-i18next';
 import { PluginUpdater } from './PluginUpdater';
 import { Card } from '../../components/ui/Card';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 /**
  * Pantalla de actualizaciones (app + plugins).
@@ -11,9 +13,10 @@ import { Card } from '../../components/ui/Card';
  * cada actualizador.
  */
 export function UpdatesPage() {
+  const { t } = useTranslation();
   return (
     <div className="stack" style={{ gap: 'var(--ws-space-4)' }}>
-      <h1 style={{ margin: 0 }}>Actualizaciones</h1>
+      <PageHeader title={t('nav.updates')} />
       <Card>
         <Card.Header>
           <Card.Title>Plataforma</Card.Title>

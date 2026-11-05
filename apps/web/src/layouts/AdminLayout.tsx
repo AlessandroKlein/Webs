@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -56,10 +56,132 @@ interface NavItem {
   perm: string | null;
   end?: boolean;
   feature?: string;
+  icon?: string;
+  /** `to` del ítem padre (anidamiento). */
+  parent?: string;
+  /** `pluginId` que debe estar instalado para mostrar el ítem (páginas de plugins). */
+  requiresPlugin?: string;
+}
+
+interface NavNode {
+  item: NavItem;
+  children: NavNode[];
 }
 
 /** Ítems de gestión de plugins que se ocultan cuando no hay plugins instalados. */
 const PLUGIN_MANAGEMENT_PATHS = new Set(['/admin/plugins']);
+
+const LS_COLLAPSED = 'admin.sidebar.collapsed';
+const LS_EXPANDED = 'admin.menu.expanded';
+
+/** Lectura defensiva de localStorage: un valor corrupto o ausente no rompe el render. */
+function readLS<T>(key: string, fallback: T): T {
+  try {
+    if (typeof window === 'undefined') return fallback;
+    const raw = window.localStorage.getItem(key);
+    if (raw == null) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/** Normaliza un nombre de icono a la clase bootstrap-icons (`bi bi-*`). */
+function iconClass(name?: string, fallback = 'puzzle'): string {
+  const s = (name ?? fallback).trim().replace(/^bi\s+/, '').replace(/^bi-/, '');
+  return `bi bi-${s || fallback}`;
+}
+
+/** Construye el árbol de navegación a partir de la lista plana ya filtrada por permisos. */
+function buildTree(items: NavItem[]): NavNode[] {
+  const byTo = new Map(items.map((i) => [i.to, i]));
+  const childrenByParent = new Map<string, NavItem[]>();
+  const roots: NavItem[] = [];
+  for (const item of items) {
+    const p = item.parent;
+    if (p && byTo.has(p)) {
+      const arr = childrenByParent.get(p);
+      if (arr) arr.push(item);
+      else childrenByParent.set(p, [item]);
+    } else {
+      roots.push(item);
+    }
+  }
+  const make = (item: NavItem): NavNode => ({
+    item,
+    children: (childrenByParent.get(item.to) ?? []).map(make),
+  });
+  return roots.map(make);
+}
+
+interface SidebarItemProps {
+  node: NavNode;
+  collapsed: boolean;
+  expandedSet: Set<string>;
+  onToggle: (to: string) => void;
+  onNavigate: () => void;
+  depth: number;
+}
+
+function SidebarItem({ node, collapsed, expandedSet, onToggle, onNavigate, depth }: SidebarItemProps) {
+  const { t } = useTranslation();
+  const submenuId = useId();
+  const { item, children } = node;
+  const hasChildren = children.length > 0;
+  const isExpanded = hasChildren && expandedSet.has(item.to);
+  const indent = depth > 0 && !collapsed ? { paddingLeft: `calc(var(--ws-space-3) + ${depth * 14}px)` } : undefined;
+
+  const link = (
+    <NavLink
+      to={item.to}
+      end={item.end}
+      title={item.label}
+      className={({ isActive }) => `nav-link${hasChildren && !collapsed ? ' nav-link-parent' : ''} ${isActive ? 'active' : ''}`}
+      onClick={onNavigate}
+      style={indent}
+    >
+      <i className={iconClass(item.icon)} aria-hidden="true" />
+      {!collapsed && <span className="nav-text">{item.label}</span>}
+    </NavLink>
+  );
+
+  // En modo colapsado los padres se muestran como hoja (sólo icono + tooltip);
+  // los submenús sólo se despliegan con la barra expandida.
+  if (collapsed || !hasChildren) return link;
+
+  return (
+    <div className="nav-submenu">
+      <div className="nav-submenu-head">
+        {link}
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-expanded={isExpanded}
+          aria-controls={submenuId}
+          aria-label={t('nav.toggleSubmenu')}
+          onClick={() => onToggle(item.to)}
+        >
+          <i className={`bi ${isExpanded ? 'bi-chevron-down' : 'bi-chevron-right'}`} aria-hidden="true" />
+        </button>
+      </div>
+      {isExpanded && (
+        <div id={submenuId} className="nav-submenu-list">
+          {children.map((child) => (
+            <SidebarItem
+              key={child.item.to}
+              node={child}
+              collapsed={collapsed}
+              expandedSet={expandedSet}
+              onToggle={onToggle}
+              onNavigate={onNavigate}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function AdminLayout() {
   const { t } = useTranslation();
@@ -67,9 +189,21 @@ export function AdminLayout() {
   const logout = useAuthStore((s) => s.logout);
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const { hasFeature } = useLicense();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(() => readLS<boolean>(LS_COLLAPSED, false));
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(() => {
+    const raw = readLS<string[]>(LS_EXPANDED, []);
+    return new Set(Array.isArray(raw) ? raw : []);
+  });
+  const searchRef = useRef<HTMLInputElement>(null);
+  const mobileMenuBtnRef = useRef<HTMLButtonElement>(null);
+
+  // En móvil, el drawer se abre siempre expandido aunque la preferencia de
+  // escritorio esté en "colapsado" (ALTO-2).
+  const isCollapsed = collapsed && !drawerOpen;
 
   // Carga la estructura de la cadena (casa matriz + sucursales) una vez para
   // habilitar el selector de scope del shell.
@@ -117,38 +251,64 @@ export function AdminLayout() {
   });
   const { data: pluginsData } = useQuery({
     queryKey: ['admin-plugins'],
-    queryFn: () => api.get<{ installed: unknown[] }>('/api/v1/plugins'),
+    queryFn: () => api.get<{ installed: Array<{ pluginId?: string }> }>('/api/v1/plugins'),
     enabled: hasPermission('plugin.read'),
     retry: false,
   });
   const hasInstalledPlugins = pluginsData ? pluginsData.installed.length > 0 : true;
+  const installedPluginIds = new Set(
+    (pluginsData?.installed ?? [])
+      .map((p) => p.pluginId)
+      .filter((id): id is string => typeof id === 'string'),
+  );
 
   const navItems: NavItem[] = [
-    { to: '/admin', label: t('nav.dashboard'), section: 'panel', perm: null, end: true },
-    { to: '/admin/content', label: t('nav.content'), section: 'contenido', perm: 'content.read' },
-    { to: '/admin/pages', label: t('nav.pages'), section: 'contenido', perm: 'content.read' },
-    { to: '/admin/editor', label: t('nav.editor'), section: 'contenido', perm: 'content.write' },
-    { to: '/admin/payments', label: t('nav.payments'), section: 'ventas', perm: 'user.read' },
-    { to: '/admin/email', label: t('nav.email'), section: 'comunicacion', perm: 'email.read' },
-    { to: '/admin/support', label: t('nav.support'), section: 'comunicacion', perm: 'support.read' },
-    { to: '/admin/appearance', label: t('nav.appearance'), section: 'apariencia', perm: 'theme.read' },
-    { to: '/admin/translations', label: t('nav.translations'), section: 'apariencia', perm: 'translation.read' },
-    { to: '/admin/menu', label: t('nav.menu'), section: 'apariencia', perm: 'setting.read' },
-    { to: '/admin/plugins', label: t('nav.plugins'), section: 'integraciones', perm: 'plugin.read' },
-    { to: '/admin/generated', label: t('nav.generated'), section: 'integraciones', perm: 'generated.read', feature: 'generator' },
-    { to: '/admin/invernadero', label: t('nav.invernadero'), section: 'integraciones', perm: 'iot.read' },
-    { to: '/admin/sema', label: t('nav.sema'), section: 'integraciones', perm: 'iot.read' },
-    { to: '/admin/api-tokens', label: t('nav.api'), section: 'integraciones', perm: null },
-    { to: '/admin/settings', label: t('nav.settings'), section: 'configuracion', perm: 'setting.read' },
-    { to: '/admin/templates', label: t('nav.templates'), section: 'configuracion', perm: 'setting.write' },
-    { to: '/admin/branches', label: t('nav.branches'), section: 'configuracion', perm: null },
-    { to: '/admin/updates', label: t('nav.updates'), section: 'configuracion', perm: 'setting.read' },
-    { to: '/admin/scaling', label: t('nav.scaling'), section: 'configuracion', perm: 'scaling.read' },
-    { to: '/admin/license', label: t('nav.license'), section: 'configuracion', perm: 'license.read' },
-    { to: '/admin/license/keys', label: t('nav.licenseKeys'), section: 'configuracion', perm: 'license.read' },
-    { to: '/admin/users', label: t('nav.users'), section: 'usuarios', perm: 'user.read' },
-    { to: '/admin/roles', label: t('nav.roles'), section: 'usuarios', perm: 'role.read' },
-    { to: '/admin/audit', label: t('nav.audit'), section: 'usuarios', perm: 'audit.read' },
+    // panel
+    { to: '/admin', label: t('nav.dashboard'), section: 'panel', perm: null, icon: 'speedometer2', end: true },
+    { to: '/admin/analytics', label: t('nav.analytics'), section: 'panel', perm: null, icon: 'graph-up', requiresPlugin: 'analytics' },
+    // contenido
+    { to: '/admin/content', label: t('nav.content'), section: 'contenido', perm: 'content.read', icon: 'collection' },
+    { to: '/admin/pages', label: t('nav.pages'), section: 'contenido', perm: 'content.read', icon: 'file-earmark-text' },
+    { to: '/admin/editor', label: t('nav.editor'), section: 'contenido', perm: 'content.write', icon: 'pencil-square' },
+    { to: '/admin/blog', label: t('nav.blog'), section: 'contenido', perm: null, icon: 'journal-text', requiresPlugin: 'blog' },
+    { to: '/admin/forms', label: t('nav.forms'), section: 'contenido', perm: null, icon: 'input-cursor-text', requiresPlugin: 'formularios' },
+    // ventas
+    { to: '/admin/payments', label: t('nav.payments'), section: 'ventas', perm: 'user.read', icon: 'credit-card' },
+    { to: '/admin/commerce', label: t('nav.commerce'), section: 'ventas', perm: null, icon: 'bag', requiresPlugin: 'ecommerce' },
+    { to: '/admin/invoices', label: t('nav.invoices'), section: 'ventas', perm: null, icon: 'receipt', requiresPlugin: 'facturacion' },
+    { to: '/admin/invoices/template', label: t('nav.invoiceTemplate'), section: 'ventas', perm: null, icon: 'layout-text-window-reverse', parent: '/admin/invoices', requiresPlugin: 'facturacion' },
+    { to: '/admin/inventory', label: t('nav.inventory'), section: 'ventas', perm: 'inventory.read', icon: 'box-seam' },
+    // comunicacion
+    { to: '/admin/email', label: t('nav.email'), section: 'comunicacion', perm: 'email.read', icon: 'envelope' },
+    { to: '/admin/notifications', label: t('nav.notifications'), section: 'comunicacion', perm: null, icon: 'bell', requiresPlugin: 'notificaciones' },
+    { to: '/admin/support', label: t('nav.support'), section: 'comunicacion', perm: 'support.read', icon: 'headset' },
+    // comunidad
+    { to: '/admin/social', label: t('nav.social'), section: 'comunidad', perm: null, icon: 'people', requiresPlugin: 'social' },
+    { to: '/admin/calendar', label: t('nav.calendar'), section: 'comunidad', perm: null, icon: 'calendar3', requiresPlugin: 'calendario' },
+    // apariencia
+    { to: '/admin/appearance', label: t('nav.appearance'), section: 'apariencia', perm: 'theme.read', icon: 'palette' },
+    { to: '/admin/translations', label: t('nav.translations'), section: 'apariencia', perm: 'translation.read', icon: 'translate' },
+    { to: '/admin/menu', label: t('nav.menu'), section: 'apariencia', perm: 'setting.read', icon: 'list-nested' },
+    // integraciones
+    { to: '/admin/plugins', label: t('nav.plugins'), section: 'integraciones', perm: 'plugin.read', icon: 'puzzle' },
+    { to: '/admin/generated', label: t('nav.generated'), section: 'integraciones', perm: 'generated.read', feature: 'generator', icon: 'lightning' },
+    { to: '/admin/invernadero', label: t('nav.invernadero'), section: 'integraciones', perm: 'iot.read', icon: 'flower1' },
+    { to: '/admin/sema', label: t('nav.sema'), section: 'integraciones', perm: 'iot.read', icon: 'broadcast' },
+    { to: '/admin/api-tokens', label: t('nav.api'), section: 'integraciones', perm: null, icon: 'key' },
+    { to: '/admin/auth', label: t('nav.auth'), section: 'integraciones', perm: null, icon: 'shield-lock', requiresPlugin: 'register' },
+    // configuracion
+    { to: '/admin/settings', label: t('nav.settings'), section: 'configuracion', perm: 'setting.read', icon: 'gear' },
+    { to: '/admin/templates', label: t('nav.templates'), section: 'configuracion', perm: 'setting.write', icon: 'files' },
+    { to: '/admin/branches', label: t('nav.branches'), section: 'configuracion', perm: null, icon: 'diagram-3' },
+    { to: '/admin/organizations', label: t('nav.organizations'), section: 'configuracion', perm: null, icon: 'building', requiresPlugin: 'organizaciones' },
+    { to: '/admin/updates', label: t('nav.updates'), section: 'configuracion', perm: 'setting.read', icon: 'arrow-repeat' },
+    { to: '/admin/scaling', label: t('nav.scaling'), section: 'configuracion', perm: 'scaling.read', icon: 'hdd-stack' },
+    { to: '/admin/license', label: t('nav.license'), section: 'configuracion', perm: 'license.read', icon: 'patch-check' },
+    { to: '/admin/license/keys', label: t('nav.licenseKeys'), section: 'configuracion', perm: 'license.read', icon: 'key-fill', parent: '/admin/license' },
+    // usuarios
+    { to: '/admin/users', label: t('nav.users'), section: 'usuarios', perm: 'user.read', icon: 'person' },
+    { to: '/admin/roles', label: t('nav.roles'), section: 'usuarios', perm: 'role.read', icon: 'person-badge', parent: '/admin/users' },
+    { to: '/admin/audit', label: t('nav.audit'), section: 'usuarios', perm: 'audit.read', icon: 'shield-check' },
   ];
 
   // Defensa anti-duplicado: los paths que ya están en el menú core no se repiten
@@ -167,6 +327,8 @@ export function AdminLayout() {
       section: (SECTION_KEYS.has(item.section ?? '') ? item.section : 'integraciones') as SectionKey,
       perm: null,
       feature: item.feature,
+      icon: item.icon,
+      parent: item.parent,
     }));
 
   const sectionLabels: Record<SectionKey, string> = {
@@ -184,45 +346,180 @@ export function AdminLayout() {
   const isVisible = (item: NavItem) =>
     (item.perm === null || hasPermission(item.perm)) &&
     hasFeature(item.feature) &&
-    !(PLUGIN_MANAGEMENT_PATHS.has(item.to) && !hasInstalledPlugins);
+    !(PLUGIN_MANAGEMENT_PATHS.has(item.to) && !hasInstalledPlugins) &&
+    (item.requiresPlugin ? installedPluginIds.has(item.requiresPlugin) : true);
+
+  const visibleItems = [...navItems, ...pluginItems].filter(isVisible);
+  const rootNodes = buildTree(visibleItems);
 
   const grouped = SECTION_ORDER.map((section) => ({
     section,
-    items: [
-      ...navItems.filter((i) => i.section === section && isVisible(i)),
-      ...pluginItems.filter((i) => i.section === section),
-    ],
-  })).filter((g) => g.items.length > 0);
+    nodes: rootNodes.filter((n) => n.item.section === section),
+  })).filter((g) => g.nodes.length > 0);
+
+  const q = searchQuery.trim().toLowerCase();
+  const searchResults = q ? visibleItems.filter((i) => i.label.toLowerCase().includes(q)) : [];
+
+  const toggleCollapsed = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      try {
+        window.localStorage.setItem(LS_COLLAPSED, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  const toggleExpanded = (to: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(to)) next.delete(to);
+      else next.add(to);
+      try {
+        window.localStorage.setItem(LS_EXPANDED, JSON.stringify([...next]));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
+  const openDrawer = () => setDrawerOpen(true);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
+  // Atajo "/" para buscar y "Escape" para cerrar el drawer móvil.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = document.activeElement;
+      const typing =
+        el instanceof HTMLElement &&
+        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+      if (e.key === '/' && !typing) {
+        if (document.querySelector('dialog[open]')) return;
+        e.preventDefault();
+        searchRef.current?.focus();
+      } else if (e.key === 'Escape' && drawerOpen) {
+        setDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
+
+  // Enfoque inicial al abrir el drawer y retorno de foco al cerrarlo.
+  useEffect(() => {
+    if (drawerOpen) searchRef.current?.focus();
+  }, [drawerOpen]);
+
+  // Scroll-lock del body mientras el drawer móvil está abierto (MEDIO-3).
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [drawerOpen]);
+
+  const prevDrawerOpen = useRef(false);
+  useEffect(() => {
+    if (prevDrawerOpen.current && !drawerOpen) mobileMenuBtnRef.current?.focus();
+    prevDrawerOpen.current = drawerOpen;
+  }, [drawerOpen]);
 
   return (
-    <div className={`admin-layout${collapsed ? ' collapsed' : ''}`}>
-      <aside className="sidebar">
-        <div className="brand">{collapsed ? 'W' : 'Webs'}</div>
-        <nav className="stack">
-          {grouped.map((group) => (
-            <div key={group.section}>
-              {!collapsed && <div className="nav-section">{sectionLabels[group.section]}</div>}
-              {group.items.map((item) => (
+    <div className={`admin-layout${isCollapsed ? ' collapsed' : ''}`}>
+      <aside
+        className={`sidebar${drawerOpen ? ' open' : ''}`}
+        role={drawerOpen ? 'dialog' : undefined}
+        aria-modal={drawerOpen ? true : undefined}
+        aria-label={drawerOpen ? t('nav.primary') : undefined}
+      >
+        <div className="brand">{isCollapsed ? 'W' : 'Webs'}</div>
+
+        <button className="btn ghost sidebar-close" onClick={closeDrawer} aria-label={t('common.close')}>
+          <i className="bi bi-x-lg" aria-hidden="true" />
+        </button>
+
+        <div className="nav-search">
+          <i className="bi bi-search" aria-hidden="true" />
+          <input
+            ref={searchRef}
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('nav.searchMenu')}
+            aria-label={t('nav.searchMenu')}
+          />
+        </div>
+
+        <nav className="stack admin-nav" aria-label={t('nav.primary')}>
+          {q ? (
+            searchResults.length > 0 ? (
+              searchResults.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
                   end={item.end}
                   title={item.label}
                   className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+                  onClick={closeDrawer}
                 >
-                  {collapsed ? item.label.charAt(0) : item.label}
+                  <i className={iconClass(item.icon)} aria-hidden="true" />
+                  {!isCollapsed && <span className="nav-text">{item.label}</span>}
                 </NavLink>
-              ))}
-            </div>
-          ))}
+              ))
+            ) : (
+              <p className="muted" style={{ padding: 'var(--ws-space-2) var(--ws-space-3)' }}>
+                {t('common.noResults')}
+              </p>
+            )
+          ) : (
+            grouped.map((group) => (
+              <div key={group.section}>
+                {!isCollapsed && <div className="nav-section">{sectionLabels[group.section]}</div>}
+                {group.nodes.map((node) => (
+                  <SidebarItem
+                    key={node.item.to}
+                    node={node}
+                    collapsed={isCollapsed}
+                    expandedSet={expanded}
+                    onToggle={toggleExpanded}
+                    onNavigate={closeDrawer}
+                    depth={0}
+                  />
+                ))}
+              </div>
+            ))
+          )}
         </nav>
       </aside>
 
-      <div className="main-col">
+      {drawerOpen && <div className="sidebar-backdrop" onClick={closeDrawer} aria-hidden="true" />}
+
+      <div className="main-col" inert={drawerOpen}>
         <header className="topbar">
           <div className="row">
-            <button className="btn ghost" onClick={() => setCollapsed((c) => !c)} title={t('nav.collapseMenu')} aria-label={t('nav.collapseMenu')}>
-              <i className="bi bi-list" />
+            <button
+              className="btn ghost mobile-menu-btn"
+              ref={mobileMenuBtnRef}
+              onClick={openDrawer}
+              title={t('nav.openMenu')}
+              aria-label={t('nav.openMenu')}
+              aria-expanded={drawerOpen}
+            >
+              <i className="bi bi-list" aria-hidden="true" />
+            </button>
+            <button
+              className="btn ghost desktop-collapse-btn"
+              onClick={toggleCollapsed}
+              title={t('nav.collapseMenu')}
+              aria-label={t('nav.collapseMenu')}
+              aria-pressed={collapsed}
+            >
+              <i className="bi bi-list" aria-hidden="true" />
             </button>
           </div>
 

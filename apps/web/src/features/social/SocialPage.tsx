@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 const SOCIAL_BASE = '/api/v1/blocks/social';
 
@@ -18,6 +20,7 @@ interface FollowCounts {
  * los contadores de seguidores/seguidos del usuario actual.
  */
 export function SocialPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const myId = user?.id ?? null;
 
@@ -32,7 +35,7 @@ export function SocialPage() {
 
   return (
     <div className="stack" style={{ gap: 'var(--ws-space-5)', maxWidth: 620 }}>
-      <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>Red social</h1>
+      <PageHeader title={t('nav.social')} />
 
       <Card>
         <h2 style={{ marginTop: 0 }}>Configuración</h2>

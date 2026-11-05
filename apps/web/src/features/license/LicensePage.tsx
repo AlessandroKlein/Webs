@@ -12,6 +12,7 @@ import { FeatureList, type FeatureListItem } from '../../components/ui/FeatureLi
 import { FingerprintNotice } from '../../components/ui/FingerprintNotice';
 import { ActivationKeyField } from '../../components/ui/ActivationKeyField';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 type ApiLicenseStatus = 'unconfigured' | 'unlicensed' | 'active' | 'expired' | 'invalid' | 'clock_rollback';
 
@@ -141,7 +142,7 @@ export function LicensePage() {
 
   return (
     <div className="stack" style={{ gap: 'var(--ws-space-4)' }}>
-      <h1 style={{ margin: 0 }}>{t('license.title')}</h1>
+      <PageHeader title={t('license.title')} />
 
       <Card>
         <Card.Header>

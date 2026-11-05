@@ -8,6 +8,8 @@ import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { RichTextEditor } from '../../components/ui/RichTextEditor';
+import { Alert } from '../../components/ui/Alert';
+import { PageHeader } from '../../components/ui/PageHeader';
 import type { Page } from '@webs/core';
 
 type ContentStatus = 'draft' | 'published' | 'scheduled';
@@ -146,14 +148,10 @@ export function ContentPage() {
   const items = data?.items ?? [];
 
   return (
-    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
-      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('nav.content')}</h1>
-        <button className={`nav-link ${view === 'list' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('list')}>Contenido</button>
-        <button className={`nav-link ${view === 'editor' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => { resetForm(); setView('editor'); }}>{editing ? 'Editor' : 'Nuevo contenido'}</button>
-      </aside>
+    <div className="stack">
+      <PageHeader title={t('nav.content')} />
 
-      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+      <div className="stack">
       {view === 'editor' && (
       <Card>
         <h3>{editing ? 'Editar contenido' : 'Nuevo contenido'}</h3>
@@ -190,7 +188,7 @@ export function ContentPage() {
           </label>
           <RichTextEditor key={formKey} value={body} onChange={setBody} />
 
-          {error && <p style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</p>}
+          {error && <Alert variant="danger">{error}</Alert>}
 
           <div className="row">
             <Button type="submit" disabled={save.isPending}>

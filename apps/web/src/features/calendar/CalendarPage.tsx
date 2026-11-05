@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 const CAL_BASE = '/api/v1/blocks/calendario';
 const RES_BASE = '/api/v1/blocks/reservas';
@@ -275,7 +276,7 @@ export function CalendarPage() {
   return (
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220 }}>
-        <h1 style={{ fontSize: 'var(--ws-font-size-lg)', margin: 0 }}>{t('admin.calendar.title')}</h1>
+        <PageHeader title={t('admin.calendar.title')} />
         <button
           className={`nav-link ${view === 'calendar' ? 'active' : ''}`}
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}

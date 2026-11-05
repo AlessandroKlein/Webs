@@ -9,6 +9,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
+import { PageHeader } from '../../components/ui/PageHeader';
 
 type ScalingMode = 'horizontal' | 'vertical';
 type VpaUpdateMode = 'Auto' | 'Off' | 'Initial';
@@ -145,7 +146,7 @@ export function ScalingPage() {
   if (isError) {
     return (
       <div className="stack" style={{ padding: 'var(--ws-space-6)', gap: 'var(--ws-space-3)' }}>
-        <h1 style={{ margin: 0 }}>{t('scaling.title')}</h1>
+        <PageHeader title={t('scaling.title')} />
         <Badge variant="danger">{t('scaling.loadError')}</Badge>
         <p className="muted" style={{ margin: 0 }}>
           {error instanceof ApiClientError ? error.message : String(error)}
@@ -158,7 +159,7 @@ export function ScalingPage() {
     <div className="stack" style={{ gap: 'var(--ws-space-4)' }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', gap: 'var(--ws-space-3)' }}>
         <div className="stack" style={{ gap: 2 }}>
-          <h1 style={{ margin: 0 }}>{t('scaling.title')}</h1>
+          <PageHeader title={t('scaling.title')} />
           <p className="muted" style={{ margin: 0 }}>{t('scaling.subtitle')}</p>
         </div>
         {data?.updatedAt && (

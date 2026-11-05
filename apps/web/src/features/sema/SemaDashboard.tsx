@@ -20,6 +20,7 @@ import {
   formatSemaMetricValue,
   normalizeSemaStatus,
 } from './sema';
+import { DeviceEventsCard } from '../iot/DeviceEventsCard';
 
 const BASE_CHART_METRICS = ['temperature_ext', 'temperature_int', 'humidity', 'energy'];
 
@@ -148,26 +149,7 @@ export function SemaDashboard({
             )}
           </div>
 
-          {status.alarms.length > 0 && (
-            <Card>
-              <Card.Header>
-                <Card.Title className="flex items-center gap-2">
-                  <i className="bi bi-exclamation-triangle text-danger" aria-hidden="true" />
-                  {t('sema.alarms')}
-                </Card.Title>
-              </Card.Header>
-              <Card.Content>
-                <ul className="flex flex-col gap-2">
-                  {status.alarms.map((a, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      {a.severity !== undefined && <Badge variant="danger">sev. {a.severity}</Badge>}
-                      <span className="text-muted">{a.message ?? t('sema.unnamedAlarm')}</span>
-                    </li>
-                  ))}
-                </ul>
-              </Card.Content>
-            </Card>
-          )}
+          <DeviceEventsCard basePath={basePath} deviceId={device.id} valueIsScaled />
         </>
       )}
 

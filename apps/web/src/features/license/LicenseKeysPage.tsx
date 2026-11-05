@@ -12,6 +12,7 @@ import { TextField } from '../../components/ui/TextField';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Dialog } from '../../components/ui/Dialog';
 import { copyText } from '../../components/ui/clipboard';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { LicenseKeyFormDialog, type LicenseFeatureOption, type LicenseKeyFormValues } from './LicenseKeyFormDialog';
 
 interface LicenseKey {
@@ -205,7 +206,7 @@ export function LicenseKeysPage() {
   return (
     <div className="stack" style={{ gap: 'var(--ws-space-4)' }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0 }}>{t('nav.licenseKeys')}</h1>
+        <PageHeader title={t('nav.licenseKeys')} />
         {canManage && (
           <Button onClick={() => { setFormError(undefined); setFormOpen(true); }}>
             <i className="bi bi-plus-lg" aria-hidden="true" />
