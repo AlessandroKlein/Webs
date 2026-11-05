@@ -6,7 +6,9 @@ import {
   deviceApiPrefix,
   IoTStore,
   registerIotDeviceRoutes,
+  serializeTsRaw,
   startCollector,
+  startEventCollector,
   type IotDeviceRecord,
 } from '@webs/iot';
 import { decrypt, encrypt } from '@webs/core';
@@ -16,7 +18,7 @@ import { mapSemaToMeasurements } from './parse';
 const manifest = manifestJson as unknown as PluginManifest;
 
 type Rep = { code: (n: number) => Rep; send: (p: unknown) => unknown };
-type Req = { params?: Record<string, string>; body?: Record<string, unknown> };
+type Req = { params?: Record<string, string>; body?: Record<string, unknown>; query?: Record<string, string> };
 
 function stripToken(device: IotDeviceRecord): Omit<IotDeviceRecord, 'tokenCipher'> {
   const { tokenCipher, ...rest } = device;
@@ -44,6 +46,7 @@ export default definePlugin(manifest, {
       encrypt,
       decrypt,
       kinds: ['sema'],
+      kind: 'sema',
     });
 
     const authenticate = (fastify as unknown as { authenticate?: unknown }).authenticate;
@@ -60,7 +63,7 @@ export default definePlugin(manifest, {
     };
     const getDevice = async (req: unknown, id: string): Promise<IotDeviceRecord | null> => {
       const scope = await scopeOf(req);
-      return repo.findById(id, scope);
+      return repo.findById(id, scope, 'sema');
     };
     // SEMA v1 autentica con X-API-Key (la key es opcional: la lectura es pública).
     const clientOf = (device: IotDeviceRecord) => {
@@ -96,6 +99,24 @@ export default definePlugin(manifest, {
       }
     });
 
+    // GET /devices/:id/events — histórico de eventos/alarmas ingeridos.
+    fastify.get('/devices/:id/events', read, async (request: unknown, reply: unknown) => {
+      const id = (request as Req).params?.id ?? '';
+      const query = (request as Req).query ?? {};
+      const limitRaw = Number(query.limit);
+      const limit = Number.isFinite(limitRaw) ? Math.min(500, Math.max(1, Math.trunc(limitRaw))) : 100;
+      const kind = query.kind === 'alarm' ? 'alarm' : query.kind === 'event' ? 'event' : undefined;
+      const device = await getDevice(request, id);
+      if (!device) return (reply as Rep).code(404).send({ error: 'Dispositivo no encontrado' });
+      const events = await db.iotDeviceEvent.findMany({
+        where: { deviceId: device.id, organizationId: device.organizationId, ...(kind ? { kind } : {}) },
+        orderBy: { receivedAt: 'desc' },
+        take: limit,
+        select: { id: true, kind: true, tsRaw: true, type: true, source: true, rule: true, severity: true, value: true, message: true, receivedAt: true },
+      });
+      return { events: events.map((e: { tsRaw: number | bigint }) => ({ ...e, tsRaw: serializeTsRaw(e.tsRaw) })) };
+    });
+
     // --- Collectors: sondeo periódico de los dispositivos habilitados. ---
     const collectors = new Map<string, ReturnType<typeof startCollector>>();
 
@@ -129,5 +150,60 @@ export default definePlugin(manifest, {
     await reconcile();
     const reconcileTimer = setInterval(() => void reconcile(), 60_000);
     void reconcileTimer;
+
+    // --- Collector de eventos/alarmas (independiente del de medidas). ---
+    const eventCollectors = new Map<string, ReturnType<typeof startEventCollector>>();
+
+    async function reconcileEvents(): Promise<void> {
+      const devices = (await db.iotDevice.findMany({ where: { kind: 'sema', enabled: true } })) as IotDeviceRecord[];
+      const active = new Set(devices.map((d) => d.id));
+      for (const [id, col] of eventCollectors) {
+        if (!active.has(id)) {
+          col.stop();
+          eventCollectors.delete(id);
+        }
+      }
+      for (const d of devices) {
+        if (eventCollectors.has(d.id)) continue;
+        const col = startEventCollector({
+          deviceId: d.id,
+          client: clientOf(d),
+          prefix: deviceApiPrefix(d.baseUrl),
+          intervalMs: 60_000,
+          writeEvents: (rows) =>
+            db.iotDeviceEvent.createMany({
+              data: rows.map((r) => ({ ...r, organizationId: d.organizationId, tsRaw: BigInt(r.tsRaw) })),
+            }),
+          readRecentFingerprints: async (limit) => {
+            const rows = await db.iotDeviceEvent.findMany({
+              where: { deviceId: d.id },
+              orderBy: { receivedAt: 'desc' },
+              take: limit,
+              select: { fingerprint: true },
+            });
+            return rows.map((r: { fingerprint: string }) => r.fingerprint);
+          },
+          onError: (err) => console.warn(`[sema] events ${d.id}: ${err instanceof Error ? err.message : String(err)}`),
+        });
+        eventCollectors.set(d.id, col);
+      }
+    }
+
+    await reconcileEvents();
+    const eventsTimer = setInterval(() => void reconcileEvents(), 60_000);
+    void eventsTimer;
+
+    // --- Purga de eventos >90 días (una vez al día). ---
+    async function purgeOldEvents(): Promise<void> {
+      const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      try {
+        await db.iotDeviceEvent.deleteMany({ where: { receivedAt: { lt: cutoff } } });
+      } catch (err) {
+        console.warn(`[sema] purge events: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+    void purgeOldEvents();
+    const purgeTimer = setInterval(() => void purgeOldEvents(), 24 * 60 * 60 * 1000);
+    void purgeTimer;
   },
 });

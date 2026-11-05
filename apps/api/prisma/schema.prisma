@@ -541,6 +541,7 @@ model Organization {
   chainBranches  Organization[]   @relation("OrgChain")
   warehouses     Warehouse[]
   iotDevices     IotDevice[]
+  iotDeviceEvents IotDeviceEvent[]
   createdAt      DateTime         @default(now())
 
   @@index([parentId])
@@ -1268,8 +1269,32 @@ model IotDevice {
   metadata       Json          @default("{}")
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+  events         IotDeviceEvent[]
 
   @@index([organizationId])
   @@index([kind])
   @@map("iot_devices")
+}
+
+model IotDeviceEvent {
+  id             String       @id @default(uuid())
+  organizationId String
+  deviceId       String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  device         IotDevice    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  kind           String       @default("event") // event | alarm
+  tsRaw          BigInt // uptime ms (SEMA) o epoch s (Invernadero); ordenar por receivedAt, nunca por tsRaw
+  type           String?
+  source         String?
+  rule           String?
+  severity       String?
+  value          Float? // SEMA: x100 en alarmas de regla (la UI divide)
+  message        String? // Invernadero: texto libre del evento
+  receivedAt     DateTime     @default(now())
+  fingerprint    String
+
+  @@index([deviceId, receivedAt])
+  @@index([organizationId, receivedAt])
+  @@index([receivedAt])
+  @@map("iot_device_events")
 }

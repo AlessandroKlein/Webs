@@ -21,7 +21,7 @@ export interface IotDeviceCreateInput {
 /** Abstracción de persistencia (packages/iot es Prisma-free). */
 export interface IotDeviceRepository {
   list(scope: Record<string, unknown>): Promise<IotDeviceRecord[]>;
-  findById(id: string, scope: Record<string, unknown>): Promise<IotDeviceRecord | null>;
+  findById(id: string, scope: Record<string, unknown>, kind?: IotDeviceKind): Promise<IotDeviceRecord | null>;
   create(data: IotDeviceCreateInput): Promise<IotDeviceRecord>;
   update(id: string, scope: Record<string, unknown>, data: Partial<IotDeviceCreateInput>): Promise<IotDeviceRecord | null>;
   remove(id: string, scope: Record<string, unknown>): Promise<boolean>;
@@ -40,7 +40,7 @@ export interface IotPrismaLike {
 export function createPrismaIotDeviceRepository(prisma: IotPrismaLike): IotDeviceRepository {
   return {
     list: (scope) => prisma.iotDevice.findMany({ where: scope }),
-    findById: (id, scope) => prisma.iotDevice.findFirst({ where: { id, ...scope } }),
+    findById: (id, scope, kind) => prisma.iotDevice.findFirst({ where: { id, ...scope, ...(kind ? { kind } : {}) } }),
     create: (data) => prisma.iotDevice.create({ data }),
     update: async (id, scope, data) => {
       const r = await prisma.iotDevice.updateMany({ where: { id, ...scope }, data });
@@ -59,6 +59,8 @@ export interface IotRouteDeps {
   decrypt: (value: string) => string;
   /** Kinds que admite el plugin dueño (valida `kind` en create/patch). */
   kinds?: IotDeviceKind[];
+  /** Kind único que posee el plugin dueño (restringe lookup/mutación por id). */
+  kind?: IotDeviceKind;
 }
 
 interface IotFastifyLike {
@@ -107,6 +109,7 @@ function stripToken(device: IotDeviceRecord): Omit<IotDeviceRecord, 'tokenCipher
  */
 export function registerIotDeviceRoutes(fastify: IotFastifyLike, deps: IotRouteDeps): void {
   const allowedKinds: IotDeviceKind[] = deps.kinds ?? KINDS;
+  const deviceKind: IotDeviceKind | undefined = deps.kind;
   const auth = { preHandler: [fastify.authenticate].filter(Boolean) };
   const read = { preHandler: [fastify.authenticate, fastify.authorize?.('iot.read'), fastify.requireTenant].filter(Boolean) };
   const write = { preHandler: [fastify.authenticate, fastify.authorize?.('iot.write'), fastify.requireTenant].filter(Boolean) };
@@ -175,21 +178,32 @@ export function registerIotDeviceRoutes(fastify: IotFastifyLike, deps: IotRouteD
     if (typeof body.enabled === 'boolean') data.enabled = body.enabled;
     if (typeof body.token === 'string' && body.token) data.tokenCipher = deps.encrypt(body.token);
     if (typeof body.metadata === 'object' && body.metadata !== null) data.metadata = body.metadata as Record<string, unknown>;
-    const device = await deps.repo.update(id, await scopeOf(req), data);
+    const scope = await scopeOf(req);
+    if (deviceKind) {
+      const existing = await deps.repo.findById(id, scope, deviceKind);
+      if (!existing) return (reply as IotReply).code(404).send({ error: 'Dispositivo no encontrado' });
+    }
+    const device = await deps.repo.update(id, scope, data);
     if (!device) return (reply as IotReply).code(404).send({ error: 'Dispositivo no encontrado' });
     return stripToken(device);
   });
 
   fastify.delete('/devices/:id', write, async (request, reply) => {
     const req = request as IotRequest;
-    const ok = await deps.repo.remove(asStr(req.params?.id), await scopeOf(req));
+    const id = asStr(req.params?.id);
+    const scope = await scopeOf(req);
+    if (deviceKind) {
+      const existing = await deps.repo.findById(id, scope, deviceKind);
+      if (!existing) return (reply as IotReply).code(404).send({ error: 'Dispositivo no encontrado' });
+    }
+    const ok = await deps.repo.remove(id, scope);
     if (!ok) return (reply as IotReply).code(404).send({ error: 'Dispositivo no encontrado' });
     return { ok: true };
   });
 
   fastify.post('/devices/:id/test', read, async (request, reply) => {
     const req = request as IotRequest;
-    const device = await deps.repo.findById(asStr(req.params?.id), await scopeOf(req));
+    const device = await deps.repo.findById(asStr(req.params?.id), await scopeOf(req), deviceKind);
     if (!device) return (reply as IotReply).code(404).send({ error: 'Dispositivo no encontrado' });
     const token = device.tokenCipher ? deps.decrypt(device.tokenCipher) : undefined;
     const client: DeviceClient = createIotDeviceClient({ baseUrl: device.baseUrl, token, authMode: device.authMode });
@@ -203,7 +217,7 @@ export function registerIotDeviceRoutes(fastify: IotFastifyLike, deps: IotRouteD
 
   fastify.get('/devices/:id/series', read, async (request, reply) => {
     const req = request as IotRequest;
-    const device = await deps.repo.findById(asStr(req.params?.id), await scopeOf(req));
+    const device = await deps.repo.findById(asStr(req.params?.id), await scopeOf(req), deviceKind);
     if (!device) return (reply as IotReply).code(404).send({ error: 'Dispositivo no encontrado' });
     const metric = asStr(req.query?.metric);
     if (!metric) return (reply as IotReply).code(400).send({ error: 'Parámetro metric es obligatorio' });
