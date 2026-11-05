@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { BarcodeScanner } from '../../components/ui/BarcodeScanner';
 import { CameraScanner } from '../../components/ui/CameraScanner';
+import { useDesktopBridge } from '../../lib/useDesktopBridge';
 import { useTranslation } from 'react-i18next';
 import i18next from '../../lib/i18n';
 
@@ -1108,6 +1109,9 @@ function SalesSection() {
     },
     onError: () => setBarcodeMsg({ ok: false, text: t('staff.couldNotSearchProduct') }),
   });
+
+  // Lector serial del companion (@webs/desktop) suma al carrito igual que el HID.
+  useDesktopBridge({ enabled: true, onCode: (code) => barcodeLookup.mutate(code) });
 
   const cartTotal = cart.reduce((sum, l) => sum + l.price * l.qty, 0);
 

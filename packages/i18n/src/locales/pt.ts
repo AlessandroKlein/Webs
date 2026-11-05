@@ -673,6 +673,11 @@ export const pt: Record<string, string> = {
   'admin.inventory.phone': 'Telefone',
   'admin.inventory.parent': 'Categoria pai',
   'admin.inventory.searchPlaceholder': 'Buscar produto…',
+  'admin.inventory.attributes': 'Atributos',
+  'admin.inventory.attributeKey': 'Chave',
+  'admin.inventory.attributeValue': 'Valor',
+  'admin.inventory.addAttribute': 'Adicionar atributo',
+  'admin.inventory.scan': 'Escanear',
 
   // ── Minha conta ──────────────────────────────────────────
   'admin.account.profile': 'Perfil',

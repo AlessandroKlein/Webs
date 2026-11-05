@@ -11,6 +11,9 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Dialog } from '../../components/ui/Dialog';
 import { Tabs } from '../../components/ui/Tabs';
 import { Badge } from '../../components/ui/Badge';
+import { KeyValueEditor } from '../../components/ui/KeyValueEditor';
+import { CameraScanner } from '../../components/ui/CameraScanner';
+import { useDesktopBridge } from '../../lib/useDesktopBridge';
 
 const INV = '/api/v1/inventory';
 
@@ -147,6 +150,15 @@ const toInt = (v: string): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
+/** Coerce `Record<string, unknown>` → `Record<string, string>` para el editor. */
+const attrsToStr = (a: Record<string, unknown> | undefined): Record<string, string> => {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(a ?? {})) {
+    out[k] = typeof v === 'string' ? v : v == null ? '' : String(v);
+  }
+  return out;
+};
+
 // ── Producto (crear / editar) ───────────────────────────────────────────────
 function ProductFormDialog(props: {
   open: boolean;
@@ -171,6 +183,7 @@ function ProductFormDialog(props: {
   const [stock, setStock] = useState('0');
   const [minQuantity, setMinQuantity] = useState('0');
   const [criticalQuantity, setCriticalQuantity] = useState('0');
+  const [attributes, setAttributes] = useState<Record<string, string>>({});
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -196,6 +209,7 @@ function ProductFormDialog(props: {
           stock: toInt(stock),
           minQuantity: toInt(minQuantity),
           criticalQuantity: toInt(criticalQuantity),
+          attributes,
         };
     props.onSave(body);
   };
@@ -266,6 +280,16 @@ function ProductFormDialog(props: {
           </div>
         )}
 
+        {!props.editing && (
+          <KeyValueEditor
+            value={attributes}
+            onChange={setAttributes}
+            keyLabel={t('admin.inventory.attributeKey')}
+            valueLabel={t('admin.inventory.attributeValue')}
+            addLabel={t('admin.inventory.addAttribute')}
+          />
+        )}
+
         {props.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{props.error}</p>}
         <div className="row">
           <Button type="submit" disabled={props.saving || !title.trim()}>
@@ -294,6 +318,7 @@ function VariantFormDialog(props: {
   const [name, setName] = useState(props.editing?.name ?? '');
   const [sku, setSku] = useState(props.editing?.sku ?? '');
   const [barcode, setBarcode] = useState(props.editing?.barcode ?? '');
+  const [attributes, setAttributes] = useState<Record<string, string>>(() => attrsToStr(props.editing?.attributes));
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -301,6 +326,7 @@ function VariantFormDialog(props: {
       name: name.trim() || undefined,
       sku: sku.trim(),
       barcode: barcode.trim() || null,
+      attributes,
     });
   };
 
@@ -314,6 +340,13 @@ function VariantFormDialog(props: {
         <TextField label={t('common.name')} value={name} onChange={(e) => setName(e.target.value)} />
         <TextField label={t('admin.inventory.sku')} value={sku} onChange={(e) => setSku(e.target.value)} required />
         <TextField label={t('admin.inventory.barcode')} value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="7790000000000" />
+        <KeyValueEditor
+          value={attributes}
+          onChange={setAttributes}
+          keyLabel={t('admin.inventory.attributeKey')}
+          valueLabel={t('admin.inventory.attributeValue')}
+          addLabel={t('admin.inventory.addAttribute')}
+        />
         {props.error && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{props.error}</p>}
         <div className="row">
           <Button type="submit" disabled={props.saving || !sku.trim()}>
@@ -612,9 +645,18 @@ export function InventoryPage() {
   const qc = useQueryClient();
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const canManage = hasPermission('inventory.manage');
+  const canRead = hasPermission('inventory.read');
 
   const [tab, setTab] = useState<Tab>('products');
   const [search, setSearch] = useState('');
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  // Un código leído (cámara o lector serial del companion) filtra por barcode/sku.
+  const handleScan = (code: string) => {
+    setTab('products');
+    setSearch(code);
+  };
+  useDesktopBridge({ enabled: true, onCode: handleScan });
 
   const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ['inventory-products', search],
@@ -781,15 +823,24 @@ export function InventoryPage() {
         <Card>
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <h3 style={{ margin: 0 }}>{t('admin.inventory.items')}</h3>
-            <div style={{ maxWidth: 320, flex: 1 }}>
-              <TextField
-                label={t('common.search')}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t('admin.inventory.searchPlaceholder')}
-              />
+            <div className="row" style={{ maxWidth: 480, flex: 1, alignItems: 'flex-end', gap: 'var(--ws-space-1)' }}>
+              <div style={{ flex: 1 }}>
+                <TextField
+                  label={t('common.search')}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('admin.inventory.searchPlaceholder')}
+                />
+              </div>
+              {canRead && (
+                <Button variant="secondary" onClick={() => setCameraOpen(true)} aria-label={t('admin.inventory.scan')}>
+                  <i className="bi bi-camera" aria-hidden="true" /> {t('admin.inventory.scan')}
+                </Button>
+              )}
             </div>
           </div>
+
+          <CameraScanner open={cameraOpen} onCode={handleScan} onClose={() => setCameraOpen(false)} />
 
           <div style={{ overflowX: 'auto' }}>
             <table className="table">
@@ -811,12 +862,26 @@ export function InventoryPage() {
                       {p.description && <div className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>{p.description}</div>}
                     </td>
                     <td>
-                      {p.variants.map((v) => (
-                        <div key={v.id} className="row" style={{ gap: 'var(--ws-space-1)' }}>
-                          <code>{v.sku}</code>
-                          {v.barcode && <span className="muted">{v.barcode}</span>}
-                        </div>
-                      ))}
+                      {p.variants.map((v) => {
+                        const attrs = Object.entries(v.attributes ?? {});
+                        return (
+                          <div key={v.id} className="stack" style={{ gap: 'var(--ws-space-1)' }}>
+                            <div className="row" style={{ gap: 'var(--ws-space-1)' }}>
+                              <code>{v.sku}</code>
+                              {v.barcode && <span className="muted">{v.barcode}</span>}
+                            </div>
+                            {attrs.length > 0 && (
+                              <div className="row" style={{ gap: 'var(--ws-space-1)', flexWrap: 'wrap' }}>
+                                {attrs.map(([k, val]) => (
+                                  <span key={k} className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }} title={`${k}: ${String(val)}`}>
+                                    {k}: {String(val)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </td>
                     <td>{fmtMoney(p.price)}</td>
                     <td>{p.stock}</td>

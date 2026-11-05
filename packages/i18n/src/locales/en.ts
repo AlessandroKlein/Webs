@@ -673,6 +673,11 @@ export const en: Record<string, string> = {
   'admin.inventory.phone': 'Phone',
   'admin.inventory.parent': 'Parent category',
   'admin.inventory.searchPlaceholder': 'Search product…',
+  'admin.inventory.attributes': 'Attributes',
+  'admin.inventory.attributeKey': 'Key',
+  'admin.inventory.attributeValue': 'Value',
+  'admin.inventory.addAttribute': 'Add attribute',
+  'admin.inventory.scan': 'Scan',
 
   // ── My account ───────────────────────────────────────────
   'admin.account.profile': 'Profile',

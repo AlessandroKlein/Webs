@@ -47,7 +47,7 @@ async function createImplicitVariant(
         sku,
         barcode: input.barcode?.trim() || null,
         name: product.title,
-        attributes: (input.attributes as object) ?? {},
+        attributes: sanitizeAttributes(input.attributes),
       },
     });
     await tx.stockLevel.create({
@@ -116,6 +116,44 @@ const asInt = (v: unknown, fallback = 0): number => {
   return Number.isFinite(n) ? Math.trunc(n) : fallback;
 };
 
+const MAX_ATTR_KEYS = 50;
+const MAX_ATTR_KEY_LEN = 64;
+const MAX_ATTR_VALUE_LEN = 500;
+
+/**
+ * Sanitiza `attributes` a un objeto plano de strings. Convierte number/boolean
+ * a string, descarta claves/valores vacíos y rechaza arrays u objetos anidados
+ * con `BadRequestError` (límites: 50 claves, clave ≤64, valor ≤500).
+ */
+function sanitizeAttributes(input: unknown): Record<string, string> {
+  if (input === undefined || input === null) return {};
+  if (typeof input !== 'object' || Array.isArray(input)) {
+    throw new BadRequestError('attributes debe ser un objeto plano');
+  }
+  const out: Record<string, string> = {};
+  for (const [rawKey, value] of Object.entries(input as Record<string, unknown>)) {
+    const key = rawKey.trim();
+    if (!key) continue;
+    if (key.length > MAX_ATTR_KEY_LEN) {
+      throw new BadRequestError(`Clave de atributo demasiado larga (máx ${MAX_ATTR_KEY_LEN}): "${key.slice(0, 20)}…"`);
+    }
+    let str: string | null = null;
+    if (typeof value === 'string') str = value.trim();
+    else if (typeof value === 'number' || typeof value === 'boolean') str = String(value);
+    else if (value === null || value === undefined) continue;
+    else throw new BadRequestError(`El valor del atributo "${key}" debe ser string, número o booleano`);
+    if (!str) continue;
+    if (str.length > MAX_ATTR_VALUE_LEN) {
+      throw new BadRequestError(`Valor del atributo demasiado largo (máx ${MAX_ATTR_VALUE_LEN}): "${key}"`);
+    }
+    out[key] = str;
+  }
+  if (Object.keys(out).length > MAX_ATTR_KEYS) {
+    throw new BadRequestError(`Demasiados atributos (máx ${MAX_ATTR_KEYS})`);
+  }
+  return out;
+}
+
 export default async function inventoryRoutes(fastify: FastifyInstance): Promise<void> {
   const read = [fastify.authenticate, fastify.authorize('inventory.read'), fastify.requireTenant];
   const write = [fastify.authenticate, fastify.authorize('inventory.manage'), fastify.requireTenant];
@@ -133,7 +171,15 @@ export default async function inventoryRoutes(fastify: FastifyInstance): Promise
     if (brandId) where.brandId = brandId;
     if (supplierId) where.supplierId = supplierId;
     if (search?.trim()) {
-      where.OR = [{ title: { contains: search.trim(), mode: 'insensitive' } }];
+      const term = search.trim();
+      where.OR = [
+        { title: { contains: term, mode: 'insensitive' } },
+        { barcode: { contains: term, mode: 'insensitive' } },
+        { variants: { some: { OR: [
+          { sku: { contains: term, mode: 'insensitive' } },
+          { barcode: { contains: term, mode: 'insensitive' } },
+        ] } } },
+      ];
     }
     return fastify.prisma.product.findMany({
       where,
@@ -248,7 +294,7 @@ export default async function inventoryRoutes(fastify: FastifyInstance): Promise
             sku,
             barcode: asStr(body.barcode),
             name,
-            attributes: (body.attributes as object) ?? {},
+            attributes: sanitizeAttributes(body.attributes),
           },
         });
         await tx.stockLevel.create({
@@ -273,7 +319,7 @@ export default async function inventoryRoutes(fastify: FastifyInstance): Promise
     if (body.name !== undefined) data.name = asStr(body.name) ?? existing.name;
     if (body.sku !== undefined) data.sku = asStr(body.sku) ?? existing.sku;
     if (body.barcode !== undefined) data.barcode = asStr(body.barcode);
-    if (body.attributes !== undefined) data.attributes = body.attributes as object;
+    if (body.attributes !== undefined) data.attributes = sanitizeAttributes(body.attributes);
     if (body.active !== undefined) data.active = Boolean(body.active);
 
     try {
