@@ -252,8 +252,8 @@ Todas las tareas del plan M13 están **completas** (v2.11.0):
 
 ## Ver también
 
-- [ADR-0027 — Serie temporal local](adr/0027-iot-serie-temporal.md)
-- [ADR-0028 — Patrón de plugins IoT](adr/0028-iot-plugin-pattern.md)
-- [Backlog §3.10 (Milestone 13)](../backlog.md)
+- [ADR-0027 — Serie temporal local](../adr/0027-iot-serie-temporal.md)
+- [ADR-0028 — Patrón de plugins IoT](../adr/0028-iot-plugin-pattern.md)
+- [Backlog §3.10 (Milestone 13)](https://github.com/AlessandroKlein/Webs/blob/main/docs/backlog.md)
 - [Escalabilidad](scalability.md) — Redis y despliegue de la API (el collector
   corre dentro de `apps/api` y escala horizontal igual que el resto).

@@ -35,5 +35,5 @@ tema claro/oscuro automáticamente porque las utilidades referencian los tokens:
 
 ## Preview sin servidor
 
-Abrí [`docs/estilo-frontend.html`](estilo-frontend.html) en el navegador para ver
+Abrí [`docs/estilo-frontend.html`](../estilo-frontend.html) en el navegador para ver
 colores, componentes y el toggle claro/oscuro.

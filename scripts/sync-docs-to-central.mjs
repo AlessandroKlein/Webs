@@ -7,6 +7,12 @@
  * - Convierte los enlaces a archivos de código (`../../...`) a URLs de GitHub,
  *   dejando intactos los enlaces doc→doc (que ya son relativos correctos).
  *
+ * NO destructivo: solo copia/actualiza archivos provenientes de Webs/docs;
+ * nunca borra el contenido curado que vive únicamente en Docs (`arquitectura.md`,
+ * `bloques/*`, `despliegue.md`, `gym.md`, `integraciones.md`, `seguridad.md`,
+ * `guides/bloques-categorias.md`, `guides/contenido.md`, `guides/footer-y-copyright.md`).
+ * Idempotente: correrlo N veces produce el mismo árbol.
+ *
  * Uso: node scripts/sync-docs-to-central.mjs
  */
 import fs from 'node:fs';
@@ -20,18 +26,35 @@ const docsRepo = path.resolve(websRoot, '../Docs');
 const destRoot = path.join(docsRepo, 'docs', 'es', 'webs');
 const GITHUB = 'https://github.com/AlessandroKlein/Webs';
 
+// Archivos del árbol Webs/docs que NO se publican en el sitio central.
+const SKIP = new Set([
+  'backlog.md', // lo edita release-manager; no se publica en Docs
+]);
+
 if (!fs.existsSync(docsRepo)) {
   console.error(`No se encontró el repo Docs en ${docsRepo}`);
   process.exit(1);
 }
 
-// 1. Copiar el árbol de docs.
-fs.rmSync(destRoot, { recursive: true, force: true });
-fs.cpSync(websDocs, destRoot, { recursive: true });
+// 1. Copiar el árbol de docs (sin borrar lo curado: cpSync sobrescribe los
+//    archivos existentes y crea los nuevos, pero nunca elimina lo que no está
+//    en el origen).
+fs.cpSync(websDocs, destRoot, {
+  recursive: true,
+  force: true,
+  filter: (src) => {
+    const rel = path.relative(websDocs, src);
+    return !SKIP.has(rel);
+  },
+});
 
-// 2. Renombrar el índice.
+// 2. Renombrar el índice (idempotente: elimina el index.md previo antes del rename).
 const readme = path.join(destRoot, 'README.md');
-if (fs.existsSync(readme)) fs.renameSync(readme, path.join(destRoot, 'index.md'));
+const index = path.join(destRoot, 'index.md');
+if (fs.existsSync(readme)) {
+  fs.rmSync(index, { force: true });
+  fs.renameSync(readme, index);
+}
 
 // 3. Recorrer y arreglar enlaces.
 const mdFiles = [];
@@ -47,7 +70,7 @@ const LINK_RE = /(\[[^\]]*\]\()([^)\s]+)(\))/g;
 
 for (const file of mdFiles) {
   let content = fs.readFileSync(file, 'utf8');
-  const relNew = path.relative(destRoot, file); // ej. 'guides/crear-un-bloque.md'
+  const relNew = path.relative(destRoot, file); // ej. 'guides/crear-un-plugin.md'
   const originalDir = path.join(websDocs, path.dirname(relNew));
 
   content = content.replace(LINK_RE, (match, prefix, href, suffix) => {

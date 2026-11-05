@@ -73,6 +73,10 @@ las **plantillas** que los combinan y activan automáticamente.
 
 ## 2. Backlog pendiente (priorizado)
 
+> Hitos planificados (detalle en los ADR correspondientes): **M14** experiencia
+> pública (ADR-0029), **M15** videoteca (ADR-0030), **M16** tracking (ADR-0031),
+> **M17** pulido (ADR-0032), **M18** ads (ADR-0033).
+
 ### 2.1 Seguridad e identidad
 - [ ] (sin pendientes)
 
@@ -118,5 +122,6 @@ las **plantillas** que los combinan y activan automáticamente.
 > versión y actualizá este documento.
 
 > Versionado: seguimos **SemVer** (ver [VERSIONING.md](VERSIONING.md)). Hoy estamos
-> en `v0.x.x` (desarrollo inicial); pasamos a `v1.0.0` al validar Docker + ejecución
-> en producción.
+> en **v2.11.0** (2026-11-05). El registro autoritativo de versiones y features es
+> [CHANGELOG.md](CHANGELOG.md); este documento conserva el plan de hitos aún no
+> implementados (M14 experiencia pública → M18 ads).

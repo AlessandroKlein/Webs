@@ -3,6 +3,41 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.11.0] - 2026-11-05
+
+### Añadido
+
+- **IoT — serie temporal local + plugins `invernadero`/`sema` (ADR-0027/0028, M13)**: base
+  PostgreSQL separada `webs_iot` con modelo genérico `measurements(ts, device_id, metric, value,
+  unit)` e índice `(device_id, metric, ts)`, retención/downsampling raw→horario→diario y consultas
+  con agregación (`querySeries`, bucket por hora/día) vía pool `pg` dedicado; `IotDevice` en el
+  schema principal (`organizationId`/`kind`/`baseUrl`/token cifrado/`pollIntervalMs`/`enabled`/
+  `lastSeenAt`). Plugins `invernadero` (Bearer, control de actuadores) y `sema` (X-API-Key) con
+  conexión mínima (solo IP/URL + token) + test; dashboards con gráficos de históricos
+  (rango 1h/24h/7d/30d + agregación) y multi-tenant por organización.
+- **Firma Ed25519 de artefactos de release (ADR-0010/0026)**: `scripts/sign-release.mjs` firma el
+  digest sha256 (base64url) con clave privada Ed25519 PKCS#8 PEM; `release.yml` adjunta
+  `webs-<v>.tar.gz` + `.sha256` + `.sig`. Cierra la deuda técnica de 2.10.0 (vista RAW ahora con
+  sha256 + firma reales).
+
+### Seguridad
+
+- **SSRF-safe en polling de dispositivos**: `assertSafeHost()` resuelve el host por DNS y bloquea
+  cualquier IP privada/loopback (`0.0.0.0/8`, `10/8`, `127/8`, `169.254/16`, `172.16/12`,
+  `192.168/16`, multicast, `::1`, ULA/link-local) salvo allowlist explícita.
+- **Token fuera de las respuestas**: el token del dispositivo se cifra en reposo (AES-256-GCM,
+  campo `tokenCipher`) y el valor en claro nunca se devuelve en las respuestas de la API.
+- **Validación de `pollIntervalMs`**: coercionado/truncado a entero finito con fallback seguro
+  (60000 ms) en la creación/actualización de dispositivos.
+- **Gate `iot.write` en UI**: las acciones de edición/borrado de dispositivos solo se muestran con
+  el permiso `iot.write` (`DevicesList.tsx`).
+
+### Deuda técnica
+
+- Heredada: cache `blocks:catalog` (t101), `navItems` hardcodeado en AdminLayout (t122), `gen.*`
+  huérfanos (t110), errores backend hardcoded (t108), rename residual (F12/F4/F10/F17) y hueco
+  ADR 0013–0022 (t126).
+
 ## [2.10.0] - 2026-10-24
 
 ### Añadido
