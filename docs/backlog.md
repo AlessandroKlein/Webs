@@ -15,6 +15,12 @@
 > - **Trazabilidad:** cada ítem referencia la tarea del equipo (`tN`) definida en
 >   el plan de trabajo.
 
+> **Publicación pendiente (v2.11.0):** el tag aún no se creó porque el secreto de firma
+> `UPDATE_PRIVATE_KEY` (clave privada Ed25519) no está cargado y NO se regenera el par — rompería
+> la cadena de confianza de las instalaciones ya desplegadas, cuya clave pública vive en
+> `deploy/k8s/configmap.yaml`. Comandos: `gh secret set UPDATE_PRIVATE_KEY < update_private.pem`
+> y luego `git tag -a v2.11.0 -m "v2.11.0" && git push origin v2.11.0`.
+
 ---
 
 ## 1. Objetivos y milestones

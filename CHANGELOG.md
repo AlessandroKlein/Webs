@@ -19,16 +19,41 @@ Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
   digest sha256 (base64url) con clave privada Ed25519 PKCS#8 PEM; `release.yml` adjunta
   `webs-<v>.tar.gz` + `.sha256` + `.sig`. Cierra la deuda técnica de 2.10.0 (vista RAW ahora con
   sha256 + firma reales).
+- **Fase 2 de inventario**: casillas de atributos clave/valor por variante en alta de producto y
+  alta/edición de variante (`KeyValueEditor.tsx`) con atributos visibles en la tabla; búsqueda por
+  SKU y por código de barras además del título; validación de `attributes` como objeto plano de
+  strings (50 claves, clave ≤64, valor ≤500, anidados/arrays → 400) vía `sanitizeAttributes()`.
+- **Escaneo y lectores de escritorio**: cámara de escaneo en Inventario con `BarcodeDetector` y
+  puente con lectores externos (serial/HID) vía `useDesktopBridge` (WebSocket `ws://localhost:4599`,
+  dedupe 1500 ms) en la terminal de ventas.
+- **Smoke E2E**: `scripts/qa-smoke.mjs` valida el flujo principal contra el stack Docker.
+- **Docs**: guías de ecosistema y de terminales de inventario/POS.
+
+### Corregido
+
+- **Ingesta REST de SEMA**: el collector sondaba `/status` (devuelve identidad, no medidas) y no
+  recolectaba series; ahora `deviceApiPrefix(baseUrl)` normaliza el prefijo (acepta baseUrl con o
+  sin `/api/v1`) y las rutas se resuelven **relativas** al `baseUrl` (`deviceUrl`), conservando su
+  path: antes `new URL('/status', …)` descartaba `/api/v1` y con `baseUrl = http://IP/api/v1` se
+  sondeaba `http://IP/status`. SEMA lee `/api/v1/sensors` (array `measurements[]` →
+  `{metric, value, unit, ts}`, ignora no numéricos, dedupe last-wins). Invernadero alinea sus rutas
+  a `/api/v1/status` y el test de conexión (`POST /devices/:id/test`) sondea `/status`.
 
 ### Seguridad
 
 - **SSRF-safe en polling de dispositivos**: `assertSafeHost()` resuelve el host por DNS y bloquea
-  cualquier IP privada/loopback (`0.0.0.0/8`, `10/8`, `127/8`, `169.254/16`, `172.16/12`,
-  `192.168/16`, multicast, `::1`, ULA/link-local) salvo allowlist explícita.
+  cualquier IP privada/loopback/link-local (`0.0.0.0/8`, `10/8`, `127/8`, `100.64/10`,
+  `169.254/16`, `172.16/12`, `192.0.0/24`, `192.168/16`, `198.18/15`, multicast, `::1`, ULA y
+  mapeadas IPv4 `::ffff:a.b.c.d`) salvo allowlist explícita; rechaza protocolos ≠ http/https y URLs
+  con credenciales, cierra el TOCTOU de re-resolución DNS re-conectando a la IP ya validada y
+  re-valida cada redirect manualmente (máx. 5 saltos).
 - **Token fuera de las respuestas**: el token del dispositivo se cifra en reposo (AES-256-GCM,
-  campo `tokenCipher`) y el valor en claro nunca se devuelve en las respuestas de la API.
+  campo `tokenCipher`) y `stripToken()` lo omite en `list`/`create`/`patch` (el valor en claro
+  nunca se devuelve ni se serializa).
 - **Validación de `pollIntervalMs`**: coercionado/truncado a entero finito con fallback seguro
-  (60000 ms) en la creación/actualización de dispositivos.
+  (60000 ms) y mínimo de 1 s en la creación/actualización de dispositivos.
+- **`kind` restringido por plugin**: cada plugin declara los `kinds` que admite y valida el `kind`
+  en create/patch (rechaza valores ajenos con 400).
 - **Gate `iot.write` en UI**: las acciones de edición/borrado de dispositivos solo se muestran con
   el permiso `iot.write` (`DevicesList.tsx`).
 
