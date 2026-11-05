@@ -10,7 +10,7 @@ import {
   type IotDeviceRecord,
   type Measurement,
 } from '@webs/iot';
-import { decrypt, encrypt } from '../../../apps/api/src/lib/crypto';
+import { decrypt, encrypt } from '@webs/core';
 import manifestJson from '../plugin.json';
 
 const manifest = manifestJson as unknown as PluginManifest;
@@ -100,6 +100,7 @@ export default definePlugin(manifest, {
       store,
       encrypt,
       decrypt,
+      kinds: ['invernadero'],
     });
 
     const authenticate = (fastify as unknown as { authenticate?: unknown }).authenticate;
@@ -108,8 +109,8 @@ export default definePlugin(manifest, {
     const resolveTenant = (fastify as unknown as { resolveTenant?: (r: unknown) => Promise<{ organizationId?: string | null }> }).resolveTenant;
     const resolveScope = (fastify as unknown as { resolveScope?: (t: unknown) => Promise<Record<string, unknown>> }).resolveScope;
 
-    const read = { preHandler: [authenticate, authorize?.('iot.read'), requireTenant] };
-    const write = { preHandler: [authenticate, authorize?.('iot.write'), requireTenant] };
+    const read = { preHandler: [authenticate, authorize?.('iot.read'), requireTenant].filter(Boolean) };
+    const write = { preHandler: [authenticate, authorize?.('iot.write'), requireTenant].filter(Boolean) };
 
     const scopeOf = async (req: unknown): Promise<Record<string, unknown>> => {
       if (resolveTenant && resolveScope) return resolveScope(await resolveTenant(req));
@@ -120,7 +121,14 @@ export default definePlugin(manifest, {
       return repo.findById(id, scope);
     };
     const clientOf = (device: IotDeviceRecord) => {
-      const token = device.tokenCipher ? decrypt(device.tokenCipher) : undefined;
+      let token: string | undefined;
+      if (device.tokenCipher) {
+        try {
+          token = decrypt(device.tokenCipher);
+        } catch (err) {
+          console.warn(`[invernadero] token corrupto en device ${device.id}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
       return createIotDeviceClient({ baseUrl: device.baseUrl, token, authMode: device.authMode as IotAuthMode, allowlist });
     };
 
@@ -186,7 +194,7 @@ export default definePlugin(manifest, {
           measurementsPath: '/status',
           intervalMs: d.pollIntervalMs,
           parse: mapStatusToMeasurements,
-          onError: () => {},
+          onError: (err) => console.warn(`[invernadero] poll ${d.id}: ${err instanceof Error ? err.message : String(err)}`),
           onSuccess: () => {
             void db.iotDevice.update({ where: { id: d.id }, data: { lastSeenAt: new Date() } }).catch(() => {});
           },

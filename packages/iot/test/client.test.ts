@@ -28,6 +28,13 @@ describe('SSRF-safe (isPrivateIp)', () => {
     expect(isPrivateIpv6('ff02::1')).toBe(true);
   });
 
+  it('detecta IPv4-mapped IPv6 (bypass classico)', () => {
+    expect(isPrivateIpv6('::ffff:127.0.0.1')).toBe(true);
+    expect(isPrivateIpv6('::ffff:169.254.169.254')).toBe(true);
+    expect(isPrivateIpv6('::ffff:7f00:1')).toBe(true); // 127.0.0.1 en hex
+    expect(isPrivateIpv6('::ffff:8.8.8.8')).toBe(false);
+  });
+
   it('isPrivateIp combina ambas familias', () => {
     expect(isPrivateIp('10.0.0.1')).toBe(true);
     expect(isPrivateIp('::1')).toBe(true);

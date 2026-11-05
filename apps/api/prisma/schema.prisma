@@ -540,6 +540,7 @@ model Organization {
   chainRoot      Organization?    @relation("OrgChain", fields: [chainId], references: [id], onDelete: SetNull)
   chainBranches  Organization[]   @relation("OrgChain")
   warehouses     Warehouse[]
+  iotDevices     IotDevice[]
   createdAt      DateTime         @default(now())
 
   @@index([parentId])
@@ -1255,6 +1256,7 @@ model InventoryLot {
 model IotDevice {
   id             String        @id @default(uuid())
   organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   kind           IotDeviceKind
   name           String
   baseUrl        String

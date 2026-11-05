@@ -165,7 +165,7 @@ export class IoTStore {
                 sum(avg * count) / NULLIF(sum(count), 0),
                 min(min), max(max), sum(count), max(unit)
          FROM measurements_hourly
-         WHERE ts >= now() - interval '8 days'
+         WHERE ts >= now() - interval '90 days'
          GROUP BY 1, 2, 3
          ON CONFLICT (device_id, metric, ts) DO UPDATE
            SET avg = EXCLUDED.avg, min = EXCLUDED.min, max = EXCLUDED.max,

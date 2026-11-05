@@ -22,6 +22,7 @@
     "clean": "rimraf dist"
   },
   "devDependencies": {
+    "@types/node": "^22.7.5",
     "@webs/config": "workspace:*",
     "eslint": "^9.13.0",
     "rimraf": "^6.0.1",

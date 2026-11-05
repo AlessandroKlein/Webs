@@ -57,6 +57,8 @@ export interface IotRouteDeps {
   encrypt: (value: string) => string;
   /** Desencripta un token. */
   decrypt: (value: string) => string;
+  /** Kinds que admite el plugin dueño (valida `kind` en create/patch). */
+  kinds?: IotDeviceKind[];
 }
 
 interface IotFastifyLike {
@@ -92,15 +94,22 @@ function asInt(v: unknown, fallback: number): number {
   const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN;
   return Number.isFinite(n) ? Math.trunc(n) : fallback;
 }
+/** Devuelve el dispositivo sin el token cifrado (nunca serializar al cliente). */
+function stripToken(device: IotDeviceRecord): Omit<IotDeviceRecord, 'tokenCipher'> {
+  const { tokenCipher, ...rest } = device;
+  void tokenCipher;
+  return rest;
+}
 
 /**
  * Registra las rutas base de dispositivos IoT (registro/listado/test/series),
  * reutilizables por los plugins de dominio (invernadero, semáforo, etc.).
  */
 export function registerIotDeviceRoutes(fastify: IotFastifyLike, deps: IotRouteDeps): void {
-  const auth = { preHandler: [fastify.authenticate] };
-  const read = { preHandler: [fastify.authenticate, fastify.authorize?.('iot.read'), fastify.requireTenant] };
-  const write = { preHandler: [fastify.authenticate, fastify.authorize?.('iot.write'), fastify.requireTenant] };
+  const allowedKinds: IotDeviceKind[] = deps.kinds ?? KINDS;
+  const auth = { preHandler: [fastify.authenticate].filter(Boolean) };
+  const read = { preHandler: [fastify.authenticate, fastify.authorize?.('iot.read'), fastify.requireTenant].filter(Boolean) };
+  const write = { preHandler: [fastify.authenticate, fastify.authorize?.('iot.write'), fastify.requireTenant].filter(Boolean) };
 
   const orgOf = (req: IotRequest): string => req.tenant?.organizationId ?? ROOT_ORG_ID;
 
@@ -116,7 +125,14 @@ export function registerIotDeviceRoutes(fastify: IotFastifyLike, deps: IotRouteD
     const body = req.body ?? {};
     const name = asStr(body.name);
     const baseUrl = asStr(body.baseUrl);
-    const kind = KINDS.includes(body.kind as IotDeviceKind) ? (body.kind as IotDeviceKind) : 'invernadero';
+    const kind = body.kind === undefined
+      ? allowedKinds[0]!
+      : typeof body.kind === 'string' && allowedKinds.includes(body.kind as IotDeviceKind)
+        ? (body.kind as IotDeviceKind)
+        : null;
+    if (kind === null) {
+      return (reply as IotReply).code(400).send({ error: `kind inválido (válidos: ${allowedKinds.join(', ')})` });
+    }
     const authMode = AUTH_MODES.includes(body.authMode as IotAuthMode) ? (body.authMode as IotAuthMode) : 'bearer';
     const token = asStr(body.token);
     if (!name || !baseUrl) {
@@ -129,16 +145,16 @@ export function registerIotDeviceRoutes(fastify: IotFastifyLike, deps: IotRouteD
       baseUrl,
       tokenCipher: token ? deps.encrypt(token) : null,
       authMode,
-      pollIntervalMs: asInt(body.pollIntervalMs, 60000),
+      pollIntervalMs: Math.max(1000, asInt(body.pollIntervalMs, 60000)),
       enabled: body.enabled !== false,
       metadata: (typeof body.metadata === 'object' && body.metadata !== null ? body.metadata : {}) as Record<string, unknown>,
     });
-    return device;
+    return stripToken(device);
   });
 
   fastify.get('/devices', read, async (request) => {
     const req = request as IotRequest;
-    return deps.repo.list(await scopeOf(req));
+    return (await deps.repo.list(await scopeOf(req))).map(stripToken);
   });
 
   fastify.patch('/devices/:id', write, async (request, reply) => {
@@ -148,15 +164,20 @@ export function registerIotDeviceRoutes(fastify: IotFastifyLike, deps: IotRouteD
     const data: Partial<IotDeviceCreateInput> = {};
     if (typeof body.name === 'string') data.name = body.name;
     if (typeof body.baseUrl === 'string') data.baseUrl = body.baseUrl;
-    if (typeof body.kind === 'string' && KINDS.includes(body.kind as IotDeviceKind)) data.kind = body.kind as IotDeviceKind;
+    if (body.kind !== undefined) {
+      if (typeof body.kind !== 'string' || !allowedKinds.includes(body.kind as IotDeviceKind)) {
+        return (reply as IotReply).code(400).send({ error: `kind inválido (válidos: ${allowedKinds.join(', ')})` });
+      }
+      data.kind = body.kind as IotDeviceKind;
+    }
     if (typeof body.authMode === 'string' && AUTH_MODES.includes(body.authMode as IotAuthMode)) data.authMode = body.authMode as IotAuthMode;
-    if (typeof body.pollIntervalMs === 'number' || typeof body.pollIntervalMs === 'string') data.pollIntervalMs = asInt(body.pollIntervalMs, 60000);
+    if (typeof body.pollIntervalMs === 'number' || typeof body.pollIntervalMs === 'string') data.pollIntervalMs = Math.max(1000, asInt(body.pollIntervalMs, 60000));
     if (typeof body.enabled === 'boolean') data.enabled = body.enabled;
     if (typeof body.token === 'string' && body.token) data.tokenCipher = deps.encrypt(body.token);
     if (typeof body.metadata === 'object' && body.metadata !== null) data.metadata = body.metadata as Record<string, unknown>;
     const device = await deps.repo.update(id, await scopeOf(req), data);
     if (!device) return (reply as IotReply).code(404).send({ error: 'Dispositivo no encontrado' });
-    return device;
+    return stripToken(device);
   });
 
   fastify.delete('/devices/:id', write, async (request, reply) => {

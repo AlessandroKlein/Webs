@@ -9,7 +9,7 @@ import {
   type IotDeviceRecord,
   type Measurement,
 } from '@webs/iot';
-import { decrypt, encrypt } from '../../../apps/api/src/lib/crypto';
+import { decrypt, encrypt } from '@webs/core';
 import manifestJson from '../plugin.json';
 
 const manifest = manifestJson as unknown as PluginManifest;
@@ -94,6 +94,7 @@ export default definePlugin(manifest, {
       store,
       encrypt,
       decrypt,
+      kinds: ['sema'],
     });
 
     const authenticate = (fastify as unknown as { authenticate?: unknown }).authenticate;
@@ -102,7 +103,7 @@ export default definePlugin(manifest, {
     const resolveTenant = (fastify as unknown as { resolveTenant?: (r: unknown) => Promise<{ organizationId?: string | null }> }).resolveTenant;
     const resolveScope = (fastify as unknown as { resolveScope?: (t: unknown) => Promise<Record<string, unknown>> }).resolveScope;
 
-    const read = { preHandler: [authenticate, authorize?.('iot.read'), requireTenant] };
+    const read = { preHandler: [authenticate, authorize?.('iot.read'), requireTenant].filter(Boolean) };
 
     const scopeOf = async (req: unknown): Promise<Record<string, unknown>> => {
       if (resolveTenant && resolveScope) return resolveScope(await resolveTenant(req));
@@ -114,7 +115,14 @@ export default definePlugin(manifest, {
     };
     // SEMA v1 autentica con X-API-Key (la key es opcional: la lectura es pública).
     const clientOf = (device: IotDeviceRecord) => {
-      const token = device.tokenCipher ? decrypt(device.tokenCipher) : undefined;
+      let token: string | undefined;
+      if (device.tokenCipher) {
+        try {
+          token = decrypt(device.tokenCipher);
+        } catch (err) {
+          console.warn(`[sema] token corrupto en device ${device.id}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
       return createIotDeviceClient({ baseUrl: device.baseUrl, token, authMode: 'x-api-key', allowlist });
     };
 
@@ -160,7 +168,7 @@ export default definePlugin(manifest, {
           measurementsPath: '/status',
           intervalMs: d.pollIntervalMs,
           parse: mapSemaToMeasurements,
-          onError: () => {},
+          onError: (err) => console.warn(`[sema] poll ${d.id}: ${err instanceof Error ? err.message : String(err)}`),
           onSuccess: () => {
             void db.iotDevice.update({ where: { id: d.id }, data: { lastSeenAt: new Date() } }).catch(() => {});
           },

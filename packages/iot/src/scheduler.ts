@@ -70,7 +70,7 @@ export function startCollector(opts: CollectorOptions): Collector {
 
   const timer = setInterval(() => {
     void runOnce();
-  }, opts.intervalMs);
+  }, Math.max(1000, opts.intervalMs));
 
   return {
     runOnce,
