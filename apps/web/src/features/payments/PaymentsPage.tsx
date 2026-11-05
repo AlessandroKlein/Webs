@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useTenantStore } from '../../lib/tenant-store';
@@ -6,6 +6,7 @@ import { ScopeBadge } from '../../components/tenant/ScopeSwitcher';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
+import { cn } from '../../components/ui/cn';
 
 interface PaymentRow {
   id: string;
@@ -57,6 +58,7 @@ export function PaymentsPage() {
   const qc = useQueryClient();
   const [status, setStatus] = useState('');
   const [provider, setProvider] = useState('');
+  const toggleStatus = (next: string) => setStatus((cur) => (cur === next ? '' : next));
   const mode = useTenantStore((s) => s.mode);
   const selectedOrganizationId = useTenantStore((s) => s.selectedOrganizationId);
   const scopeKey = mode === 'branch' ? `branch:${selectedOrganizationId}` : mode;
@@ -105,19 +107,6 @@ export function PaymentsPage() {
     },
   });
 
-  const { data: paymentsSettings } = useQuery({
-    queryKey: ['settings-payments'],
-    queryFn: () => api.get<{ value: Record<string, unknown> }>('/api/v1/settings/payments'),
-  });
-  const requireWebhookSignature = (paymentsSettings?.value.requireWebhookSignature as boolean | undefined) ?? true;
-  const setWebhookSignature = useMutation({
-    mutationFn: (next: boolean) =>
-      api.put('/api/v1/settings/payments', { ...(paymentsSettings?.value ?? {}), requireWebhookSignature: next }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['settings-payments'] });
-    },
-  });
-
   if (isLoading) return <Spinner />;
 
   return (
@@ -127,31 +116,14 @@ export function PaymentsPage() {
         <ScopeBadge />
       </div>
 
-      <Card>
-        <h3 style={{ margin: 0 }}>Seguridad de webhooks</h3>
-        <label className="row" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
-          <input
-            type="checkbox"
-            checked={requireWebhookSignature}
-            onChange={(e) => setWebhookSignature.mutate(e.target.checked)}
-            disabled={setWebhookSignature.isPending}
-          />
-          <span>Exigir verificación de firma en los webhooks de pago</span>
-        </label>
-        <p className="muted" style={{ margin: 'var(--ws-space-2) 0 0' }}>
-          Si lo desactivás, los webhooks se aceptarán sin validar la firma (solo se valida el
-          proveedor y la idempotencia). Recomendado mantenerlo activado.
-        </p>
-      </Card>
-
       {summary && (
         <div className="grid-3" style={{ gap: 'var(--ws-space-2)' }}>
-          <Card><strong>Total</strong><p>{summary.total}</p></Card>
-          <Card><strong>Aprobados</strong><p>{summary.approved}</p></Card>
+          <SummaryCard label="Total" value={summary.total} active={status === ''} onClick={() => setStatus('')} />
+          <SummaryCard label="Aprobados" value={summary.approved} active={status === 'approved'} onClick={() => toggleStatus('approved')} />
           <Card><strong>Recaudado</strong><p>{money(summary.collectedAmount, 'ARS')}</p></Card>
-          <Card><strong>Pendientes</strong><p>{summary.pending}</p></Card>
-          <Card><strong>Rechazados</strong><p>{summary.rejected}</p></Card>
-          <Card><strong>Reembolsados</strong><p>{summary.refunded}</p></Card>
+          <SummaryCard label="Pendientes" value={summary.pending} active={status === 'pending'} onClick={() => toggleStatus('pending')} />
+          <SummaryCard label="Rechazados" value={summary.rejected} active={status === 'rejected'} onClick={() => toggleStatus('rejected')} />
+          <SummaryCard label="Reembolsados" value={summary.refunded} active={status === 'refunded'} onClick={() => toggleStatus('refunded')} />
         </div>
       )}
 
@@ -223,6 +195,37 @@ export function PaymentsPage() {
 
       <CostsPanel />
     </div>
+  );
+}
+
+function SummaryCard({
+  label,
+  value,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Card
+      className={cn('card-clickable', active && 'active')}
+      role="button"
+      tabIndex={0}
+      aria-pressed={active}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+    >
+      <strong>{label}</strong>
+      <p>{value}</p>
+    </Card>
   );
 }
 

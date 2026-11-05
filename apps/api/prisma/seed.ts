@@ -87,6 +87,9 @@ const PERMISSIONS: Array<{ key: string; description: string }> = [
 
   // Actualizaciones (vista RAW/Code, ADR-0026)
   { key: 'update.manage', description: 'Auditar datos crudos de actualizaciones' },
+  // IoT / telemetría (ADR-0027/0028)
+  { key: 'iot.read', description: 'Ver dispositivos IoT y telemetría' },
+  { key: 'iot.write', description: 'Gestionar dispositivos IoT' },
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);

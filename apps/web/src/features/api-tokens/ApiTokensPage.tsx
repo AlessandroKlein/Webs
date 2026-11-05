@@ -36,7 +36,9 @@ export function ApiTokensPage() {
   });
   const { data: permissions } = useQuery({
     queryKey: ['permissions'],
-    queryFn: () => api.get<PermissionItem[]>('/api/v1/permissions'),
+    // ADR-0018: /permissions devuelve catálogo agrupado por defecto; pedimos la
+    // variante plana `{ key, description }[]` que esta página consume.
+    queryFn: () => api.get<PermissionItem[]>('/api/v1/permissions?format=flat'),
   });
 
   const [name, setName] = useState('');

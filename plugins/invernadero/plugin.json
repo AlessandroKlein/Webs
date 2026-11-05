@@ -1,0 +1,43 @@
+{
+  "name": "@webs/plugin-invernadero",
+  "id": "invernadero",
+  "version": "0.1.0",
+  "type": "plugin",
+  "displayName": {
+    "en": "Greenhouse",
+    "es": "Invernadero"
+  },
+  "description": {
+    "en": "Greenhouse device integration: REST telemetry, local time series and actuator control.",
+    "es": "Integración de invernadero: telemetría REST, serie temporal local y control de actuadores."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "category": "integracion",
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "settings": {
+    "type": "object",
+    "title": "Invernadero",
+    "properties": {
+      "defaultPollIntervalMs": {
+        "type": "integer",
+        "title": "Intervalo de sondeo por defecto (ms)",
+        "default": 60000
+      },
+      "ssrfAllowlist": {
+        "type": "array",
+        "title": "Hosts/IP permitidos adicionales (SSRF)",
+        "x-ui": {
+          "help": {
+            "text": "El sondeo ya bloquea loopback/direcciones privadas. Añadí acá hosts internos que quieras permitir explícitamente."
+          }
+        },
+        "items": { "type": "string" },
+        "default": []
+      }
+    }
+  },
+  "repository": "https://github.com/AlessandroKlein/Webs"
+}

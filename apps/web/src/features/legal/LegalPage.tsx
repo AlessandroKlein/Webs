@@ -18,16 +18,16 @@ interface LegalDocument {
  * `App.tsx`, por lo que comparte header/footer con el resto del sitio público.
  */
 export function LegalPage({ slug }: { slug: LegalSlug }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = (i18n.language ?? 'es').split('-')[0];
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['public-legal', slug],
-    queryFn: () => api.get<LegalDocument>(`/api/v1/public/legal/${slug}`),
+    queryKey: ['public-legal', slug, lang],
+    queryFn: () => api.get<LegalDocument>(`/api/v1/public/legal/${slug}?lang=${lang}`),
     retry: 0,
   });
 
-  const fallbackTitle = t(`legal.${slug}`);
-  const title = data?.title || fallbackTitle;
+  const title = t(`legal.${slug}`);
 
   if (isLoading) {
     return (

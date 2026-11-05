@@ -110,6 +110,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
     return app;
   }
 
+  // `/setup/status` sigue disponible tras la instalación: el frontend lo consulta
+  // al arrancar (App.tsx) para decidir SetupWizard vs MainApp sin generar 404.
+  await app.register(async (statusApp) => {
+    statusApp.get(`${API_PREFIX}/setup/status`, async () => ({ installed: true }));
+  });
+
   // 4. Modo instalado: base de datos, seguridad, autenticación y tiempo real.
   await app.register(dbPlugin, { databaseUrl: state.databaseUrl });
   await app.register(redisPlugin, { redisUrl: env.REDIS_URL });

@@ -69,7 +69,7 @@ export function DashboardPage() {
                   {isLoading ? '…' : formatValue(data?.[m.key])}
                 </span>
               </div>
-              <i className={`bi ${m.icon}`} style={{ fontSize: '1.5rem', color: 'var(--ws-primary)' }} />
+              <i className={`bi ${m.icon}`} style={{ color: 'var(--ws-primary)' }} />
             </div>
           </Card>
         ))}

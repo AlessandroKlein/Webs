@@ -44,7 +44,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="auth-screen">
-      <form className="card" style={{ width: 380 }} onSubmit={submit}>
+      <form className="card" style={{ width: '100%', maxWidth: 380 }} onSubmit={submit}>
         <h2>Restablecer contraseña</h2>
         <TextField label="Nueva contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
         <TextField label="Confirmar contraseña" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />

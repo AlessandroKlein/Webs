@@ -108,6 +108,10 @@ export const Permission = {
   // Actualizaciones (vista RAW/Code, ADR-0026)
   UpdateManage: 'update.manage',
 
+  // IoT / telemetría (ADR-0027/0028)
+  IotRead: 'iot.read',
+  IotWrite: 'iot.write',
+
   // Soporte
   SupportRead: 'support.read',
   SupportManage: 'support.manage',

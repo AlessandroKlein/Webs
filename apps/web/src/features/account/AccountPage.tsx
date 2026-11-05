@@ -3,9 +3,11 @@ import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { startRegistration } from '@simplewebauthn/browser';
 import { useTranslation } from 'react-i18next';
+import { setLocale } from '../../lib/i18n';
 import { api, uploadFile } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import { useLocaleStore } from '../../lib/locale-store';
+import { useTheme, type ThemeMode } from '@webs/ui';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
@@ -104,6 +106,7 @@ export function AccountPage() {
   const logout = useAuthStore((s) => s.logout);
   const catalog = useLocaleStore((s) => s.catalog);
   const enabledLocales = useLocaleStore((s) => s.enabled);
+  const { mode, setMode } = useTheme();
   const { data, isLoading } = useQuery({
     queryKey: ['me'],
     queryFn: () => api.get<MeResponse>('/api/v1/auth/me'),
@@ -178,6 +181,7 @@ export function AccountPage() {
     const birthDate = (fd.get('birthDate') as string) || null;
     const username = (fd.get('username') as string) || null;
     const locale = (fd.get('locale') as string) || 'es';
+    void setLocale(locale);
     const profile: Record<string, unknown> = {};
     for (const f of customFields) {
       const v = customValues[f.key];
@@ -356,6 +360,14 @@ export function AccountPage() {
                             {l.nativeLabel}
                           </option>
                         ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label>{t('theme.label')}</label>
+                    <select className="input" value={mode} onChange={(e) => setMode(e.target.value as ThemeMode)} aria-label={t('theme.label')}>
+                      <option value="light">{t('theme.light')}</option>
+                      <option value="dark">{t('theme.dark')}</option>
+                      <option value="system">{t('theme.system')}</option>
                     </select>
                   </div>
                 </div>

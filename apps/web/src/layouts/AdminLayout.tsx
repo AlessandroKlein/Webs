@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useTheme, type ThemeMode } from '@webs/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../lib/auth-store';
-import { setLocale } from '../lib/i18n';
-import { useLocaleStore } from '../lib/locale-store';
 import { api } from '../lib/api';
 import { useRealtime } from '../lib/realtime';
 import { useTenantStore } from '../lib/tenant-store';
@@ -65,14 +62,11 @@ interface NavItem {
 const PLUGIN_MANAGEMENT_PATHS = new Set(['/admin/plugins']);
 
 export function AdminLayout() {
-  const { t, i18n } = useTranslation();
-  const { mode, setMode } = useTheme();
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const { hasFeature } = useLicense();
-  const catalog = useLocaleStore((s) => s.catalog);
-  const enabledLocales = useLocaleStore((s) => s.enabled);
   const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -142,6 +136,8 @@ export function AdminLayout() {
     { to: '/admin/menu', label: t('nav.menu'), section: 'apariencia', perm: 'setting.read' },
     { to: '/admin/plugins', label: t('nav.plugins'), section: 'integraciones', perm: 'plugin.read' },
     { to: '/admin/generated', label: t('nav.generated'), section: 'integraciones', perm: 'generated.read', feature: 'generator' },
+    { to: '/admin/invernadero', label: t('nav.invernadero'), section: 'integraciones', perm: 'iot.read' },
+    { to: '/admin/sema', label: t('nav.sema'), section: 'integraciones', perm: 'iot.read' },
     { to: '/admin/api-tokens', label: t('nav.api'), section: 'integraciones', perm: null },
     { to: '/admin/settings', label: t('nav.settings'), section: 'configuracion', perm: 'setting.read' },
     { to: '/admin/templates', label: t('nav.templates'), section: 'configuracion', perm: 'setting.write' },
@@ -228,32 +224,6 @@ export function AdminLayout() {
             <button className="btn ghost" onClick={() => setCollapsed((c) => !c)} title={t('nav.collapseMenu')} aria-label={t('nav.collapseMenu')}>
               <i className="bi bi-list" />
             </button>
-            <select
-              className="input"
-              style={{ width: 'auto' }}
-              value={mode}
-              onChange={(e) => setMode(e.target.value as ThemeMode)}
-              aria-label={t('theme.label')}
-            >
-              <option value="light">{t('theme.light')}</option>
-              <option value="dark">{t('theme.dark')}</option>
-              <option value="system">{t('theme.system')}</option>
-            </select>
-            <select
-              className="input"
-              style={{ width: 'auto' }}
-              value={i18n.language.split('-')[0]}
-              onChange={(e) => void setLocale(e.target.value)}
-              aria-label={t('lang.label')}
-            >
-              {catalog
-                .filter((l) => enabledLocales.includes(l.code))
-                .map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.nativeLabel}
-                  </option>
-                ))}
-            </select>
           </div>
 
           <ScopeSwitcher />

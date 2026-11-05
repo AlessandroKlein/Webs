@@ -5,7 +5,12 @@ import { sendMail } from '../mail/service';
 import { ensureDefaultSections, getSectionValue, listSections, setSectionValue } from './service';
 import { collectPluginMenuItems } from '../../lib/plugin-menu';
 import { isLicensed } from '../../lib/feature-gating';
-import { LEGAL_DOCUMENTS } from './legal-templates';
+import {
+  LEGAL_DOCUMENTS,
+  buildLegalContext,
+  normalizeLegalLang,
+  substituteLegalPlaceholders,
+} from './legal-templates';
 
 export default async function settingsRoutes(fastify: FastifyInstance): Promise<void> {
   ensureDefaultSections();
@@ -64,27 +69,64 @@ export default async function settingsRoutes(fastify: FastifyInstance): Promise<
   });
 
   // Contenido legal público por slug (`terms` | `privacy` | `cookies` | `disclaimer`).
-  // Se resuelve desde la sección de ajustes `legal`, por lo que un despliegue nuevo
-  // sirve automáticamente las plantillas por defecto sin necesidad de seed.
+  // Se resuelve desde la sección de ajustes `legal` (idioma principal) o
+  // `legalTranslations` (EN/PT), y se autocompletan los placeholders
+  // ([NOMBRE_EMPRESA], [URL], [EMAIL_CONTACTO], …) con los datos de instalación.
   fastify.get(
     '/public/legal/:slug',
     {
       schema: {
         tags: ['settings'],
         params: { type: 'object', properties: { slug: { type: 'string' } } },
+        querystring: { type: 'object', properties: { lang: { type: 'string' } } },
       },
     },
     async (request) => {
       const slug = (request.params as { slug: string }).slug;
       const document = (LEGAL_DOCUMENTS as Record<string, { field: string; title: string } | undefined>)[slug];
       if (!document) throw new NotFoundError('Documento legal');
-      const section = await getSectionValue(fastify, 'legal');
-      const value = (section.value ?? {}) as Record<string, unknown>;
-      return {
-        slug,
-        title: document.title,
-        content: (value[document.field] as string) ?? '',
-      };
+
+      const [legal, translations, company, site, contact, footer, seo, localization] = await Promise.all([
+        getSectionValue(fastify, 'legal'),
+        getSectionValue(fastify, 'legalTranslations'),
+        getSectionValue(fastify, 'legalCompany'),
+        getSectionValue(fastify, 'site'),
+        getSectionValue(fastify, 'contact'),
+        getSectionValue(fastify, 'footer'),
+        getSectionValue(fastify, 'seo'),
+        getSectionValue(fastify, 'localization'),
+      ]);
+
+      const legalValue = (legal.value ?? {}) as Record<string, unknown>;
+      const transValue = (translations.value ?? {}) as Record<string, unknown>;
+      const primary = (legalValue[document.field] as string) ?? '';
+
+      const requested = (request.query as { lang?: string }).lang;
+      const defaultLocale = ((localization.value as Record<string, unknown>).defaultLocale as string) ?? 'es';
+      const lang = normalizeLegalLang(requested, defaultLocale);
+
+      let content = primary;
+      if (lang !== 'es') {
+        const suffix = lang === 'en' ? 'En' : 'Pt';
+        const translated = (transValue[`${document.field}${suffix}`] as string) ?? '';
+        if (translated.trim()) content = translated;
+      }
+
+      const origin = `${request.protocol}://${request.host}`;
+      content = substituteLegalPlaceholders(
+        content,
+        buildLegalContext({
+          site: site.value,
+          contact: contact.value,
+          footer: footer.value,
+          seo: seo.value,
+          company: company.value,
+          origin,
+          lang,
+        }),
+      );
+
+      return { slug, lang, title: document.title, content };
     },
   );
 

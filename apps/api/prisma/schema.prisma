@@ -34,6 +34,12 @@ enum TicketPriority {
   urgent
 }
 
+// Tipos de dispositivo IoT gestionados por el motor de telemetría (ADR-0027).
+enum IotDeviceKind {
+  invernadero
+  sema
+}
+
 // ---------------------------------------------------------------------------
 // Identidad, roles y permisos
 // ---------------------------------------------------------------------------
@@ -1242,4 +1248,26 @@ model InventoryLot {
 
   @@index([stockLevelId, receivedAt])
   @@map("inventory_lots")
+}
+
+// Dispositivo IoT (invernadero/semáforo) — motor de telemetría @webs/iot (ADR-0027/0028).
+// `tokenCipher` es el token CIFRADO en reposo (AES-256-GCM de lib/crypto).
+model IotDevice {
+  id             String        @id @default(uuid())
+  organizationId String
+  kind           IotDeviceKind
+  name           String
+  baseUrl        String
+  tokenCipher    String?
+  authMode       String        @default("bearer") // bearer | x-auth-token | x-api-key
+  pollIntervalMs Int           @default(60000)
+  enabled        Boolean       @default(true)
+  lastSeenAt     DateTime?
+  metadata       Json          @default("{}")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([kind])
+  @@map("iot_devices")
 }

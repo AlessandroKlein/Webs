@@ -22,6 +22,22 @@
   padding: var(--ws-space-6);
 }
 
+.card-clickable {
+  cursor: pointer;
+  transition: border-color var(--ws-transition), box-shadow var(--ws-transition);
+}
+.card-clickable:hover {
+  border-color: var(--ws-primary);
+}
+.card-clickable:focus-visible {
+  outline: 2px solid var(--ws-primary-soft);
+  outline-offset: 2px;
+}
+.card-clickable.active {
+  border-color: var(--ws-primary);
+  box-shadow: 0 0 0 2px var(--ws-primary-soft), var(--ws-shadow-md);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -195,6 +211,16 @@ textarea.input {
   border-bottom: 1px solid var(--ws-border);
   background: var(--ws-surface);
 }
+/* Botones de la topbar: caja ceñida al contenido (ícono o texto), sin padding
+   horizontal sobrante que agrande el botón más allá de su ícono. */
+.topbar .btn.ghost {
+  padding: var(--ws-space-2);
+  min-height: 36px;
+  min-width: 36px;
+  justify-content: center;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .content {
   padding: var(--ws-space-6);
   flex: 1;
@@ -309,7 +335,22 @@ input[type='radio'] {
   margin: 0;
 }
 .row > * {
+  flex-shrink: 0;
   min-width: 0;
+  /* Bootstrap grid's make-col-ready() sets `width:100%; max-width:100%` on every
+     direct child (intended for .col-* grid columns). This app repurposes .row as
+     a flex toolbar, so plain children (buttons, links, text, menu wrappers) must
+     size to their content — otherwise they stretch full-width and stack. */
+  width: auto;
+  max-width: none;
+}
+/* Form primitives that legitimately span the full row keep their intrinsic width. */
+.row > .field,
+.row > .input,
+.row > .form-control,
+.row > .form-select {
+  width: 100%;
+  max-width: 100%;
 }
 .stack {
   display: flex;
@@ -559,6 +600,41 @@ input[type='radio'] {
   vertical-align: middle;
   flex: 0 0 auto;
 }
+
+/* Vista RAW/Code de actualizaciones (ADR-0026): bloque de código + tokens */
+.raw-code {
+  margin: 0;
+  padding: var(--ws-space-3) var(--ws-space-4);
+  overflow-x: auto;
+  border: 1px solid var(--ws-border);
+  border-radius: var(--ws-radius-md);
+  background: var(--ws-surface);
+  color: var(--ws-text);
+  font-family: var(--ws-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: var(--ws-font-size-sm);
+  line-height: 1.55;
+  white-space: pre;
+}
+.tok-key {
+  color: var(--ws-primary);
+}
+.tok-string {
+  color: var(--ws-success);
+}
+.tok-number {
+  color: var(--ws-warning);
+}
+.tok-keyword {
+  color: var(--ws-info);
+}
+.tok-punct {
+  color: var(--ws-text-subtle);
+}
+.tok-comment {
+  color: var(--ws-text-subtle);
+  font-style: italic;
+}
+
 
 /* ===== Encabezado del sitio público ===== */
 .site-header {

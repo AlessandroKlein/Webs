@@ -15,6 +15,8 @@ services:
       - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # Inicializa webs_iot (serie temporal IoT, ADR-0027) en el primer arranque.
+      - ./docker/iot/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U webs']
       interval: 5s
@@ -57,6 +59,8 @@ services:
       HOST: 0.0.0.0
       PORT: 4000
       DATABASE_URL: postgresql://webs:webs@postgres:5432/webs?schema=public
+      # Telemetría IoT (ADR-0027): base separada webs_iot, fuera del schema Prisma.
+      IOT_DATABASE_URL: postgresql://webs:webs@postgres:5432/webs_iot?schema=public
       REDIS_URL: redis://redis:6379
       JWT_SECRET: change-me-in-production-please-0123456789
       JWT_REFRESH_SECRET: change-me-refresh-in-production-0123456789
@@ -72,6 +76,18 @@ services:
       # embebe en la app del cliente.
       LICENSE_PUBLIC_KEY: ''
       LICENSE_PRIVATE_KEY: ''
+      # Actualizaciones (t29/ADR-0010) — clave pública Ed25519 (PEM SPKI) que
+      # verifica la firma de los artefactos de release (webs-<v>.tar.gz.sig).
+      # Es pública. La PRIVADA se carga como secreto GitHub Actions
+      # `UPDATE_PRIVATE_KEY` en el workflow de release (nunca aquí). Generá el
+      # par con `openssl genpkey -algorithm ED25519 ...`.
+      UPDATE_PUBLIC_KEY: |-
+        -----BEGIN PUBLIC KEY-----
+        MCowBQYDK2VwAyEA6nFicAc/7tBx+G1uiIT9cu81yo+IaGKc7x1JwjLdvCY=
+        -----END PUBLIC KEY-----
+      # 'auto' detecta bare/docker; en Docker la actualización es el rolling
+      # update del contenedor (docker compose pull/up), no el swap interno.
+      UPDATE_MODE: auto
     volumes:
       - appdata:/app/data
     ports:
@@ -92,6 +108,28 @@ services:
       - '5173:80'
     depends_on:
       - api
+
+  # Job de retención/downsampling de la serie temporal IoT (ADR-0027).
+  # Reusa la imagen de PostgreSQL (ya trae psql) como sidecar: cada 6 horas
+  # agrega raw→horario→diario y purga por retención. Idempotente.
+  iot-downsample:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: webs
+    volumes:
+      - ./docker/iot:/iot:ro
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        while true; do
+          sleep 21600
+          psql -h postgres -U webs -d webs_iot -v ON_ERROR_STOP=1 -f /iot/iot-downsample.sql \
+            || echo '[iot-downsample] falló la corrida; se reintentará en 6h'
+        done
 
 volumes:
   pgdata: {}

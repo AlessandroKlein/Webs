@@ -252,7 +252,7 @@ export function LoginPage() {
 
   return (
     <div className="auth-screen">
-      <div className="card" style={{ width: 380 }}>
+      <div className="card" style={{ width: '100%', maxWidth: 380 }}>
         {showRegister ? (
           <form className="stack" onSubmit={onRegister}>
             <h2>{t('auth.createAccount')}</h2>

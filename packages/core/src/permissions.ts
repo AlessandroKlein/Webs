@@ -36,6 +36,7 @@ export const PERMISSION_AREAS = [
   'generated',
   'scaling',
   'update',
+  'iot',
 ] as const;
 
 export type PermissionArea = (typeof PERMISSION_AREAS)[number];
@@ -138,6 +139,9 @@ export const PERMISSION_CATALOG: PermissionDefinition[] = [
   { key: 'scaling.write', description: 'Editar configuración de escalabilidad', area: 'scaling' },
   // update
   { key: 'update.manage', description: 'Auditar datos crudos de actualizaciones', area: 'update' },
+  // iot
+  { key: 'iot.read', description: 'Ver dispositivos IoT y telemetría', area: 'iot' },
+  { key: 'iot.write', description: 'Gestionar dispositivos IoT', area: 'iot' },
 ];
 
 const BASE_KEYS = new Set(PERMISSION_CATALOG.map((p) => p.key));

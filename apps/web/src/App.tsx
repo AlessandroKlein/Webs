@@ -59,6 +59,8 @@ import { LicensePage } from './features/license/LicensePage';
 import { LicenseKeysPage } from './features/license/LicenseKeysPage';
 import { GeneratedPage } from './features/generated/GeneratedPage';
 import { ScalingPage } from './features/scaling/ScalingPage';
+import { InvernaderoPage } from './features/invernadero/InvernaderoPage';
+import { SemaPage } from './features/sema/SemaPage';
 import { SiteLayout } from './components/SiteLayout';
 import { StaffDashboard } from './features/staff/StaffDashboard';
 import { SetupWizard } from './features/setup/SetupWizard';
@@ -196,6 +198,8 @@ function MainApp() {
           <Route path="license" element={<LicensePage />} />
           <Route path="license/keys" element={<LicenseKeysPage />} />
           <Route path="generated" element={<GeneratedPage />} />
+          <Route path="invernadero" element={<InvernaderoPage />} />
+          <Route path="sema" element={<SemaPage />} />
         </Route>
 
         <Route path="/legal/terms" element={<SiteLayout><LegalPage slug="terms" /></SiteLayout>} />

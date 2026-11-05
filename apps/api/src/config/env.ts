@@ -23,6 +23,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().url().optional(),
 
+  // Base de datos separada para la telemetría IoT (ADR-0027). Fuera del
+  // schema Prisma; se accede con un pool `pg` dedicado (t170).
+  IOT_DATABASE_URL: z.string().url().optional(),
+
   JWT_SECRET: z.string().min(32).default(DEFAULT_JWT_SECRET),
   JWT_REFRESH_SECRET: z.string().min(32).default(DEFAULT_JWT_REFRESH_SECRET),
 

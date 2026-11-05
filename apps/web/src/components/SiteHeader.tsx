@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import i18next, { setLocale } from '../lib/i18n';
-import { useLocaleStore } from '../lib/locale-store';
+import i18next from '../lib/i18n';
 import { api } from '../lib/api';
 import { useAuthStore } from '../lib/auth-store';
 import { useRealtime } from '../lib/realtime';
@@ -45,9 +44,7 @@ const priorityColor = (p: string) =>
  * Responsive con menú hamburguesa en móvil.
  */
 export function SiteHeader() {
-  const { t, i18n } = useTranslation();
-  const catalog = useLocaleStore((s) => s.catalog);
-  const enabledLocales = useLocaleStore((s) => s.enabled);
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const hasPermission = useAuthStore((s) => s.hasPermission);
@@ -130,21 +127,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="site-actions">
-          <select
-            className="input"
-            style={{ width: 'auto' }}
-            value={i18n.language.split('-')[0]}
-            onChange={(e) => void setLocale(e.target.value)}
-            aria-label={t('lang.label')}
-          >
-            {catalog
-              .filter((l) => enabledLocales.includes(l.code))
-              .map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.nativeLabel}
-                </option>
-              ))}
-          </select>
           {user && (
             <div className="user-menu-wrap">
               <button className="site-user" onClick={() => setBellOpen((o) => !o)} title={t('admin.notifications.title')} aria-label={t('admin.notifications.title')}>

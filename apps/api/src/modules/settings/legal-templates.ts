@@ -492,4 +492,72 @@ export const LEGAL_DOCUMENTS = {
   disclaimer: { field: 'disclaimer', title: 'Aviso Legal' },
 } as const;
 
+const LEGAL_LOCALES = ['es', 'en', 'pt'] as const;
+export type LegalLocale = (typeof LEGAL_LOCALES)[number];
+
+/** Normaliza el idioma pedido (`?lang=xx`) al set soportado, con respaldo al idioma por defecto. */
+export function normalizeLegalLang(requested: string | undefined, fallback = 'es'): LegalLocale {
+  const base = requested?.toLowerCase().split('-')[0];
+  if (base && (LEGAL_LOCALES as readonly string[]).includes(base)) return base as LegalLocale;
+  if ((LEGAL_LOCALES as readonly string[]).includes(fallback)) return fallback as LegalLocale;
+  return 'es';
+}
+
+function legalLocaleTag(lang: LegalLocale): string {
+  if (lang === 'en') return 'en-US';
+  if (lang === 'pt') return 'pt-BR';
+  return 'es-AR';
+}
+
+/**
+ * Reemplaza los placeholders `[CLAVE]` de un documento legal con los datos de
+ * instalación/empresa. Los placeholders sin valor se dejan visibles para que el
+ * administrador sepa qué falta completar.
+ */
+export function substituteLegalPlaceholders(content: string, ctx: Record<string, string>): string {
+  return content.replace(/\[([A-ZÁÉÍÓÚÑ_]+)\]/g, (match, key: string) => {
+    const value = ctx[key];
+    return value && value.trim() ? value : match;
+  });
+}
+
+/**
+ * Construye el contexto de autocompletado de un documento legal a partir de las
+ * secciones de ajustes (`site`, `contact`, `footer`, `seo`, `legalCompany`).
+ */
+export function buildLegalContext(input: {
+  site: unknown;
+  contact: unknown;
+  footer: unknown;
+  seo: unknown;
+  company: unknown;
+  origin: string;
+  lang: LegalLocale;
+}): Record<string, string> {
+  const site = (input.site ?? {}) as Record<string, unknown>;
+  const contact = (input.contact ?? {}) as Record<string, unknown>;
+  const footer = (input.footer ?? {}) as Record<string, unknown>;
+  const seo = (input.seo ?? {}) as Record<string, unknown>;
+  const company = (input.company ?? {}) as Record<string, unknown>;
+
+  const baseUrl = (seo.canonicalUrl as string)?.trim() || input.origin;
+  const date = new Intl.DateTimeFormat(legalLocaleTag(input.lang), {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date());
+
+  return {
+    NOMBRE_EMPRESA: String(company.companyName ?? site.name ?? 'Webs').trim(),
+    URL: baseUrl,
+    EMAIL_CONTACTO: String(contact.email ?? footer.contactEmail ?? '').trim(),
+    DOMICILIO: String(company.address ?? contact.address ?? footer.contactAddress ?? '').trim(),
+    FECHA: date,
+    'JURISDICCIÓN': String(company.jurisdiction ?? '').trim(),
+    REGISTRO_MERCANTIL: String(company.registration ?? '').trim(),
+    IDENTIFICACION_FISCAL: String(company.taxId ?? '').trim(),
+    AUTORIDAD_CONTROL: String(company.privacyAuthority ?? '').trim(),
+  };
+}
+
 export type LegalSlug = keyof typeof LEGAL_DOCUMENTS;
