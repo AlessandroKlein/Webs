@@ -3,68 +3,17 @@ import {
   createIotDeviceClient,
   createIotPool,
   createPrismaIotDeviceRepository,
+  deviceApiPrefix,
   IoTStore,
   registerIotDeviceRoutes,
   startCollector,
   type IotDeviceRecord,
-  type Measurement,
 } from '@webs/iot';
 import { decrypt, encrypt } from '@webs/core';
 import manifestJson from '../plugin.json';
+import { mapSemaToMeasurements } from './parse';
 
 const manifest = manifestJson as unknown as PluginManifest;
-
-function asNumber(v: unknown): number | null {
-  if (typeof v === 'number' && Number.isFinite(v)) return v;
-  if (typeof v === 'string' && v !== '' && Number.isFinite(Number(v))) return Number(v);
-  return null;
-}
-
-function obj(v: unknown): Record<string, unknown> {
-  return (typeof v === 'object' && v !== null ? v : {}) as Record<string, unknown>;
-}
-
-function alarmCount(alarms: unknown): number | null {
-  if (Array.isArray(alarms)) return alarms.length;
-  return asNumber(alarms);
-}
-
-/**
- * Mapeo tolerante del payload `GET /status` → `Measurement[]` (SEMA v1.103.0).
- * Cubre: temperatura EXT/INT, humedad, energía y alarmas; también sensores anidados.
- */
-function mapSemaToMeasurements(payload: unknown, deviceId: string, now: Date): Measurement[] {
-  const out: Measurement[] = [];
-  const s = obj(payload);
-  const push = (metric: string, v: unknown, unit?: string) => {
-    const n = asNumber(v);
-    if (n !== null) out.push({ ts: now, deviceId, metric, value: n, unit });
-  };
-
-  push('temperature_ext', s.temperature_ext ?? s.temperatureExternal ?? s.temperature_external ?? s.temp_ext ?? s.temperatura_ext ?? s.outdoor_temperature ?? s.temp_outdoor, '°C');
-  push('temperature_int', s.temperature_int ?? s.temperatureInternal ?? s.temperature_internal ?? s.temp_int ?? s.temperatura_int ?? s.indoor_temperature ?? s.temp_indoor, '°C');
-  push('humidity', s.humidity ?? s.humedad ?? s.rh ?? s.relative_humidity, '%');
-  push('energy', s.energy ?? s.energia ?? s.energy_wh ?? s.energy_kwh ?? s.energyWh ?? s.power ?? s.potencia, 'Wh');
-  push('alarms', alarmCount(s.alarms ?? s.alarmas));
-
-  const sensors = s.sensors ?? s.sensores;
-  if (Array.isArray(sensors)) {
-    for (const sensorRaw of sensors) {
-      const x = obj(sensorRaw);
-      const type = String(x.type ?? x.tipo ?? x.kind ?? '').toLowerCase();
-      const val = x.value ?? x.valor ?? x.reading ?? x.measurement;
-      const unit = typeof x.unit === 'string' ? x.unit : typeof x.unidad === 'string' ? x.unidad : undefined;
-      if (type.includes('temp') || type.includes('temperatura')) {
-        if (type.includes('ext') || type.includes('out') || type.includes('exter')) push('temperature_ext', val, unit ?? '°C');
-        else if (type.includes('int') || type.includes('in') || type.includes('inter')) push('temperature_int', val, unit ?? '°C');
-        else push('temperature', val, unit ?? '°C');
-      } else if (type.includes('hum') || type.includes('humedad')) {
-        push('humidity', val, unit ?? '%');
-      }
-    }
-  }
-  return out;
-}
 
 type Rep = { code: (n: number) => Rep; send: (p: unknown) => unknown };
 type Req = { params?: Record<string, string>; body?: Record<string, unknown> };
@@ -140,7 +89,7 @@ export default definePlugin(manifest, {
       const device = await getDevice(request, id);
       if (!device) return (reply as Rep).code(404).send({ error: 'Dispositivo no encontrado' });
       try {
-        const status = await clientOf(device).fetchJson('/status');
+        const status = await clientOf(device).fetchJson(`${deviceApiPrefix(device.baseUrl)}/status`);
         return { device: stripToken(device), status };
       } catch (err) {
         return (reply as Rep).code(502).send({ error: err instanceof Error ? err.message : 'Error de conexión con el dispositivo' });
@@ -165,7 +114,7 @@ export default definePlugin(manifest, {
           deviceId: d.id,
           client: clientOf(d),
           store,
-          measurementsPath: '/status',
+          measurementsPath: `${deviceApiPrefix(d.baseUrl)}/sensors`,
           intervalMs: d.pollIntervalMs,
           parse: mapSemaToMeasurements,
           onError: (err) => console.warn(`[sema] poll ${d.id}: ${err instanceof Error ? err.message : String(err)}`),

@@ -1,4 +1,4 @@
-import { createIotDeviceClient, type DeviceClient } from './client';
+import { createIotDeviceClient, deviceApiPrefix, type DeviceClient } from './client';
 import type { IoTStore } from './store';
 import type { IotAuthMode, IotDeviceKind, IotDeviceRecord, SeriesBucket, Aggregation } from './types';
 
@@ -194,7 +194,7 @@ export function registerIotDeviceRoutes(fastify: IotFastifyLike, deps: IotRouteD
     const token = device.tokenCipher ? deps.decrypt(device.tokenCipher) : undefined;
     const client: DeviceClient = createIotDeviceClient({ baseUrl: device.baseUrl, token, authMode: device.authMode });
     try {
-      await client.fetchJson('/');
+      await client.fetchJson(`${deviceApiPrefix(device.baseUrl)}/status`);
       return { ok: true };
     } catch (err) {
       return { ok: false, error: err instanceof Error ? err.message : 'Error de conexión' };

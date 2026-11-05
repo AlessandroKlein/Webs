@@ -3,6 +3,7 @@ import {
   createIotDeviceClient,
   createIotPool,
   createPrismaIotDeviceRepository,
+  deviceApiPrefix,
   IoTStore,
   registerIotDeviceRoutes,
   startCollector,
@@ -146,7 +147,7 @@ export default definePlugin(manifest, {
       const device = await getDevice(request, id);
       if (!device) return (reply as Rep).code(404).send({ error: 'Dispositivo no encontrado' });
       try {
-        const status = await clientOf(device).fetchJson('/status');
+        const status = await clientOf(device).fetchJson(`${deviceApiPrefix(device.baseUrl)}/status`);
         return { device: stripToken(device), status };
       } catch (err) {
         return (reply as Rep).code(502).send({ error: err instanceof Error ? err.message : 'Error de conexión con el dispositivo' });
@@ -165,7 +166,7 @@ export default definePlugin(manifest, {
       const device = await getDevice(request, id);
       if (!device) return (reply as Rep).code(404).send({ error: 'Dispositivo no encontrado' });
       try {
-        const result = await clientOf(device).post('/actuators', { role, ...(index !== null ? { index } : {}), output });
+        const result = await clientOf(device).post(`${deviceApiPrefix(device.baseUrl)}/actuators`, { role, ...(index !== null ? { index } : {}), output });
         return { ok: true, result };
       } catch (err) {
         return (reply as Rep).code(502).send({ error: err instanceof Error ? err.message : 'Error de conexión con el dispositivo' });
@@ -191,7 +192,7 @@ export default definePlugin(manifest, {
           deviceId: d.id,
           client,
           store,
-          measurementsPath: '/status',
+          measurementsPath: `${deviceApiPrefix(d.baseUrl)}/status`,
           intervalMs: d.pollIntervalMs,
           parse: mapStatusToMeasurements,
           onError: (err) => console.warn(`[invernadero] poll ${d.id}: ${err instanceof Error ? err.message : String(err)}`),

@@ -206,7 +206,7 @@ export class DeviceClient {
   }
 
   private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
-    const url = new URL(path.startsWith('/') ? path : `/${path}`, `${this.baseUrl}/`);
+    const url = deviceUrl(this.baseUrl, path);
     let lastErr: unknown;
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       try {
@@ -256,4 +256,23 @@ export class DeviceClient {
 
 export function createIotDeviceClient(opts: IotDeviceClientOptions): DeviceClient {
   return new DeviceClient(opts);
+}
+
+/**
+ * Prefijo `/api/v1` a anteponer a las rutas del dispositivo. Devuelve '' si el
+ * `baseUrl` ya termina en `/api/v1` (con o sin barra final); si no, `/api/v1`.
+ * Es el único lugar donde se decide este prefijo (los plugins no lo duplican).
+ */
+export function deviceApiPrefix(baseUrl: string): string {
+  const normalized = baseUrl.replace(/\/+$/, '');
+  return normalized.endsWith('/api/v1') ? '' : '/api/v1';
+}
+
+/**
+ * URL final de una ruta del dispositivo. La ruta se resuelve RELATIVA al
+ * `baseUrl` para conservar su path (un `new URL('/status', …)` lo descartaría,
+ * y con `baseUrl = http://ip/api/v1` se sondeaba `http://ip/status`).
+ */
+export function deviceUrl(baseUrl: string, path: string): URL {
+  return new URL(path.replace(/^\/+/, ''), `${baseUrl.replace(/\/+$/, '')}/`);
 }
