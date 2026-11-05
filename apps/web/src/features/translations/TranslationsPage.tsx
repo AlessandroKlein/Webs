@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -43,6 +44,7 @@ const overrideId = (locale: string, key: string) => `${locale}\u0000${key}`;
 export function TranslationsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('translation.write');
 
   const [selectedLocale, setSelectedLocale] = useState<string | null>(null);
   const [addingLocale, setAddingLocale] = useState(false);
@@ -138,17 +140,19 @@ export function TranslationsPage() {
             {l.nativeLabel} <span className="muted">({l.code})</span>
           </button>
         ))}
-        <button
-          type="button"
-          className={`nav-link ${addingLocale ? 'active' : ''}`}
-          style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
-          onClick={() => {
-            setAddingLocale(true);
-            setShowNewKey(false);
-          }}
-        >
-          + Agregar idioma
-        </button>
+        {canWrite && (
+          <button
+            type="button"
+            className={`nav-link ${addingLocale ? 'active' : ''}`}
+            style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+            onClick={() => {
+              setAddingLocale(true);
+              setShowNewKey(false);
+            }}
+          >
+            + Agregar idioma
+          </button>
+        )}
       </aside>
 
       <div className="stack" style={{ flex: 1, minWidth: 0 }}>
@@ -187,11 +191,13 @@ export function TranslationsPage() {
                   {filteredKeys.length} / {allKeys.length} claves
                 </span>
               </div>
-              <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
-                <Button variant={showNewKey ? 'secondary' : 'primary'} onClick={() => setShowNewKey((v) => !v)}>
-                  {showNewKey ? 'Cerrar formulario' : '+ Nueva clave'}
-                </Button>
-              </div>
+              {canWrite && (
+                <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
+                  <Button variant={showNewKey ? 'secondary' : 'primary'} onClick={() => setShowNewKey((v) => !v)}>
+                    {showNewKey ? 'Cerrar formulario' : '+ Nueva clave'}
+                  </Button>
+                </div>
+              )}
               {showNewKey && (
                 <div style={{ marginTop: 'var(--ws-space-4)', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-4)' }}>
                   <NewKeyForm
@@ -266,6 +272,7 @@ const LocaleRow = memo(function LocaleRow({
   const [confirmReset, setConfirmReset] = useState(false);
 
   const dirty = value !== effective;
+  const canWrite = useAuthStore((s) => s.hasPermission)('translation.write');
 
   const save = useMutation({
     mutationFn: () =>
@@ -314,7 +321,7 @@ const LocaleRow = memo(function LocaleRow({
             setSaved(false);
           }}
         />
-        {override && (
+        {override && canWrite && (
           <button
             type="button"
             className="btn ghost"
@@ -328,9 +335,11 @@ const LocaleRow = memo(function LocaleRow({
       </td>
       <td style={{ verticalAlign: 'top' }}>
         <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
-          <Button onClick={() => save.mutate()} disabled={save.isPending || !dirty}>
-            {save.isPending ? 'Guardando…' : 'Guardar'}
-          </Button>
+          {canWrite && (
+            <Button onClick={() => save.mutate()} disabled={save.isPending || !dirty}>
+              {save.isPending ? 'Guardando…' : 'Guardar'}
+            </Button>
+          )}
           {dirty && (
             <Button variant="ghost" disabled={save.isPending} onClick={() => setValue(effective)}>
               Descartar
@@ -371,6 +380,7 @@ function NewKeyForm({
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const canWrite = useAuthStore((s) => s.hasPermission)('translation.write');
 
   const trimmedKey = key.trim();
   const alreadyExists = trimmedKey !== '' && existingKeys.has(trimmedKey);
@@ -419,9 +429,11 @@ function NewKeyForm({
       </div>
       {error && <p style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</p>}
       <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
-        <Button onClick={submit} disabled={create.isPending}>
-          {create.isPending ? 'Guardando…' : alreadyExists ? 'Actualizar clave' : 'Agregar clave'}
-        </Button>
+        {canWrite && (
+          <Button onClick={submit} disabled={create.isPending}>
+            {create.isPending ? 'Guardando…' : alreadyExists ? 'Actualizar clave' : 'Agregar clave'}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -438,6 +450,7 @@ function AddLocaleForm({
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const canWrite = useAuthStore((s) => s.hasPermission)('translation.write');
 
   const create = useMutation({
     mutationFn: () =>
@@ -485,9 +498,11 @@ function AddLocaleForm({
       </div>
       {error && <p style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</p>}
       <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
-        <Button onClick={submit} disabled={create.isPending}>
-          {create.isPending ? 'Creando…' : 'Crear idioma'}
-        </Button>
+        {canWrite && (
+          <Button onClick={submit} disabled={create.isPending}>
+            {create.isPending ? 'Creando…' : 'Crear idioma'}
+          </Button>
+        )}
       </div>
     </Card>
   );

@@ -5,6 +5,7 @@ import type { PluginManifest } from '@webs/plugin-sdk';
 import { useTranslation } from 'react-i18next';
 import i18next from '../../lib/i18n';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { useLicense } from '../../lib/use-license';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -120,6 +121,7 @@ export function PluginsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const { hasFeature } = useLicense();
+  const canWrite = useAuthStore((s) => s.hasPermission)('plugin.manage');
 
   const { data, isLoading } = useQuery({
     queryKey: ['plugins'],
@@ -230,6 +232,7 @@ export function PluginsPage() {
               key={b.id}
               plugin={b}
               latestVersion={updateMap.get(b.pluginId)}
+              canWrite={canWrite}
               onToggle={toggle.mutate}
               onUninstall={uninstall.mutate}
               onUpdate={update.mutate}
@@ -284,11 +287,11 @@ export function PluginsPage() {
                           <Button disabled title={t('plugins.upsellTitle')}>
                             <i className="bi bi-gem" aria-hidden="true" /> {t('plugins.premium')}
                           </Button>
-                        ) : (
+                        ) : canWrite ? (
                           <Button onClick={() => install.mutate({ id: b.id })} disabled={install.isPending}>
                             {t('common.install')}
                           </Button>
-                        )}
+                        ) : null}
                       </div>
                     );
                   })}
@@ -304,7 +307,7 @@ export function PluginsPage() {
         <h3>{t('plugins.importJsonTitle')}</h3>
         <p className="muted">{t('plugins.importJsonHint')}</p>
         <textarea className="input" rows={3} value={jsonInput} onChange={(e) => setJsonInput(e.target.value)} placeholder={'[{"id":"mi-plugin","url":"https://github.com/usuario/repo.git","source":"git"}]'} />
-        <Button variant="secondary" onClick={importJson}>{t('plugins.importAction')}</Button>
+        {canWrite && <Button variant="secondary" onClick={importJson}>{t('plugins.importAction')}</Button>}
         {importError && <p style={{ color: 'var(--ws-danger)' }}>{importError}</p>}
       </Card>
       )}
@@ -333,7 +336,7 @@ export function PluginsPage() {
             </div>
           ))}
           <div className="row">
-            <Button onClick={() => install.mutate({ id: pending.id, providers: chosen })}>{t('common.confirm')}</Button>
+            {canWrite && <Button onClick={() => install.mutate({ id: pending.id, providers: chosen })}>{t('common.confirm')}</Button>}
             <Button variant="ghost" onClick={() => { setPending(null); setChosen({}); }}>{t('common.cancel')}</Button>
           </div>
         </Card>
@@ -346,12 +349,14 @@ export function PluginsPage() {
 function InstalledPluginRow({
   plugin,
   latestVersion,
+  canWrite,
   onToggle,
   onUninstall,
   onUpdate,
 }: {
   plugin: InstalledPlugin;
   latestVersion?: string;
+  canWrite: boolean;
   onToggle: (arg: { id: string; enabled: boolean }) => void;
   onUninstall: (id: string) => void;
   onUpdate: (id: string) => void;
@@ -379,17 +384,21 @@ function InstalledPluginRow({
               {t('plugins.configure')}
             </Link>
           )}
-          {latestVersion && (
+          {canWrite && latestVersion && (
             <Button variant="secondary" onClick={() => onUpdate(plugin.pluginId)}>
               {t('plugins.update')}
             </Button>
           )}
-          <Button variant="secondary" onClick={() => onToggle({ id: plugin.pluginId, enabled: !plugin.enabled })}>
-            {plugin.enabled ? t('plugins.deactivate') : t('plugins.activate')}
-          </Button>
-          <Button variant="ghost" onClick={() => onUninstall(plugin.pluginId)}>
-            {t('common.delete')}
-          </Button>
+          {canWrite && (
+            <Button variant="secondary" onClick={() => onToggle({ id: plugin.pluginId, enabled: !plugin.enabled })}>
+              {plugin.enabled ? t('plugins.deactivate') : t('plugins.activate')}
+            </Button>
+          )}
+          {canWrite && (
+            <Button variant="ghost" onClick={() => onUninstall(plugin.pluginId)}>
+              {t('common.delete')}
+            </Button>
+          )}
         </div>
       </div>
     </div>

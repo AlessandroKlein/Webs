@@ -52,6 +52,7 @@ export function ApiTokensPage() {
   const [copied, setCopied] = useState(false);
   const myPermissions = useAuthStore((s) => s.permissions);
   const isAdmin = myPermissions.includes('apiToken.read');
+  const canWrite = useAuthStore((s) => s.hasPermission)('apiToken.write');
 
   const { data: allTokens } = useQuery({
     queryKey: ['admin-api-tokens'],
@@ -159,9 +160,11 @@ export function ApiTokensPage() {
 
           <TextField label="Límite de peticiones/minuto (opcional)" type="number" value={rateLimit} onChange={(e) => setRateLimit(e.target.value)} placeholder="Sin límite" />
 
-          <Button onClick={() => create.mutate()} disabled={create.isPending || !name}>
-            Crear token
-          </Button>
+          {canWrite && (
+            <Button onClick={() => create.mutate()} disabled={create.isPending || !name}>
+              Crear token
+            </Button>
+          )}
         </Card>
 
         <Card>
@@ -179,9 +182,11 @@ export function ApiTokensPage() {
                     <span className="muted"> · {t.requestCount} peticiones</span>
                   </div>
                 </div>
-                <Button variant="ghost" onClick={() => revoke.mutate(t.id)}>
-                  Revocar
-                </Button>
+                {canWrite && (
+                  <Button variant="ghost" onClick={() => revoke.mutate(t.id)}>
+                    Revocar
+                  </Button>
+                )}
               </div>
             ))}
             {(data ?? []).length === 0 && <p className="muted">No hay tokens.</p>}
@@ -204,9 +209,11 @@ export function ApiTokensPage() {
                     {t.lastUsedAt && <span className="muted"> · usado {new Date(t.lastUsedAt).toLocaleString()}</span>}
                   </div>
                 </div>
-                <Button variant="ghost" onClick={() => revokeAny.mutate(t.id)}>
-                  Revocar
-                </Button>
+                {canWrite && (
+                  <Button variant="ghost" onClick={() => revokeAny.mutate(t.id)}>
+                    Revocar
+                  </Button>
+                )}
               </div>
             ))}
             {(allTokens ?? []).length === 0 && <p className="muted">No hay tokens de otros usuarios.</p>}

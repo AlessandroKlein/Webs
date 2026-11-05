@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, downloadFile } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -51,6 +52,7 @@ export function EmailPage() {
   const { t } = useTranslation();
   const [view, setView] = useState<View>('templates');
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const canWrite = useAuthStore((s) => s.hasPermission)('email.write');
   const { data: variables } = useQuery({
     queryKey: ['email-variables'],
     queryFn: () => api.get<Array<{ key: string; description: string }>>('/api/v1/email/variables'),
@@ -76,7 +78,7 @@ export function EmailPage() {
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
         <PageHeader title={t('nav.email')} />
         <button className={`nav-link ${view === 'templates' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('templates')}>Plantillas</button>
-        <button className={`nav-link ${view === 'new-template' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={openNewTemplate}>Nueva plantilla</button>
+        {canWrite && <button className={`nav-link ${view === 'new-template' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={openNewTemplate}>Nueva plantilla</button>}
         <button className={`nav-link ${view === 'campaigns' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('campaigns')}>Campañas</button>
         <button className={`nav-link ${view === 'automations' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('automations')}>Automatizaciones</button>
       </aside>
@@ -119,6 +121,7 @@ function TemplatesListPanel({
   onNew: () => void;
 }) {
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('email.write');
   const { data, isLoading } = useQuery({
     queryKey: ['email-templates'],
     queryFn: () => api.get<EmailTemplate[]>('/api/v1/email/templates'),
@@ -135,7 +138,7 @@ function TemplatesListPanel({
     <Card>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <h3>Plantillas</h3>
-        <Button onClick={onNew}>Nueva plantilla</Button>
+        {canWrite && <Button onClick={onNew}>Nueva plantilla</Button>}
       </div>
       <div className="stack">
         {(data ?? []).map((t) => (
@@ -145,12 +148,16 @@ function TemplatesListPanel({
               <span className="muted"> · {t.bodyMode}</span>
             </div>
             <div className="row">
-              <Button variant="secondary" onClick={() => onEdit(t)}>
-                Editar
-              </Button>
-              <Button variant="ghost" onClick={() => remove.mutate(t.id)}>
-                Eliminar
-              </Button>
+              {canWrite && (
+                <Button variant="secondary" onClick={() => onEdit(t)}>
+                  Editar
+                </Button>
+              )}
+              {canWrite && (
+                <Button variant="ghost" onClick={() => remove.mutate(t.id)}>
+                  Eliminar
+                </Button>
+              )}
             </div>
           </div>
         ))}
@@ -168,6 +175,7 @@ function TemplateEditorPanel({
   onDone: () => void;
 }) {
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('email.write');
   const [name, setName] = useState(template?.name ?? '');
   const [key, setKey] = useState(template?.key ?? '');
   const [subject, setSubject] = useState(template?.subject ?? '');
@@ -214,9 +222,11 @@ function TemplateEditorPanel({
       )}
 
       <div className="row" style={{ marginTop: 'var(--ws-space-3)' }}>
-        <Button onClick={() => save.mutate()} disabled={save.isPending}>
-          {template ? 'Guardar' : 'Crear'}
-        </Button>
+        {canWrite && (
+          <Button onClick={() => save.mutate()} disabled={save.isPending}>
+            {template ? 'Guardar' : 'Crear'}
+          </Button>
+        )}
         <Button variant="ghost" onClick={onDone}>
           Cancelar
         </Button>
@@ -231,6 +241,8 @@ function TemplateEditorPanel({
 
 function CampaignsPanel() {
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('email.write');
+  const canSend = useAuthStore((s) => s.hasPermission)('email.send');
   const { data, isLoading } = useQuery({
     queryKey: ['email-campaigns'],
     queryFn: () => api.get<EmailCampaign[]>('/api/v1/email/campaigns'),
@@ -329,9 +341,11 @@ function CampaignsPanel() {
           </div>
         )}
 
-        <Button onClick={() => create.mutate()} disabled={create.isPending}>
-          Crear campaña
-        </Button>
+        {canWrite && (
+          <Button onClick={() => create.mutate()} disabled={create.isPending}>
+            Crear campaña
+          </Button>
+        )}
       </Card>
 
       <Card>
@@ -341,6 +355,8 @@ function CampaignsPanel() {
             <CampaignRow
               key={c.id}
               campaign={c}
+              canWrite={canWrite}
+              canSend={canSend}
               onSend={send.mutate}
               onSchedule={schedule.mutate}
               onCancel={cancel.mutate}
@@ -356,12 +372,16 @@ function CampaignsPanel() {
 
 function CampaignRow({
   campaign,
+  canWrite,
+  canSend,
   onSend,
   onSchedule,
   onCancel,
   onRemove,
 }: {
   campaign: EmailCampaign;
+  canWrite: boolean;
+  canSend: boolean;
   onSend: (id: string) => void;
   onSchedule: (arg: { id: string; scheduledAt: string }) => void;
   onCancel: (id: string) => void;
@@ -389,13 +409,17 @@ function CampaignRow({
         </div>
         <div className="row">
           {scheduled ? (
-            <Button variant="secondary" onClick={() => onCancel(campaign.id)}>
-              Cancelar
-            </Button>
+            canSend && (
+              <Button variant="secondary" onClick={() => onCancel(campaign.id)}>
+                Cancelar
+              </Button>
+            )
           ) : (
-            <Button variant="secondary" onClick={() => onSend(campaign.id)} disabled={!campaign.templateId}>
-              Enviar ahora
-            </Button>
+            canSend && (
+              <Button variant="secondary" onClick={() => onSend(campaign.id)} disabled={!campaign.templateId}>
+                Enviar ahora
+              </Button>
+            )
           )}
           <Button variant="ghost" onClick={() => setShowReport((v) => !v)}>
             Reporte
@@ -409,9 +433,11 @@ function CampaignRow({
           <Button variant="ghost" onClick={() => void downloadFile(`/api/v1/email/campaigns/${campaign.id}/export?format=xlsx`, `campaign-${campaign.id}.xlsx`)}>
             XLSX
           </Button>
-          <Button variant="ghost" onClick={() => onRemove(campaign.id)}>
-            Eliminar
-          </Button>
+          {canWrite && (
+            <Button variant="ghost" onClick={() => onRemove(campaign.id)}>
+              Eliminar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -424,13 +450,15 @@ function CampaignRow({
             onChange={(e) => setWhen(e.target.value)}
             style={{ width: 'auto' }}
           />
-          <Button
-            variant="ghost"
-            onClick={() => when && onSchedule({ id: campaign.id, scheduledAt: new Date(when).toISOString() })}
-            disabled={!when}
-          >
-            Programar
-          </Button>
+          {canSend && (
+            <Button
+              variant="ghost"
+              onClick={() => when && onSchedule({ id: campaign.id, scheduledAt: new Date(when).toISOString() })}
+              disabled={!when}
+            >
+              Programar
+            </Button>
+          )}
         </div>
       )}
 
@@ -519,6 +547,7 @@ function Bar({ value }: { value: number }) {
 
 function AutomationsPanel() {
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('email.write');
   const { data, isLoading } = useQuery({
     queryKey: ['email-automations'],
     queryFn: () => api.get<EmailAutomation[]>('/api/v1/email/automations'),
@@ -587,9 +616,11 @@ function AutomationsPanel() {
           </select>
         </div>
 
-        <Button onClick={() => create.mutate()} disabled={create.isPending || !event || !templateId}>
-          Crear automatización
-        </Button>
+        {canWrite && (
+          <Button onClick={() => create.mutate()} disabled={create.isPending || !event || !templateId}>
+            Crear automatización
+          </Button>
+        )}
       </Card>
 
       <Card>
@@ -606,12 +637,16 @@ function AutomationsPanel() {
                 </div>
               </div>
               <div className="row">
-                <Button variant="secondary" onClick={() => toggle.mutate(a)}>
-                  {a.enabled ? 'Deshabilitar' : 'Habilitar'}
-                </Button>
-                <Button variant="ghost" onClick={() => remove.mutate(a.id)}>
-                  Eliminar
-                </Button>
+                {canWrite && (
+                  <Button variant="secondary" onClick={() => toggle.mutate(a)}>
+                    {a.enabled ? 'Deshabilitar' : 'Habilitar'}
+                  </Button>
+                )}
+                {canWrite && (
+                  <Button variant="ghost" onClick={() => remove.mutate(a.id)}>
+                    Eliminar
+                  </Button>
+                )}
               </div>
             </div>
           ))}

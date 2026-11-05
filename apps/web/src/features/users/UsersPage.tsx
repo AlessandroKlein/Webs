@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
+import { useAuthStore } from '../../lib/auth-store';
 import type { Page } from '@webs/core';
 
 interface UserRow {
@@ -39,6 +40,7 @@ function toggle(list: string[], value: string): string[] {
 export function UsersPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('user.write');
 
   const [view, setView] = useState<'list' | 'create' | 'invite'>('list');
   const [search, setSearch] = useState('');
@@ -144,8 +146,12 @@ export function UsersPage() {
           onChange={(v) => setView(v as 'list' | 'create' | 'invite')}
           options={[
             { value: 'list', label: t('users.list') },
-            { value: 'create', label: t('users.create') },
-            { value: 'invite', label: t('users.invite') },
+            ...(canWrite
+              ? [
+                  { value: 'create', label: t('users.create') },
+                  { value: 'invite', label: t('users.invite') },
+                ]
+              : []),
           ]}
         />
       </PageHeader>
@@ -173,17 +179,19 @@ export function UsersPage() {
                       <td>{u.roles.join(', ')}</td>
                       <td>{u.active ? t('common.enabled') : t('common.disabled')}</td>
                       <td>
-                        <div className="row">
-                          <Button variant="secondary" onClick={() => startEdit(u)}>
-                            {t('common.edit')}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            onClick={() => setConfirmDelete(u)}
-                          >
-                            {t('common.delete')}
-                          </Button>
-                        </div>
+                        {canWrite && (
+                          <div className="row">
+                            <Button variant="secondary" onClick={() => startEdit(u)}>
+                              {t('common.edit')}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              onClick={() => setConfirmDelete(u)}
+                            >
+                              {t('common.delete')}
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

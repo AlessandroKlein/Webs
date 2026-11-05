@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { useLicense } from '../../lib/use-license';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
@@ -58,6 +59,7 @@ export function GeneratedPage() {
   const { hasFeature } = useLicense();
   const licensed = hasFeature('generator');
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('generated.manage');
 
   const { data: resources, isLoading } = useQuery({
     queryKey: ['generated-resources'],
@@ -96,9 +98,11 @@ export function GeneratedPage() {
             {t('generated.subtitle')}
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} disabled={!licensed}>
-          <i className="bi bi-plus-lg" aria-hidden="true" /> {t('generated.create')}
-        </Button>
+        {canWrite && (
+          <Button onClick={() => setCreateOpen(true)} disabled={!licensed}>
+            <i className="bi bi-plus-lg" aria-hidden="true" /> {t('generated.create')}
+          </Button>
+        )}
       </div>
 
       {!licensed && (
@@ -149,9 +153,11 @@ export function GeneratedPage() {
               <Button variant="secondary" onClick={() => setResult(resource)}>
                 <i className="bi bi-code-slash" aria-hidden="true" /> {t('generated.sdk')}
               </Button>
-              <Button variant="ghost" onClick={() => setDeleting(resource)}>
-                <i className="bi bi-trash" aria-hidden="true" /> {t('common.delete')}
-              </Button>
+              {canWrite && (
+                <Button variant="ghost" onClick={() => setDeleting(resource)}>
+                  <i className="bi bi-trash" aria-hidden="true" /> {t('common.delete')}
+                </Button>
+              )}
             </div>
           </div>
         ))}

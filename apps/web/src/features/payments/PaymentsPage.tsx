@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { useTenantStore } from '../../lib/tenant-store';
 import { ScopeBadge } from '../../components/tenant/ScopeSwitcher';
 import { Button } from '../../components/ui/Button';
@@ -60,6 +61,7 @@ const STATUS_LABEL: Record<string, string> = {
 export function PaymentsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('user.read');
   const [status, setStatus] = useState('');
   const [provider, setProvider] = useState('');
   const toggleStatus = (next: string) => setStatus((cur) => (cur === next ? '' : next));
@@ -141,14 +143,16 @@ export function PaymentsPage() {
             <option value="refunded">Reembolsado</option>
           </select>
           <input className="input" placeholder="Proveedor (ej. mercadopago)" value={provider} onChange={(e) => setProvider(e.target.value)} />
-          <Button
-            variant="ghost"
-            onClick={() => cancelPending.mutate()}
-            disabled={cancelPending.isPending || !summary?.pending}
-            style={{ color: 'var(--ws-danger)', marginLeft: 'auto' }}
-          >
-            <i className="bi bi-trash" /> Eliminar pendientes
-          </Button>
+          {canWrite && (
+            <Button
+              variant="ghost"
+              onClick={() => cancelPending.mutate()}
+              disabled={cancelPending.isPending || !summary?.pending}
+              style={{ color: 'var(--ws-danger)', marginLeft: 'auto' }}
+            >
+              <i className="bi bi-trash" /> Eliminar pendientes
+            </Button>
+          )}
         </div>
 
         <table className="table table-striped table-hover" style={{ marginTop: 'var(--ws-space-3)' }}>
@@ -172,10 +176,10 @@ export function PaymentsPage() {
                 <td><span className="badge">{STATUS_LABEL[p.status] ?? p.status}</span></td>
                 <td>
                   <div className="row" style={{ gap: 'var(--ws-space-1)' }}>
-                    {p.status === 'approved' && (
+                    {p.status === 'approved' && canWrite && (
                       <Button variant="ghost" onClick={() => refund.mutate(p.id)}>Reembolsar</Button>
                     )}
-                    {p.status === 'pending' && (
+                    {p.status === 'pending' && canWrite && (
                       <>
                         <Button variant="ghost" onClick={() => markPaid.mutate(p.id)}>Marcar pagado</Button>
                         <Button
@@ -235,6 +239,7 @@ function SummaryCard({
 
 function CostsPanel() {
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('user.read');
   const [period, setPeriod] = useState<'month' | 'year'>('month');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -309,9 +314,11 @@ function CostsPanel() {
         <input className="input" style={{ flex: 1 }} placeholder="Descripción del gasto" value={description} onChange={(e) => setDescription(e.target.value)} />
         <input className="input" type="number" placeholder="Monto ($)" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: 140 }} />
         <input className="input" placeholder="Categoría" value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: 140 }} />
-        <Button onClick={() => add.mutate()} disabled={!description || !amount}>
-          Agregar gasto
-        </Button>
+        {canWrite && (
+          <Button onClick={() => add.mutate()} disabled={!description || !amount}>
+            Agregar gasto
+          </Button>
+        )}
       </div>
 
       <div className="stack" style={{ marginTop: 'var(--ws-space-3)' }}>
@@ -322,7 +329,9 @@ function CostsPanel() {
             </span>
             <div className="row">
               <span>{money(e.amount)}</span>
-              <Button variant="ghost" onClick={() => remove.mutate(e.id)}>✕</Button>
+              {canWrite && (
+                <Button variant="ghost" onClick={() => remove.mutate(e.id)}>✕</Button>
+              )}
             </div>
           </div>
         ))}

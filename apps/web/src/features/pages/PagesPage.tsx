@@ -7,6 +7,7 @@ import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { Spinner } from '../../components/ui/Spinner';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { useAuthStore } from '../../lib/auth-store';
 import {
   createElement,
   elementTypeOptions,
@@ -110,6 +111,7 @@ function ElementEditor({
 export function PagesPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('content.write');
   const { data, isLoading } = useQuery({
     queryKey: ['pages'],
     queryFn: () => api.get<Page[]>('/api/v1/pages'),
@@ -267,7 +269,7 @@ export function PagesPage() {
     <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
       <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
         <PageHeader title={t('pages.title')} />
-        <button className={`nav-link ${view === 'editor' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('editor')}>{t('pages.editor')}</button>
+        {canWrite && <button className={`nav-link ${view === 'editor' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('editor')}>{t('pages.editor')}</button>}
         <button className={`nav-link ${view === 'list' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('list')}>{t('pages.existing')}</button>
       </aside>
 
@@ -514,9 +516,11 @@ export function PagesPage() {
         <h3>{t('pages.existing')}</h3>
         <div style={{ marginBottom: 'var(--ws-space-3)' }}>
           {homePage ? (
-            <Button onClick={() => { editPage(homePage); setView('editor'); }} style={{ gap: 'var(--ws-space-1)' }}>
-              <i className="bi bi-house" /> {t('pages.editHome')}
-            </Button>
+            canWrite ? (
+              <Button onClick={() => { editPage(homePage); setView('editor'); }} style={{ gap: 'var(--ws-space-1)' }}>
+                <i className="bi bi-house" /> {t('pages.editHome')}
+              </Button>
+            ) : null
           ) : (
             <p className="muted" style={{ margin: 0 }}>{t('pages.noHome')}</p>
           )}
@@ -529,10 +533,12 @@ export function PagesPage() {
                 {p.isHome && <span className="badge" style={{ marginLeft: 6 }}>{t('pages.homeBadge')}</span>}
                 {p.redirectUrl && <span className="badge" style={{ marginLeft: 6 }}>{t('pages.redirectBadge')}</span>}
               </span>
-              <div className="row">
-                <Button variant="secondary" onClick={() => { editPage(p); setView('editor'); }}>{t('common.edit')}</Button>
-                <Button variant="ghost" onClick={() => remove.mutate(p.id)}>{t('common.delete')}</Button>
-              </div>
+              {canWrite && (
+                <div className="row">
+                  <Button variant="secondary" onClick={() => { editPage(p); setView('editor'); }}>{t('common.edit')}</Button>
+                  <Button variant="ghost" onClick={() => remove.mutate(p.id)}>{t('common.delete')}</Button>
+                </div>
+              )}
             </div>
           ))}
           {(data ?? []).length === 0 && <p className="muted">{t('pages.noPages')}</p>}

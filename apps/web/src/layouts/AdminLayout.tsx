@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { NavLink, Outlet, Link } from 'react-router-dom';
+import { NavLink, Outlet, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../lib/auth-store';
@@ -7,6 +7,7 @@ import { api } from '../lib/api';
 import { useRealtime } from '../lib/realtime';
 import { useTenantStore } from '../lib/tenant-store';
 import { useLicense } from '../lib/use-license';
+import { useDocumentTitle } from '../lib/use-document-title';
 import { ScopeSwitcher } from '../components/tenant/ScopeSwitcher';
 
 /** Item de menú devuelto por `GET /menu` (núcleo + plugins). Los items de plugin llevan `id`. */
@@ -189,6 +190,7 @@ export function AdminLayout() {
   const logout = useAuthStore((s) => s.logout);
   const hasPermission = useAuthStore((s) => s.hasPermission);
   const { hasFeature } = useLicense();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState<boolean>(() => readLS<boolean>(LS_COLLAPSED, false));
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -359,6 +361,20 @@ export function AdminLayout() {
 
   const q = searchQuery.trim().toLowerCase();
   const searchResults = q ? visibleItems.filter((i) => i.label.toLowerCase().includes(q)) : [];
+
+  // Ítem de menú activo (match exacto o por prefijo, el más profundo gana) para
+  // el breadcrumb y el título de documento.
+  const activeItem = (() => {
+    const pathname = location.pathname;
+    return visibleItems
+      .filter((i) => (i.to === '/admin' ? pathname === '/admin' : pathname === i.to || pathname.startsWith(i.to + '/')))
+      .sort((a, b) => b.to.length - a.to.length)[0];
+  })();
+  const activeParent = activeItem?.parent ? visibleItems.find((i) => i.to === activeItem.parent) : undefined;
+  const crumbs: string[] = activeItem
+    ? [sectionLabels[activeItem.section], ...(activeParent ? [activeParent.label] : []), activeItem.label]
+    : [];
+  useDocumentTitle(activeItem?.label);
 
   const toggleCollapsed = () => {
     setCollapsed((c) => {
@@ -610,6 +626,20 @@ export function AdminLayout() {
         </header>
 
         <main className="content">
+          {crumbs.length > 0 && (
+            <nav className="breadcrumb" aria-label={t('nav.breadcrumb')}>
+              {crumbs.map((c, i) => (
+                <span key={`${c}-${i}`}>
+                  {i > 0 && (
+                    <span className="sep" aria-hidden="true">
+                      ›
+                    </span>
+                  )}
+                  <span aria-current={i === crumbs.length - 1 ? 'page' : undefined}>{c}</span>
+                </span>
+              ))}
+            </nav>
+          )}
           <Outlet />
         </main>
 

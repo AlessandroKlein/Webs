@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -142,6 +143,7 @@ export function OrganizationsPage() {
 function OrganizationsView({ organizations }: { organizations: Organization[] }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('organization.manage');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Organization | null>(null);
   const [name, setName] = useState('');
@@ -222,7 +224,7 @@ function OrganizationsView({ organizations }: { organizations: Organization[] })
       <Card>
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <h3 style={{ margin: 0 }}>{t('admin.organizations.organizations')}</h3>
-          <Button onClick={startCreate}>{t('admin.organizations.newOrganization')}</Button>
+          {canWrite && <Button onClick={startCreate}>{t('admin.organizations.newOrganization')}</Button>}
         </div>
 
         {formOpen && (
@@ -275,8 +277,8 @@ function OrganizationsView({ organizations }: { organizations: Organization[] })
                 <td>{o.memberCount}</td>
                 <td>
                   <div className="row">
-                    <Button variant="secondary" onClick={() => startEdit(o)}>{t('common.edit')}</Button>
-                    <Button variant="ghost" onClick={() => setConfirmDelete(o)}>{t('common.delete')}</Button>
+                    {canWrite && <Button variant="secondary" onClick={() => startEdit(o)}>{t('common.edit')}</Button>}
+                    {canWrite && <Button variant="ghost" onClick={() => setConfirmDelete(o)}>{t('common.delete')}</Button>}
                   </div>
                 </td>
               </tr>
@@ -305,6 +307,7 @@ function OrganizationsView({ organizations }: { organizations: Organization[] })
 function PlansView({ plans }: { plans: Plan[] }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('membership.manage');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Plan | null>(null);
   const [name, setName] = useState('');
@@ -381,7 +384,7 @@ function PlansView({ plans }: { plans: Plan[] }) {
       <Card>
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <h3 style={{ margin: 0 }}>{t('admin.organizations.plans')}</h3>
-          <Button onClick={startCreate}>{t('admin.organizations.newPlan')}</Button>
+          {canWrite && <Button onClick={startCreate}>{t('admin.organizations.newPlan')}</Button>}
         </div>
 
         {formOpen && (
@@ -427,8 +430,8 @@ function PlansView({ plans }: { plans: Plan[] }) {
                 <td>{p.active ? t('common.yes') : t('common.no')}</td>
                 <td>
                   <div className="row">
-                    <Button variant="secondary" onClick={() => startEdit(p)}>{t('common.edit')}</Button>
-                    <Button variant="ghost" onClick={() => setConfirmDelete(p)}>{t('common.delete')}</Button>
+                    {canWrite && <Button variant="secondary" onClick={() => startEdit(p)}>{t('common.edit')}</Button>}
+                    {canWrite && <Button variant="ghost" onClick={() => setConfirmDelete(p)}>{t('common.delete')}</Button>}
                   </div>
                 </td>
               </tr>
@@ -467,6 +470,7 @@ function MembershipsView({
 }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('membership.manage');
   const [filterOrg, setFilterOrg] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [organizationId, setOrganizationId] = useState('');
@@ -522,7 +526,7 @@ function MembershipsView({
       <Card>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <h3 style={{ margin: 0 }}>{t('admin.organizations.memberships')}</h3>
-          <Button onClick={() => setFormOpen((v) => !v)}>{t('admin.organizations.createMembership')}</Button>
+          {canWrite && <Button onClick={() => setFormOpen((v) => !v)}>{t('admin.organizations.createMembership')}</Button>}
         </div>
 
         <div className="row" style={{ alignItems: 'flex-end', marginTop: 'var(--ws-space-3)' }}>
@@ -609,8 +613,8 @@ function MembershipsView({
                   <td>
                     <div className="row">
                       <Button variant="secondary" onClick={() => setQrMembership(m)}>QR</Button>
-                      <Button variant="secondary" onClick={() => renew.mutate(m.id)} disabled={renew.isPending}>{t('admin.organizations.renew')}</Button>
-                      <Button variant="ghost" onClick={() => setConfirmDelete(m)}>{t('common.delete')}</Button>
+                      {canWrite && <Button variant="secondary" onClick={() => renew.mutate(m.id)} disabled={renew.isPending}>{t('admin.organizations.renew')}</Button>}
+                      {canWrite && <Button variant="ghost" onClick={() => setConfirmDelete(m)}>{t('common.delete')}</Button>}
                     </div>
                   </td>
                 </tr>
@@ -669,6 +673,7 @@ function AttendanceView({
 }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canScan = useAuthStore((s) => s.hasPermission)('attendance.manage');
   const [qrcode, setQrcode] = useState('');
   const [result, setResult] = useState<ScanResult | null>(null);
 
@@ -702,7 +707,7 @@ function AttendanceView({
         <h3>{t('admin.organizations.registerAttendance')}</h3>
         <form className="row" onSubmit={onSubmit} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
           <TextField label={t('admin.organizations.qrCode')} value={qrcode} onChange={(e) => setQrcode(e.target.value)} placeholder="UUID del QR" style={{ flex: 1, minWidth: 240 }} />
-          <Button type="submit" disabled={scan.isPending}>{t('admin.organizations.register')}</Button>
+          {canScan && <Button type="submit" disabled={scan.isPending}>{t('admin.organizations.register')}</Button>}
         </form>
         {result?.ok && <p style={{ color: 'var(--ws-success)' }}>✓ {orgName} - {userName}</p>}
         {result && !result.ok && <p style={{ color: 'var(--ws-danger)' }}>{result.error ?? t('admin.organizations.registerFailed')}</p>}

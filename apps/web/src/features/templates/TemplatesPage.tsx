@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
@@ -35,6 +36,7 @@ function templateMatches(tpl: Template, q: string): boolean {
 export function TemplatesPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('setting.write');
   const [applied, setApplied] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -104,9 +106,11 @@ export function TemplatesPage() {
               </div>
             )}
             <div style={{ marginTop: 'auto', paddingTop: 'var(--ws-space-3)' }}>
-              <Button onClick={() => apply.mutate(tpl.id)} disabled={apply.isPending}>
-                {applied === tpl.id ? 'Aplicada ✓' : 'Aplicar plantilla'}
-              </Button>
+              {canWrite && (
+                <Button onClick={() => apply.mutate(tpl.id)} disabled={apply.isPending}>
+                  {applied === tpl.id ? 'Aplicada ✓' : 'Aplicar plantilla'}
+                </Button>
+              )}
             </div>
           </Card>
         ))}

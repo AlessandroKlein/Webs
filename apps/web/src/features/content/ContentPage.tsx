@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { RichTextEditor } from '../../components/ui/RichTextEditor';
 import { Alert } from '../../components/ui/Alert';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { useAuthStore } from '../../lib/auth-store';
 import type { Page } from '@webs/core';
 
 type ContentStatus = 'draft' | 'published' | 'scheduled';
@@ -58,6 +59,7 @@ const STATUS_LABELS: Record<ContentStatus, string> = {
 export function ContentPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('content.write');
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -233,7 +235,7 @@ export function ContentPage() {
               Filtrar
             </Button>
           </div>
-          <Button onClick={() => { resetForm(); setView('editor'); }}>Nuevo</Button>
+          {canWrite && <Button onClick={() => { resetForm(); setView('editor'); }}>Nuevo</Button>}
         </div>
 
         <table className="table">
@@ -262,12 +264,16 @@ export function ContentPage() {
                     <Button variant="ghost" onClick={() => setPreview(c)}>
                       Ver
                     </Button>
-                    <Button variant="secondary" onClick={() => { startEdit(c); setView('editor'); }}>
-                      Editar
-                    </Button>
-                    <Button variant="ghost" onClick={() => setConfirmDelete(c)}>
-                      Eliminar
-                    </Button>
+                    {canWrite && (
+                      <>
+                        <Button variant="secondary" onClick={() => { startEdit(c); setView('editor'); }}>
+                          Editar
+                        </Button>
+                        <Button variant="ghost" onClick={() => setConfirmDelete(c)}>
+                          Eliminar
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

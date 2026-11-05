@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -65,6 +66,7 @@ const FEATURES: { key: string; labelKey: string }[] = [
 export function MenuEditorPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('setting.write');
   const [coreItems, setCoreItems] = useState<AdminMenuItem[]>([]);
   const [saved, setSaved] = useState(false);
 
@@ -136,9 +138,11 @@ export function MenuEditorPage() {
         <div className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'center' }}>
           {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>{t('common.saved')}</span>}
           {save.error && <span style={{ color: 'var(--ws-danger)' }}>{save.error.message}</span>}
-          <Button onClick={() => save.mutate(coreItems)} disabled={save.isPending}>
-            {save.isPending ? t('common.saving') : t('common.save')}
-          </Button>
+          {canWrite && (
+            <Button onClick={() => save.mutate(coreItems)} disabled={save.isPending}>
+              {save.isPending ? t('common.saving') : t('common.save')}
+            </Button>
+          )}
         </div>
       </div>
 

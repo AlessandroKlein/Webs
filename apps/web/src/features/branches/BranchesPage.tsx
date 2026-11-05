@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { useTenantStore, type ChainOrg } from '../../lib/tenant-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -58,6 +59,8 @@ export function BranchesPage() {
   const branches = useTenantStore((s) => s.branches);
   const loaded = useTenantStore((s) => s.loaded);
   const reload = useTenantStore((s) => s.load);
+  const canManage = useAuthStore((s) => s.hasPermission)('organization.manage');
+  const canAssignAdmin = useAuthStore((s) => s.hasPermission)('membership.manage');
 
   // ---- Crear sucursal ----
   const [name, setName] = useState('');
@@ -176,6 +179,7 @@ export function BranchesPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Columna izquierda: crear + límites */}
         <div className="flex flex-col gap-6">
+        {canManage && (
           <Card>
             <Card.Header>
               <Card.Title>{t('branches.createTitle')}</Card.Title>
@@ -216,6 +220,7 @@ export function BranchesPage() {
               </form>
             </Card.Content>
           </Card>
+        )}
 
           <Card>
             <Card.Header>
@@ -264,33 +269,39 @@ export function BranchesPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setEditing(branch);
-                            setEditName(branch.name);
-                            setEditSlug(branch.slug ?? '');
-                            setEditActive(branch.active);
-                            setEditShareInventory(branch.shareInventory);
-                          }}
-                        >
-                          {t('common.edit')}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => {
-                            setAssigning(branch);
-                            setSelectedUserId('');
-                            setUserQuery('');
-                          }}
-                        >
-                          {t('branches.assignAdmin')}
-                        </Button>
-                        <Button variant="destructive" size="sm" onClick={() => setDeleting(branch)}>
-                          {t('common.delete')}
-                        </Button>
+                        {canManage && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setEditing(branch);
+                              setEditName(branch.name);
+                              setEditSlug(branch.slug ?? '');
+                              setEditActive(branch.active);
+                              setEditShareInventory(branch.shareInventory);
+                            }}
+                          >
+                            {t('common.edit')}
+                          </Button>
+                        )}
+                        {canAssignAdmin && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setAssigning(branch);
+                              setSelectedUserId('');
+                              setUserQuery('');
+                            }}
+                          >
+                            {t('branches.assignAdmin')}
+                          </Button>
+                        )}
+                        {canManage && (
+                          <Button variant="destructive" size="sm" onClick={() => setDeleting(branch)}>
+                            {t('common.delete')}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}

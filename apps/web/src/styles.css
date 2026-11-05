@@ -225,6 +225,23 @@ textarea.input {
   padding: var(--ws-space-6);
   flex: 1;
 }
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ws-space-1);
+  font-size: var(--ws-font-size-sm);
+  color: var(--ws-muted);
+  margin-bottom: var(--ws-space-3);
+}
+.breadcrumb .sep {
+  opacity: 0.6;
+  margin: 0 var(--ws-space-1);
+}
+.breadcrumb [aria-current='page'] {
+  color: var(--ws-text);
+  font-weight: 500;
+}
 .main-col {
   display: flex;
   flex-direction: column;

@@ -42,6 +42,7 @@ export const pt: Record<string, string> = {
   'nav.openMenu': 'Abrir menu',
   'nav.toggleSubmenu': 'Alternar submenu',
   'nav.primary': 'Navegação principal',
+  'nav.breadcrumb': 'Trilha de navegação',
   'nav.content': 'Conteúdo',
   'nav.email': 'E-mails',
   'nav.plugins': 'Plugins',

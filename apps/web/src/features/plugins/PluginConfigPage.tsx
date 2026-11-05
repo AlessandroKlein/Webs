@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { PluginManifest } from '@webs/plugin-sdk';
 import { api } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
@@ -24,6 +25,7 @@ export function PluginConfigPage() {
   const { pluginId } = useParams();
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('plugin.manage');
   const [value, setValue] = useState<Record<string, unknown> | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -72,9 +74,11 @@ export function PluginConfigPage() {
         <h3>{t('common.status')}</h3>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <span className="badge">{plugin.enabled ? t('common.enabled') : t('common.disabled')}</span>
-          <Button variant="secondary" onClick={() => toggle.mutate(!plugin.enabled)} disabled={toggle.isPending}>
-            {plugin.enabled ? t('plugins.disable') : t('plugins.enable')}
-          </Button>
+          {canWrite && (
+            <Button variant="secondary" onClick={() => toggle.mutate(!plugin.enabled)} disabled={toggle.isPending}>
+              {plugin.enabled ? t('plugins.disable') : t('plugins.enable')}
+            </Button>
+          )}
         </div>
       </Card>
 
@@ -100,9 +104,11 @@ export function PluginConfigPage() {
             <SchemaForm schema={m.settings} value={current} onChange={setValue} />
             <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
               {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>{t('plugins.saved')}</span>}
-              <Button onClick={() => save.mutate(current)} disabled={save.isPending}>
-                {t('common.save')}
-              </Button>
+              {canWrite && (
+                <Button onClick={() => save.mutate(current)} disabled={save.isPending}>
+                  {t('common.save')}
+                </Button>
+              )}
             </div>
           </>
         ) : (

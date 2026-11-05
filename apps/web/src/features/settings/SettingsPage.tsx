@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { JsonSchema } from '@webs/plugin-sdk';
 import { useTranslation } from 'react-i18next';
 import { api, ApiClientError, downloadFile } from '../../lib/api';
+import { useAuthStore } from '../../lib/auth-store';
 import { SchemaForm } from '../../components/ui/SchemaForm';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -24,6 +25,7 @@ const BACKUP_ID = '__backup__';
 export function SettingsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('setting.write');
 
   const { data, isLoading } = useQuery({
     queryKey: ['settings'],
@@ -82,6 +84,7 @@ export function SettingsPage() {
             key={active.key}
             section={active}
             saving={save.isPending}
+            canWrite={canWrite}
             onSave={(value) => save.mutate({ key: active.key, value })}
           />
         ) : null}
@@ -157,10 +160,12 @@ function SettingsSectionCard({
   section,
   onSave,
   saving,
+  canWrite,
 }: {
   section: SettingsSection;
   onSave: (value: Record<string, unknown>) => void;
   saving: boolean;
+  canWrite: boolean;
 }) {
   const { t } = useTranslation();
   const [value, setValue] = useState<Record<string, unknown>>(section.value);
@@ -182,21 +187,23 @@ function SettingsSectionCard({
       <h3 style={{ marginBottom: 'var(--ws-space-4)' }}>{section.schema.title ?? section.key}</h3>
       <SchemaForm schema={section.schema} value={value} onChange={setValue} />
       <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
-        {section.key === 'smtp' && (
+        {section.key === 'smtp' && canWrite && (
           <Button variant="secondary" onClick={() => setSmtpTo(value.from as string ?? '')}>Test SMTP</Button>
         )}
         {smtpMsg && <span className="muted" style={{ marginRight: 'auto' }}>{smtpMsg}</span>}
         {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>Guardado ✓</span>}
-        <Button
-          onClick={() => {
-            onSave(value);
-            setSaved(true);
-            setTimeout(() => setSaved(false), 2000);
-          }}
-          disabled={saving}
-        >
-          {t('common.save')}
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => {
+              onSave(value);
+              setSaved(true);
+              setTimeout(() => setSaved(false), 2000);
+            }}
+            disabled={saving}
+          >
+            {t('common.save')}
+          </Button>
+        )}
       </div>
       <PromptDialog
         open={smtpTo !== null}

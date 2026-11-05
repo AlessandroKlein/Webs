@@ -29,6 +29,13 @@ Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 
 - `DashboardPage` usa `StatCard`; eliminado el doble sidebar en `UsersPage`/`ContentPage`; `Alert`
   con `role=status` en `AppearancePage`; `EmptyState`/`Alert` donde faltaban.
+- **Gates de permisos por acción en la UI**: crear/editar/borrar/enviar solo se muestran si el
+  usuario tiene el permiso que exige la ruta del API (verificado uno por uno; p. ej. usuarios
+  `user.write`, roles `role.write`, contenido `content.write`, email `email.write`/`email.send`,
+  plugins `plugin.manage`, tokens `apiToken.write`). Las páginas de plugins que sólo piden
+  `authenticate` quedan sin gate inventado.
+- **Título de documento y breadcrumb**: `useDocumentTitle()` (`<página> · Webs`) y miga
+  sección › ítem › subítem en el shell, derivadas del ítem activo del menú (una sola fuente).
 - Drawer móvil del menú: no hereda el modo colapsado, `scroll-lock`, `inert` en el contenido,
   `role=dialog`/`aria-modal` y foco visible en la búsqueda.
 

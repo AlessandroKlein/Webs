@@ -42,6 +42,7 @@ export const es: Record<string, string> = {
   'nav.openMenu': 'Abrir menú',
   'nav.toggleSubmenu': 'Alternar submenú',
   'nav.primary': 'Navegación principal',
+  'nav.breadcrumb': 'Miga de pan',
   'nav.content': 'Contenido',
   'nav.email': 'Correos',
   'nav.plugins': 'Plugins',

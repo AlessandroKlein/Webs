@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { RoleFormDialog, type PermissionAreaGroup, type RoleFormValues } from './RoleFormDialog';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { useAuthStore } from '../../lib/auth-store';
 import type { Page } from '@webs/core';
 
 interface RoleRow {
@@ -29,6 +30,7 @@ type RoleDialogState = { mode: 'create' } | { mode: 'edit'; role: RoleRow } | nu
 export function RolesPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
+  const canWrite = useAuthStore((s) => s.hasPermission)('role.write');
 
   const { data, isLoading } = useQuery({
     queryKey: ['roles'],
@@ -111,10 +113,12 @@ export function RolesPage() {
     <div className="stack">
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <PageHeader title={t('nav.roles')} />
-        <Button onClick={() => setDialog({ mode: 'create' })}>
-          <i className="bi bi-plus-lg" aria-hidden="true" />
-          {t('roles.createRole')}
-        </Button>
+        {canWrite && (
+          <Button onClick={() => setDialog({ mode: 'create' })}>
+            <i className="bi bi-plus-lg" aria-hidden="true" />
+            {t('roles.createRole')}
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -151,16 +155,18 @@ export function RolesPage() {
                   )}
                 </td>
                 <td>
-                  <div className="row">
-                    <Button variant="secondary" onClick={() => setDialog({ mode: 'edit', role: r })}>
-                      {t('common.edit')}
-                    </Button>
-                    {!r.system && (
-                      <Button variant="ghost" onClick={() => setConfirmDelete(r)}>
-                        {t('common.delete')}
+                  {canWrite && (
+                    <div className="row">
+                      <Button variant="secondary" onClick={() => setDialog({ mode: 'edit', role: r })}>
+                        {t('common.edit')}
                       </Button>
-                    )}
-                  </div>
+                      {!r.system && (
+                        <Button variant="ghost" onClick={() => setConfirmDelete(r)}>
+                          {t('common.delete')}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}

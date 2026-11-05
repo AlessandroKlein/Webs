@@ -8,6 +8,7 @@ import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { Alert } from '../../components/ui/Alert';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { useAuthStore } from '../../lib/auth-store';
 
 interface AppearanceValue {
   defaultTheme?: string;
@@ -17,6 +18,7 @@ interface AppearanceValue {
 
 export function AppearancePage() {
   const { t } = useTranslation();
+  const canWrite = useAuthStore((s) => s.hasPermission)('setting.write');
   const { mode, setMode } = useTheme();
   const { data, isLoading } = useQuery({
     queryKey: ['settings', 'appearance'],
@@ -102,14 +104,16 @@ export function AppearancePage() {
         />
       </Card>
 
-      <div className="row" style={{ justifyContent: 'flex-end' }}>
-        <Button
-          onClick={() => save.mutate({ defaultTheme: mode, primaryColor, customCss })}
-          disabled={save.isPending}
-        >
-          {t('common.save')}
-        </Button>
-      </div>
+      {canWrite && (
+        <div className="row" style={{ justifyContent: 'flex-end' }}>
+          <Button
+            onClick={() => save.mutate({ defaultTheme: mode, primaryColor, customCss })}
+            disabled={save.isPending}
+          >
+            {t('common.save')}
+          </Button>
+        </div>
+      )}
 
       {saved && (
         <Alert variant="success" role="status">
