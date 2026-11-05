@@ -21,6 +21,7 @@ import {
   normalizeSemaStatus,
 } from './sema';
 import { DeviceEventsCard } from '../iot/DeviceEventsCard';
+import { DeviceConfigPanel } from '../iot/DeviceConfigPanel';
 
 const BASE_CHART_METRICS = ['temperature_ext', 'temperature_int', 'humidity', 'energy'];
 
@@ -150,6 +151,7 @@ export function SemaDashboard({
           </div>
 
           <DeviceEventsCard basePath={basePath} deviceId={device.id} valueIsScaled />
+          <DeviceConfigPanel basePath={basePath} deviceId={device.id} />
         </>
       )}
 

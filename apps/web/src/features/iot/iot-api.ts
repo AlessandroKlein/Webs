@@ -165,3 +165,80 @@ export function severityTone(severity: string | null | undefined): SeverityTone 
   if (s === '1' || s === 'WARNING') return 'warning';
   return 'neutral';
 }
+
+// --- Configuración versionada del dispositivo (task-34) ---------------------
+
+export type IotConfigVersionStatus = 'draft' | 'applied' | 'failed';
+
+/** Metadato de una versión (listado). El `config` solo viene en el detalle. */
+export interface IotConfigVersionMeta {
+  id: string;
+  deviceId: string;
+  version: number;
+  status: IotConfigVersionStatus;
+  hash: string;
+  error: string | null;
+  authorId: string | null;
+  appliedAt: string | null;
+  createdAt: string;
+}
+
+/** Versión completa (detalle): metadato + `config` opcional. */
+export interface IotConfigVersion extends IotConfigVersionMeta {
+  config?: unknown;
+}
+
+/** Respuesta de POST config / publish: `ok:false` + `version.status='failed'` si el device rechaza. */
+export interface PublishResult {
+  version: IotConfigVersionMeta;
+  deviceResponse?: unknown;
+  ok?: boolean;
+}
+
+/** Lee la configuración VIVA del firmware (502 si el dispositivo no responde). */
+export function fetchDeviceConfig(basePath: string, id: string): Promise<unknown> {
+  return api
+    .get<{ config: unknown }>(`${strip(basePath)}/devices/${id}/config`)
+    .then((r) => r.config);
+}
+
+/** Guarda una nueva versión de config; `publish` la publica al firmware. */
+export function saveDeviceConfig(
+  basePath: string,
+  id: string,
+  { config, publish }: { config: unknown; publish?: boolean },
+): Promise<PublishResult> {
+  return api.post<PublishResult>(`${strip(basePath)}/devices/${id}/config`, { config, publish });
+}
+
+/** Reintenta la publicación de una versión draft/failed. Nunca lanza por rechazo del device. */
+export function publishConfigVersion(
+  basePath: string,
+  id: string,
+  version: number,
+): Promise<PublishResult> {
+  return api.post<PublishResult>(`${strip(basePath)}/devices/${id}/config/${version}/publish`);
+}
+
+/** Lista las últimas versiones (máx 50, DESC, sin payload). */
+export function listConfigVersions(
+  basePath: string,
+  id: string,
+): Promise<IotConfigVersionMeta[]> {
+  return api
+    .get<{ versions: IotConfigVersionMeta[] }>(`${strip(basePath)}/devices/${id}/config/versions`)
+    .then((r) => r.versions);
+}
+
+/** Trae una versión concreta con su `config`. */
+export function getConfigVersion(
+  basePath: string,
+  id: string,
+  version: number,
+): Promise<IotConfigVersion> {
+  return api
+    .get<{ version: IotConfigVersion }>(
+      `${strip(basePath)}/devices/${id}/config/versions/${version}`,
+    )
+    .then((r) => r.version);
+}

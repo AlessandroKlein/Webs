@@ -25,6 +25,7 @@ import {
   type ActuatorRole,
 } from './invernadero';
 import { DeviceEventsCard } from '../iot/DeviceEventsCard';
+import { DeviceConfigPanel } from '../iot/DeviceConfigPanel';
 
 const BASE_CHART_METRICS = ['temperature', 'humidity', 'soil_moisture', 'tank_level', 'light'];
 
@@ -208,6 +209,7 @@ export function InvernaderoDashboard({
           </div>
 
           <DeviceEventsCard basePath={basePath} deviceId={device.id} />
+          <DeviceConfigPanel basePath={basePath} deviceId={device.id} />
         </>
       )}
 
