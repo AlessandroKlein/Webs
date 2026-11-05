@@ -1,6 +1,6 @@
 # Webs
 
-> **Versión actual: v2.11.0** (2026-11-05) · ver [CHANGELOG.md](CHANGELOG.md).
+> **Versión actual: v2.12.0** (2026-11-05) · ver [CHANGELOG.md](CHANGELOG.md).
 
 Plataforma web **modular, escalable y multiidioma** construida en Node.js.
 Es la base para crear proyectos concretos (tienda, gimnasio, blog, etc.)

@@ -1,4 +1,4 @@
-# Experiencia pública (M14 — v2.12.0)
+# Experiencia pública (M14 — v2.13.0)
 
 **Spec técnica del ADR-0029**: home editable, editor visual intuitivo y header/dropdown configurables.
 
@@ -161,4 +161,4 @@ Confirmado **fuera del header público**: el switcher vive en `/account` (`Accou
 | WB-141 | i18n | claves `editor.*`, `nav.*`, `site.header.*` |
 | WB-142 | docs | docs/README.md + Docs.git |
 | WB-143 | QA | — |
-| WB-144 | release v2.12.0 | — |
+| WB-144 | release v2.13.0 | — |

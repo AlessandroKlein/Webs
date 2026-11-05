@@ -3,6 +3,42 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.12.0] - 2026-11-05
+
+### Añadido
+
+- **Ingesta REST de eventos y alarmas de SEMA e Invernadero**: modelo `IotDeviceEvent`
+  (Prisma) con `tsRaw` `BIGINT` en la unidad cruda del dispositivo (uptime ms en SEMA, epoch s en
+  Invernadero; se ordena/retiene por `receivedAt`, nunca por `tsRaw`) y campos `type`/`source`/
+  `rule`/`severity`/`value`/`message`; normalizador `normalizeEvents()` en `@webs/iot` que mapea
+  ambos shapes (SEMA `{events:[…]}`, Invernadero `[{t,sev,msg}]`) y dedupe por ventana de 300
+  fingerprints por dispositivo (sin unique en base: la ventana acota duplicados sin bloquear
+  eventos nuevos, a costa de poder descartar hasta 300 filas si el equipo reinicia rapido);
+  `startEventCollector()` con `allSettled`; `GET /devices/:id/events?limit&kind` en ambos
+  plugins (permiso `iot.read`, 404 cross-tenant y cross-kind); migraciones 0015/0016 y 31 tests.
+- **Menú de administración completo**: las 38 rutas de `/admin` alcanzables desde 37 ítems con
+  sección, icono y permiso (`docs/architecture/menu-categorias.md`); submenús (plugins, facturación,
+  licencia, usuarios), búsqueda con atajo `/`, estado colapsado/expandido persistido y validado
+  (`Array.isArray`).
+- **Patrón de página**: `PageHeader` compartido adoptado en 25 páginas; `lib/format.ts`
+  (`formatDate`/`formatMoney`) reemplaza copias locales.
+- **Tarjeta de eventos/alarmas**: `DeviceEventsCard` (filtro Todas/Alarmas/Eventos, badge por
+  severidad, orden por `receivedAt`) en los dashboards de SEMA e Invernadero.
+
+### Cambiado
+
+- `DashboardPage` usa `StatCard`; eliminado el doble sidebar en `UsersPage`/`ContentPage`; `Alert`
+  con `role=status` en `AppearancePage`; `EmptyState`/`Alert` donde faltaban.
+- Drawer móvil del menú: no hereda el modo colapsado, `scroll-lock`, `inert` en el contenido,
+  `role=dialog`/`aria-modal` y foco visible en la búsqueda.
+
+### Seguridad
+
+- **`requiresPlugin`**: los ítems de menú respaldados por plugin solo se muestran si el plugin está
+  instalado (el base `/api/v1/blocks/<id>` es válido; solo daba 404 por plugin ausente).
+- **`GET /devices/:id/events`**: scoping por tenant igual al resto (`resolveScope`), filtro `kind`
+  del plugin, y sin `tokenCipher` en la respuesta.
+
 ## [2.11.0] - 2026-11-05
 
 ### Añadido

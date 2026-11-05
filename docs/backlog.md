@@ -1,9 +1,9 @@
-# Backlog de producto — Webs v2.11.0+
+# Backlog de producto — Webs v2.12.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.11.0'`
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.12.0'`
 >   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** · **M5 v2.3.0**
 >   · **M6 v2.4.0** · **M7 v2.5.0** · **M8 v2.6.0** · **M9 v2.7.0** · **M10 v2.8.0**
 >   · **M11 v2.9.0** · **M12 v2.10.0** liberados; **M13 v2.11.0** en release).
@@ -1539,7 +1539,9 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 > **Alcance:** la experiencia pública (lo que ve un visitante/usuario sin ser
 > admin): página de inicio editable, editor de bloques más intuitivo, header
 > público configurable (menú de navegación + dropdown de usuario) y selector de
-> idioma movido a la cuenta del usuario. **M14 = v2.12.0.** El selector de idioma
+> idioma movido a la cuenta del usuario. **M14 = v2.13.0** (v2.12.0 se publicó
+> con la entrega fuera de hito de eventos/alarmas IoT + shell de administración, así que
+> R15→R20 del plan de hitos quedan una versión por encima del número original). El selector de idioma
 > ya se movió de `SiteHeader.tsx` a `/account`; aquí se documenta como hecho.
 
 #### WB-135 · P0 (M14) — ADR-0029 + spec de experiencia pública — `t197`
@@ -1589,7 +1591,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 
 #### WB-140 · P1 (M14) — Selector de idioma en la configuración de usuario — `t203`
 - **Dado** que el selector de idioma ya se movió de `SiteHeader.tsx` a la cuenta
-  del usuario (hecho en v2.12.0),
+  del usuario (hecho en v2.13.0),
 - **Cuando** se cierra M14,
 - **Entonces** la documentación registra el cambio: el selector está en `/account`
   (+`/admin`) y ausente del header público.
@@ -1619,11 +1621,11 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
   header, scoping multi-tenant fail-closed e i18n paridad.
 - **Métrica:** suite QA M14 exit 0.
 
-#### WB-144 · P1 (M14) — Release v2.12.0 — `t205`
+#### WB-144 · P1 (M14) — Release v2.13.0 — `t205`
 - **Dado** M14 completo y workflows en verde,
-- **Cuando** se taggea `v2.12.0`,
-- **Entonces** `CHANGELOG.md` se actualiza con `[2.12.0]`, `SYSTEM_VERSION` pasa a
-  `2.12.0` y el release se publica con artefactos.
+- **Cuando** se taggea `v2.13.0`,
+- **Entonces** `CHANGELOG.md` se actualiza con `[2.13.0]`, `SYSTEM_VERSION` pasa a
+  `2.13.0` y el release se publica con artefactos.
 - **Métrica:** changelog coherente con `git tag`; release público.
 
 ---
@@ -2057,12 +2059,12 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 | **R12 — Escalabilidad** | **v2.9.0** ✓ | M11: WB-54→WB-62 — escalabilidad Kubernetes selectable (HPA configurable vs VPA Auto/Recommender/Initial, guarda de exclusión, visibilidad de estado, export YAML) desde `/admin/scaling`. |
 | **R13 — Actualizaciones** | **v2.10.0** | M12: WB-182→WB-188 — vista RAW/Code de los datos de actualización en `/admin/updates` (endpoint datos crudos manifest + changelog + archivos + checksums + firma en JSON/YAML, toggle Code/RAW con syntax highlight autohospedado + copiar/descargar, redacción de secretos, permiso `update.manage`). |
 | **R14 — IoT** | **v2.11.0** | M13: WB-78→WB-89 — serie temporal local (base separada `webs_iot` + modelo genérico de mediciones, retención/downsampling, consultas con agregación) + plugins `invernadero` (IP/URL + Bearer, control de actuadores) y `sema` (IP/URL + X-API-Key), UI de conexión mínima con test + dashboards con gráficos, multi-tenant + seguridad (token cifrado, SSRF-safe), i18n + docs + QA + release. |
-| **R15 — Experiencia pública** | **v2.12.0** | M14: WB-135→WB-144 — página de inicio (/) editable (hero/CTA como secciones + mejora de estilo), editor de bloques (GrapesJS) más intuitivo (paleta/preview/acciones/edición inline), header público configurable (menú `main` + dropdown `user`), selector de idioma en la cuenta del usuario (`/account`), ADR-0029 + i18n + docs + QA + release. |
-| **R16 — Videoteca** | **v2.13.0** | M15: WB-145→WB-153 — plugin `videoteca` para series y películas (catálogo + temporadas/episodios), embed de video multi-plataforma vía oEmbed + video propio, botón ver/descargar con enlaces oficiales (nunca rip), metadatos TMDB (clave por tenant) + Wikipedia/Wikidata + IDs externos (links salientes, sin scraping), ADR-0030 + i18n + docs + QA + release. |
-| **R17 — Tracking** | **v2.14.0** | M16: WB-154→WB-162 — plugin de seguimiento tipo Trakt (historial con `watched_at`, scrobble nativo + extensión de navegador Manifest V3, watchlist/favoritos/valoraciones, import/export CSV/JSON con dedupe por IDs, feature-gating free/paid, catálogo compacto por ID sin duplicar metadatos), ADR-0031 + i18n + docs + QA + release. |
-| **R18 — Pulido profesional** | **v2.15.0** | M17: WB-163→WB-170 — pulido profesional de dashboard/admin/públicas + UI de los ~42 plugins, visibilidad condicional por plugin (sección/dato oculto si no está instalado), pulido de plugins, ADR-0032 + i18n + QA + release. |
-| **R19 — Publicidad/Ads** | **v2.16.0** | M18: WB-171→WB-181 — plugin de publicidad (AdSense/Ad Manager + script genérico, self-serve con campañas/creatividades/targeting/rotación, ubicaciones incl. preroll/midroll de videoteca M15, tracking agregado anti-fraude, consentimiento CMP/IAB TCF v2.2, multi-tenant, admin /admin/ads, i18n, legal, QA y release). |
-| **R20 — Backlog** | **v2.17.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
+| **R15 — Experiencia pública** | **v2.13.0** | M14: WB-135→WB-144 — página de inicio (/) editable (hero/CTA como secciones + mejora de estilo), editor de bloques (GrapesJS) más intuitivo (paleta/preview/acciones/edición inline), header público configurable (menú `main` + dropdown `user`), selector de idioma en la cuenta del usuario (`/account`), ADR-0029 + i18n + docs + QA + release. |
+| **R16 — Videoteca** | **v2.14.0** | M15: WB-145→WB-153 — plugin `videoteca` para series y películas (catálogo + temporadas/episodios), embed de video multi-plataforma vía oEmbed + video propio, botón ver/descargar con enlaces oficiales (nunca rip), metadatos TMDB (clave por tenant) + Wikipedia/Wikidata + IDs externos (links salientes, sin scraping), ADR-0030 + i18n + docs + QA + release. |
+| **R17 — Tracking** | **v2.15.0** | M16: WB-154→WB-162 — plugin de seguimiento tipo Trakt (historial con `watched_at`, scrobble nativo + extensión de navegador Manifest V3, watchlist/favoritos/valoraciones, import/export CSV/JSON con dedupe por IDs, feature-gating free/paid, catálogo compacto por ID sin duplicar metadatos), ADR-0031 + i18n + docs + QA + release. |
+| **R18 — Pulido profesional** | **v2.16.0** | M17: WB-163→WB-170 — pulido profesional de dashboard/admin/públicas + UI de los ~42 plugins, visibilidad condicional por plugin (sección/dato oculto si no está instalado), pulido de plugins, ADR-0032 + i18n + QA + release. |
+| **R19 — Publicidad/Ads** | **v2.17.0** | M18: WB-171→WB-181 — plugin de publicidad (AdSense/Ad Manager + script genérico, self-serve con campañas/creatividades/targeting/rotación, ubicaciones incl. preroll/midroll de videoteca M15, tracking agregado anti-fraude, consentimiento CMP/IAB TCF v2.2, multi-tenant, admin /admin/ads, i18n, legal, QA y release). |
+| **R20 — Backlog** | **v2.18.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
 
 **Criterio de corte entre R1 y R2:** R1 sale solo con P0/P1 de M1 en verde
 (typecheck + release ✓) y sin bugs bloqueantes (B1, B2 corregidos). R3 es un

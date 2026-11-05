@@ -122,6 +122,6 @@ las **plantillas** que los combinan y activan automáticamente.
 > versión y actualizá este documento.
 
 > Versionado: seguimos **SemVer** (ver [VERSIONING.md](VERSIONING.md)). Hoy estamos
-> en **v2.11.0** (2026-11-05). El registro autoritativo de versiones y features es
+> en **v2.12.0** (2026-11-05). El registro autoritativo de versiones y features es
 > [CHANGELOG.md](CHANGELOG.md); este documento conserva el plan de hitos aún no
 > implementados (M14 experiencia pública → M18 ads).
