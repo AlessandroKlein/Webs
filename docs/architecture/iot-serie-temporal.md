@@ -1,8 +1,11 @@
 # Serie temporal local IoT (spec técnica)
 
-> **Estado:** Diseño aceptado (ADR-0027 + ADR-0028) — Milestone 13.
-> Implementación: t169 (base `webs_iot` + pool), t170 (`IoTStore` + downsampling),
-> t171 (plugin invernadero), t172 (plugin sema).
+> **Estado:** Implementado — Milestone 13 (v2.11.0).
+> Implementación: t169 (base `webs_iot` + pool `pg` + `IotDevice`), t170 (`@webs/iot`
+> con `IoTStore` + `DeviceClient` + downsampling), t171 (plugin invernadero),
+> t172 (plugin sema), t173 (componentes IoT compartidos), t174/t175 (dashboards),
+> t176 (i18n es/en/pt). Guía de uso: `guides/iot-dispositivos.md`; referencia de
+> API: `api/iot.md`.
 
 Esta spec describe la capa de serie temporal local para la integración IoT de
 Webs: el modelo de datos, el flujo de recolección, el contrato de rutas de los
@@ -225,18 +228,27 @@ Endpoints adicionales (referencia completa en
 - **Permisos**: `iot.read` / `iot.write` sembrados (mismo patrón que
   `inventory.*`, ADR-0023).
 
-## 7. Plan de implementación (trazabilidad)
+## 7. Estado de implementación (trazabilidad)
 
-| Tarea | Alcance |
-|-------|---------|
-| t169 | Base `webs_iot` + pool `pg` (`lib/iot-pool.ts`) + `IotDevice` en schema |
-| t170 | `IoTStore` (`insert`/`querySeries`) + job de downsampling raw→horario→diario |
-| t171 | Plugin `invernadero`: collector + mapeo §4 + contrato de rutas |
-| t172 | Plugin `sema`: collector + mapeo §5 + contrato de rutas |
-| t173 | UI conexión mínima (IP/URL + token) con test |
-| t174/t175 | Dashboards + gráficos históricos (componentes compartidos) |
-| t176/t177 | i18n es/en/pt + docs |
-| t178/t179 | QA + release v2.11.0 |
+Todas las tareas del plan M13 están **completas** (v2.11.0):
+
+| Tarea | Alcance | Estado |
+|-------|---------|--------|
+| t169 | Base `webs_iot` (init SQL idempotente) + pool `pg` + sidecar `iot-downsample` + `IotDevice` en schema + `IOT_DATABASE_URL` | ✅ Hecho |
+| t170 | Paquete `@webs/iot`: `IoTStore` (`writeBatch`/`querySeries`/`downsampleAndPurge`) + `DeviceClient` (SSRF-safe) + `startCollector` + migración `0013_iot_devices` + rutas base | ✅ Hecho |
+| t171 | Plugin `invernadero`: collector + mapeo §4 + rutas `/devices` + control `/actuators` | ✅ Hecho |
+| t172 | Plugin `sema`: collector + mapeo §5 + rutas `/devices` (sin actuadores) | ✅ Hecho |
+| t173 | UI conexión (IP/URL + token) + estado + gráfico SVG (`features/iot/`) | ✅ Hecho |
+| t174/t175 | Dashboards `/admin/invernadero` (control actuadores) y `/admin/sema` (solo monitoreo) | ✅ Hecho |
+| t176 | i18n es/en/pt (`iot.*`, `nav.invernadero`, `nav.sema`, `invernadero.*`, `sema.*`) | ✅ Hecho |
+| t177 | Docs (esta spec + guía + referencia API) | ✅ Hecho |
+| t178/t179 | QA + release v2.11.0 | Pendiente |
+
+> Desviaciones menores respecto al diseño original: el pool `pg` se materializó en
+> `createIotPool()` dentro de `packages/iot` (no en `lib/iot-pool.ts`) y el token se
+> cifra con `encrypt()`/`decrypt()` inyectados por dependencias (el paquete `@webs/iot`
+> es Prisma-free). El downsampling corre tanto en el sidecar SQL (`iot-downsample.sql`,
+> bucle 6 h) como en `IoTStore.downsampleAndPurge()` (replica la misma lógica).
 
 ## Ver también
 

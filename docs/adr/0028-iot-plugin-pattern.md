@@ -138,5 +138,5 @@ Cada plugin (`invernadero`, `sema`) expone, bajo su prefijo
 - Mapeo de métricas anclado a las APIs reales: invernadero `GET /status`
   (temperatura/humedad/suelo/tanque/luz/bomba/ventilador) y SEMA `GET /sensors`
   (catálogo + mediciones con `measurement`/`unit`/`quality`).
-- Permisos y seed: mismos patrones que `inventory.read`/`inventory.write`
+- Permisos y seed: mismos patrones que `inventory.read`/`inventory.manage`
   (ADR-0023).

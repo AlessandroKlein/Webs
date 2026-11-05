@@ -21,6 +21,9 @@ para adaptar a la empresa, jurisdicción y dominio que despliegue la plataforma.
 | [`07-terminos-suscripcion-pago.md`](07-terminos-suscripcion-pago.md) | **Términos y Condiciones de Suscripciones y Pagos**: renovación, cancelación, reembolsos y medios de pago. |
 | [`08-checklist-cumplimiento-checkout.md`](08-checklist-cumplimiento-checkout.md) | **Checklist de cumplimiento del checkout**: precios claros, impuestos, resumen y consentimiento. |
 | [`09-referencia-tecnica-facturacion.md`](09-referencia-tecnica-facturacion.md) | **Referencia técnica** para el equipo de desarrollo: mapa de datos obligatorios de facturación → modelo de la plataforma. |
+| [`10-videoteca-derechos-de-autor-y-cumplimiento.md`](10-videoteca-derechos-de-autor-y-cumplimiento.md) | **Cumplimiento del plugin videoteca**: botón «ver/descargar» (DMCA/Ley 11.723), ToS de TMDB, CC BY-SA de Wikipedia/Wikidata, política no-scraping y embedding oEmbed. |
+| [`11-tracking-historial-y-privacidad.md`](11-tracking-historial-y-privacidad.md) | **Cumplimiento del plugin de seguimiento (tracking tipo Trakt)**: privacidad del historial/scrobble (GDPR art. 6/13/15/17/20 + Ley 25.326), ToS de plataformas de terceros, metadatos, suscripciones/feature-gating, portabilidad de datos y menores. |
+| [`12-publicidad-ads-consentimiento.md`](12-publicidad-ads-consentimiento.md) | **Cumplimiento del plugin de publicidad (ads)**: políticas de Google AdSense/Ad Manager, consentimiento EEE/UK/CH (IAB TCF v2.2), GDPR/ePrivacy + Ley 25.326 + LGPD para cookies publicitarias, transparencia, términos para anunciantes y menores. |
 
 ## Personalización desde la UI (Settings → Legal)
 
