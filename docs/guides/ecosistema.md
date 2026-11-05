@@ -20,8 +20,9 @@ Webs no reimplementa la lógica de cada proyecto: cada satélite sigue teniendo 
 propio repositorio y su propia API HTTP. Webs lo integra con un **plugin IoT** que
 actúa como colector y consolidador central:
 
-- El plugin sondea la API del dispositivo (`GET /status`), normaliza el payload a
-  métricas y las guarda en la base de tiempo separada `webs_iot` (ver
+- El plugin sondea la API REST del dispositivo (rutas bajo `/api/v1`, resueltas por
+  el helper `deviceApiPrefix(baseUrl)`), normaliza el payload a métricas y las guarda
+  en la base de tiempo separada `webs_iot` (ver
   [ADR-0027](../adr/0027-iot-serie-temporal.md) y
   [architecture/iot-serie-temporal.md](../architecture/iot-serie-temporal.md)).
 - La lógica compartida vive en el paquete `@webs/iot` (`createIotDeviceClient`,
@@ -34,7 +35,9 @@ actúa como colector y consolidador central:
 - `plugin.json` lo define como «Integración de invernadero: telemetría REST, serie
   temporal local y control de actuadores».
 - `plugins/invernadero/src/server.ts` registra `kinds: ['invernadero']`, sondea
-  `GET /devices/:id/status`, y expone `POST /devices/:id/actuators` con roles
+  `GET /api/v1/status` **del dispositivo**, y expone `GET /devices/:id/status`
+  (proxy bajo demanda) y `POST /devices/:id/actuators` (proxy a
+  `POST /api/v1/actuators` del dispositivo) con roles
   `pump|valve|fan|extractor|heater|humidifier|light|roof|window|shade|alarm`
   (`ACTUATOR_ROLES`).
 - El mapeo de payload cubre temperatura, humedad, humedad de suelo por zona, nivel
@@ -53,9 +56,13 @@ actúa como colector y consolidador central:
 - `plugin.json`: «Nodo de monitoreo ambiental/energía SEMA: telemetría REST y serie
   temporal local».
 - `plugins/sema/src/server.ts` registra `kinds: ['sema']`, sondea `GET
-  /devices/:id/status` y autentica con `X-API-Key` (`authMode: 'x-api-key'`; la key
-  es opcional, la lectura puede ser pública). Cubre temperatura EXT/INT, humedad,
-  energía y alarmas, además de sensores anidados (`mapSemaToMeasurements`).
+  /api/v1/sensors` y autentica con `X-API-Key` (`authMode: 'x-api-key'`; la key
+  es opcional, la lectura puede ser pública). También expone
+  `GET /devices/:id/status` como proxy bajo demanda. El parser
+  `mapSemaToMeasurements` (`plugins/sema/src/parse.ts`) genera una métrica
+  `<sensor_id>.<channel_id>` por entrada de `measurements[]` (dedupe last-wins,
+  ignora `value` no numérico); antes adivinaba claves planas de `/status`, que
+  solo devuelve identidad.
 
 ### Licensify
 
@@ -76,6 +83,11 @@ actúa como colector y consolidador central:
 4. El plugin queda gobernado por el CRUD de dispositivos y la serie temporal
    central de `webs_iot`.
 
-> Pendiente: no hay aún documentación del contrato HTTP exacto de los repos
-> externos (`Invernadero/server`, `SEMA`) en este repo; se conoce solo el mapeo
-> tolerante de payload implementado en los plugins.
+> Contrato HTTP: el detalle de cómo Webs consume la API REST de cada dispositivo
+> está en [integración REST](integracion-rest.md). La referencia completa de la
+> API del dispositivo vive en el sitio publicado, secciones «Invernadero → API REST»
+> y «SEMA → API REST».
+> Pendiente: decidir si Webs sustituye a la rama `server` de Invernadero (ver nota más arriba).
+
+> MQTT: los dispositivos pueden **publicar** opcionalmente hacia Home Assistant por
+> MQTT/WebSocket; Webs no consume ese canal — su integración es por HTTP REST.
