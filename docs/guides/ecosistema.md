@@ -28,6 +28,10 @@ actúa como colector y consolidador central:
 - La lógica compartida vive en el paquete `@webs/iot` (`createIotDeviceClient`,
   `createIotPool`, `startCollector`, `registerIotDeviceRoutes`); cada plugin solo
   aporta el **mapeo de payload** y la lista de `kinds`.
+- Además de métricas, el plugin levanta un **colector de eventos y alarmas**
+  (`startEventCollector` de `@webs/iot`) que sondea `GET /events` y `GET /alarms`
+  del dispositivo y las guarda en `IotDeviceEvent` (dedupe por fingerprint,
+  retención 90 días). Ver [Eventos y alarmas IoT](iot-eventos-alarmas.md).
 
 ### Invernadero
 

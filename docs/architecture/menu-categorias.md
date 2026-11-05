@@ -8,14 +8,13 @@
 
 ## Objetivo
 
-Hoy el menú de `/admin` es una **lista plana** de tres fuentes concatenadas sin
-agrupación visual:
-
-- `coreNav` (21 ítems fijos, `apps/web/src/layouts/AdminLayout.tsx:87-109`).
-- `featureNav` (12 ítems de módulos core, `:112-125`).
-- `pluginNav` (ítems declarados por plugins instalados, vía `GET /menu` →
-  `collectPluginMenuItems('admin')`, con `id`, `section`, `icon`, `order`,
-  `parent`, `permissions`).
+Hoy el menú de `/admin` ya está **agrupado por secciones** con submenús e iconos.
+El frontend (`apps/web/src/layouts/AdminLayout.tsx`) declara una lista única
+`navItems` de **37 ítems core** (líneas 251-297) y le suma los ítems declarados
+por plugins instalados (vía `GET /api/v1/menu`, con `id`, `section`, `icon`,
+`order`, `parent`, `permissions`). `buildTree` anida los ítems por `parent`
+(submenús) y `iconClass` normaliza los iconos a bootstrap-icons (`bi bi-*`);
+además hay búsqueda con `/` y drawer móvil.
 
 El objetivo es agruparlos en **secciones** con orden estable y **un criterio de
 clasificación explícito**, reutilizando el campo `section` que ya existe en
@@ -38,43 +37,52 @@ clasificación explícito**, reutilizando el campo `section` que ya existe en
 
 ## Clasificación de los ítems actuales
 
-### Ítems core (`coreNav` + `featureNav`)
+### Ítems core (`navItems`, 37 ítems)
 
-| Ítem (`to`) | Permiso | Sección |
-|-------------|---------|---------|
-| `/admin` | — | `panel` |
-| `/admin/analytics` | — | `panel` |
-| `/admin/content` | `content.read` | `contenido` |
-| `/admin/pages` | `content.read` | `contenido` |
-| `/admin/editor` | `content.write` | `contenido` |
-| `/admin/blog` | — | `contenido` |
-| `/admin/forms` | — | `contenido` |
-| `/admin/payments` | `user.read` | `ventas` |
-| `/admin/commerce` | — | `ventas` |
-| `/admin/invoices` | — | `ventas` |
-| `/admin/inventory` | — | `ventas` |
-| `/admin/email` | `email.read` | `comunicacion` |
-| `/admin/notifications` | — | `comunicacion` |
-| `/admin/chat` | — | `comunicacion` |
-| `/admin/support` | `support.read` | `comunicacion` |
-| `/admin/social` | — | `comunidad` |
-| `/admin/calendar` | — | `comunidad` |
-| `/admin/appearance` | `theme.read` | `apariencia` |
-| `/admin/translations` | `translation.read` | `apariencia` |
-| `/admin/menu` | `setting.read` | `apariencia` |
-| `/admin/plugins` | `plugin.read` | `integraciones` |
-| `/admin/plugin-settings` | `plugin.read` | `integraciones` |
-| `/admin/api-tokens` | — | `integraciones` |
-| `/admin/auth` | — | `integraciones` |
-| `/admin/settings` | `setting.read` | `configuracion` |
-| `/admin/templates` | `setting.write` | `configuracion` |
-| `/admin/branches` | — | `configuracion` |
-| `/admin/organizations` | — | `configuracion` |
-| `/admin/updates` | `setting.read` | `configuracion` |
-| `/admin/license` | `license.read` | `configuracion` |
-| `/admin/users` | `user.read` | `usuarios` |
-| `/admin/roles` | `role.read` | `usuarios` |
-| `/admin/audit` | `audit.read` | `usuarios` |
+| Ítem (`to`) | Permiso | Sección | Icono | Padre (submenú) |
+|-------------|---------|---------|-------|-----------------|
+| `/admin` | — | `panel` | — | — |
+| `/admin/analytics` | — | `panel` | `graph-up` | — |
+| `/admin/content` | `content.read` | `contenido` | `collection` | — |
+| `/admin/pages` | `content.read` | `contenido` | `file-earmark-text` | — |
+| `/admin/editor` | `content.write` | `contenido` | `pencil-square` | — |
+| `/admin/blog` | — | `contenido` | `journal-text` | — |
+| `/admin/forms` | — | `contenido` | `input-cursor-text` | — |
+| `/admin/payments` | `user.read` | `ventas` | `credit-card` | — |
+| `/admin/commerce` | — | `ventas` | `bag` | — |
+| `/admin/invoices` | — | `ventas` | `receipt` | — |
+| `/admin/invoices/template` | — | `ventas` | `layout-text-window-reverse` | `/admin/invoices` |
+| `/admin/inventory` | — | `ventas` | `box-seam` | — |
+| `/admin/email` | `email.read` | `comunicacion` | `envelope` | — |
+| `/admin/notifications` | — | `comunicacion` | `bell` | — |
+| `/admin/support` | `support.read` | `comunicacion` | `headset` | — |
+| `/admin/social` | — | `comunidad` | `people` | — |
+| `/admin/calendar` | — | `comunidad` | `calendar3` | — |
+| `/admin/appearance` | `theme.read` | `apariencia` | `palette` | — |
+| `/admin/translations` | `translation.read` | `apariencia` | `translate` | — |
+| `/admin/menu` | `setting.read` | `apariencia` | `list-nested` | — |
+| `/admin/plugins` | `plugin.read` | `integraciones` | `puzzle` | — |
+| `/admin/generated` | `generated.read` | `integraciones` | `lightning` | — |
+| `/admin/invernadero` | `iot.read` | `integraciones` | `flower1` | — |
+| `/admin/sema` | `iot.read` | `integraciones` | `broadcast` | — |
+| `/admin/api-tokens` | — | `integraciones` | `key` | — |
+| `/admin/auth` | — | `integraciones` | `shield-lock` | — |
+| `/admin/settings` | `setting.read` | `configuracion` | `gear` | — |
+| `/admin/templates` | `setting.write` | `configuracion` | `files` | — |
+| `/admin/branches` | — | `configuracion` | `diagram-3` | — |
+| `/admin/organizations` | — | `configuracion` | `building` | — |
+| `/admin/updates` | `setting.read` | `configuracion` | `arrow-repeat` | — |
+| `/admin/scaling` | `scaling.read` | `configuracion` | `hdd-stack` | — |
+| `/admin/license` | `license.read` | `configuracion` | `patch-check` | — |
+| `/admin/license/keys` | `license.read` | `configuracion` | `key-fill` | `/admin/license` |
+| `/admin/users` | `user.read` | `usuarios` | `person` | — |
+| `/admin/roles` | `role.read` | `usuarios` | `person-badge` | `/admin/users` |
+| `/admin/audit` | `audit.read` | `usuarios` | `shield-check` | — |
+
+Submenús: `invoices → template`, `license → keys`, `users → roles`. El ítem
+`/admin/generated` está gateado por `feature: generator` (t97); los ítems con
+`feature` premium se ocultan sin la licencia correspondiente. `PLUGIN_MANAGEMENT_PATHS`
+(`/admin/plugins`) se oculta cuando no hay plugins instalados.
 
 ## Clasificación de plugins (ítems nativos al menú)
 

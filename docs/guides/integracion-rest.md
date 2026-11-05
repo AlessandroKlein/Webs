@@ -63,7 +63,8 @@ de tanque, luz, bomba/ventilador, alarmas severas) mapeado en
 |--------------------------|----------|------|
 | `GET /status` | Consume (telemetría) | Mapeo plano de métricas. |
 | `POST /actuators` `{role,index,output}` | Consume (escritura) | `output` 0..100; roles `pump,valve,fan,extractor,heater,humidifier,light,roof,window,shade,alarm`. |
-| `GET /sensors`, `/actuators`, `/zones`, `/weather`, `/alarms`, `/events`, `/logs` | No consume todavía | Disponibles en el dispositivo. |
+| `GET /events`, `/alarms` | Consume (eventos/alarmas) | Ver [Eventos y alarmas IoT](iot-eventos-alarmas.md). |
+| `GET /sensors`, `/actuators`, `/zones`, `/weather`, `/logs` | No consume todavía | Disponibles en el dispositivo. |
 | `/config`, `/config/schema`, `/config/export`, `/config/import`, `/config/rollback`, `/reset`, `/factory-reset` | No consume todavía | Configuración del dispositivo. |
 | `/automation`, `/pins`, `/sensors/catalog`, `/hardware`, `/buses`, `/detect`, `/actuators/catalog`, `/modules`, `/storage` | No consume todavía | Gestión de hardware. |
 | `/rs485`, `/rs485/scan`, `/modbus`, `/modbus/profiles`, `/modbus/gateway` | No consume todavía | Buses RS485/Modbus. |
@@ -83,7 +84,7 @@ telemetría.
 | `GET /api/v1/sensors` | Consume (telemetría) | Medidas en `measurements[]`. |
 | `GET /api/v1/status` | Consume on-demand | Proxy por `GET /devices/:id/status` para la UI de detalle; no se usa para telemetría. |
 | `GET /api/v1/history?limit=1..3000&series=recent|aggregated&format=json|csv` | No consume todavía | Histórico. |
-| `GET /api/v1/events`, `GET /api/v1/alarms` | No consume todavía | `ts` = `millis()` (uptime), no epoch. |
+| `GET /api/v1/events`, `GET /api/v1/alarms` | Consume (eventos/alarmas) | `ts` = `millis()` (uptime), no epoch. Ver [Eventos y alarmas IoT](iot-eventos-alarmas.md). |
 | `GET /api/v1/health`, `/system`, `/capabilities`, `/network`, `/energy`, `/diagnostics` | No consume todavía | Estado y salud. |
 | `GET/PUT /api/v1/config`, `POST /config/network|system|sensors|io|buses` | No consume todavía | Configuración. |
 | `/gpio`, `/shift`, `/wifi/scan`, `/security/keys`, `/update/check`, `/backup`, `/restart` | No consume todavía | Gestión. |

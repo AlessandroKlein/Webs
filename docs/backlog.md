@@ -1513,6 +1513,25 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
   quedan en verde.
 - **Métrica:** QA LIBERABLE; tag `v2.11.0` público; workflows CI/release ✓.
 
+> **Hecho post-M13 (task-20/21/24):**
+> - **Ingesta de eventos/alarmas** (`IotDeviceEvent` + `packages/iot/src/events.ts`
+>   + ruta `GET /api/v1/plugins/{sema|invernadero}/devices/:id/events`, permiso
+>   `iot.read`, UI `DeviceEventsCard`): SEMA `/events`+`/alarms` (`ts`=uptime ms,
+>   `value`×100) e Invernadero `/events`+`/alarms` (array plano `{t,sev,msg}`,
+>   `t`=epoch s); `tsRaw` BIGINT guarda la unidad cruda y `receivedAt` ordena/purga
+>   (90 días); dedupe por ventana de 300 fingerprints (migraciones `0015`+`0016`).
+>   Doc: `docs/guides/iot-eventos-alarmas.md`.
+> - **Menú de administración** (task-21): 37 ítems, 9 secciones, submenús
+>   (facturas→plantilla, licencia→claves, usuarios→roles), búsqueda `/` y drawer
+>   móvil. Doc: `docs/architecture/menu-categorias.md`.
+>
+> **Pendiente (IoT, sin WB asignado):**
+> - **Shadow / config versionada**: estado deseado vs reportado del dispositivo +
+>   versionado de configuración con rollback.
+> - **OTA REST**: consumir la actualización de firmware desde Webs (Invernadero
+>   `GET /ota`+`GET /firmware`; SEMA `POST /api/v1/ota` solo `X-API-Key`).
+> - **Multi-proyecto**: un dispositivo gestionando varios proyectos/zonas.
+
 ---
 
 ### 3.16 Milestone 14 (M14) — Experiencia pública: home editable + editor + header configurable
