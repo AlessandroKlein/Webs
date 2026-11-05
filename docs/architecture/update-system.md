@@ -131,6 +131,46 @@ módulo espera `/health/ready` antes de marcar `done`.
 | `UPDATE_MODE` | `auto` | `auto` detecta Docker vs bare; `bare`/`docker` fuerzan. |
 | `UPDATE_DOCKER_SERVICE` | `api` | Servicio de Docker Compose a actualizar. |
 
+## Pipeline de release (firma y adjunto de artefactos)
+
+El workflow `.github/workflows/release.yml` (dispara con cada tag `v*`) construye el artefacto
+de la app, lo firma y lo adjunta al GitHub Release. El formato DEBE coincidir exactamente con
+`apps/api/src/modules/update/verify.ts` (sha256 hex + Ed25519 base64url sobre el digest hex).
+
+### Generar el par de claves (una sola vez)
+
+```bash
+# Con OpenSSL (recomendado):
+openssl genpkey -algorithm ED25519 -out update_private.pem
+openssl pkey -in update_private.pem -pubout -out update_public.pem
+
+# Alternativa con Node (mismo resultado):
+node -e 'const {generateKeyPairSync}=require("crypto");const {publicKey,privateKey}=generateKeyPairSync("ed25519");console.log(privateKey.export({type:"pkcs8",format:"pem"}));console.log(publicKey.export({type:"spki",format:"pem"}))'
+```
+
+- **Clave pública** (`update_public.pem`, PEM SPKI) → se pone en `UPDATE_PUBLIC_KEY`
+  (docker-compose.yml y deploy/k8s/configmap.yaml). Es pública, puede commitearse.
+- **Clave privada** (`update_private.pem`, PKCS#8) → se carga como secreto de GitHub Actions
+  `UPDATE_PRIVATE_KEY` (Settings → Secrets and variables → Actions). **NUNCA se commitea**.
+
+> Rotación: para reemplazar el par, regenerar y actualizar el secreto `UPDATE_PRIVATE_KEY`
+> y `UPDATE_PUBLIC_KEY` (compose/configmap) al mismo tiempo, o la verificación fallará.
+
+### Qué produce el workflow
+
+Para un tag `v2.11.0` adjunta tres assets al release:
+
+| Asset | Contenido |
+|-------|-----------|
+| `webs-2.11.0.tar.gz` | Build de la API empaquetado (`apps/api/dist` como `dist/`). |
+| `webs-2.11.0.tar.gz.sha256` | `sha256` hex del tarball (ASCII). |
+| `webs-2.11.0.tar.gz.sig` | Firma Ed25519 **base64url** sobre el **digest hex** (no el tarball). |
+
+El firmado lo hace `scripts/sign-release.mjs` (`node:crypto`, cero dependencias): calcula el
+sha256, firma el digest en hex (UTF-8) con `crypto.sign(null, digest, privateKey)` y escribe los
+dos sidecars. El runtime los lee como `<tarball>.sha256` y `<tarball>.sig` (ver `resolveArtifactUrl`
+y `resolveAppRaw` en `modules/update/`).
+
 ## Verificación
 
 - **Typecheck**: `pnpm -r typecheck` (el módulo no añade dependencias).

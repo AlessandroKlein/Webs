@@ -16,6 +16,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
       - name: Extraer notas del CHANGELOG
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -35,17 +44,47 @@ jobs:
             echo "Sin entrada en el CHANGELOG para $GITHUB_REF_NAME; se usarán notas generadas."
           fi
 
-      - name: Crear release (con notas del CHANGELOG, si no existe)
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Generar cliente Prisma
+        run: pnpm --filter @webs/api exec prisma generate
+
+      - name: Build del artefacto (API) y empaquetado
         run: |
-          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            if [ -s release-notes.md ]; then
-              gh release create "$GITHUB_REF_NAME" --notes-file release-notes.md --latest
-            else
-              gh release create "$GITHUB_REF_NAME" --generate-notes --latest
-            fi
-          else
-            echo "Release $GITHUB_REF_NAME ya existe; se omite."
-          fi
+          pnpm --filter @licensify/core --filter @webs/core --filter @webs/i18n --filter @webs/plugin-sdk --filter @webs/ui --filter @webs/plugin-example build
+          pnpm --filter @webs/api build
+          VERSION="${GITHUB_REF_NAME#v}"
+          # El tarball empaqueta apps/api/dist como `dist/` (lo que el bootloader
+          # intercambia en modo bare). En Docker la actualización es el rolling
+          # update, pero el artefacto se firma/adjunta igual para `update/raw`.
+          tar -czf "webs-$VERSION.tar.gz" -C apps/api dist
+          echo "ARTIFACT=webs-$VERSION.tar.gz" >> "$GITHUB_ENV"
+          ls -la "webs-$VERSION.tar.gz"
+
+      - name: Firmar artefacto (Ed25519 sobre sha256)
+        env:
+          UPDATE_PRIVATE_KEY: ${{ secrets.UPDATE_PRIVATE_KEY }}
+        run: |
+          node scripts/sign-release.mjs "$ARTIFACT"
+          ls -la "$ARTIFACT" "$ARTIFACT.sha256" "$ARTIFACT.sig"
+
+      - name: Crear release (con notas + artefactos firmados)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          ARTIFACT="webs-$VERSION.tar.gz"
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            if [ -s release-notes.md ]; then
+              gh release create "$GITHUB_REF_NAME" --notes-file release-notes.md --latest \
+                "$ARTIFACT" "$ARTIFACT.sha256" "$ARTIFACT.sig"
+            else
+              gh release create "$GITHUB_REF_NAME" --generate-notes --latest \
+                "$ARTIFACT" "$ARTIFACT.sha256" "$ARTIFACT.sig"
+            fi
+          else
+            echo "Release $GITHUB_REF_NAME ya existe; se suben los artefactos."
+            gh release upload "$GITHUB_REF_NAME" "$ARTIFACT" "$ARTIFACT.sha256" "$ARTIFACT.sig" --clobber
+          fi

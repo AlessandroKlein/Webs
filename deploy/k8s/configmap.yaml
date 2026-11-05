@@ -21,8 +21,14 @@ data:
   # deja 'bare' para que /system/update/apply nunca intente `docker compose`.
   UPDATE_MODE: "bare"
   # Clave pública Ed25519 (PEM SPKI) que verifica los artefactos de update.
-  # Es pública, por eso va en ConfigMap. Generar con el CLI de @licensify/core.
-  UPDATE_PUBLIC_KEY: ""
+  # Es pública, por eso va en ConfigMap. Generar el par con:
+  #   openssl genpkey -algorithm ED25519 -out update_private.pem
+  #   openssl pkey -in update_private.pem -pubout -out update_public.pem
+  # La PRIVADA va como secreto GitHub Actions `UPDATE_PRIVATE_KEY` (nunca aquí).
+  UPDATE_PUBLIC_KEY: |-
+    -----BEGIN PUBLIC KEY-----
+    MCowBQYDK2VwAyEA6nFicAc/7tBx+G1uiIT9cu81yo+IaGKc7x1JwjLdvCY=
+    -----END PUBLIC KEY-----
 
   # ---------------------------------------------------------------------------
   # Escalabilidad selectable (ADR-0025). El selector decide, POR WORKLOAD (api o
