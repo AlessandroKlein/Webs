@@ -205,7 +205,12 @@ export class DeviceClient {
     return this.request<T>('POST', path, body);
   }
 
-  private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
+  /** PUT a una ruta del dispositivo (config), devolviendo el JSON. */
+  async put<T = unknown>(path: string, body: unknown): Promise<T> {
+    return this.request<T>('PUT', path, body);
+  }
+
+  private async request<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown): Promise<T> {
     const url = deviceUrl(this.baseUrl, path);
     let lastErr: unknown;
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
@@ -220,9 +225,9 @@ export class DeviceClient {
   }
 
   /** Sigue redirects manualmente y re-valida cada salto (nunca `redirect:'follow'` ciego). */
-  private async execute<T>(startUrl: URL, method: 'GET' | 'POST', body?: unknown): Promise<T> {
+  private async execute<T>(startUrl: URL, method: 'GET' | 'POST' | 'PUT', body?: unknown): Promise<T> {
     let current = startUrl;
-    let reqMethod: 'GET' | 'POST' = method;
+    let reqMethod: 'GET' | 'POST' | 'PUT' = method;
     let reqBody = body !== undefined ? JSON.stringify(body) : undefined;
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
       const target = await resolveTarget(current, this.allowlist);
@@ -236,8 +241,8 @@ export class DeviceClient {
 
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         const next = new URL(res.headers.location, current);
-        // 303, o 301/302 sobre POST, bajan a GET sin cuerpo (RFC 9110); 307/308 conservan método.
-        if (res.statusCode === 303 || ((res.statusCode === 301 || res.statusCode === 302) && reqMethod === 'POST')) {
+        // 303, o 301/302 sobre POST/PUT, bajan a GET sin cuerpo (RFC 9110); 307/308 conservan método.
+        if (res.statusCode === 303 || ((res.statusCode === 301 || res.statusCode === 302) && (reqMethod === 'POST' || reqMethod === 'PUT'))) {
           reqMethod = 'GET';
           reqBody = undefined;
         }

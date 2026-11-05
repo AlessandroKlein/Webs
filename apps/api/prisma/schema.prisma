@@ -1270,6 +1270,7 @@ model IotDevice {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   events         IotDeviceEvent[]
+  configVersions IotDeviceConfigVersion[]
 
   @@index([organizationId])
   @@index([kind])
@@ -1297,4 +1298,22 @@ model IotDeviceEvent {
   @@index([organizationId, receivedAt])
   @@index([receivedAt])
   @@map("iot_device_events")
+}
+
+model IotDeviceConfigVersion {
+  id        String    @id @default(uuid())
+  deviceId  String
+  device    IotDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  version   Int
+  status    String    @default("draft") // draft | applied | failed
+  config    Json
+  hash      String
+  error     String?
+  authorId  String?
+  appliedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([deviceId, version])
+  @@index([deviceId, createdAt])
+  @@map("iot_device_config_versions")
 }

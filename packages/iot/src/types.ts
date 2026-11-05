@@ -77,3 +77,20 @@ export interface IotDeviceClientOptions {
   /** Hosts adicionales permitidos (SSRF-safe), además de los públicos. */
   allowlist?: string[];
 }
+
+/** Estado de una versión de configuración de dispositivo. */
+export type IotConfigVersionStatus = 'draft' | 'applied' | 'failed';
+
+/** Fila de `IotDeviceConfigVersion` (Prisma). `config` es opcional (el historial no lo trae). */
+export interface IotConfigVersion {
+  id: string;
+  deviceId: string;
+  version: number;
+  status: IotConfigVersionStatus;
+  hash: string;
+  error: string | null;
+  authorId: string | null;
+  appliedAt: Date | null;
+  createdAt: Date;
+  config?: unknown;
+}

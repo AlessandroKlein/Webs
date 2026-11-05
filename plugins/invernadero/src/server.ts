@@ -114,6 +114,7 @@ export default definePlugin(manifest, {
       decrypt,
       kinds: ['invernadero'],
       kind: 'invernadero',
+      allowlist,
     });
 
     const authenticate = (fastify as unknown as { authenticate?: unknown }).authenticate;

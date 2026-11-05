@@ -56,6 +56,7 @@ export default definePlugin(manifest, {
       decrypt,
       kinds: ['sema'],
       kind: 'sema',
+      allowlist,
     });
 
     const authenticate = (fastify as unknown as { authenticate?: unknown }).authenticate;
