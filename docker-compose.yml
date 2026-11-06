@@ -70,6 +70,12 @@ services:
       JWT_SECRET: change-me-in-production-please-0123456789
       JWT_REFRESH_SECRET: change-me-refresh-in-production-0123456789
       CORS_ORIGIN: http://localhost:5173
+      # Pasarelas en modo mock: permiten probar la compra completa (checkout →
+      # pago → orden paid → licencia) sin credenciales. En producción se quitan
+      # estas variables y se ponen las claves reales de cada pasarela.
+      MP_MODE: mock
+      STRIPE_MODE: mock
+      PUBLIC_BASE_URL: http://localhost:5173
       # Superadmin pre-creado por el entrypoint (migraciones + seed).
       SEED_ADMIN_EMAIL: admin@webs.test
       SEED_ADMIN_PASSWORD: Admin12345!
