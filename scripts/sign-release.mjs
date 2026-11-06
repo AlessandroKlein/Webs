@@ -41,11 +41,26 @@ if (!rawKey) {
   process.exit(1);
 }
 
-/** Normaliza el secreto: `\n` literales y salto final. */
+/** Normaliza el secreto: comillas, `\n` literales y salto final. */
 function normalize(pem) {
-  let material = pem.trim();
+  let material = pem.trim().replace(/^['"]|['"]$/g, '').trim();
   if (!material.includes('\n') && material.includes('\\n')) material = material.replace(/\\n/g, '\n');
   return material.endsWith('\n') ? material : `${material}\n`;
+}
+
+/** Describe el formato sin exponer el material (para diagnosticar el secreto). */
+function describeSecret(pem) {
+  const text = normalize(pem).trim();
+  if (text.includes('BEGIN OPENSSH PRIVATE KEY')) return 'OpenSSH privada';
+  if (text.includes('BEGIN PRIVATE KEY')) return 'PEM PKCS#8';
+  if (/^ssh-(ed25519|rsa|ecdsa)\s/.test(text)) return 'clave PÚBLICA OpenSSH (se necesita la privada)';
+  const compact = text.replace(/\s+/g, '');
+  if (/^[A-Za-z0-9+/=]+$/.test(compact)) {
+    const bytes = Buffer.from(compact, 'base64');
+    if (bytes[0] === 0x30 && bytes.length === 44) return 'clave PÚBLICA SPKI (se necesita la privada)';
+    return `base64 de ${bytes.length} bytes`;
+  }
+  return `texto no reconocido (${text.length} caracteres)`;
 }
 
 /** Construye una privada Ed25519 PKCS#8 a partir de la semilla cruda. */
@@ -116,6 +131,7 @@ try {
 } catch (error) {
   const reason = error instanceof Error ? error.message : String(error);
   console.error(`UPDATE_PRIVATE_KEY inválida: ${reason}`);
+  console.error(`Formato detectado: ${describeSecret(rawKey)}.`);
   console.error('Debe ser una privada Ed25519 en PKCS#8, OpenSSH, o base64/hex de la semilla.');
   process.exit(1);
 }
