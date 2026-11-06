@@ -179,6 +179,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
             locale: { type: 'string' },
             avatarUrl: { type: 'string', format: 'uri', nullable: true },
             profile: { type: 'object', nullable: true },
+            phone: { type: 'string', maxLength: 32, nullable: true },
+            address: { type: 'object', nullable: true },
           },
         },
       },
@@ -194,6 +196,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
         locale?: string;
         avatarUrl?: string | null;
         profile?: Record<string, unknown> | null;
+        phone?: string | null;
+        address?: Record<string, unknown> | null;
       };
       const data: Record<string, unknown> = {};
       if (body.displayName !== undefined) data.displayName = body.displayName;
@@ -209,6 +213,18 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
       }
       if (body.locale !== undefined) data.locale = body.locale;
       if (body.avatarUrl !== undefined) data.avatarUrl = body.avatarUrl;
+      if (body.phone !== undefined) data.phone = body.phone ? String(body.phone).slice(0, 32) : null;
+      if (body.address !== undefined) {
+        const allowed = ['street', 'city', 'province', 'postalCode', 'country'];
+        const addr = body.address && typeof body.address === 'object' && !Array.isArray(body.address) ? body.address : null;
+        const clean: Record<string, unknown> = {};
+        if (addr) {
+          for (const [k, v] of Object.entries(addr)) {
+            if (allowed.includes(k) && (typeof v === 'string' || v === null)) clean[k] = v === null ? '' : String(v).slice(0, 200);
+          }
+        }
+        data.address = Object.keys(clean).length ? clean : null;
+      }
       if (body.profile !== undefined) data.profile = body.profile as never;
       await fastify.prisma.user.update({ where: { id: request.user.sub }, data });
       const profile = await findUserWithPermissions(fastify, request.user.sub);

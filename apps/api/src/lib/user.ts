@@ -14,6 +14,8 @@ export interface UserProfile {
   locale: string;
   active: boolean;
   profile: Record<string, unknown> | null;
+  phone: string | null;
+  address: Record<string, unknown> | null;
   permissions: string[];
   /** Organización activa por defecto (scoping multi-tenant, ADR-0006). */
   orgId: string | null;
@@ -93,6 +95,8 @@ export async function findUserWithPermissions(
     locale: user.locale,
     active: user.active,
     profile: (user.profile as Record<string, unknown> | null) ?? null,
+    phone: user.phone ?? null,
+    address: (user.address as Record<string, unknown> | null) ?? null,
     permissions,
     orgId,
     chainId,
@@ -114,5 +118,7 @@ export function toPublicUser(profile: UserProfile) {
     locale: profile.locale,
     active: profile.active,
     profile: profile.profile,
+    phone: profile.phone,
+    address: profile.address,
   };
 }

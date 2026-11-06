@@ -189,6 +189,18 @@ export default definePlugin(manifest, {
       }
     };
 
+    // Intenta autenticar el token presente sin fallar: devuelve el user o null (anónimo).
+    const optionalUser = async (request: unknown): Promise<{ sub?: unknown; id?: unknown } | null> => {
+      const req = request as { jwtVerify?: () => Promise<void>; user?: { sub?: unknown; id?: unknown } };
+      if (!req.jwtVerify) return null;
+      try {
+        await req.jwtVerify();
+        return req.user ?? null;
+      } catch {
+        return null;
+      }
+    };
+
     // Scoping fail-closed (ADR-0006): fragmento `where` por tenant + preHandler.
     const requireTenant = (fastify as unknown as {
       requireTenant?: (req: unknown, reply: unknown) => Promise<void>;
@@ -315,16 +327,20 @@ export default definePlugin(manifest, {
     // Pedidos
     // ------------------------------------------------------------------
     fastify.get('/orders', { preHandler: [authenticate, requireTenant] }, async (request: unknown) => {
-      const { query } = request as { query?: { mine?: string } };
+      const api = fastify as unknown as {
+        resolveTenant?: (req: unknown) => Promise<{ isChainAdmin?: boolean; isSuperAdmin?: boolean }>;
+      };
+      const tenant = api.resolveTenant ? await api.resolveTenant(request) : null;
+      const isAdmin = Boolean(tenant?.isChainAdmin || tenant?.isSuperAdmin);
       const where: Record<string, unknown> = { ...(await resolveScope(request)) };
-      if (query?.mine === '1') {
+      if (!isAdmin) {
         const user = (request as { user?: { sub?: unknown; id?: unknown } }).user;
         where.userId = typeof user?.sub === 'string' ? user.sub : typeof user?.id === 'string' ? user.id : null;
       }
       return db.order.findMany({ where, orderBy: { createdAt: 'desc' } });
     });
 
-    fastify.post('/orders', { preHandler: [authenticate] }, async (request: unknown) => {
+    fastify.post('/orders', async (request: unknown) => {
       const { body } = request as {
         body?: {
           items?: Array<{ id: string; qty?: number; size?: string | null }>;
@@ -365,9 +381,46 @@ export default definePlugin(manifest, {
           cost: shippingCost,
         },
       };
+      const user = await optionalUser(request);
+      const userId = user && (typeof user.sub === 'string' ? user.sub : typeof user.id === 'string' ? user.id : null);
+      return db.order.create({ data: { items: [...items, shippingMeta], total, currency: 'ARS', status: 'pending', organizationId: await resolveOrgId(request), userId } });
+    });
+
+    // "Mis compras": órdenes del usuario con pago, factura y envío resueltos sin N+1.
+    fastify.get('/my-orders', { preHandler: [authenticate, requireTenant] }, async (request: unknown) => {
       const user = (request as { user?: { sub?: unknown; id?: unknown } }).user;
       const userId = typeof user?.sub === 'string' ? user.sub : typeof user?.id === 'string' ? user.id : null;
-      return db.order.create({ data: { items: [...items, shippingMeta], total, status: 'pending', organizationId: await resolveOrgId(request), userId } });
+      const scope = await resolveScope(request);
+      const orders = await db.order.findMany({
+        where: { ...scope, userId },
+        orderBy: { createdAt: 'desc' },
+        include: { payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      });
+      const ids = orders.map((o: { id: string }) => o.id);
+      const [invoices, shipments] = await Promise.all([
+        ids.length ? db.invoice.findMany({ where: { orderId: { in: ids } } }) : Promise.resolve([]),
+        ids.length ? db.shipment.findMany({ where: { orderId: { in: ids } } }) : Promise.resolve([]),
+      ]);
+      const invoiceByOrder = new Map((invoices as Array<{ orderId?: string | null }>).map((i) => [i.orderId, i]));
+      const shipmentByOrder = new Map((shipments as Array<{ orderId?: string | null }>).map((s) => [s.orderId, s]));
+      return orders.map(
+        (o: { id: string; status: string; total: number; currency: string; createdAt: unknown; items: unknown; payments: Array<Record<string, unknown>> }) => {
+          const payment = o.payments[0];
+          const invoice = invoiceByOrder.get(o.id) as Record<string, unknown> | undefined;
+          const shipment = shipmentByOrder.get(o.id) as Record<string, unknown> | undefined;
+          return {
+            id: o.id,
+            status: o.status,
+            total: o.total,
+            currency: o.currency,
+            createdAt: o.createdAt,
+            items: o.items,
+            payment: payment ? { id: payment.id, status: payment.status, provider: payment.provider, transactionId: payment.transactionId, paidAt: payment.paidAt } : null,
+            invoice: invoice ? { id: invoice.id, number: invoice.number, status: invoice.status } : null,
+            shipment: shipment ? { id: shipment.id, status: shipment.status, trackingCode: shipment.trackingNumber ?? null } : null,
+          };
+        },
+      );
     });
 
     fastify.patch('/orders/:id', async (request: unknown) => {

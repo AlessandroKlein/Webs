@@ -79,8 +79,19 @@ services:
       # 'unconfigured' y la activación se rechaza (400). La clave privada SOLO
       # va en la instancia del vendedor (para emitir claves de venta); NUNCA se
       # embebe en la app del cliente.
-      LICENSE_PUBLIC_KEY: ''
-      LICENSE_PRIVATE_KEY: ''
+      #
+      # El par de abajo es SOLO PARA ESTE STACK LOCAL (permite probar la compra
+      # de una licencia y su activación de punta a punta). Reemplazalo por el
+      # tuyo antes de vender: en producción el stack no arranca con
+      # LICENSE_MODE=dev, pero la privada de prueba no debe viajar a un server.
+      LICENSE_PUBLIC_KEY: |-
+        -----BEGIN PUBLIC KEY-----
+        MCowBQYDK2VwAyEAVi51PdTb5qA+1aUHgM9Gdw+AX4R0Ycn3Bs536I4vd/8=
+        -----END PUBLIC KEY-----
+      LICENSE_PRIVATE_KEY: |-
+        -----BEGIN PRIVATE KEY-----
+        MC4CAQAwBQYDK2VwBCIEIE4t4mME1OivNB+AoI21gD4md/4iYC5e4X8O1m6jX4yo
+        -----END PRIVATE KEY-----
       # Actualizaciones (t29/ADR-0010) — clave pública Ed25519 (PEM SPKI) que
       # verifica la firma de los artefactos de release (webs-<v>.tar.gz.sig).
       # Es pública. La PRIVADA se carga como secreto GitHub Actions

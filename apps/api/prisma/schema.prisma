@@ -57,6 +57,8 @@ model User {
   locale               String    @default("es")
   active               Boolean   @default(true)
   profile              Json?
+  phone                String?
+  address              Json?
   emailVerifiedAt      DateTime?
   twoFactorSecret      String?
   twoFactorEnabled     Boolean   @default(false)
@@ -79,6 +81,7 @@ model User {
   auditLogs AuditLog[]
   content   Content[]  @relation("ContentAuthor")
   settings  Setting[]  @relation("SettingEditor")
+  blogPosts BlogPost[]
 
   @@map("users")
 }
@@ -244,6 +247,7 @@ model Order {
   userId         String?
   status         String   @default("pending")
   total          Int      @default(0)
+  currency       String   @default("ARS")
   items          Json     @default("[]")
   createdAt      DateTime @default(now())
 
@@ -270,16 +274,25 @@ model Booking {
 }
 
 model BlogPost {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   organizationId String
   title          String
   body           String
+  slug           String?
+  excerpt        String?
+  featuredImage  String?
   category       String?
-  tags           Json     @default("[]")
-  status         String   @default("draft")
-  createdAt      DateTime @default(now())
+  tags           Json      @default("[]")
+  status         String    @default("draft")
+  authorId       String?
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  author   User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  comments Comment[]
 
   @@index([organizationId])
+  @@unique([organizationId, slug])
   @@map("blog_posts")
 }
 
@@ -328,14 +341,18 @@ model Routine {
 }
 
 model Comment {
-  id             String   @id @default(uuid())
+  id             String    @id @default(uuid())
   organizationId String
+  postId         String?
   author         String
   body           String
-  rating         Int      @default(5)
-  createdAt      DateTime @default(now())
+  rating         Int       @default(5)
+  createdAt      DateTime  @default(now())
+
+  post BlogPost? @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([organizationId])
+  @@index([postId])
   @@map("comments")
 }
 
@@ -1050,6 +1067,7 @@ model LicenseSale {
   amount         Int?
   currency       String       @default("ARS")
   notes          String?
+  paymentId      String?      @unique
   soldAt         DateTime     @default(now())
   createdAt      DateTime     @default(now())
   keys           LicenseKey[]
@@ -1071,6 +1089,7 @@ model LicenseKey {
   fingerprint    String?
   activationKey  String       @unique
   status         String       @default("active")
+  activations    Json         @default("[]")
   issuedAt       DateTime     @default(now())
   expiresAt      DateTime?
   revokedAt      DateTime?

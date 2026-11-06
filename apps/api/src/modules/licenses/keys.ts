@@ -277,6 +277,67 @@ export default async function licenseKeysRoutes(fastify: FastifyInstance): Promi
     },
   );
 
+  // Activación real de una clave vendida (sin sesión): el cliente prueba que
+  // posee la clave + el fingerprint; consume hasta `limits.activations` veces.
+  fastify.post(
+    '/activate-key',
+    {
+      schema: {
+        tags: ['license'],
+        body: {
+          type: 'object',
+          required: ['activationKey', 'fingerprint'],
+          properties: {
+            activationKey: { type: 'string', minLength: 8 },
+            fingerprint: { type: 'string' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { activationKey, fingerprint } = request.body as { activationKey: string; fingerprint: string };
+      const publicKeyPem = config.LICENSE_PUBLIC_KEY?.trim();
+      if (!publicKeyPem) {
+        throw new BadRequestError('Licencias no configuradas: definí LICENSE_PUBLIC_KEY');
+      }
+      try {
+        verifyActivationKey(activationKey, { publicKeyPem, fingerprint });
+      } catch (err) {
+        return (reply as { status: (c: number) => { send: (b: unknown) => unknown } })
+          .status(400)
+          .send({ error: err instanceof Error ? err.message : 'Clave inválida para esta máquina' });
+      }
+      const key = await prisma.licenseKey.findUnique({ where: { activationKey } });
+      if (!key) {
+        return (reply as { status: (c: number) => { send: (b: unknown) => unknown } })
+          .status(404)
+          .send({ error: 'Clave no registrada' });
+      }
+      if (key.status !== 'active') {
+        return (reply as { status: (c: number) => { send: (b: unknown) => unknown } })
+          .status(409)
+          .send({ error: 'Clave revocada o inactiva' });
+      }
+      const limits = (key.limits as { activations?: unknown } | null) ?? {};
+      const rawMax = typeof limits.activations === 'number' ? limits.activations : 1;
+      const max = Number.isFinite(rawMax) ? Math.max(1, Math.trunc(rawMax)) : 1;
+      const list = Array.isArray(key.activations)
+        ? (key.activations as unknown[]).filter((f): f is string => typeof f === 'string')
+        : [];
+      if (list.includes(fingerprint)) {
+        return { ok: true, alreadyActive: true, activationsUsed: list.length, max };
+      }
+      if (list.length >= max) {
+        return (reply as { status: (c: number) => { send: (b: unknown) => unknown } })
+          .status(409)
+          .send({ error: 'Límite de activaciones alcanzado', activationsUsed: list.length, max });
+      }
+      const next = [...list, fingerprint];
+      await prisma.licenseKey.update({ where: { id: key.id }, data: { activations: next } });
+      return { ok: true, alreadyActive: false, activationsUsed: next.length, max };
+    },
+  );
+
   fastify.post(
     '/keys/:id/revoke',
     {
