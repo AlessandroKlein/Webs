@@ -202,6 +202,23 @@ export default definePlugin(manifest, {
       return { organizationId: ROOT_ORG_ID };
     };
 
+    // Cada pago aprobado con `orderId` marca su orden como pagada (idempotente).
+    const events = (fastify as unknown as {
+      events?: { on?: (event: string, handler: (payload: Record<string, unknown>) => Promise<void>) => void };
+    }).events;
+    events?.on?.('payment.approved', async (payload) => {
+      const payment = (payload?.payment ?? {}) as { orderId?: string };
+      if (!payment.orderId) return;
+      try {
+        await db.order.updateMany({ where: { id: payment.orderId, status: { not: 'paid' } }, data: { status: 'paid' } });
+      } catch (err) {
+        (fastify as unknown as { log?: { warn?: (o: unknown, m: string) => void } }).log?.warn?.(
+          { err },
+          'No se pudo marcar la orden como pagada tras payment.approved',
+        );
+      }
+    });
+
     // ------------------------------------------------------------------
     // Productos (CRUD)
     // ------------------------------------------------------------------
@@ -297,11 +314,17 @@ export default definePlugin(manifest, {
     // ------------------------------------------------------------------
     // Pedidos
     // ------------------------------------------------------------------
-    fastify.get('/orders', { preHandler: [authenticate, requireTenant] }, async (request: unknown) =>
-      db.order.findMany({ where: await resolveScope(request), orderBy: { createdAt: 'desc' } }),
-    );
+    fastify.get('/orders', { preHandler: [authenticate, requireTenant] }, async (request: unknown) => {
+      const { query } = request as { query?: { mine?: string } };
+      const where: Record<string, unknown> = { ...(await resolveScope(request)) };
+      if (query?.mine === '1') {
+        const user = (request as { user?: { sub?: unknown; id?: unknown } }).user;
+        where.userId = typeof user?.sub === 'string' ? user.sub : typeof user?.id === 'string' ? user.id : null;
+      }
+      return db.order.findMany({ where, orderBy: { createdAt: 'desc' } });
+    });
 
-    fastify.post('/orders', async (request: unknown) => {
+    fastify.post('/orders', { preHandler: [authenticate] }, async (request: unknown) => {
       const { body } = request as {
         body?: {
           items?: Array<{ id: string; qty?: number; size?: string | null }>;
@@ -342,7 +365,9 @@ export default definePlugin(manifest, {
           cost: shippingCost,
         },
       };
-      return db.order.create({ data: { items: [...items, shippingMeta], total, status: 'pending', organizationId: await resolveOrgId(request) } });
+      const user = (request as { user?: { sub?: unknown; id?: unknown } }).user;
+      const userId = typeof user?.sub === 'string' ? user.sub : typeof user?.id === 'string' ? user.id : null;
+      return db.order.create({ data: { items: [...items, shippingMeta], total, status: 'pending', organizationId: await resolveOrgId(request), userId } });
     });
 
     fastify.patch('/orders/:id', async (request: unknown) => {

@@ -32,6 +32,7 @@ export interface CheckoutPaymentInput extends PaymentProviderInput {
   provider: string;
   organizationId: string;
   userId?: string | null;
+  orderId?: string | null;
 }
 
 /**
@@ -60,6 +61,7 @@ export async function createCheckoutPayment(
       organizationId: input.organizationId,
       externalReference: input.externalReference ?? null,
       idempotencyKey: input.idempotencyKey ?? null,
+      orderId: input.orderId ?? null,
       metadata: input.metadata ? (input.metadata as Prisma.InputJsonValue) : undefined,
     },
   });

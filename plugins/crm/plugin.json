@@ -1,0 +1,57 @@
+{
+  "name": "@webs/plugin-crm",
+  "id": "crm",
+  "version": "0.1.0",
+  "type": "plugin",
+  "displayName": {
+    "en": "CRM",
+    "es": "CRM"
+  },
+  "description": {
+    "en": "Contacts, companies, deals pipeline and activities.",
+    "es": "Contactos, empresas, pipeline de negocios y actividades."
+  },
+  "author": "Webs",
+  "license": "MIT",
+  "category": "negocio",
+  "menu": [
+    {
+      "id": "admin",
+      "label": {
+        "en": "CRM",
+        "es": "CRM"
+      },
+      "path": "/admin/crm",
+      "section": "ventas",
+      "order": 7,
+      "target": "admin"
+    }
+  ],
+  "permissions": [
+    "crm.read",
+    "crm.write"
+  ],
+  "entry": "./dist/server.js",
+  "clientEntry": "./dist/client.js",
+  "apiVersion": "1.0.0",
+  "feature": "crm",
+  "slots": [
+    "content"
+  ],
+  "settings": {
+    "type": "object",
+    "title": "CRM",
+    "properties": {
+      "currency": {
+        "type": "string",
+        "title": "Moneda",
+        "enum": [
+          "ARS",
+          "USD",
+          "EUR"
+        ],
+        "default": "ARS"
+      }
+    }
+  }
+}

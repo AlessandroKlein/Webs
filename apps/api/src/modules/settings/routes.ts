@@ -50,14 +50,18 @@ export default async function settingsRoutes(fastify: FastifyInstance): Promise<
   // Menú principal público (items guardados en la tabla `menu`, clave `main`,
   // más los items de menú nativos declarados por los plugins instalados).
   fastify.get('/public/menu', { schema: { tags: ['settings'] } }, async () => {
-    const menu = await fastify.prisma.menu.findUnique({ where: { key: 'main' } });
+    const [menu, enabled] = await Promise.all([
+      fastify.prisma.menu.findUnique({ where: { key: 'main' } }),
+      fastify.prisma.pluginInstallation.findMany({ where: { enabled: true }, select: { pluginId: true } }),
+    ]);
     const coreItems = ((menu?.items as Array<{ label: string; path: string; order?: number }>) ?? []).map((item) => ({
       ...item,
       feature: 'core',
     }));
     // El sitio público no tiene LicenseProvider: filtramos los items premium no
-    // licenciados (ADR-0019). Los items `core` siempre se incluyen.
-    const pluginItems = collectPluginMenuItems('public').filter((item) => isLicensed(fastify, item.feature));
+    // licenciados (ADR-0019) y los de plugins desactivados. Los `core` siempre van.
+    const active = new Set(enabled.map((installation) => installation.pluginId));
+    const pluginItems = collectPluginMenuItems('public', active).filter((item) => isLicensed(fastify, item.feature));
     return { items: [...coreItems, ...pluginItems] };
   });
 

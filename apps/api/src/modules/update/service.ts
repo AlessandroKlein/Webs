@@ -6,6 +6,7 @@ import path from 'node:path';
 import type { FastifyInstance } from 'fastify';
 import { ConflictError, NotFoundError } from '@webs/core';
 import { SYSTEM_VERSION } from '../system';
+import { compareVersions } from '../../lib/semver';
 import { sha256File, verifyEd25519 } from './verify';
 import {
   applyBare,
@@ -112,7 +113,7 @@ export async function checkUpdate(): Promise<AppUpdateInfo> {
   return {
     version: SYSTEM_VERSION,
     latest,
-    hasUpdate: latest !== SYSTEM_VERSION,
+    hasUpdate: compareVersions(latest, SYSTEM_VERSION) > 0,
     changelog,
     tag,
     releaseUrl,
@@ -177,7 +178,10 @@ async function healthcheck(port: number, timeoutMs = 30_000): Promise<void> {
 export async function startApply(fastify: FastifyInstance, body: ApplyBody): Promise<UpdateRecord> {
   const info = await checkUpdate();
   const toVersion = (body.version ?? info.latest).replace(/^v/, '');
-  if (toVersion === SYSTEM_VERSION && !body.version) {
+  if (!/^\d+\.\d+\.\d+/.test(toVersion)) {
+    throw new ConflictError(`Versión inválida: ${toVersion}`);
+  }
+  if (compareVersions(toVersion, SYSTEM_VERSION) <= 0) {
     throw new ConflictError(`Ya estás en la última versión (${SYSTEM_VERSION})`);
   }
 

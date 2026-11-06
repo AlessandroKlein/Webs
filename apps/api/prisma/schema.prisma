@@ -73,6 +73,7 @@ model User {
   apiTokens ApiToken[]
   passkeys  Passkey[]
   payments  Payment[]
+  orders    Order[]
   expenses  Expense[]
   otpCodes  OtpCode[]
   auditLogs AuditLog[]
@@ -240,12 +241,17 @@ model Product {
 model Order {
   id             String   @id @default(uuid())
   organizationId String
+  userId         String?
   status         String   @default("pending")
   total          Int      @default(0)
   items          Json     @default("[]")
   createdAt      DateTime @default(now())
 
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  payments Payment[]
+
   @@index([organizationId])
+  @@index([userId])
   @@map("orders")
 }
 
@@ -542,6 +548,10 @@ model Organization {
   warehouses     Warehouse[]
   iotDevices     IotDevice[]
   iotDeviceEvents IotDeviceEvent[]
+  crmContacts    CrmContact[]
+  crmCompanies   CrmCompany[]
+  crmDeals       CrmDeal[]
+  crmActivities  CrmActivity[]
   createdAt      DateTime         @default(now())
 
   @@index([parentId])
@@ -920,8 +930,10 @@ model Payment {
   status            String    @default("pending")
   userId            String?
   user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order             Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
   externalReference String?
   idempotencyKey    String?
+  orderId           String?
   metadata          Json?
   errorMessage      String?
   paidAt            DateTime?
@@ -932,6 +944,7 @@ model Payment {
   @@index([organizationId])
   @@index([provider])
   @@index([userId])
+  @@index([orderId])
   @@index([status])
   @@map("payments")
 }
@@ -1316,4 +1329,96 @@ model IotDeviceConfigVersion {
   @@unique([deviceId, version])
   @@index([deviceId, createdAt])
   @@map("iot_device_config_versions")
+}
+
+// ---- CRM (plugin @webs/plugin-crm) ----
+// `amount` es Int en CENTAVOS (convención del repo: no se usa Decimal).
+// Etapas FIJAS del pipeline: prospecting, qualified, proposal, negotiation, won, lost.
+
+model CrmContact {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  email          String?
+  phone          String?
+  companyId      String?
+  company        CrmCompany?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  title          String?
+  ownerId        String?
+  metadata       Json          @default("{}")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deals          CrmDeal[]
+  activities     CrmActivity[]
+
+  @@index([organizationId])
+  @@index([organizationId, email])
+  @@map("crm_contacts")
+}
+
+model CrmCompany {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  domain         String?
+  industry       String?
+  phone          String?
+  website        String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  contacts       CrmContact[]
+  deals          CrmDeal[]
+
+  @@index([organizationId])
+  @@index([organizationId, domain])
+  @@map("crm_companies")
+}
+
+model CrmDeal {
+  id              String        @id @default(uuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title           String
+  contactId       String?
+  contact         CrmContact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId       String?
+  company         CrmCompany?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  amount          Int           @default(0)
+  currency        String        @default("ARS")
+  stage           String        @default("prospecting")
+  probability     Int?
+  expectedCloseAt DateTime?
+  ownerId         String?
+  closedAt        DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  activities      CrmActivity[]
+
+  @@index([organizationId])
+  @@index([organizationId, stage])
+  @@map("crm_deals")
+}
+
+model CrmActivity {
+  id             String        @id @default(uuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  type           String        @default("task") // call | email | meeting | task
+  subject        String
+  notes          String?
+  dueAt          DateTime?
+  doneAt         DateTime?
+  contactId      String?
+  contact        CrmContact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  dealId         String?
+  deal           CrmDeal?      @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([contactId])
+  @@index([dealId])
+  @@map("crm_activities")
 }

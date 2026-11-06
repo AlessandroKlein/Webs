@@ -15,6 +15,7 @@ const checkoutSchema = z.object({
   description: z.string().optional(),
   externalReference: z.string().optional(),
   idempotencyKey: z.string().optional(),
+  orderId: z.string().optional(),
   items: z
     .array(
       z.object({
@@ -135,6 +136,11 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
       if (!organizationId) {
         throw new BadRequestError('Se requiere una organización activa para iniciar un pago');
       }
+      if (input.orderId) {
+        const scope = await resolveScope(fastify, request.tenant!);
+        const order = await fastify.prisma.order.findFirst({ where: { id: input.orderId, ...scope } });
+        if (!order) throw new NotFoundError('Orden');
+      }
       const payment = await createCheckoutPayment(fastify, {
         provider: input.provider,
         amount: input.amount,
@@ -142,6 +148,7 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
         description: input.description,
         externalReference: input.externalReference,
         idempotencyKey: input.idempotencyKey,
+        orderId: input.orderId,
         items: input.items,
         metadata: input.metadata,
         organizationId,
@@ -247,7 +254,7 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
 
       if (webhook.status === 'approved' && fastify.events) {
         await fastify.events.emit('payment.approved', {
-          payment: { id: payment.id, transactionId: webhook.transactionId, amount: payment.amount, currency: payment.currency },
+          payment: { id: payment.id, transactionId: webhook.transactionId, amount: payment.amount, currency: payment.currency, orderId: payment.orderId },
         });
       }
 
@@ -331,7 +338,7 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
       await fastify.prisma.payment.update({ where: { id }, data: { status: 'approved', paidAt: new Date() } });
       if (fastify.events) {
         await fastify.events.emit('payment.approved', {
-          payment: { id: payment.id, transactionId: payment.transactionId, amount: payment.amount, currency: payment.currency },
+          payment: { id: payment.id, transactionId: payment.transactionId, amount: payment.amount, currency: payment.currency, orderId: payment.orderId },
         });
       }
       return { ok: true, id: payment.id, status: 'approved' };

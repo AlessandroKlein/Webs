@@ -82,8 +82,12 @@ export default async function menuRoutes(fastify: FastifyInstance): Promise<void
     '/menu',
     { schema: { tags: ['menu'] }, preHandler: [fastify.authenticate, fastify.authorize('setting.read')] },
     async () => {
-      const menu = await fastify.prisma.menu.findUnique({ where: { key: 'admin' } });
-      return { items: buildAdminMenu(menu?.items, collectPluginMenuItems('admin')) };
+      const [menu, enabled] = await Promise.all([
+        fastify.prisma.menu.findUnique({ where: { key: 'admin' } }),
+        fastify.prisma.pluginInstallation.findMany({ where: { enabled: true }, select: { pluginId: true } }),
+      ]);
+      const active = new Set(enabled.map((installation) => installation.pluginId));
+      return { items: buildAdminMenu(menu?.items, collectPluginMenuItems('admin', active)) };
     },
   );
 

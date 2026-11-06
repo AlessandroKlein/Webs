@@ -90,6 +90,10 @@ const PERMISSIONS: Array<{ key: string; description: string }> = [
   // IoT / telemetría (ADR-0027/0028)
   { key: 'iot.read', description: 'Ver dispositivos IoT y telemetría' },
   { key: 'iot.write', description: 'Gestionar dispositivos IoT' },
+
+  // CRM
+  { key: 'crm.read', description: 'Ver contactos, empresas, deals y actividades' },
+  { key: 'crm.write', description: 'Gestionar contactos, empresas, deals y actividades' },
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSIONS.map((p) => p.key);
@@ -111,9 +115,7 @@ const CORE_MENU_ITEMS: Array<{
   permissions: string[];
 }> = [
   { label: 'nav.dashboard', path: '/admin', section: 'panel', order: 1, feature: 'core', permissions: [] },
-  { label: 'nav.content', path: '/admin/content', section: 'contenido', order: 2, feature: 'core', permissions: ['content.read'] },
   { label: 'nav.pages', path: '/admin/pages', section: 'contenido', order: 3, feature: 'core', permissions: ['content.read'] },
-  { label: 'nav.editor', path: '/admin/editor', section: 'contenido', order: 4, feature: 'core', permissions: ['content.write'] },
   { label: 'nav.payments', path: '/admin/payments', section: 'ventas', order: 5, feature: 'core', permissions: ['user.read'] },
   { label: 'nav.email', path: '/admin/email', section: 'comunicacion', order: 6, feature: 'core', permissions: ['email.read'] },
   { label: 'nav.support', path: '/admin/support', section: 'comunicacion', order: 7, feature: 'core', permissions: ['support.read'] },
@@ -199,7 +201,7 @@ const ROLES: Array<{
     name: 'Cajero / Vendedor',
     description: 'Ventas, caja y consulta de stock.',
     system: false,
-    permissions: ['sales.manage', 'inventory.read', 'billing.read', 'refund.manage'],
+    permissions: ['sales.manage', 'crm.read', 'crm.write', 'inventory.read', 'billing.read', 'refund.manage'],
   },
   {
     key: 'soporte',

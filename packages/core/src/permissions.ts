@@ -31,6 +31,7 @@ export const PERMISSION_AREAS = [
   'analytics',
   'hr',
   'sales',
+  'crm',
   'academy',
   'reports',
   'generated',
@@ -127,6 +128,9 @@ export const PERMISSION_CATALOG: PermissionDefinition[] = [
   { key: 'hr.manage', description: 'Gestionar recursos humanos', area: 'hr' },
   // sales
   { key: 'sales.manage', description: 'Gestionar ventas y caja', area: 'sales' },
+  // crm
+  { key: 'crm.read', description: 'Ver contactos, empresas, deals y actividades', area: 'crm' },
+  { key: 'crm.write', description: 'Gestionar contactos, empresas, deals y actividades', area: 'crm' },
   // academy
   { key: 'course.manage', description: 'Gestionar cursos y capacitaciones', area: 'academy' },
   // reports

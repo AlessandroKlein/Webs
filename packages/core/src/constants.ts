@@ -136,6 +136,10 @@ export const Permission = {
   // Informes / auditoría
   ReportExport: 'report.export',
   AuditExport: 'audit.export',
+
+  // CRM
+  CrmRead: 'crm.read',
+  CrmWrite: 'crm.write',
 } as const;
 
 export type PermissionValue = (typeof Permission)[keyof typeof Permission];

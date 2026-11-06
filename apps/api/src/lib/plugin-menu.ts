@@ -63,9 +63,13 @@ export interface ResolvedPluginMenuItem {
  * indicado (`public` = sitio público, `admin` = panel de administración).
  * Se integran de forma nativa (sin categoría "Plugins").
  */
-export function collectPluginMenuItems(scope: 'public' | 'admin'): ResolvedPluginMenuItem[] {
+export function collectPluginMenuItems(
+  scope: 'public' | 'admin',
+  allowedPluginIds?: ReadonlySet<string>,
+): ResolvedPluginMenuItem[] {
   const items: ResolvedPluginMenuItem[] = [];
   for (const { pluginId, items: pluginItems } of pluginRegistry.getMenuItems()) {
+    if (allowedPluginIds && !allowedPluginIds.has(pluginId)) continue;
     const manifest = resolveManifest(pluginId);
     for (const item of pluginItems) {
       const target = item.target ?? 'both';
