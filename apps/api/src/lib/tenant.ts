@@ -19,6 +19,27 @@ export const DEFAULT_ORG_ID = '00000000-0000-4000-8000-000000000001';
 /** Roles de membresía que otorgan administración de una organización (y su cadena). */
 export const CHAIN_ADMIN_ROLES = ['admin', 'owner'];
 
+/**
+ * Asegura que el usuario tenga una membresía, así `requireTenant` puede
+ * resolver su organización. Sin esto, un comprador recién registrado recibe
+ * 403 al pagar o al abrir "Mis compras".
+ */
+export async function ensureRootMembership(fastify: FastifyInstance, userId: string): Promise<void> {
+  const existing = await fastify.prisma.membership.findFirst({
+    where: { userId },
+    select: { id: true },
+  });
+  if (existing) return;
+  const rootOrg = await fastify.prisma.organization.findUnique({
+    where: { id: DEFAULT_ORG_ID },
+    select: { id: true },
+  });
+  if (!rootOrg) return;
+  await fastify.prisma.membership.create({
+    data: { organizationId: rootOrg.id, userId, role: 'user', status: 'active' },
+  });
+}
+
 interface TenantUser {
   sub?: string;
   orgId?: string | null;

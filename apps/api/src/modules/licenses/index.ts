@@ -46,6 +46,15 @@ export default async function licenseModule(fastify: FastifyInstance): Promise<v
       fastify.log.warn('Venta de licencia ignorada: falta LICENSE_PRIVATE_KEY o metadata.fingerprint');
       return;
     }
+    // Licensify deriva la clave de cifrado del fingerprint en hex: un valor con
+    // otro formato haría fallar la emisión y, con ella, el webhook del pago.
+    if (!/^[0-9a-f]+$/i.test(fingerprint) || fingerprint.length % 2 !== 0 || fingerprint.length < 16) {
+      fastify.log.warn(
+        { paymentId: payment.id },
+        'Venta de licencia ignorada: metadata.fingerprint no es un hash hex válido',
+      );
+      return;
+    }
 
     const productId = meta.productId ?? meta.licensePlanId ?? 'license';
     const licensee = meta.licensee ?? 'Cliente';
@@ -94,10 +103,9 @@ export default async function licenseModule(fastify: FastifyInstance): Promise<v
         fastify.log.info({ paymentId: payment.id }, 'licencia ya emitida para este pago (idempotente)');
         return;
       }
-      // Se relanza para que el evento no se marque como entregado: el reintento
-      // vuelve a intentar la emisión completa.
+      // Nunca se relanza: un fallo emitiendo la licencia no debe romper el
+      // webhook del pago (el cobro ya ocurrió). Queda el log para reintentar a mano.
       fastify.log.error({ err, paymentId: payment.id }, 'no se pudo emitir la licencia');
-      throw err;
     }
   });
 }

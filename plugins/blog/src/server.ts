@@ -23,6 +23,10 @@ const cleanPostBody = (html: string): string =>
     },
   });
 
+/** Los comentarios son texto plano: se quitan todas las etiquetas. */
+const cleanComment = (text: string): string =>
+  sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} }).trim();
+
 /** Organización raíz por defecto (fallback single-tenant), idéntico a `DEFAULT_ORG_ID` de apps/api. */
 const ROOT_ORG_ID = '00000000-0000-4000-8000-000000000001';
 
@@ -212,7 +216,12 @@ export default definePlugin(manifest, {
         select: { id: true },
       });
       if (!post) return [];
-      return db.comment.findMany({ where: { postId: post.id }, orderBy: { createdAt: 'asc' } });
+      const comments = await db.comment.findMany({
+        where: { postId: post.id },
+        orderBy: { createdAt: 'asc' },
+      });
+      // Sanea también al leer: comentarios guardados antes del fix pueden traer HTML.
+      return comments.map((c: { body: string }) => ({ ...c, body: cleanComment(c.body) }));
     });
 
     fastify.post('/posts/:slug/comments', { preHandler: [authenticate] }, async (request: unknown, reply: unknown) => {
@@ -243,7 +252,7 @@ export default definePlugin(manifest, {
       return db.comment.create({
         data: {
           author,
-          body: content.slice(0, 4000),
+          body: cleanComment(content.slice(0, 4000)),
           rating: Math.min(5, Math.max(1, Math.round(Number(body?.rating ?? 5) || 5))),
           organizationId,
           postId: post.id,

@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { ConflictError, NotFoundError } from '@webs/core';
 import { findUserWithPermissions, toPublicUser, type UserProfile } from '../../lib/user';
+import { ensureRootMembership } from '../../lib/tenant';
 
 export interface ListUsersOptions {
   page: number;
@@ -69,6 +70,10 @@ export async function createUser(
   });
 
   await syncRoles(fastify, user.id, input.roles ?? ['user']);
+
+  // Sin membership, `requireTenant` devuelve 403 y el comprador recién
+  // registrado no puede pagar ni ver "Mis compras".
+  await ensureRootMembership(fastify, user.id);
 
   const profile = await findUserWithPermissions(fastify, user.id);
   if (!profile) throw new NotFoundError('Usuario');

@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import type { FastifyInstance } from 'fastify';
-import { BadRequestError, ConflictError, UnauthorizedError } from '@webs/core';
+import { ForbiddenError, BadRequestError, ConflictError, UnauthorizedError } from '@webs/core';
 import { findUserWithPermissions, type UserProfile } from '../../lib/user';
 import {
   resetEmailHtml,
@@ -12,6 +12,7 @@ import type { AccessTokenPayload } from '../../types/auth';
 import { emitEvent } from '../email/events';
 import { verifyTwoFactorCode } from './two-factor';
 import { sendSmsOtp, verifySmsOtp } from './sms-otp';
+import { ensureRootMembership } from '../../lib/tenant';
 
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 15; // 15 minutos
 export const REFRESH_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
@@ -102,7 +103,16 @@ export async function login(
   const user = await fastify.prisma.user.findFirst({
     where: { OR: [{ email: identifier }, { username: identifier }] },
   });
-  if (!user || !user.active) {
+  if (!user) {
+    throw new UnauthorizedError('Correo o contraseña inválidos');
+  }
+
+  // Cuenta creada pero todavía sin aprobar: se avisa con 403 en vez de un 401
+  // genérico, siempre que la contraseña sea correcta (no filtra cuentas ajenas).
+  if (!user.active) {
+    if (await bcrypt.compare(password, user.passwordHash)) {
+      throw new ForbiddenError('Tu cuenta está pendiente de aprobación por un administrador');
+    }
     throw new UnauthorizedError('Correo o contraseña inválidos');
   }
 
@@ -202,6 +212,8 @@ export async function registerUser(
   if (userRole) {
     await fastify.prisma.userRole.create({ data: { userId: user.id, roleId: userRole.id } });
   }
+
+  await ensureRootMembership(fastify, user.id);
 
   const profile = await findUserWithPermissions(fastify, user.id);
   if (!profile) throw new UnauthorizedError();

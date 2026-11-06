@@ -254,7 +254,7 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
 
       if (webhook.status === 'approved' && fastify.events) {
         await fastify.events.emit('payment.approved', {
-          payment: { id: payment.id, transactionId: webhook.transactionId, amount: payment.amount, currency: payment.currency, orderId: payment.orderId },
+          payment: { id: payment.id, transactionId: webhook.transactionId, amount: payment.amount, currency: payment.currency, orderId: payment.orderId, organizationId: payment.organizationId, metadata: payment.metadata },
         });
       }
 
@@ -338,7 +338,7 @@ export default async function paymentsRoutes(fastify: FastifyInstance): Promise<
       await fastify.prisma.payment.update({ where: { id }, data: { status: 'approved', paidAt: new Date() } });
       if (fastify.events) {
         await fastify.events.emit('payment.approved', {
-          payment: { id: payment.id, transactionId: payment.transactionId, amount: payment.amount, currency: payment.currency, orderId: payment.orderId },
+          payment: { id: payment.id, transactionId: payment.transactionId, amount: payment.amount, currency: payment.currency, orderId: payment.orderId, organizationId: payment.organizationId, metadata: payment.metadata },
         });
       }
       return { ok: true, id: payment.id, status: 'approved' };
