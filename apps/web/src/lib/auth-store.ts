@@ -2,12 +2,22 @@ import { create } from 'zustand';
 import { api } from './api';
 import { setAccessToken } from './token';
 
+export interface Address {
+  street: string;
+  city: string;
+  province: string;
+  postalCode: string;
+  country: string;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
   displayName: string | null;
   avatarUrl: string | null;
   locale: string;
+  phone?: string | null;
+  address?: Address | null;
 }
 
 interface AuthState {
@@ -18,6 +28,7 @@ interface AuthState {
   finalizeAuth: (accessToken: string, user: AuthUser) => Promise<void>;
   logout: () => Promise<void>;
   bootstrap: () => Promise<void>;
+  patchProfile: (patch: { phone?: string; address?: Address }) => Promise<void>;
   hasPermission: (permission: string) => boolean;
 }
 
@@ -67,6 +78,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch {
       set({ user: null, permissions: [], status: 'unauthenticated' });
     }
+  },
+
+  patchProfile: async (patch) => {
+    await api.patch('/api/v1/auth/me', patch);
+    set((state) => ({
+      user: state.user
+        ? {
+            ...state.user,
+            ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
+            ...(patch.address !== undefined ? { address: patch.address } : {}),
+          }
+        : state.user,
+    }));
   },
 
   hasPermission: (permission) => get().permissions.includes(permission),

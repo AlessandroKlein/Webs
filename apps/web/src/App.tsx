@@ -48,6 +48,7 @@ import { AuthConfigPage } from './features/auth-config/AuthConfigPage';
 import { PublicHome } from './features/public/PublicHome';
 import { PublicPage } from './features/public/PublicPage';
 import { BlogListPage } from './features/public/BlogListPage';
+import { BlogPostPage } from './features/public/BlogPostPage';
 import { ClassesPage } from './features/public/ClassesPage';
 import { SocialPublicPage } from './features/public/SocialPublicPage';
 import { UserDashboardPage } from './features/dashboard/UserDashboardPage';
@@ -149,6 +150,7 @@ function MainApp() {
         <Route path="/checkout" element={<RequireAuth><SiteLayout><CheckoutPage /></SiteLayout></RequireAuth>} />
         <Route path="/" element={<PublicHome />} />
         <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
         <Route path="/clases" element={<ClassesPage />} />
         <Route path="/social" element={<SocialPublicPage />} />
         <Route path="/dashboard" element={<RequireAuth><SiteLayout><UserDashboardPage /></SiteLayout></RequireAuth>} />

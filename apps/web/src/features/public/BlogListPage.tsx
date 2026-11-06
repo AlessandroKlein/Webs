@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -9,47 +9,27 @@ import { SupportWidget } from '../../components/SupportWidget';
 
 interface BlogPost {
   id: string;
+  slug: string;
   title: string;
   body: string;
+  excerpt: string | null;
+  featuredImage: string | null;
   category: string | null;
   tags: string[];
   status: string;
   createdAt: string;
+  publishedAt: string | null;
+  authorId: string | null;
+}
+
+interface BlogPostsResponse {
+  items: BlogPost[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 const PAGE_SIZE = 10;
-
-/** Convierte un fragmento HTML en texto plano (decodificando entidades). */
-function stripHtml(html: string): string {
-  try {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    return (doc.body.textContent ?? '').replace(/\s+/g, ' ').trim();
-  } catch {
-    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-  }
-}
-
-/** Extrae un resumen de hasta `max` caracteres (texto plano) del cuerpo del post. */
-function excerptFrom(body: string, max = 200): string {
-  const looksHtml = /<\/?[a-z][\s\S]*>/i.test(body);
-  const text = looksHtml ? stripHtml(body) : body.replace(/\s+/g, ' ').trim();
-  if (!text) return '';
-  return text.length <= max ? text : `${text.slice(0, max).trimEnd()}…`;
-}
-
-/** Devuelve la URL de la primera imagen del HTML del cuerpo, o `null`. */
-function extractImage(html: string): string | null {
-  try {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    const src = doc.querySelector('img')?.getAttribute('src');
-    if (src && src.trim()) return src.trim();
-  } catch {
-    /* fallback por regex */
-  }
-  const m = /<img[^>]+src=["']([^"']+)["']/i.exec(html);
-  const fallback = m?.[1]?.trim();
-  return fallback || null;
-}
 
 /** Formatea una fecha ISO a un formato legible en español (Argentina). */
 function formatDate(iso: string): string {
@@ -59,36 +39,29 @@ function formatDate(iso: string): string {
 }
 
 /**
- * Blog público (`/blog`): lista los posts publicados, ordenados por fecha
- * descendente, con paginación (máx. 10 por página). Cada tarjeta muestra la
- * imagen (si el cuerpo referencia una, o un placeholder), título, fecha,
- * categoría/tags, un resumen y un botón "Leer más" que expande el cuerpo
- * completo (HTML) en la propia tarjeta.
+ * Blog público (`/blog`): lista los posts publicados con paginación
+ * server-side (límite/offset). Cada tarjeta enlaza al detalle `/blog/:slug`.
  */
 export function BlogListPage() {
   const { t } = useTranslation();
-  const { data: posts, isLoading, isError } = useQuery({
-    queryKey: ['public-blog-posts'],
-    queryFn: () => api.get<BlogPost[]>('/api/v1/blocks/blog/posts?status=published'),
+  const [page, setPage] = useState(0);
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['public-blog-posts', page],
+    queryFn: () =>
+      api.get<BlogPostsResponse>(
+        `/api/v1/blocks/blog/posts?status=published&limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`,
+      ),
     retry: 0,
   });
 
-  const [page, setPage] = useState(0);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const sorted = useMemo(() => {
-    const list = [...(posts ?? [])];
-    list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    return list;
-  }, [posts]);
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const posts = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages - 1);
-  const pageItems = sorted.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE);
 
   const goTo = (p: number) => {
     setPage(Math.max(0, Math.min(p, totalPages - 1)));
-    setExpandedId(null);
   };
 
   return (
@@ -102,7 +75,7 @@ export function BlogListPage() {
             <h1 style={{ margin: 0 }}>{t('blog.title')}</h1>
             {!isLoading && !isError && (
               <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>
-                {sorted.length} {sorted.length === 1 ? 'publicación' : 'publicaciones'}
+                {t('blog.postsTotal', { count: total })}
               </p>
             )}
           </div>
@@ -113,7 +86,7 @@ export function BlogListPage() {
 
         {isLoading && <p className="muted">{t('blog.loading')}</p>}
         {isError && <p className="muted">{t('blog.loadError')}</p>}
-        {!isLoading && !isError && sorted.length === 0 && (
+        {!isLoading && !isError && posts.length === 0 && (
           <p className="muted">{t('blog.empty')}</p>
         )}
 
@@ -124,10 +97,9 @@ export function BlogListPage() {
             gap: 'var(--ws-space-4)',
           }}
         >
-          {pageItems.map((p) => {
-            const image = extractImage(p.body);
-            const excerpt = excerptFrom(p.body);
-            const expanded = expandedId === p.id;
+          {posts.map((p) => {
+            const image = p.featuredImage;
+            const excerpt = p.excerpt;
             return (
               <Card
                 key={p.id}
@@ -166,10 +138,14 @@ export function BlogListPage() {
                     flex: 1,
                   }}
                 >
-                  <h2 style={{ margin: 0, fontSize: 'var(--ws-font-size-lg)' }}>{p.title}</h2>
+                  <h2 style={{ margin: 0, fontSize: 'var(--ws-font-size-lg)' }}>
+                    <Link to={`/blog/${p.slug}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                      {p.title}
+                    </Link>
+                  </h2>
 
                   <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
-                    <i className="bi bi-calendar3" /> {formatDate(p.createdAt)}
+                    <i className="bi bi-calendar3" /> {formatDate(p.publishedAt ?? p.createdAt)}
                   </span>
 
                   {(p.category || (Array.isArray(p.tags) && p.tags.length > 0)) && (
@@ -191,25 +167,17 @@ export function BlogListPage() {
                   {excerpt && <p className="muted" style={{ margin: 0 }}>{excerpt}</p>}
 
                   <div style={{ marginTop: 'auto', paddingTop: 'var(--ws-space-2)' }}>
-                    <button className="btn ghost" onClick={() => setExpandedId(expanded ? null : p.id)}>
-                      <i className={`bi bi-${expanded ? 'chevron-up' : 'chevron-down'}`} />{' '}
-                      {expanded ? t('blog.readLess') : t('blog.readMore')}
-                    </button>
+                    <Link to={`/blog/${p.slug}`} className="btn ghost">
+                      <i className="bi bi-arrow-right" /> {t('blog.readMore')}
+                    </Link>
                   </div>
-
-                  {expanded && (
-                    <div
-                      style={{ lineHeight: 1.65, overflowWrap: 'break-word', maxWidth: '100%' }}
-                      dangerouslySetInnerHTML={{ __html: p.body }}
-                    />
-                  )}
                 </div>
               </Card>
             );
           })}
         </div>
 
-        {!isLoading && !isError && sorted.length > PAGE_SIZE && (
+        {!isLoading && !isError && total > PAGE_SIZE && (
           <div
             className="row"
             style={{ justifyContent: 'center', gap: 'var(--ws-space-3)', marginTop: 'var(--ws-space-5)', flexWrap: 'wrap' }}

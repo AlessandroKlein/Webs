@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
-import { useAuthStore } from '../../lib/auth-store';
+import { useAuthStore, type Address } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
 import { QrCode } from '../../components/ui/QrCode';
@@ -170,6 +170,14 @@ export function CheckoutPage() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Perfil: teléfono + dirección (paso "Completar datos").
+  const patchProfile = useAuthStore((s) => s.patchProfile);
+  const [phone, setPhone] = useState(() => user?.phone ?? '');
+  const [address, setAddress] = useState<Address>(() => user?.address ?? { street: '', city: '', province: '', postalCode: '', country: '' });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const needsProfile = !!user && (!user.phone || !user.address);
+
   // Proveedores online (excluye el cobro físico 'pos').
   const { data: providers } = useQuery({
     queryKey: ['checkout-providers'],
@@ -203,6 +211,27 @@ export function CheckoutPage() {
 
   const updateBilling = (field: keyof BillingData, value: string) =>
     setBilling((prev) => ({ ...prev, [field]: value }));
+
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    setProfileError(null);
+    try {
+      await patchProfile({
+        phone: phone.trim() || undefined,
+        address: {
+          street: address.street.trim(),
+          city: address.city.trim(),
+          province: address.province.trim(),
+          postalCode: address.postalCode.trim(),
+          country: address.country.trim(),
+        },
+      });
+    } catch (e) {
+      setProfileError(e instanceof Error ? e.message : t('checkout.saveDataError'));
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   // Valida y ejecuta el pago según el kind y el método elegido.
   const confirm = async () => {
@@ -372,6 +401,48 @@ export function CheckoutPage() {
             <h1 style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'calc(var(--ws-font-size-lg) * 1.25)' }}>{title}</h1>
           </header>
 
+          {needsProfile ? (
+            <section style={cardStyle} aria-labelledby="complete-heading">
+              <h2 id="complete-heading" style={{ margin: '0 0 var(--ws-space-3)', display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+                <i className="bi bi-person-vcard" aria-hidden="true" /> {t('checkout.completeData')}
+              </h2>
+              <p className="muted" style={{ margin: '0 0 var(--ws-space-3)', fontSize: 'var(--ws-font-size-sm)' }}>
+                {t('checkout.completeDataHint')}
+              </p>
+              <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
+                <TextField
+                  label={t('checkout.phone')}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder={t('checkout.phonePlaceholder')}
+                  autoComplete="tel"
+                />
+                <TextField
+                  label={t('checkout.addressStreet')}
+                  value={address.street}
+                  onChange={(e) => setAddress((p) => ({ ...p, street: e.target.value }))}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--ws-space-3)' }}>
+                  <TextField label={t('checkout.addressCity')} value={address.city} onChange={(e) => setAddress((p) => ({ ...p, city: e.target.value }))} />
+                  <TextField label={t('checkout.addressProvince')} value={address.province} onChange={(e) => setAddress((p) => ({ ...p, province: e.target.value }))} />
+                  <TextField label={t('checkout.addressPostalCode')} value={address.postalCode} onChange={(e) => setAddress((p) => ({ ...p, postalCode: e.target.value }))} />
+                  <TextField label={t('checkout.addressCountry')} value={address.country} onChange={(e) => setAddress((p) => ({ ...p, country: e.target.value }))} />
+                </div>
+                {profileError && (
+                  <div style={errorStyle} role="alert">
+                    {profileError}
+                  </div>
+                )}
+                <div>
+                  <Button onClick={saveProfile} loading={savingProfile} disabled={!phone.trim() || !address.street.trim() || !address.city.trim()}>
+                    {t('checkout.saveData')}
+                  </Button>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <>
+
           {/* Datos de facturación */}
           <section style={cardStyle} aria-labelledby="billing-heading">
             <h2 id="billing-heading" style={{ margin: '0 0 var(--ws-space-3)', display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
@@ -490,6 +561,8 @@ export function CheckoutPage() {
                 : t('checkout.payAmount', { amount: money(total) })}
             </Button>
           </div>
+            </>
+          )}
         </div>
 
         {/* Resumen del pedido / suscripción */}

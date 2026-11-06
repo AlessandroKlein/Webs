@@ -11,6 +11,10 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { QrCode } from '../../components/ui/QrCode';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { Alert } from '../../components/ui/Alert';
+
+const EC_BASE = '/api/v1/blocks/ecommerce';
 
 // ── Tipos de datos de los plugins/endpoints ─────────────────────────────
 
@@ -78,12 +82,36 @@ interface Membership {
   userName: string;
 }
 
+interface OrderPayment {
+  id: string;
+  status: string;
+  provider: string;
+  transactionId: string | null;
+  paidAt: string | null;
+}
+
+interface OrderInvoice {
+  id: string;
+  number: string;
+  status: string;
+}
+
+interface OrderShipment {
+  id: string;
+  status: string;
+  trackingCode: string | null;
+}
+
 interface Order {
   id: string;
   status: string;
   total: number;
+  currency?: string;
   items: unknown[];
   createdAt: string;
+  payment?: OrderPayment | null;
+  invoice?: OrderInvoice | null;
+  shipment?: OrderShipment | null;
 }
 
 interface Plan {
@@ -435,7 +463,53 @@ function SummaryView({ user, onNavigate }: { user: AuthUser | null; onNavigate: 
           ))}
         </div>
       </Card>
+
+      <RecentlyViewed />
     </>
+  );
+}
+
+// ── Vistos recientemente ────────────────────────────────────────────────
+
+interface RecentlyViewedProduct {
+  id: string;
+  title: string;
+  imageUrl: string | null;
+  price: number;
+}
+
+function RecentlyViewed() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { data: products } = useQuery({
+    queryKey: ['recently-viewed-products'],
+    queryFn: () => api.get<RecentlyViewedProduct[]>(`${EC_BASE}/products/persisted`),
+    retry: 0,
+  });
+
+  let ids: string[] = [];
+  try {
+    const raw = localStorage.getItem('webs.recentlyViewed');
+    const list: unknown = raw ? JSON.parse(raw) : [];
+    ids = Array.isArray(list) ? list.filter((x): x is string => typeof x === 'string').slice(0, 20) : [];
+  } catch {
+    ids = [];
+  }
+
+  const recent = (products ?? []).filter((p) => ids.includes(p.id));
+  if (recent.length === 0) return null;
+
+  return (
+    <Card>
+      <h3 style={{ marginTop: 0 }}>{t('dashboard.recentlyViewed')}</h3>
+      <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+        {recent.map((p) => (
+          <Button key={p.id} variant="secondary" onClick={() => navigate('/store')}>
+            {p.title}
+          </Button>
+        ))}
+      </div>
+    </Card>
   );
 }
 
@@ -1201,7 +1275,7 @@ function OrdersSection() {
   const { t } = useTranslation();
   const { data: orders, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-orders'],
-    queryFn: () => api.get<Order[]>('/api/v1/blocks/ecommerce/orders'),
+    queryFn: () => api.get<Order[]>('/api/v1/blocks/ecommerce/my-orders'),
     retry: 0,
   });
 
@@ -1210,31 +1284,44 @@ function OrdersSection() {
       {isLoading ? (
         <Spinner label={t('dashboard.loadingOrders')} />
       ) : isError ? (
-        <p className="muted">{t('dashboard.noOrders')}</p>
+        <Alert variant="danger">{t('dashboard.noOrders')}</Alert>
       ) : (orders ?? []).length === 0 ? (
-        <p className="muted">{t('dashboard.noOrdersData')}</p>
+        <EmptyState icon="bi-bag" title={t('dashboard.noOrdersData')} />
       ) : (
         <table className="table">
           <thead>
             <tr>
               <th>{t('common.date')}</th>
               <th>{t('common.status')}</th>
+              <th>{t('dashboard.payment')}</th>
+              <th>{t('dashboard.invoice')}</th>
+              <th>{t('dashboard.shipment')}</th>
               <th>{t('dashboard.total')}</th>
-              <th>{t('dashboard.items')}</th>
             </tr>
           </thead>
           <tbody>
             {(orders ?? []).map((o) => (
               <tr key={o.id}>
-                <td>{new Date(o.createdAt).toLocaleDateString('es-AR')}</td>
+                <td>{formatDate(o.createdAt)}</td>
                 <td>
                   <StatusBadge
                     label={t(ORDER_STATUS_KEY[o.status] ?? o.status)}
                     color={ORDER_STATUS_COLOR[o.status]}
                   />
                 </td>
-                <td>${o.total}</td>
-                <td>{o.items?.length ?? 0}</td>
+                <td>
+                  {o.payment ? (
+                    <StatusBadge
+                      label={t(PAYMENT_STATUS_KEY[o.payment.status] ?? o.payment.status)}
+                      color={PAYMENT_STATUS_COLOR[o.payment.status]}
+                    />
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
+                </td>
+                <td>{o.invoice?.number ? o.invoice.number : <span className="muted">—</span>}</td>
+                <td>{o.shipment?.trackingCode ? o.shipment.trackingCode : <span className="muted">—</span>}</td>
+                <td>{money(o.total, o.currency ?? 'ARS')}</td>
               </tr>
             ))}
           </tbody>

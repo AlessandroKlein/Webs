@@ -5,11 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
-import { QrCode } from '../../components/ui/QrCode';
 import { useCheckoutStore } from '../checkout/checkout-store';
 
 const EC_BASE = '/api/v1/blocks/ecommerce';
-const PAY_BASE = '/api/v1/payments';
 
 interface RawProduct {
   id: string;
@@ -30,19 +28,6 @@ interface CartLine {
   price: number;
   size: string | null;
   qty: number;
-}
-
-interface PaymentProvider {
-  id: string;
-  displayName: string;
-}
-
-interface CheckoutResult {
-  id: string;
-  transactionId: string;
-  status: string;
-  paymentUrl?: string | null;
-  qr?: string | null;
 }
 
 interface ShippingAddress {
@@ -201,11 +186,6 @@ export function StorePage() {
   const [activeImage, setActiveImage] = useState(0);
   const [cartOpen, setCartOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [providers, setProviders] = useState<PaymentProvider[] | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  const [checkout, setCheckout] = useState<CheckoutResult | null>(null);
-  const [loadingProviders] = useState(false);
-  const [paying, setPaying] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
   const [address, setAddress] = useState<ShippingAddress>(EMPTY_ADDRESS);
   const [shippingQuotes, setShippingQuotes] = useState<ShippingQuote[] | null>(null);
@@ -231,6 +211,14 @@ export function StorePage() {
     setDetailSize(asStringArray(p.sizes)[0] ?? null);
     setDetailQty(1);
     setActiveImage(0);
+    try {
+      const raw = localStorage.getItem('webs.recentlyViewed');
+      const list: string[] = raw ? (JSON.parse(raw) as string[]) : [];
+      const next = [p.id, ...list.filter((id) => id !== p.id)].slice(0, 20);
+      localStorage.setItem('webs.recentlyViewed', JSON.stringify(next));
+    } catch {
+      /* no-op */
+    }
   };
 
   const addToCart = (p: RawProduct, size: string | null, qty: number) => {
@@ -281,13 +269,6 @@ export function StorePage() {
     }
   };
 
-  const resetCheckout = () => {
-    setProviders(null);
-    setSelectedProvider(null);
-    setCheckout(null);
-    setCartError(null);
-  };
-
   const requireLogin = () => {
     if (!user || status === 'unauthenticated') {
       setNotice(t('store.loginToBuy'));
@@ -314,52 +295,6 @@ export function StorePage() {
       shippingCost,
     });
     navigate('/checkout?kind=store');
-  };
-
-  const pay = async () => {
-    if (!requireLogin()) return;
-    if (!selectedProvider) return;
-    if (!selectedShipping) {
-      setCartError(t('store.chooseShipping'));
-      return;
-    }
-    setPaying(true);
-    setCartError(null);
-    setNotice(null);
-    try {
-      // 1) Registra el pedido con la dirección y el costo de envío.
-      await api.post(`${EC_BASE}/orders`, {
-        items: cart.map((l) => ({ id: l.id, qty: l.qty, size: l.size })),
-        shippingAddress: address,
-        shippingMethod: selectedShipping,
-        shippingCost,
-      });
-      // 2) Inicia el pago. Los precios ya vienen en centavos (`price`/`total`),
-      // por lo que el monto entero (subtotal + envío) se envía tal cual.
-      const result = await api.post<CheckoutResult>(`${PAY_BASE}/checkout`, {
-        provider: selectedProvider,
-        amount: grandTotal,
-        currency: 'ARS',
-        description: `Compra en la tienda · ${cart.length} producto${cart.length === 1 ? '' : 's'}`,
-        externalReference: `store-${Date.now()}`,
-        items: cart.map((l) => ({ id: l.id, title: l.title, quantity: l.qty, unitPrice: l.price })),
-      });
-      setCheckout(result);
-    } catch (e) {
-      setCartError(e instanceof Error ? e.message : t('store.paymentError'));
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  const finalizeCheckout = () => {
-    setCart([]);
-    setAddress(EMPTY_ADDRESS);
-    setShippingQuotes(null);
-    setSelectedShipping(null);
-    resetCheckout();
-    setCartOpen(false);
-    setNotice(t('store.paymentStarted'));
   };
 
   const sizes = selected ? asStringArray(selected.sizes) : [];
@@ -850,89 +785,9 @@ export function StorePage() {
                     </div>
                   )}
 
-                  {checkout ? (
-                    <div className="stack" style={{ gap: 'var(--ws-space-3)' }}>
-                      {checkout.paymentUrl ? (
-                        <a
-                          href={checkout.paymentUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 'var(--ws-space-2)',
-                            padding: 'var(--ws-space-3)',
-                            background: 'var(--ws-primary)',
-                            color: 'var(--ws-on-primary)',
-                            borderRadius: 'var(--ws-radius-md)',
-                            textDecoration: 'none',
-                            fontWeight: 600,
-                          }}
-                        >
-                          <i className="bi bi-box-arrow-up-right" /> {t('store.payNow')}
-                        </a>
-                      ) : checkout.qr ? (
-                        <div className="stack" style={{ gap: 'var(--ws-space-2)', alignItems: 'center' }}>
-                          <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
-                            {t('store.scanQr')}
-                          </span>
-                          <QrCode value={checkout.qr} />
-                        </div>
-                      ) : (
-                        <div style={{ padding: 'var(--ws-space-3)', background: 'var(--ws-primary-soft)', borderRadius: 'var(--ws-radius-md)' }}>
-                          <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
-                            <i className="bi bi-hourglass-split" /> {t('store.paymentPending')}
-                          </strong>
-                          <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
-                            {t('store.transactionCode')} <code>{checkout.transactionId}</code>
-                          </p>
-                        </div>
-                      )}
-
-                      <Button variant="secondary" fullWidth onClick={finalizeCheckout}>
-                        {t('store.gotIt')}
-                      </Button>
-                    </div>
-                  ) : providers ? (
-                    <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
-                      <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>{t('store.choosePayment')}</span>
-                      {providers.map((p) => (
-                        <button
-                          key={p.id}
-                          onClick={() => setSelectedProvider(p.id)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 'var(--ws-space-2)',
-                            padding: 'var(--ws-space-3)',
-                            border: selectedProvider === p.id ? '2px solid var(--ws-primary)' : '1px solid var(--ws-border)',
-                            borderRadius: 'var(--ws-radius-md)',
-                            background: selectedProvider === p.id ? 'var(--ws-primary-soft)' : 'var(--ws-surface)',
-                            color: 'var(--ws-text)',
-                            cursor: 'pointer',
-                            textAlign: 'left',
-                          }}
-                        >
-                          <i className="bi bi-credit-card" />
-                          <span style={{ flex: 1 }}>{p.displayName}</span>
-                          {selectedProvider === p.id && <i className="bi bi-check-circle-fill" style={{ color: 'var(--ws-primary)' }} />}
-                        </button>
-                      ))}
-                      <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
-                        <Button variant="secondary" className="flex-1" onClick={resetCheckout}>
-                          {t('store.back')}
-                        </Button>
-                        <Button className="flex-1" onClick={pay} disabled={paying || !selectedProvider}>
-                          {paying ? t('store.startingPayment') : t('store.pay')}
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <Button fullWidth onClick={startCheckout} disabled={loadingProviders || cart.length === 0 || !selectedShipping}>
-                      {loadingProviders ? t('store.loadingPaymentMethods') : t('store.buy')}
-                    </Button>
-                  )}
+                  <Button fullWidth onClick={startCheckout} disabled={cart.length === 0 || !selectedShipping}>
+                    {t('store.buy')}
+                  </Button>
                 </div>
               </>
             )}
