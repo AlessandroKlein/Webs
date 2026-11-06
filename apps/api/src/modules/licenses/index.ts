@@ -59,29 +59,45 @@ export default async function licenseModule(fastify: FastifyInstance): Promise<v
     };
     const activationKey = issueActivationKey(payload2, privateKeyPem, fingerprint);
 
-    const sale = await prisma.licenseSale.create({
-      data: {
-        organizationId: payment.organizationId ?? DEFAULT_ORG_ID,
-        customerName: licensee,
-        productId,
-        features: meta.features ?? [],
-        limits: meta.limits,
-        paymentId: payment.id,
-      },
-    });
-    await prisma.licenseKey.create({
-      data: {
-        organizationId: sale.organizationId,
-        saleId: sale.id,
-        productId,
-        licensee,
-        features: meta.features ?? [],
-        limits: meta.limits,
-        fingerprint,
-        activationKey,
-        status: 'active',
-        issuedAt: new Date(),
-      },
-    });
+    // Atómico: la venta y su clave se crean juntas o no se crea nada. Si dos
+    // webhooks del mismo pago llegan a la vez, el segundo choca con el único
+    // de `paymentId` (P2002) y se descarta: es el mismo pago, no un reintento.
+    try {
+      await prisma.$transaction(async (tx) => {
+        const sale = await tx.licenseSale.create({
+          data: {
+            organizationId: payment.organizationId ?? DEFAULT_ORG_ID,
+            customerName: licensee,
+            productId,
+            features: meta.features ?? [],
+            limits: meta.limits,
+            paymentId: payment.id,
+          },
+        });
+        await tx.licenseKey.create({
+          data: {
+            organizationId: sale.organizationId,
+            saleId: sale.id,
+            productId,
+            licensee,
+            features: meta.features ?? [],
+            limits: meta.limits,
+            fingerprint,
+            activationKey,
+            status: 'active',
+            issuedAt: new Date(),
+          },
+        });
+      });
+    } catch (err) {
+      if ((err as { code?: string }).code === 'P2002') {
+        fastify.log.info({ paymentId: payment.id }, 'licencia ya emitida para este pago (idempotente)');
+        return;
+      }
+      // Se relanza para que el evento no se marque como entregado: el reintento
+      // vuelve a intentar la emisión completa.
+      fastify.log.error({ err, paymentId: payment.id }, 'no se pudo emitir la licencia');
+      throw err;
+    }
   });
 }

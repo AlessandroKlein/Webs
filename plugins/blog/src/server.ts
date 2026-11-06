@@ -1,7 +1,27 @@
 import { definePlugin, type PluginManifest } from '@webs/plugin-sdk';
+import sanitizeHtml from 'sanitize-html';
 import manifestJson from '../plugin.json';
 
 const manifest = manifestJson as unknown as PluginManifest;
+
+/** HTML permitido en el cuerpo de un post: formato básico, sin nada ejecutable. */
+const cleanPostBody = (html: string): string =>
+  sanitizeHtml(html, {
+    allowedTags: [
+      'p', 'br', 'hr', 'strong', 'b', 'em', 'i', 'u', 's', 'blockquote', 'ul', 'ol', 'li',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'img', 'code', 'pre', 'table', 'thead',
+      'tbody', 'tr', 'th', 'td', 'figure', 'figcaption', 'span', 'div',
+    ],
+    allowedAttributes: {
+      a: ['href', 'title', 'target', 'rel'],
+      img: ['src', 'alt', 'width', 'height', 'loading'],
+      '*': ['class'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    transformTags: {
+      a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer' }),
+    },
+  });
 
 /** Organización raíz por defecto (fallback single-tenant), idéntico a `DEFAULT_ORG_ID` de apps/api. */
 const ROOT_ORG_ID = '00000000-0000-4000-8000-000000000001';
@@ -24,6 +44,12 @@ export default definePlugin(manifest, {
     const authenticate = (fastify as unknown as { authenticate: unknown }).authenticate as (
       req: unknown,
     ) => Promise<void>;
+    const authorize = (fastify as unknown as { authorize?: unknown }).authorize as
+      | ((permission: string) => (req: unknown, reply: unknown) => Promise<void>)
+      | undefined;
+    // Escritura de posts: contenido (no cualquier usuario registrado).
+    const canWrite = authorize ? [authenticate, authorize('content.write')] : [authenticate];
+    if (!authorize) fastify.log.warn('plugin blog: authorize no disponible; escritura solo con authenticate');
 
     const resolveOrgId = async (request: unknown): Promise<string> => {
       try {
@@ -94,7 +120,7 @@ export default definePlugin(manifest, {
       return db.blogPost.findUnique({ where: { id: params?.id } });
     });
 
-    fastify.post('/posts', { preHandler: [authenticate] }, async (request: unknown) => {
+    fastify.post('/posts', { preHandler: canWrite }, async (request: unknown) => {
       const { body } = request as {
         body?: {
           title?: string;
@@ -109,26 +135,36 @@ export default definePlugin(manifest, {
       const organizationId = await resolveOrgId(request);
       const user = (request as { user?: { sub?: unknown; id?: unknown } }).user;
       const authorId = typeof user?.sub === 'string' ? user.sub : typeof user?.id === 'string' ? user.id : null;
-      const slug = await uniqueSlug(organizationId, slugify(body?.title ?? ''));
       const status = body?.status ?? 'draft';
-      return db.blogPost.create({
-        data: {
-          title: body?.title ?? '',
-          body: body?.body ?? '',
-          slug,
-          category: body?.category ?? null,
-          excerpt: body?.excerpt ?? null,
-          featuredImage: body?.featuredImage ?? null,
-          tags: Array.isArray(body?.tags) ? body.tags : [],
-          status,
-          authorId,
-          publishedAt: status === 'published' ? new Date() : null,
-          organizationId,
-        },
-      });
+      const baseSlug = slugify(body?.title ?? '');
+      // El slug se resuelve antes de crear, pero dos peticiones simultáneas
+      // pueden elegir el mismo: se reintenta con el sufijo siguiente (P2002).
+      let slug = await uniqueSlug(organizationId, baseSlug);
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          return await db.blogPost.create({
+            data: {
+              title: body?.title ?? '',
+              body: cleanPostBody(body?.body ?? ''),
+              slug,
+              category: body?.category ?? null,
+              excerpt: body?.excerpt ?? null,
+              featuredImage: body?.featuredImage ?? null,
+              tags: Array.isArray(body?.tags) ? body.tags : [],
+              status,
+              authorId,
+              publishedAt: status === 'published' ? new Date() : null,
+              organizationId,
+            },
+          });
+        } catch (err) {
+          if ((err as { code?: string }).code !== 'P2002' || attempt >= 5) throw err;
+          slug = await uniqueSlug(organizationId, baseSlug);
+        }
+      }
     });
 
-    fastify.patch('/posts/:id', { preHandler: [authenticate] }, async (request: unknown, reply: unknown) => {
+    fastify.patch('/posts/:id', { preHandler: canWrite }, async (request: unknown, reply: unknown) => {
       const { params, body } = request as {
         params?: { id?: string };
         body?: {
@@ -147,7 +183,7 @@ export default definePlugin(manifest, {
       if (!existing) return notFound(reply, 'Post no encontrado');
       const data: Record<string, unknown> = {};
       if (body?.title !== undefined) data.title = body.title;
-      if (body?.body !== undefined) data.body = body.body;
+      if (body?.body !== undefined) data.body = cleanPostBody(body.body);
       if (body?.category !== undefined) data.category = body.category;
       if (body?.excerpt !== undefined) data.excerpt = body.excerpt;
       if (body?.featuredImage !== undefined) data.featuredImage = body.featuredImage;
@@ -162,7 +198,7 @@ export default definePlugin(manifest, {
       return db.blogPost.update({ where: { id: params?.id }, data });
     });
 
-    fastify.delete('/posts/:id', { preHandler: [authenticate] }, async (request: unknown) => {
+    fastify.delete('/posts/:id', { preHandler: canWrite }, async (request: unknown) => {
       const { params } = request as { params?: { id?: string } };
       return db.blogPost.delete({ where: { id: params?.id } });
     });
@@ -182,8 +218,15 @@ export default definePlugin(manifest, {
     fastify.post('/posts/:slug/comments', { preHandler: [authenticate] }, async (request: unknown, reply: unknown) => {
       const { params, body } = request as {
         params?: { slug?: string };
-        body?: { body?: string; rating?: number };
+        // El front envía `content`; `body` se acepta por compatibilidad.
+        body?: { content?: string; body?: string; rating?: number };
       };
+      const content = (body?.content ?? body?.body ?? '').trim();
+      if (!content) {
+        return (reply as { code: (c: number) => { send: (b: unknown) => unknown } })
+          .code(400)
+          .send({ error: 'El comentario no puede estar vacío' });
+      }
       const organizationId = await resolveOrgId(request);
       const post = await db.blogPost.findFirst({
         where: { organizationId, slug: params?.slug, status: 'published' },
@@ -200,8 +243,8 @@ export default definePlugin(manifest, {
       return db.comment.create({
         data: {
           author,
-          body: body?.body ?? '',
-          rating: Math.min(5, Math.max(1, Math.round(body?.rating ?? 5))),
+          body: content.slice(0, 4000),
+          rating: Math.min(5, Math.max(1, Math.round(Number(body?.rating ?? 5) || 5))),
           organizationId,
           postId: post.id,
         },

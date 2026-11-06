@@ -158,6 +158,44 @@ export default async function licenseKeysRoutes(fastify: FastifyInstance): Promi
     },
   );
 
+  // Claves del propio comprador (sin `license.read`): se resuelven por los pagos
+  // del usuario → ventas → claves. Un comprador no ve las claves de otros.
+  fastify.get(
+    '/my-keys',
+    { schema: { tags: ['license'] }, preHandler: [fastify.authenticate] },
+    async (request) => {
+      const userId = request.user.sub;
+      const payments = await prisma.payment.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      const saleIds = (
+        await prisma.licenseSale.findMany({
+          where: { paymentId: { in: payments.map((p) => p.id) } },
+          select: { id: true },
+        })
+      ).map((s) => s.id);
+      if (!saleIds.length) return [];
+      return prisma.licenseKey.findMany({
+        where: { saleId: { in: saleIds } },
+        orderBy: { issuedAt: 'desc' },
+        select: {
+          id: true,
+          productId: true,
+          licensee: true,
+          features: true,
+          limits: true,
+          fingerprint: true,
+          activationKey: true,
+          status: true,
+          activations: true,
+          issuedAt: true,
+          expiresAt: true,
+        },
+      });
+    },
+  );
+
   fastify.post(
     '/keys',
     {
@@ -332,9 +370,40 @@ export default async function licenseKeysRoutes(fastify: FastifyInstance): Promi
           .status(409)
           .send({ error: 'Límite de activaciones alcanzado', activationsUsed: list.length, max });
       }
-      const next = [...list, fingerprint];
-      await prisma.licenseKey.update({ where: { id: key.id }, data: { activations: next } });
-      return { ok: true, alreadyActive: false, activationsUsed: next.length, max };
+      let current = list;
+      // Concurrencia optimista: dos activaciones simultáneas no deben superar el
+      // límite. Se actualiza solo si `activations` sigue siendo el mismo JSON.
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const next = [...current, fingerprint];
+        const updated = await prisma.licenseKey.updateMany({
+          where: { id: key.id, activations: { equals: current } },
+          data: { activations: next },
+        });
+        if (updated.count === 1) {
+          return { ok: true, alreadyActive: false, activationsUsed: next.length, max };
+        }
+        const fresh = await prisma.licenseKey.findUnique({ where: { id: key.id } });
+        if (!fresh) {
+          return (reply as { status: (c: number) => { send: (b: unknown) => unknown } })
+            .status(404)
+            .send({ error: 'Clave no registrada' });
+        }
+        const freshList = Array.isArray(fresh.activations)
+          ? (fresh.activations as unknown[]).filter((f): f is string => typeof f === 'string')
+          : [];
+        if (freshList.includes(fingerprint)) {
+          return { ok: true, alreadyActive: true, activationsUsed: freshList.length, max };
+        }
+        if (freshList.length >= max) {
+          return (reply as { status: (c: number) => { send: (b: unknown) => unknown } })
+            .status(409)
+            .send({ error: 'Límite de activaciones alcanzado', activationsUsed: freshList.length, max });
+        }
+        current = freshList;
+      }
+      return (reply as { status: (c: number) => { send: (b: unknown) => unknown } })
+        .status(409)
+        .send({ error: 'No se pudo activar la clave por concurrencia; reintentá' });
     },
   );
 

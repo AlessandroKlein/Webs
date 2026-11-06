@@ -9,7 +9,7 @@
 //   KIOSK=1         abre en modo kiosco (sin salir del panel).
 //   PORT_NAME       puerto serial del lector (opcional).
 
-import { app, BrowserWindow, Menu, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createBridge } from '../src/bridge.js';
@@ -39,6 +39,16 @@ function resolveTarget() {
   return resolveProdIndex(); // file:// en producción
 }
 
+/** Solo http/https salen al navegador del sistema (nada de file:, smb:, etc.). */
+function openExternalSafe(url) {
+  try {
+    const { protocol } = new URL(url);
+    if (protocol === 'http:' || protocol === 'https:') shell.openExternal(url);
+  } catch {
+    // URL inválida: se ignora.
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -64,8 +74,17 @@ function createWindow() {
 
   // Enlaces externos al navegador del sistema, nunca a otra ventana Electron.
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    openExternalSafe(url);
     return { action: 'deny' };
+  });
+
+  // Navegación fuera de la app: se abre en el navegador, no dentro de Electron.
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const current = mainWindow?.webContents.getURL();
+    if (url !== current) {
+      event.preventDefault();
+      openExternalSafe(url);
+    }
   });
 
   mainWindow.on('closed', () => { mainWindow = null; });
@@ -111,6 +130,17 @@ if (!gotLock) {
   });
 
   app.whenReady().then(async () => {
+    // La app empaquetada es un cliente del servidor Webs: sin WEB_URL cargaría
+    // `file://` y todas las llamadas a /api fallarían por CORS/origen.
+    if (app.isPackaged && !WEB_URL && !DEV) {
+      dialog.showErrorBox(
+        'Falta la dirección del servidor',
+        'Abrí Webs indicando la URL de tu instancia, por ejemplo:\n\nWEB_URL=https://mi-dominio.com webs\n\n(En Windows, desde una consola o acceso directo con esa variable de entorno.)',
+      );
+      app.quit();
+      return;
+    }
+
     // Puente de lectores (WS 4599 + serial). Sin stdin: en Electron el
     // keyboard-wedge lo captura el renderer (la ventana con foco), no stdin.
     bridge = await createBridge({

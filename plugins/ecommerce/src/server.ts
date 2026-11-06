@@ -340,7 +340,7 @@ export default definePlugin(manifest, {
       return db.order.findMany({ where, orderBy: { createdAt: 'desc' } });
     });
 
-    fastify.post('/orders', async (request: unknown) => {
+    fastify.post('/orders', async (request: unknown, reply: unknown) => {
       const { body } = request as {
         body?: {
           items?: Array<{ id: string; qty?: number; size?: string | null }>;
@@ -350,16 +350,24 @@ export default definePlugin(manifest, {
         };
       };
       const requested = (Array.isArray(body?.items) ? body.items : []).filter((i) => typeof i?.id === 'string');
+      if (!requested.length) {
+        return (reply as { code: (c: number) => { send: (b: unknown) => unknown } })
+          .code(400)
+          .send({ error: 'El pedido no tiene productos' });
+      }
       const persisted = await db.product.findMany({ where: { id: { in: requested.map((i) => i.id) } } });
       const byId = new Map<string, { title: string; price: number }>(
         persisted.map((p: { id: string; title: string; price: number }) => [p.id, p]),
       );
-      const items = requested.map((i) => {
+      const items = requested.slice(0, 100).map((i) => {
         const p = byId.get(i.id);
-        const qty = Math.max(1, Number(i.qty ?? 1));
+        // qty inválida ("abc", NaN, negativa) cae a 1: si no, el total sería NaN.
+        const rawQty = Number(i.qty ?? 1);
+        const qty = Number.isFinite(rawQty) ? Math.min(999, Math.max(1, Math.trunc(rawQty))) : 1;
         return { id: i.id, title: p?.title ?? i.id, price: p?.price ?? 0, qty, size: i.size ?? null };
       });
-      const shippingCost = Math.max(0, Number(body?.shippingCost ?? shippingFlat));
+      const rawShipping = Number(body?.shippingCost ?? shippingFlat);
+      const shippingCost = Number.isFinite(rawShipping) ? Math.max(0, Math.trunc(rawShipping)) : shippingFlat;
       const total = items.reduce((s, i) => s + i.price * i.qty, 0) + shippingCost;
 
       // Dirección de envío y método guardados como un objeto extra `_shipping`
@@ -415,7 +423,7 @@ export default definePlugin(manifest, {
             currency: o.currency,
             createdAt: o.createdAt,
             items: o.items,
-            payment: payment ? { id: payment.id, status: payment.status, provider: payment.provider, transactionId: payment.transactionId, paidAt: payment.paidAt } : null,
+            payment: payment ? { id: payment.id, status: payment.status, provider: payment.provider, transactionId: payment.transactionId, paidAt: payment.paidAt, metadata: payment.metadata ?? null } : null,
             invoice: invoice ? { id: invoice.id, number: invoice.number, status: invoice.status } : null,
             shipment: shipment ? { id: shipment.id, status: shipment.status, trackingCode: shipment.trackingNumber ?? null } : null,
           };

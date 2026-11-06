@@ -581,7 +581,13 @@ importers:
       '@webs/plugin-sdk':
         specifier: workspace:*
         version: link:../../packages/plugin-sdk
+      sanitize-html:
+        specifier: ^2.13.1
+        version: 2.18.1
     devDependencies:
+      '@types/sanitize-html':
+        specifier: ^2.13.0
+        version: 2.16.2
       '@webs/config':
         specifier: workspace:*
         version: link:../../packages/config

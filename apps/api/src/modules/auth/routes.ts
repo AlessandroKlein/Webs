@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import { REFRESH_TOKEN_COOKIE, ConflictError, UnauthorizedError } from '@webs/core';
+import { REFRESH_TOKEN_COOKIE, BadRequestError, ConflictError, UnauthorizedError } from '@webs/core';
 import { findUserWithPermissions, toPublicUser } from '../../lib/user';
 import { audit } from '../../lib/audit';
 import { ipLimiter } from '../../lib/rate-limiter';
@@ -225,7 +225,15 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
         }
         data.address = Object.keys(clean).length ? clean : null;
       }
-      if (body.profile !== undefined) data.profile = body.profile as never;
+      if (body.profile !== undefined) {
+        // `profile` es JSON libre del propio usuario; se acota para no usarlo
+        // como almacenamiento arbitrario (8 KB es de sobra para preferencias).
+        const serialized = body.profile === null ? 'null' : JSON.stringify(body.profile);
+        if (serialized.length > 8192) {
+          throw new BadRequestError('El perfil supera el tamaño máximo (8 KB)');
+        }
+        data.profile = body.profile as never;
+      }
       await fastify.prisma.user.update({ where: { id: request.user.sub }, data });
       const profile = await findUserWithPermissions(fastify, request.user.sub);
       return { user: profile ? toPublicUser(profile) : null };
