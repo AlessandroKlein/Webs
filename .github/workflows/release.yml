@@ -69,8 +69,9 @@ jobs:
           # intercambia en modo bare). En Docker la actualización es el rolling
           # update, pero el artefacto se adjunta igual para `update/raw`.
           tar -czf "webs-$VERSION.tar.gz" -C apps/api dist
+          sha256sum "webs-$VERSION.tar.gz" | awk '{print $1}' > "webs-$VERSION.tar.gz.sha256"
           echo "ARTIFACT=webs-$VERSION.tar.gz" >> "$GITHUB_ENV"
-          ls -la "webs-$VERSION.tar.gz"
+          ls -la "webs-$VERSION.tar.gz" "webs-$VERSION.tar.gz.sha256"
 
       # La firma es opcional: si el secreto no está (o no es una privada válida)
       # la release se publica igual con el artefacto y su sha256. El updater
