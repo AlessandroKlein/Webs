@@ -360,12 +360,10 @@ export function UserDashboardPage() {
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
-      <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
+      <div className="dashboard-shell">
         <aside
-          className="stack"
+          className="stack dashboard-sidebar"
           style={{
-            width: 240,
-            flexShrink: 0,
             background: 'var(--ws-surface)',
             border: '1px solid var(--ws-border)',
             borderRadius: 'var(--ws-radius-lg)',
@@ -398,7 +396,7 @@ export function UserDashboardPage() {
           ))}
         </aside>
 
-        <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+        <div className="stack dashboard-main">
           {view === 'summary' && <SummaryView user={user} onNavigate={setView} />}
           {view === 'routine' && <RoutineSection user={user} />}
           {view === 'calendar' && <CalendarSection user={user} />}

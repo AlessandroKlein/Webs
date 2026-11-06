@@ -106,7 +106,7 @@ export function BlogListPage() {
                 style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
               >
                 {/* Imagen primero (o placeholder) */}
-                <div style={{ height: 200, background: 'var(--ws-surface-2)', overflow: 'hidden', flex: '0 0 auto' }}>
+                <div style={{ aspectRatio: '16 / 9', background: 'var(--ws-surface-2)', overflow: 'hidden', flex: '0 0 auto' }}>
                   {image ? (
                     <img
                       src={image}

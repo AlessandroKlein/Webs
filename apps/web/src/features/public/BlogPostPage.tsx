@@ -77,7 +77,7 @@ export function BlogPostPage() {
 
   return (
     <SiteLayout>
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
         <Link to="/blog" className="btn ghost">
           <i className="bi bi-arrow-left" /> {t('blog.backToBlog')}
         </Link>
@@ -98,7 +98,7 @@ export function BlogPostPage() {
                 alt={post.title}
                 style={{
                   width: '100%',
-                  maxHeight: 420,
+                  aspectRatio: '16 / 9',
                   objectFit: 'cover',
                   borderRadius: 'var(--ws-radius-md)',
                   marginTop: 'var(--ws-space-4)',

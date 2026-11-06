@@ -898,6 +898,34 @@ input[type='radio'] {
   padding: var(--ws-space-2) var(--ws-space-3);
 }
 
+/* ── Layouts de páginas nuevas (checkout, dashboard de usuario) ── */
+.checkout-layout {
+  max-width: 1040px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--ws-space-5);
+  align-items: start;
+}
+.dashboard-shell {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ws-space-6);
+}
+.dashboard-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+}
+.dashboard-main {
+  flex: 1;
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .checkout-layout { grid-template-columns: 1fr; }
+  .dashboard-shell { flex-direction: column; }
+  .dashboard-sidebar { width: 100%; }
+}
+
 /* ===== Responsive: adaptación a cualquier dispositivo ===== */
 @media (max-width: 768px) {
   .grid-2,

@@ -82,15 +82,6 @@ const pageStyle = {
   padding: 'var(--ws-space-5) var(--ws-space-4)',
 } as const;
 
-const containerStyle = {
-  maxWidth: 1040,
-  margin: '0 auto',
-  display: 'grid',
-  gridTemplateColumns: '1fr',
-  gap: 'var(--ws-space-5)',
-  alignItems: 'start',
-} as const;
-
 const cardStyle = {
   background: 'var(--ws-surface)',
   border: '1px solid var(--ws-border)',
@@ -145,7 +136,7 @@ const methodBtn = (selected: boolean): CSSProperties => ({
 
 const errorStyle = {
   padding: 'var(--ws-space-3)',
-  background: 'rgba(220, 38, 38, 0.12)',
+  background: 'var(--ws-danger-soft)',
   color: 'var(--ws-danger)',
   borderRadius: 'var(--ws-radius-md)',
   fontSize: 'var(--ws-font-size-sm)',
@@ -415,7 +406,7 @@ export function CheckoutPage() {
 
   return (
     <div style={pageStyle}>
-      <div style={containerStyle}>
+      <div className="checkout-layout">
         {/* Columna principal: datos + método de pago */}
         <div className="stack" style={{ gap: 'var(--ws-space-4)' }}>
           <header>
