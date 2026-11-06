@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { useTranslation } from 'react-i18next';
 
 const SUPPORT = '/api/v1/blocks/support';
 
@@ -11,6 +12,7 @@ const SUPPORT = '/api/v1/blocks/support';
  * ticket público vía `POST /api/v1/blocks/support/tickets`. Sin `window.alert`.
  */
 export function SupportWidget() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -36,8 +38,8 @@ export function SupportWidget() {
       <button
         type="button"
         className="btn"
-        aria-label="Abrir soporte"
-        title="Soporte"
+        aria-label={t('support.openAria')}
+        title={t('support.title')}
         onClick={() => setOpen((o) => !o)}
         style={{
           position: 'fixed',
@@ -80,15 +82,15 @@ export function SupportWidget() {
         >
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
             <strong>
-              <i className="bi bi-headset" /> Soporte
+              <i className="bi bi-headset" /> {t('support.title')}
             </strong>
-            <button type="button" className="btn ghost" onClick={() => setOpen(false)} aria-label="Cerrar">
+            <button type="button" className="btn ghost" onClick={() => setOpen(false)} aria-label={t('common.close')}>
               <i className="bi bi-x-lg" />
             </button>
           </div>
 
           <div className="field">
-            <label htmlFor="support-widget-subject">Asunto</label>
+            <label htmlFor="support-widget-subject">{t('support.subject')}</label>
             <input
               id="support-widget-subject"
               className="input"
@@ -99,7 +101,7 @@ export function SupportWidget() {
           </div>
 
           <div className="field">
-            <label htmlFor="support-widget-message">Mensaje</label>
+            <label htmlFor="support-widget-message">{t('support.message')}</label>
             <textarea
               id="support-widget-message"
               className="input"
@@ -111,17 +113,17 @@ export function SupportWidget() {
           </div>
 
           <button type="submit" className="btn" disabled={!canSubmit}>
-            {submit.isPending ? 'Enviando…' : 'Enviar consulta'}
+            {submit.isPending ? t('support.sending') : t('support.send')}
           </button>
 
           {submit.isError && (
             <p className="muted" style={{ margin: 0, color: 'var(--ws-danger)' }}>
-              No se pudo enviar. Intentá de nuevo.
+              {t('support.sendError')}
             </p>
           )}
           {submit.isSuccess && !submit.isPending && (
             <p className="muted" style={{ margin: 0, color: 'var(--ws-success, #16a34a)' }}>
-              ¡Gracias! Recibimos tu consulta.
+              {t('support.sent')}
             </p>
           )}
         </form>

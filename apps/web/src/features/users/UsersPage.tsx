@@ -160,14 +160,14 @@ export function UsersPage() {
         {view === 'list' && (
           <>
             <Card>
-              <TextField label="Buscar" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Por correo o nombre…" />
+              <TextField label={t('users.search')} value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('users.searchPlaceholder')} />
               <table className="table table-striped table-hover">
                 <thead>
                   <tr>
                     <th>{t('auth.email')}</th>
-                    <th>Nombre</th>
-                    <th>Roles</th>
-                    <th>Estado</th>
+                    <th>{t('users.name')}</th>
+                    <th>{t('users.roles')}</th>
+                    <th>{t('users.status')}</th>
                     <th>{t('common.actions')}</th>
                   </tr>
                 </thead>
@@ -210,13 +210,13 @@ export function UsersPage() {
                 <form className="stack" onSubmit={onSubmitEdit}>
                   <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
                     <div className="col">
-                      <TextField label="Nombre" value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
+                      <TextField label={t('users.name')} value={editDisplayName} onChange={(e) => setEditDisplayName(e.target.value)} />
                     </div>
                     <div className="col">
-                      <TextField label="Nombre de usuario" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
+                      <TextField label={t('users.username')} value={editUsername} onChange={(e) => setEditUsername(e.target.value)} />
                     </div>
                     <div className="col">
-                      <TextField label="Locale" value={editLocale} onChange={(e) => setEditLocale(e.target.value)} placeholder="es" />
+                      <TextField label={t('users.locale')} value={editLocale} onChange={(e) => setEditLocale(e.target.value)} placeholder="es" />
                     </div>
                     <div className="col">
                       <label className="form-check" style={{ gap: 8 }}>
@@ -226,13 +226,13 @@ export function UsersPage() {
                           checked={editActive}
                           onChange={(e) => setEditActive(e.target.checked)}
                         />
-                        <span className="form-check-label">Activo</span>
+                        <span className="form-check-label">{t('users.active')}</span>
                       </label>
                     </div>
                   </div>
 
                   <div>
-                    <strong>Roles</strong>
+                    <strong>{t('users.roles')}</strong>
                     <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
                       {roles.map((r) => (
                         <label key={r.id} className="row" style={{ gap: 6 }}>
@@ -261,25 +261,25 @@ export function UsersPage() {
 
             <ConfirmDialog
               open={confirmDelete !== null}
-              title="Eliminar usuario"
-              confirmLabel="Eliminar"
+              title={t('users.deleteTitle')}
+              confirmLabel={t('users.delete')}
               danger
               onConfirm={() => { if (confirmDelete) remove.mutate(confirmDelete.id); setConfirmDelete(null); }}
               onCancel={() => setConfirmDelete(null)}
             >
-              ¿Eliminar el usuario <strong>{confirmDelete?.email}</strong>? Esta acción es irreversible.
+              {t('users.deleteConfirmBefore')}<strong>{confirmDelete?.email}</strong>{t('users.deleteConfirmAfter')}
             </ConfirmDialog>
           </>
         )}
 
         {view === 'create' && (
           <Card>
-            <h3>Crear usuario</h3>
+            <h3>{t('users.create')}</h3>
             <form className="row" onSubmit={onSubmit} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
               <TextField label={t('auth.email')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <TextField label="Nombre de usuario" value={username} onChange={(e) => setUsername(e.target.value)} />
+              <TextField label={t('users.username')} value={username} onChange={(e) => setUsername(e.target.value)} />
               <TextField label={t('auth.password')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-              <TextField label="Nombre" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              <TextField label={t('users.name')} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
               <Button type="submit" disabled={create.isPending}>
                 {t('common.create')}
               </Button>
@@ -289,17 +289,17 @@ export function UsersPage() {
 
         {view === 'invite' && (
           <Card>
-            <h3>Invitar usuario (link de un solo uso)</h3>
+            <h3>{t('users.inviteTitle')}</h3>
             <form className="row" onSubmit={(e) => { e.preventDefault(); if (inviteEmail) invite.mutate({ email: inviteEmail, role: inviteRole }); }} style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <TextField label="Email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
+              <TextField label={t('auth.email')} type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required />
               <select className="input" style={{ width: 'auto' }} value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
                 {roles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
               </select>
-              <Button type="submit" disabled={invite.isPending}>Generar link</Button>
+              <Button type="submit" disabled={invite.isPending}>{t('users.generateLink')}</Button>
             </form>
             {inviteUrl && (
               <p className="muted" style={{ wordBreak: 'break-all', marginTop: 'var(--ws-space-2)' }}>
-                Link: <code>{window.location.origin}{inviteUrl}</code>
+                {t('users.inviteLink')} <code>{window.location.origin}{inviteUrl}</code>
               </p>
             )}
           </Card>

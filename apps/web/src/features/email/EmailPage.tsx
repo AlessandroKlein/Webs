@@ -9,6 +9,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { TextField } from '../../components/ui/TextField';
 import { RichTextEditor } from '../../components/ui/RichTextEditor';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 
 interface EmailTemplate {
   id: string;
@@ -74,20 +75,26 @@ export function EmailPage() {
   };
 
   return (
-    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
-      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <PageHeader title={t('nav.email')} />
-        <button className={`nav-link ${view === 'templates' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('templates')}>Plantillas</button>
-        {canWrite && <button className={`nav-link ${view === 'new-template' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={openNewTemplate}>Nueva plantilla</button>}
-        <button className={`nav-link ${view === 'campaigns' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('campaigns')}>Campañas</button>
-        <button className={`nav-link ${view === 'automations' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('automations')}>Automatizaciones</button>
-      </aside>
+    <div className="stack" style={{ gap: 'var(--ws-space-6)' }}>
+      <PageHeader title={t('nav.email')}>
+        <SegmentedControl
+          ariaLabel={t('nav.email')}
+          value={view}
+          onChange={(v) => (v === 'new-template' ? openNewTemplate() : setView(v as View))}
+          options={[
+            { value: 'templates', label: t('email.templates') },
+            ...(canWrite ? [{ value: 'new-template', label: t('email.newTemplate') }] : []),
+            { value: 'campaigns', label: t('email.campaigns') },
+            { value: 'automations', label: t('email.automations') },
+          ]}
+        />
+      </PageHeader>
 
-      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+      <div className="stack">
         {view === 'new-template' && (
           <Card>
-            <h3>Variables disponibles en plantillas</h3>
-            <p className="muted">Usá estas variables dentro del asunto o cuerpo (ej. {'{{ user.name }}'}):</p>
+            <h3>{t('email.variablesTitle')}</h3>
+            <p className="muted">{t('email.variablesHint', { example: '{{ user.name }}' })}:</p>
             <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
               {(variables ?? []).map((v) => (
                 <code key={v.key} title={v.description} style={{ background: 'var(--ws-surface-2)', padding: 'var(--ws-space-1) var(--ws-space-2)', borderRadius: 'var(--ws-radius-sm)' }}>
@@ -121,6 +128,7 @@ function TemplatesListPanel({
   onNew: () => void;
 }) {
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const canWrite = useAuthStore((s) => s.hasPermission)('email.write');
   const { data, isLoading } = useQuery({
     queryKey: ['email-templates'],
@@ -137,31 +145,31 @@ function TemplatesListPanel({
   return (
     <Card>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3>Plantillas</h3>
-        {canWrite && <Button onClick={onNew}>Nueva plantilla</Button>}
+        <h3>{t('email.templates')}</h3>
+        {canWrite && <Button onClick={onNew}>{t('email.newTemplate')}</Button>}
       </div>
       <div className="stack">
-        {(data ?? []).map((t) => (
-          <div key={t.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
+        {(data ?? []).map((tmpl) => (
+          <div key={tmpl.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
             <div>
-              <strong>{t.name}</strong>
-              <span className="muted"> · {t.bodyMode}</span>
+              <strong>{tmpl.name}</strong>
+              <span className="muted"> · {tmpl.bodyMode}</span>
             </div>
             <div className="row">
               {canWrite && (
-                <Button variant="secondary" onClick={() => onEdit(t)}>
-                  Editar
+                <Button variant="secondary" onClick={() => onEdit(tmpl)}>
+                  {t('email.edit')}
                 </Button>
               )}
               {canWrite && (
-                <Button variant="ghost" onClick={() => remove.mutate(t.id)}>
-                  Eliminar
+                <Button variant="ghost" onClick={() => remove.mutate(tmpl.id)}>
+                  {t('email.delete')}
                 </Button>
               )}
             </div>
           </div>
         ))}
-        {(data ?? []).length === 0 && <p className="muted">No hay plantillas.</p>}
+        {(data ?? []).length === 0 && <p className="muted">{t('email.noTemplates')}</p>}
       </div>
     </Card>
   );
@@ -175,6 +183,7 @@ function TemplateEditorPanel({
   onDone: () => void;
 }) {
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const canWrite = useAuthStore((s) => s.hasPermission)('email.write');
   const [name, setName] = useState(template?.name ?? '');
   const [key, setKey] = useState(template?.key ?? '');
@@ -198,22 +207,22 @@ function TemplateEditorPanel({
 
   return (
     <Card>
-      <h3>{template ? 'Editar plantilla' : 'Nueva plantilla'}</h3>
-      <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
-      <TextField label="Clave (única)" value={key} onChange={(e) => setKey(e.target.value)} placeholder="bienvenida" />
-      <TextField label="Asunto" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Bienvenido, {{ user.name }}" />
-      <TextField label="Variables (separadas por coma)" value={variables} onChange={(e) => setVariables(e.target.value)} placeholder="site.name, user.name, user.email" />
+      <h3>{template ? t('email.editTemplate') : t('email.newTemplate')}</h3>
+      <TextField label={t('email.name')} value={name} onChange={(e) => setName(e.target.value)} />
+      <TextField label={t('email.keyLabel')} value={key} onChange={(e) => setKey(e.target.value)} placeholder="bienvenida" />
+      <TextField label={t('email.subject')} value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Bienvenido, {{ user.name }}" />
+      <TextField label={t('email.variablesLabel')} value={variables} onChange={(e) => setVariables(e.target.value)} placeholder="site.name, user.name, user.email" />
 
       <div className="field">
-        <label>Modo de edición</label>
+        <label>{t('email.editMode')}</label>
         <select className="input" value={bodyMode} onChange={(e) => setBodyMode(e.target.value as 'wysiwyg' | 'html')}>
-          <option value="wysiwyg">Editor visual (WYSIWYG)</option>
-          <option value="html">HTML crudo</option>
+          <option value="wysiwyg">{t('email.wysiwyg')}</option>
+          <option value="html">{t('email.rawHtml')}</option>
         </select>
       </div>
 
       <label className="muted" style={{ display: 'block', margin: 'var(--ws-space-2) 0' }}>
-        Contenido del correo
+        {t('email.bodyLabel')}
       </label>
       {bodyMode === 'wysiwyg' ? (
         <RichTextEditor value={body} onChange={setBody} />
@@ -224,11 +233,11 @@ function TemplateEditorPanel({
       <div className="row" style={{ marginTop: 'var(--ws-space-3)' }}>
         {canWrite && (
           <Button onClick={() => save.mutate()} disabled={save.isPending}>
-            {template ? 'Guardar' : 'Crear'}
+            {template ? t('email.save') : t('email.create')}
           </Button>
         )}
         <Button variant="ghost" onClick={onDone}>
-          Cancelar
+          {t('email.cancel')}
         </Button>
       </div>
     </Card>
@@ -241,6 +250,7 @@ function TemplateEditorPanel({
 
 function CampaignsPanel() {
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const canWrite = useAuthStore((s) => s.hasPermission)('email.write');
   const canSend = useAuthStore((s) => s.hasPermission)('email.send');
   const { data, isLoading } = useQuery({
@@ -305,51 +315,51 @@ function CampaignsPanel() {
   return (
     <div className="grid-2" style={{ alignItems: 'start' }}>
       <Card>
-        <h3>Nueva campaña</h3>
-        <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
+        <h3>{t('email.newCampaign')}</h3>
+        <TextField label={t('email.name')} value={name} onChange={(e) => setName(e.target.value)} />
 
         <div className="field">
-          <label>Plantilla</label>
+          <label>{t('email.template')}</label>
           <select className="input" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
             <option value="">—</option>
-            {(templates ?? []).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
+            {(templates ?? []).map((tmpl) => (
+              <option key={tmpl.id} value={tmpl.id}>
+                {tmpl.name}
               </option>
             ))}
           </select>
         </div>
 
-        <TextField label="Asunto (opcional, sobrescribe la plantilla)" value={subject} onChange={(e) => setSubject(e.target.value)} />
+        <TextField label={t('email.subjectOverride')} value={subject} onChange={(e) => setSubject(e.target.value)} />
 
         <div className="field">
-          <label>Destinatarios</label>
+          <label>{t('email.recipients')}</label>
           <select className="input" value={recipientType} onChange={(e) => setRecipientType(e.target.value)}>
-            <option value="all">Todos los usuarios</option>
-            <option value="roles">Por roles</option>
-            <option value="list">Lista manual</option>
+            <option value="all">{t('email.allUsers')}</option>
+            <option value="roles">{t('email.byRoles')}</option>
+            <option value="list">{t('email.manualList')}</option>
           </select>
         </div>
 
         {recipientType === 'roles' && (
-          <TextField label="Roles (claves separadas por coma)" value={roles} onChange={(e) => setRoles(e.target.value)} placeholder="user, editor" />
+          <TextField label={t('email.rolesLabel')} value={roles} onChange={(e) => setRoles(e.target.value)} placeholder="user, editor" />
         )}
         {recipientType === 'list' && (
           <div className="field">
-            <label>Correos (uno por línea)</label>
+            <label>{t('email.emailsLabel')}</label>
             <textarea className="input" rows={6} value={emails} onChange={(e) => setEmails(e.target.value)} />
           </div>
         )}
 
         {canWrite && (
           <Button onClick={() => create.mutate()} disabled={create.isPending}>
-            Crear campaña
+            {t('email.createCampaign')}
           </Button>
         )}
       </Card>
 
       <Card>
-        <h3>Campañas</h3>
+        <h3>{t('email.campaigns')}</h3>
         <div className="stack">
           {(data ?? []).map((c) => (
             <CampaignRow
@@ -363,7 +373,7 @@ function CampaignsPanel() {
               onRemove={remove.mutate}
             />
           ))}
-          {(data ?? []).length === 0 && <p className="muted">No hay campañas.</p>}
+          {(data ?? []).length === 0 && <p className="muted">{t('email.noCampaigns')}</p>}
         </div>
       </Card>
     </div>
@@ -387,6 +397,7 @@ function CampaignRow({
   onCancel: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const [when, setWhen] = useState('');
   const [showReport, setShowReport] = useState(false);
   const scheduled = campaign.status === 'scheduled';
@@ -396,33 +407,33 @@ function CampaignRow({
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <div>
           <strong>{campaign.name}</strong>
-          <span className="muted"> · {campaign.template?.name ?? 'sin plantilla'}</span>
+          <span className="muted"> · {campaign.template?.name ?? t('email.noTemplate')}</span>
           <div>
             <span className="badge">{campaign.status}</span>
             <span className="muted">
-              {' '}{campaign.sentCount}/{campaign.totalCount} enviados · {campaign.openCount} aperturas · {campaign.clickCount} clics
+              {' '}{campaign.sentCount}/{campaign.totalCount} {t('email.sent')} · {campaign.openCount} {t('email.opens')} · {campaign.clickCount} {t('email.clicks')}
             </span>
           </div>
           {campaign.scheduledAt && (
-            <span className="muted">Programada: {new Date(campaign.scheduledAt).toLocaleString()}</span>
+            <span className="muted">{t('email.scheduledAt')}: {new Date(campaign.scheduledAt).toLocaleString()}</span>
           )}
         </div>
         <div className="row">
           {scheduled ? (
             canSend && (
               <Button variant="secondary" onClick={() => onCancel(campaign.id)}>
-                Cancelar
+                {t('email.cancel')}
               </Button>
             )
           ) : (
             canSend && (
               <Button variant="secondary" onClick={() => onSend(campaign.id)} disabled={!campaign.templateId}>
-                Enviar ahora
+                {t('email.sendNow')}
               </Button>
             )
           )}
           <Button variant="ghost" onClick={() => setShowReport((v) => !v)}>
-            Reporte
+            {t('email.report')}
           </Button>
           <Button variant="ghost" onClick={() => void downloadFile(`/api/v1/email/campaigns/${campaign.id}/export`, `campaign-${campaign.id}.csv`)}>
             CSV
@@ -435,7 +446,7 @@ function CampaignRow({
           </Button>
           {canWrite && (
             <Button variant="ghost" onClick={() => onRemove(campaign.id)}>
-              Eliminar
+              {t('email.delete')}
             </Button>
           )}
         </div>
@@ -456,7 +467,7 @@ function CampaignRow({
               onClick={() => when && onSchedule({ id: campaign.id, scheduledAt: new Date(when).toISOString() })}
               disabled={!when}
             >
-              Programar
+              {t('email.schedule')}
             </Button>
           )}
         </div>
@@ -475,6 +486,7 @@ interface CampaignReportData {
 }
 
 function CampaignReport({ id }: { id: string }) {
+  const { t } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ['email-campaign-report', id],
     queryFn: () => api.get<CampaignReportData>(`/api/v1/email/campaigns/${id}/report`),
@@ -488,20 +500,20 @@ function CampaignReport({ id }: { id: string }) {
 
   return (
     <Card style={{ marginTop: 'var(--ws-space-3)' }}>
-      <h4>Reporte — {data.campaign.name}</h4>
+      <h4>{t('email.reportTitle')} — {data.campaign.name}</h4>
       <div className="stack">
         <div>
-          <span className="muted">Aperturas: {s.openCount}/{s.sentCount} ({pct(s.openRate)})</span>
+          <span className="muted">{t('email.opensLabel')}: {s.openCount}/{s.sentCount} ({pct(s.openRate)})</span>
           <Bar value={s.openRate} />
         </div>
         <div>
-          <span className="muted">Clics únicos: {s.uniqueClicks}/{s.sentCount} ({pct(s.clickRate)})</span>
+          <span className="muted">{t('email.uniqueClicksLabel')}: {s.uniqueClicks}/{s.sentCount} ({pct(s.clickRate)})</span>
           <Bar value={s.clickRate} />
         </div>
         <p className="muted">
-          {s.sentCount} enviados · {s.openCount} aperturas · {s.uniqueClicks} clics únicos · {s.totalClicks} clics totales
+          {s.sentCount} {t('email.sent')} · {s.openCount} {t('email.opens')} · {s.uniqueClicks} {t('email.uniqueClicks')} · {s.totalClicks} {t('email.totalClicks')}
         </p>
-        <p className="muted">Destinatarios: {data.recipients.length} (abiertos {s.openCount}, con clics {s.uniqueClicks})</p>
+        <p className="muted">{t('email.recipientsLabel')}: {data.recipients.length} ({t('email.opened')} {s.openCount}, {t('email.withClicks')} {s.uniqueClicks})</p>
 
         {data.timeSeries.length > 0 && <TimeSeriesChart series={data.timeSeries} />}
       </div>
@@ -510,17 +522,18 @@ function CampaignReport({ id }: { id: string }) {
 }
 
 function TimeSeriesChart({ series }: { series: Array<{ date: string; opens: number; clicks: number }> }) {
+  const { t } = useTranslation();
   const max = Math.max(1, ...series.map((d) => Math.max(d.opens, d.clicks)));
   return (
     <div>
-      <h5 className="muted">Evolución por día</h5>
+      <h5 className="muted">{t('email.timeSeriesTitle')}</h5>
       <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
         {series.map((d) => (
           <div key={d.date} style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
             <span className="muted" style={{ width: 90, fontSize: '0.85em' }}>{d.date}</span>
             <div style={{ flex: 1, display: 'flex', gap: 2, height: 16 }}>
-              <div title={`aperturas ${d.opens}`} style={{ width: `${(d.opens / max) * 100}%`, background: 'var(--ws-primary)', minWidth: d.opens ? 4 : 0, borderRadius: 2 }} />
-              <div title={`clics ${d.clicks}`} style={{ width: `${(d.clicks / max) * 100}%`, background: 'var(--ws-secondary, var(--ws-warning))', minWidth: d.clicks ? 4 : 0, borderRadius: 2 }} />
+              <div title={`${t('email.opens')} ${d.opens}`} style={{ width: `${(d.opens / max) * 100}%`, background: 'var(--ws-primary)', minWidth: d.opens ? 4 : 0, borderRadius: 2 }} />
+              <div title={`${t('email.clicks')} ${d.clicks}`} style={{ width: `${(d.clicks / max) * 100}%`, background: 'var(--ws-secondary, var(--ws-warning))', minWidth: d.clicks ? 4 : 0, borderRadius: 2 }} />
             </div>
             <span className="muted" style={{ fontSize: '0.8em', width: 70 }}>
               {d.opens} a · {d.clicks} c
@@ -547,6 +560,7 @@ function Bar({ value }: { value: number }) {
 
 function AutomationsPanel() {
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const canWrite = useAuthStore((s) => s.hasPermission)('email.write');
   const { data, isLoading } = useQuery({
     queryKey: ['email-automations'],
@@ -588,12 +602,12 @@ function AutomationsPanel() {
   return (
     <div className="grid-2" style={{ alignItems: 'start' }}>
       <Card>
-        <h3>Nueva automatización</h3>
-        <p className="muted">"Cuando ocurra [evento], enviar [plantilla] al usuario."</p>
-        <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} />
+        <h3>{t('email.newAutomation')}</h3>
+        <p className="muted">{t('email.automationHint')}</p>
+        <TextField label={t('email.name')} value={name} onChange={(e) => setName(e.target.value)} />
 
         <div className="field">
-          <label>Evento (criterio)</label>
+          <label>{t('email.eventLabel')}</label>
           <select className="input" value={event} onChange={(e) => setEvent(e.target.value)}>
             <option value="">—</option>
             {(events ?? []).map((ev) => (
@@ -605,12 +619,12 @@ function AutomationsPanel() {
         </div>
 
         <div className="field">
-          <label>Plantilla</label>
+          <label>{t('email.template')}</label>
           <select className="input" value={templateId} onChange={(e) => setTemplateId(e.target.value)}>
             <option value="">—</option>
-            {(templates ?? []).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
+            {(templates ?? []).map((tmpl) => (
+              <option key={tmpl.id} value={tmpl.id}>
+                {tmpl.name}
               </option>
             ))}
           </select>
@@ -618,39 +632,39 @@ function AutomationsPanel() {
 
         {canWrite && (
           <Button onClick={() => create.mutate()} disabled={create.isPending || !event || !templateId}>
-            Crear automatización
+            {t('email.createAutomation')}
           </Button>
         )}
       </Card>
 
       <Card>
-        <h3>Automatizaciones</h3>
+        <h3>{t('email.automations')}</h3>
         <div className="stack">
           {(data ?? []).map((a) => (
             <div key={a.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
               <div>
                 <strong>{a.name}</strong>
-                <span className="muted"> · evento: {a.event}</span>
+                <span className="muted"> · {t('email.event')}: {a.event}</span>
                 <div>
-                  <span className="badge">{a.enabled ? 'Habilitada' : 'Deshabilitada'}</span>
-                  <span className="muted"> → {a.template?.name ?? 'sin plantilla'}</span>
+                  <span className="badge">{a.enabled ? t('email.enabled') : t('email.disabled')}</span>
+                  <span className="muted"> → {a.template?.name ?? t('email.noTemplate')}</span>
                 </div>
               </div>
               <div className="row">
                 {canWrite && (
                   <Button variant="secondary" onClick={() => toggle.mutate(a)}>
-                    {a.enabled ? 'Deshabilitar' : 'Habilitar'}
+                    {a.enabled ? t('email.disable') : t('email.enable')}
                   </Button>
                 )}
                 {canWrite && (
                   <Button variant="ghost" onClick={() => remove.mutate(a.id)}>
-                    Eliminar
+                    {t('email.delete')}
                   </Button>
                 )}
               </div>
             </div>
           ))}
-          {(data ?? []).length === 0 && <p className="muted">No hay automatizaciones.</p>}
+          {(data ?? []).length === 0 && <p className="muted">{t('email.noAutomations')}</p>}
         </div>
       </Card>
     </div>

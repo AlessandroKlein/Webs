@@ -926,7 +926,12 @@ input[type='radio'] {
 
 @media (max-width: 480px) {
   .topbar { padding: var(--ws-space-2) var(--ws-space-3); }
+}
+
+/* Teléfonos pequeños: tarjetas y área de contenido más ceñidas antes de 768px. */
+@media (max-width: 600px) {
   .card { padding: var(--ws-space-4); }
+  .content { padding: var(--ws-space-3); }
 }
 
 /* Respeta la preferencia de movimiento reducido (accesibilidad). */

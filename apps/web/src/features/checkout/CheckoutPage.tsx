@@ -484,7 +484,7 @@ export function CheckoutPage() {
             <Button variant="secondary" onClick={() => navigate(kind === 'store' ? '/store' : '/dashboard')} disabled={phase === 'submitting'}>
               {t('common.back')}
             </Button>
-            <Button style={{ flex: 1 }} onClick={confirm} disabled={phase === 'submitting' || !method} loading={phase === 'submitting'}>
+            <Button className="flex-1" onClick={confirm} disabled={phase === 'submitting' || !method} loading={phase === 'submitting'}>
               {phase === 'submitting'
                 ? t('checkout.processing')
                 : t('checkout.payAmount', { amount: money(total) })}

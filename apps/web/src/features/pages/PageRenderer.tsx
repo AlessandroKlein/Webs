@@ -5,6 +5,7 @@ import {
   type PageItem,
   type PageSection,
 } from './pageTypes';
+import { sanitizeHtml } from './sanitizeHtml';
 
 /** Mapea un ancho de sección a la clase de grilla del tema. */
 export const sizeClass = (size?: string) =>
@@ -41,7 +42,7 @@ export function ElementView({ element }: { element: PageElement }) {
     case 'spacer':
       return <div style={{ height: content || '24px' }} aria-hidden="true" />;
     case 'html':
-      return <div dangerouslySetInnerHTML={{ __html: content }} />;
+      return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }} />;
     default:
       return null;
   }

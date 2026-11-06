@@ -32,7 +32,7 @@ export function LegalPage({ slug }: { slug: LegalSlug }) {
   if (isLoading) {
     return (
       <div style={{ maxWidth: 860, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
-        <p className="muted">Cargando…</p>
+        <p className="muted">{t('common.loading')}</p>
       </div>
     );
   }
@@ -44,7 +44,7 @@ export function LegalPage({ slug }: { slug: LegalSlug }) {
       <div style={{ maxWidth: 860, margin: '0 auto', padding: 'var(--ws-space-6)', width: '100%' }}>
         <h1 style={{ marginTop: 0 }}>{title}</h1>
         <p className="muted">
-          {isError ? 'No se pudo cargar este documento legal.' : 'Este documento aún no tiene contenido.'}
+          {isError ? t('legal.loadError') : t('legal.empty')}
         </p>
       </div>
     );

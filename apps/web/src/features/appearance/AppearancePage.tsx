@@ -77,7 +77,7 @@ export function AppearancePage() {
       </Card>
 
       <Card>
-        <h3>Color primario</h3>
+        <h3>{t('appearance.primaryColor')}</h3>
         <div className="row">
           <input
             className="input"
@@ -91,7 +91,7 @@ export function AppearancePage() {
       </Card>
 
       <Card>
-        <h3>CSS personalizado</h3>
+        <h3>{t('appearance.customCss')}</h3>
         <p className="muted">
           El CSS se inyecta en el sitio y puede sobrescribir cualquier token (<code>--ws-*</code>).
         </p>

@@ -139,13 +139,13 @@ export function AppUpdater({ compact = false }: { compact?: boolean }) {
         loading={isFetching}
         onClick={() => void qc.invalidateQueries({ queryKey: ['app-update-check'] })}
       >
-        {isFetching ? 'Buscando…' : 'Buscar actualizaciones'}
+        {isFetching ? t('updates.searching') : t('updates.search')}
       </Button>,
     );
     if (info?.hasUpdate && canWrite) {
       action.push(
         <Button key="apply" loading={apply.isPending} onClick={() => apply.mutate()}>
-          Actualizar app
+          {t('updates.updateApp')}
         </Button>,
       );
     }
@@ -159,7 +159,7 @@ export function AppUpdater({ compact = false }: { compact?: boolean }) {
     if (terminal?.phase === 'done' && canWrite) {
       action.push(
         <Button key="rollback" variant="secondary" loading={rollback.isPending} onClick={() => rollback.mutate()}>
-          Restaurar versión anterior
+          {t('updates.rollback')}
         </Button>,
       );
     }
@@ -176,8 +176,7 @@ export function AppUpdater({ compact = false }: { compact?: boolean }) {
       />
       {(phase === 'available' || phase === 'installing' || phase === 'rolling-back') && (
         <p className="text-sm text-muted" role="note">
-          <i className="bi bi-shield-check" aria-hidden="true" /> Actualización zero-downtime: el
-          servicio se actualiza sin interrupción del tráfico.
+          <i className="bi bi-shield-check" aria-hidden="true" /> {t('updates.zeroDowntime')}
         </p>
       )}
       {!compact && info && toReleases(info).length > 0 && (

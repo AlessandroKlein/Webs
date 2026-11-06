@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from './Button';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Diálogo de entrada de texto (modal) con estilos del design system, en lugar
@@ -22,6 +23,7 @@ export function PromptDialog({
   onConfirm: (value: string) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [value, setValue] = useState(defaultValue);
   if (!open) return null;
 
@@ -60,7 +62,7 @@ export function PromptDialog({
           onKeyDown={(e) => { if (e.key === 'Enter') onConfirm(value); }}
         />
         <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-4)' }}>
-          <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
+          <Button variant="ghost" onClick={onCancel}>{t('common.cancel')}</Button>
           <Button onClick={() => onConfirm(value)}>{confirmLabel}</Button>
         </div>
       </div>

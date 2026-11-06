@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MediaItem } from './types';
 
 /**
@@ -7,6 +8,7 @@ import type { MediaItem } from './types';
  * pantalla completa.
  */
 export function PostGallery({ media, alt }: { media: MediaItem[]; alt: string }) {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const [open, setOpen] = useState(false);
 
@@ -54,7 +56,7 @@ export function PostGallery({ media, alt }: { media: MediaItem[]; alt: string })
           type="button"
           onClick={() => setOpen(true)}
           style={{ display: 'block', width: '100%', padding: 0, border: 'none', cursor: 'zoom-in', background: '#000' }}
-          aria-label="Ampliar imagen"
+          aria-label={t('social.expandImage')}
         >
           {mediaNode(current, false)}
         </button>
@@ -67,7 +69,7 @@ export function PostGallery({ media, alt }: { media: MediaItem[]; alt: string })
                 e.stopPropagation();
                 go(-1);
               }}
-              aria-label="Anterior"
+              aria-label={t('social.previous')}
               style={{
                 position: 'absolute',
                 left: 'var(--ws-space-2)',
@@ -93,7 +95,7 @@ export function PostGallery({ media, alt }: { media: MediaItem[]; alt: string })
                 e.stopPropagation();
                 go(1);
               }}
-              aria-label="Siguiente"
+              aria-label={t('social.next')}
               style={{
                 position: 'absolute',
                 right: 'var(--ws-space-2)',
@@ -167,7 +169,7 @@ export function PostGallery({ media, alt }: { media: MediaItem[]; alt: string })
           <button
             type="button"
             onClick={() => setOpen(false)}
-            aria-label="Cerrar"
+            aria-label={t('common.close')}
             style={{
               position: 'absolute',
               top: 'var(--ws-space-4)',
@@ -196,7 +198,7 @@ export function PostGallery({ media, alt }: { media: MediaItem[]; alt: string })
                   e.stopPropagation();
                   go(-1);
                 }}
-                aria-label="Anterior"
+                aria-label={t('social.previous')}
                 style={{
                   position: 'absolute',
                   left: 'var(--ws-space-3)',
@@ -219,7 +221,7 @@ export function PostGallery({ media, alt }: { media: MediaItem[]; alt: string })
                   e.stopPropagation();
                   go(1);
                 }}
-                aria-label="Siguiente"
+                aria-label={t('social.next')}
                 style={{
                   position: 'absolute',
                   right: 'var(--ws-space-3)',

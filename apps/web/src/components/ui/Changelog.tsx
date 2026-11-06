@@ -1,5 +1,6 @@
 import { cn } from './cn';
 import { Badge } from './Badge';
+import { useTranslation } from 'react-i18next';
 
 export interface ReleaseNote {
   id: string;
@@ -19,15 +20,16 @@ export interface ReleaseNote {
  * entienda qué va a cambiar antes de aceptar la actualización.
  */
 export function Changelog({ releases, className }: { releases: ReleaseNote[]; className?: string }) {
+  const { t } = useTranslation();
   return (
-    <ol className={cn('flex flex-col gap-4', className)} aria-label="Cambios de la versión">
+    <ol className={cn('flex flex-col gap-4', className)} aria-label={t('changelog.changesAria')}>
       {releases.map((release) => (
         <li key={release.id} className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-sm font-semibold text-text">v{release.version}</span>
             {release.date && <span className="text-sm text-subtle">{release.date}</span>}
-            {release.current && <Badge variant="neutral">Instalada</Badge>}
-            {release.latest && <Badge variant="success">Disponible</Badge>}
+            {release.current && <Badge variant="neutral">{t('changelog.installed')}</Badge>}
+            {release.latest && <Badge variant="success">{t('changelog.available')}</Badge>}
           </div>
           {release.notes.length > 0 && (
             <ul className="flex flex-col gap-1 pl-4 text-sm text-muted">

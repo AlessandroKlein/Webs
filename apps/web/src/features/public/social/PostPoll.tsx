@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../../lib/api';
 import type { SocialPoll } from './types';
 
@@ -20,6 +21,7 @@ export function PostPoll({
   myId: string | null;
   onVoted: () => void;
 }) {
+  const { t } = useTranslation();
   const vote = useMutation({
     mutationFn: (optionId: string) => api.post(`${SOCIAL_BASE}/posts/${postId}/vote`, { optionId }),
     onSuccess: onVoted,
@@ -81,7 +83,7 @@ export function PostPoll({
               </span>
               {selected && (
                 <span style={{ fontSize: 'var(--ws-font-size-xs)', color: 'var(--ws-primary)' }}>
-                  ✓ Tu voto
+                  {t('social.yourVote')}
                 </span>
               )}
             </button>
@@ -91,13 +93,13 @@ export function PostPoll({
 
       <span style={{ color: 'var(--ws-text-muted)', fontSize: 'var(--ws-font-size-sm)' }}>
         {total === 0
-          ? 'Sin votos todavía.'
-          : `${total} ${total === 1 ? 'voto' : 'votos'}${closed ? ' · cerrada' : ''}`}
+          ? t('social.noVotesYet')
+          : `${total} ${total === 1 ? t('social.vote') : t('social.votes')}${closed ? ` · ${t('social.closed')}` : ''}`}
       </span>
 
       {vote.error && (
         <span style={{ color: 'var(--ws-danger)', fontSize: 'var(--ws-font-size-sm)' }}>
-          No se pudo votar.
+          {t('social.voteFailed')}
         </span>
       )}
     </div>

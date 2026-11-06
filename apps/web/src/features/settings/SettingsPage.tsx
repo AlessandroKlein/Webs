@@ -72,7 +72,7 @@ export function SettingsPage() {
           style={navButton}
           onClick={() => setSelected(BACKUP_ID)}
         >
-          Copias de seguridad
+          {t('settings.backups')}
         </button>
       </aside>
 
@@ -94,6 +94,7 @@ export function SettingsPage() {
 }
 
 function BackupSection() {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -101,7 +102,7 @@ function BackupSection() {
 
   const download = async () => {
     if (!password) {
-      setError('Ingresá tu contraseña para verificar tu identidad');
+      setError(t('settings.enterPassword'));
       setStatus(null);
       return;
     }
@@ -114,13 +115,13 @@ function BackupSection() {
         `/api/v1/system/backup?password=${encodeURIComponent(password)}`,
         `webs-backup-${date}.json`,
       );
-      setStatus('Copia descargada correctamente');
+      setStatus(t('settings.downloaded'));
       setPassword('');
     } catch (e) {
       setError(
         e instanceof ApiClientError && e.status === 403
-          ? 'Contraseña incorrecta'
-          : 'No se pudo descargar la copia',
+          ? t('settings.wrongPassword')
+          : t('settings.downloadFailed'),
       );
     } finally {
       setBusy(false);
@@ -129,21 +130,19 @@ function BackupSection() {
 
   return (
     <Card>
-      <h3 style={{ margin: 0 }}>Copias de seguridad</h3>
+      <h3 style={{ margin: 0 }}>{t('settings.backups')}</h3>
       <p className="muted" style={{ margin: 'var(--ws-space-3) 0 0' }}>
-        Descargá una copia de los datos del sitio (usuarios sin contraseña, roles, ajustes,
-        páginas, contenido, productos, órdenes, pagos, inventario, membresías y suscripciones).
-        Por seguridad, tenés que re-ingresar tu contraseña.
+        {t('settings.backupHint')}
       </p>
       <div className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'flex-end', marginTop: 'var(--ws-space-3)' }}>
         <TextField
-          label="Contraseña"
+          label={t('settings.password')}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
         <Button onClick={() => void download()} disabled={busy}>
-          {busy ? 'Descargando…' : 'Descargar copia'}
+          {busy ? t('settings.downloading') : t('settings.download')}
         </Button>
       </div>
       {status && (
@@ -178,7 +177,7 @@ function SettingsSectionCard({
       const r = await api.post<{ ok: boolean; message: string }>('/api/v1/settings/test-smtp', { to });
       setSmtpMsg(r.message);
     } catch (e) {
-      setSmtpMsg(e instanceof Error ? e.message : 'Error al probar SMTP');
+      setSmtpMsg(e instanceof Error ? e.message : t('settings.smtpError'));
     }
   };
 
@@ -188,10 +187,10 @@ function SettingsSectionCard({
       <SchemaForm schema={section.schema} value={value} onChange={setValue} />
       <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
         {section.key === 'smtp' && canWrite && (
-          <Button variant="secondary" onClick={() => setSmtpTo(value.from as string ?? '')}>Test SMTP</Button>
+          <Button variant="secondary" onClick={() => setSmtpTo(value.from as string ?? '')}>{t('settings.testSmtp')}</Button>
         )}
         {smtpMsg && <span className="muted" style={{ marginRight: 'auto' }}>{smtpMsg}</span>}
-        {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>Guardado ✓</span>}
+        {saved && <span style={{ color: 'var(--ws-success, #16a34a)' }}>{t('settings.saved')}</span>}
         {canWrite && (
           <Button
             onClick={() => {
@@ -207,10 +206,10 @@ function SettingsSectionCard({
       </div>
       <PromptDialog
         open={smtpTo !== null}
-        title="Test SMTP"
-        label="Enviar correo de prueba a:"
+        title={t('settings.testSmtp')}
+        label={t('settings.smtpPromptLabel')}
         defaultValue={smtpTo ?? ''}
-        confirmLabel="Enviar"
+        confirmLabel={t('settings.send')}
         onConfirm={(to) => { setSmtpTo(null); if (to) void testSmtp(to); }}
         onCancel={() => setSmtpTo(null)}
       />

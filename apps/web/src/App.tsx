@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Providers } from './app/providers';
 import { useAuthStore } from './lib/auth-store';
 import { api } from './lib/api';
+import { useTranslation } from 'react-i18next';
 import { applyRemoteResources, type RemoteI18nPayload } from './lib/i18n';
 import { useLocaleStore, type LocaleInfo } from './lib/locale-store';
 import './plugins';
@@ -24,14 +25,13 @@ import { StorePage } from './features/store/StorePage';
 import { CheckoutPage } from './features/checkout/CheckoutPage';
 import { UsersPage } from './features/users/UsersPage';
 import { RolesPage } from './features/roles/RolesPage';
-import { ContentPage } from './features/content/ContentPage';
 import { EmailPage } from './features/email/EmailPage';
 import { TranslationsPage } from './features/translations/TranslationsPage';
 import { AuditPage } from './features/audit/AuditPage';
 import { ApiTokensPage } from './features/api-tokens/ApiTokensPage';
 import { AccountPage } from './features/account/AccountPage';
 import { PagesPage } from './features/pages/PagesPage';
-import { EditorPage } from './features/editor/EditorPage';
+import { CrmPage } from './features/crm/CrmPage';
 import { OrganizationsPage } from './features/organizations/OrganizationsPage';
 import { BranchesPage } from './features/branches/BranchesPage';
 import { InventoryPage } from './features/inventory/InventoryPage';
@@ -72,9 +72,10 @@ interface SetupStatus {
 }
 
 function Splash() {
+  const { t } = useTranslation();
   return (
     <div className="auth-screen">
-      <p className="muted">Cargando…</p>
+      <p className="muted">{t('common.loading')}</p>
     </div>
   );
 }
@@ -163,9 +164,10 @@ function MainApp() {
           }
         >
           <Route index element={<DashboardPage />} />
-          <Route path="content" element={<ContentPage />} />
+          <Route path="content" element={<Navigate to="/admin/pages" replace />} />
           <Route path="pages" element={<PagesPage />} />
-          <Route path="editor" element={<EditorPage />} />
+          <Route path="crm" element={<CrmPage />} />
+          <Route path="editor" element={<Navigate to="/admin/pages" replace />} />
           <Route path="organizations" element={<OrganizationsPage />} />
           <Route path="branches" element={<BranchesPage />} />
           <Route path="inventory" element={<InventoryPage />} />

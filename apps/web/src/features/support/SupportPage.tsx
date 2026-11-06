@@ -201,7 +201,7 @@ export function SupportPage() {
                     </td>
                     {canManage && (
                       <td style={{ textAlign: 'right' }}>
-                        <Button variant="ghost" style={{ color: 'var(--ws-danger)' }} onClick={() => setConfirmDelete(tk)}>
+                        <Button variant="destructive" onClick={() => setConfirmDelete(tk)}>
                           {t('common.delete')}
                         </Button>
                       </td>

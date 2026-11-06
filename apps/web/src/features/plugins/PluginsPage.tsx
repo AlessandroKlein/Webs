@@ -12,6 +12,7 @@ import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Spinner } from '../../components/ui/Spinner';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 
 interface InstalledPlugin {
   id: string;
@@ -203,25 +204,21 @@ export function PluginsPage() {
   }, {});
 
   return (
-    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
-      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <PageHeader title={t('nav.plugins')} />
-        <button className={`nav-link ${tab === 'installed' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('installed')}>{t('plugins.installed')}</button>
-        <button className={`nav-link ${tab === 'catalog' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('catalog')}>{t('plugins.catalog')}</button>
-        {tab === 'catalog' && Object.keys(groupedCatalog).map((cat) => (
-          <button
-            key={cat}
-            className={`nav-link ${activeCategory === cat ? 'active' : ''}`}
-            style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', paddingLeft: 'var(--ws-space-6)', textTransform: 'capitalize' }}
-            onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-          >
-            {cat}
-          </button>
-        ))}
-        <button className={`nav-link ${tab === 'import' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setTab('import')}>{t('plugins.importJson')}</button>
-      </aside>
+    <div className="stack" style={{ gap: 'var(--ws-space-6)' }}>
+      <PageHeader title={t('nav.plugins')}>
+        <SegmentedControl
+          ariaLabel={t('nav.plugins')}
+          value={tab}
+          onChange={(v) => setTab(v as 'installed' | 'catalog' | 'import')}
+          options={[
+            { value: 'installed', label: t('plugins.installed') },
+            { value: 'catalog', label: t('plugins.catalog') },
+            { value: 'import', label: t('plugins.importJson') },
+          ]}
+        />
+      </PageHeader>
 
-      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+      <div className="stack">
       {tab === 'installed' && (
       <Card>
         <h3>{t('plugins.installed')}</h3>
@@ -251,6 +248,19 @@ export function PluginsPage() {
           placeholder={t('plugins.searchCatalogPlaceholder')}
           aria-label={t('plugins.searchCatalogAria')}
         />
+        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+          {Object.keys(groupedCatalog).map((cat) => (
+            <Button
+              key={cat}
+              size="sm"
+              variant={activeCategory === cat ? 'primary' : 'secondary'}
+              style={{ textTransform: 'capitalize' }}
+              onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+            >
+              {cat}
+            </Button>
+          ))}
+        </div>
         {catalog.length === 0 && <p className="muted">{t('plugins.noPluginsAvailable')}</p>}
         <div className="stack">
           {Object.entries(groupedCatalog)

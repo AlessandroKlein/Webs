@@ -77,7 +77,15 @@ function PluginRenderer({
   return <div ref={ref} />;
 }
 
-/** Renderiza un plugin por su id (para el constructor de páginas). */
-export function PluginById({ pluginId, config = {} }: { pluginId: string; config?: Record<string, unknown> }) {
-  return <PluginRenderer pluginId={pluginId} slot="page" config={config} />;
+/** Renderiza un plugin por su id (constructor de páginas y páginas de admin). */
+export function PluginById({
+  pluginId,
+  config = {},
+  slot = 'page',
+}: {
+  pluginId: string;
+  config?: Record<string, unknown>;
+  slot?: string;
+}) {
+  return <PluginRenderer pluginId={pluginId} slot={slot} config={config} />;
 }

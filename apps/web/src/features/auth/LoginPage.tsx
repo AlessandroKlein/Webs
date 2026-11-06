@@ -329,7 +329,7 @@ export function LoginPage() {
 
             {regError && <p style={{ color: 'var(--ws-danger)' }}>{regError}</p>}
 
-            <Button type="submit" disabled={registering} style={{ width: '100%' }}>
+            <Button type="submit" disabled={registering} fullWidth>
               {registering ? t('auth.registering') : t('auth.createAccount')}
             </Button>
             <Button
@@ -339,7 +339,7 @@ export function LoginPage() {
                 setShowRegister(false);
                 setRegError(null);
               }}
-              style={{ width: '100%' }}
+              fullWidth
             >
               {t('auth.backToLogin')}
             </Button>
@@ -397,11 +397,11 @@ export function LoginPage() {
             {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
             {regSuccess && <p style={{ color: 'var(--ws-success, #16a34a)' }}>{regSuccess}</p>}
 
-            <Button type="submit" disabled={loading} style={{ width: '100%' }}>
+            <Button type="submit" disabled={loading} fullWidth>
               {t('auth.login')}
             </Button>
 
-            <Button type="button" variant="secondary" onClick={loginWithPasskey} disabled={passkeyLoading} style={{ width: '100%', marginTop: 'var(--ws-space-2)' }}>
+            <Button type="button" variant="secondary" onClick={loginWithPasskey} disabled={passkeyLoading} fullWidth style={{ marginTop: 'var(--ws-space-2)' }}>
               {passkeyLoading ? t('auth.verifying') : t('auth.signInWithPasskey')}
             </Button>
 
@@ -422,7 +422,7 @@ export function LoginPage() {
                       variant="secondary"
                       disabled={socialLoading}
                       onClick={() => openSocial(p)}
-                      style={{ width: '100%' }}
+                      fullWidth
                     >
                       {p.name}
                     </Button>
@@ -434,7 +434,7 @@ export function LoginPage() {
             {canRegister && (
               <>
                 <hr style={{ border: 'none', borderTop: '1px solid var(--ws-border)', margin: 'var(--ws-space-4) 0' }} />
-                <Button type="button" variant="ghost" onClick={() => setShowRegister(true)} style={{ width: '100%' }}>
+                <Button type="button" variant="ghost" onClick={() => setShowRegister(true)} fullWidth>
                   {t('auth.noAccount')}
                 </Button>
               </>

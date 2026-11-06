@@ -282,7 +282,7 @@ export function CalendarPage() {
           style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
           onClick={() => setView('calendar')}
         >
-          Calendario
+          {t('admin.calendar.calendar')}
         </button>
         <button
           className={`nav-link ${view === 'events' ? 'active' : ''}`}
@@ -304,7 +304,7 @@ export function CalendarPage() {
         {view === 'calendar' && (
           <div className="stack">
             <Card>
-              <h3 style={{ marginTop: 0 }}>Crear clase / turno</h3>
+              <h3 style={{ marginTop: 0 }}>{t('admin.calendar.createClass')}</h3>
               <form
                 className="stack"
                 onSubmit={(e) => {
@@ -313,27 +313,27 @@ export function CalendarPage() {
                 }}
               >
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                  <TextField label="Título" value={clsTitle} onChange={(e) => setClsTitle(e.target.value)} required />
-                  <TextField label="Inicio" type="datetime-local" value={clsStart} onChange={(e) => setClsStart(e.target.value)} required />
-                  <TextField label="Fin" type="datetime-local" value={clsEnd} onChange={(e) => setClsEnd(e.target.value)} />
-                  <TextField label="Cupos" type="number" min={1} value={clsSlots} onChange={(e) => setClsSlots(e.target.value)} style={{ width: 110 }} />
+                  <TextField label={t('admin.calendar.titleCol')} value={clsTitle} onChange={(e) => setClsTitle(e.target.value)} required />
+                  <TextField label={t('admin.calendar.start')} type="datetime-local" value={clsStart} onChange={(e) => setClsStart(e.target.value)} required />
+                  <TextField label={t('admin.calendar.end')} type="datetime-local" value={clsEnd} onChange={(e) => setClsEnd(e.target.value)} />
+                  <TextField label={t('admin.calendar.slots')} type="number" min={1} value={clsSlots} onChange={(e) => setClsSlots(e.target.value)} style={{ width: 110 }} />
                 </div>
                 <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
                   <div className="field">
-                    <label>Repetición</label>
+                    <label>{t('admin.calendar.recurrence')}</label>
                     <select
                       className="input"
                       value={clsFrequency}
                       onChange={(e) => setClsFrequency(e.target.value as 'none' | 'daily' | 'weekly')}
                     >
-                      <option value="none">Sin repetición</option>
-                      <option value="daily">Diaria</option>
-                      <option value="weekly">Semanal</option>
+                      <option value="none">{t('admin.calendar.noRecurrence')}</option>
+                      <option value="daily">{t('admin.calendar.daily')}</option>
+                      <option value="weekly">{t('admin.calendar.weekly')}</option>
                     </select>
                   </div>
                   {clsFrequency !== 'none' && (
                     <TextField
-                      label="Cantidad (días/semanas)"
+                      label={t('admin.calendar.recurrenceCount')}
                       type="number"
                       min={1}
                       value={clsCount}
@@ -344,7 +344,7 @@ export function CalendarPage() {
                 </div>
                 <div className="row">
                   <Button type="submit" disabled={createClass.isPending || !clsTitle || !clsStart}>
-                    {createClass.isPending ? 'Creando…' : 'Crear clase'}
+                    {createClass.isPending ? t('admin.calendar.creating') : t('admin.calendar.createClass')}
                   </Button>
                   {createClass.error && <span style={{ color: 'var(--ws-danger)' }}>{createClass.error.message}</span>}
                 </div>
@@ -357,16 +357,16 @@ export function CalendarPage() {
                 style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ws-space-3)' }}
               >
                 <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)' }}>
-                  <Button variant="secondary" onClick={prevMonth} aria-label="Mes anterior">
+                  <Button variant="secondary" onClick={prevMonth} aria-label={t('admin.calendar.prevMonth')}>
                     <i className="bi bi-chevron-left" />
                   </Button>
                   <h2 style={{ margin: 0, minWidth: 180, textAlign: 'center' }}>{monthLabel}</h2>
-                  <Button variant="secondary" onClick={nextMonth} aria-label="Mes siguiente">
+                  <Button variant="secondary" onClick={nextMonth} aria-label={t('admin.calendar.nextMonth')}>
                     <i className="bi bi-chevron-right" />
                   </Button>
                 </div>
                 <Button variant="secondary" onClick={goToday}>
-                  Hoy
+                  {t('admin.calendar.today')}
                 </Button>
               </div>
 
@@ -421,13 +421,13 @@ export function CalendarPage() {
                       <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
                         {evCount > 0 && (
                           <span
-                            title={`${evCount} evento${evCount === 1 ? '' : 's'}`}
+                            title={t('admin.calendar.eventCount', { count: evCount })}
                             style={{ width: 8, height: 8, borderRadius: '50%', background: isSelected ? '#fff' : 'var(--ws-primary)', display: 'inline-block' }}
                           />
                         )}
                         {bkCount > 0 && (
                           <span
-                            title={`${bkCount} reserva${bkCount === 1 ? '' : 's'}`}
+                            title={t('admin.calendar.reserveCount', { count: bkCount })}
                             style={{ width: 8, height: 8, borderRadius: '50%', background: isSelected ? '#fff' : 'var(--ws-success)', display: 'inline-block' }}
                           />
                         )}
@@ -439,10 +439,10 @@ export function CalendarPage() {
 
               <div className="row" style={{ gap: 'var(--ws-space-4)', marginTop: 'var(--ws-space-3)', flexWrap: 'wrap' }}>
                 <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ws-space-1)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ws-primary)', display: 'inline-block' }} /> Eventos
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ws-primary)', display: 'inline-block' }} /> {t('admin.calendar.events')}
                 </span>
                 <span className="muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ws-space-1)' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ws-success)', display: 'inline-block' }} /> Reservas
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ws-success)', display: 'inline-block' }} /> {t('admin.calendar.bookings')}
                 </span>
               </div>
             </Card>
@@ -458,14 +458,14 @@ export function CalendarPage() {
                       year: 'numeric',
                     })}
                   </h3>
-                  <Button variant="ghost" onClick={() => setSelectedKey(null)} aria-label="Cerrar">
+                  <Button variant="ghost" onClick={() => setSelectedKey(null)} aria-label={t('admin.calendar.close')}>
                     <i className="bi bi-x-lg" />
                   </Button>
                 </div>
 
-                <h4 style={{ marginBottom: 'var(--ws-space-2)' }}>Eventos</h4>
+                <h4 style={{ marginBottom: 'var(--ws-space-2)' }}>{t('admin.calendar.events')}</h4>
                 {(eventsByDate[selectedKey] ?? []).length === 0 ? (
-                  <p className="muted">Sin eventos este día.</p>
+                  <p className="muted">{t('admin.calendar.noEventsThisDay')}</p>
                 ) : (
                   <div className="stack">
                     {(eventsByDate[selectedKey] ?? []).map((ev) => (
@@ -490,9 +490,9 @@ export function CalendarPage() {
                   </div>
                 )}
 
-                <h4 style={{ marginTop: 'var(--ws-space-4)', marginBottom: 'var(--ws-space-2)' }}>Reservas</h4>
+                <h4 style={{ marginTop: 'var(--ws-space-4)', marginBottom: 'var(--ws-space-2)' }}>{t('admin.calendar.bookings')}</h4>
                 {(bookingsByDate[selectedKey] ?? []).length === 0 ? (
-                  <p className="muted">Sin reservas este día.</p>
+                  <p className="muted">{t('admin.calendar.noBookingsThisDay')}</p>
                 ) : (
                   <div className="stack">
                     {(bookingsByDate[selectedKey] ?? []).map((b) => (

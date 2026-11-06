@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
@@ -183,6 +184,7 @@ function ProductImage({ product, height = 180 }: { product: RawProduct; height?:
 }
 
 export function StorePage() {
+  const { t } = useTranslation();
   const { data: products, isLoading: loading } = useQuery({
     queryKey: ['store-products'],
     queryFn: () => api.get<RawProduct[]>(`${EC_BASE}/products/persisted`),
@@ -239,7 +241,7 @@ export function StorePage() {
       return [...prev, { key, id: p.id, title: p.title, price: p.price, size, qty }];
     });
     setSelected(null);
-    setNotice('Agregado al carrito');
+    setNotice(t('store.addedToCart'));
   };
 
   const removeLine = (key: string) => setCart((prev) => prev.filter((l) => l.key !== key));
@@ -253,7 +255,7 @@ export function StorePage() {
   const loadQuotes = async () => {
     const postalCode = address.postalCode.trim();
     if (!postalCode) {
-      setCartError('Ingresá tu código postal para cotizar el envío');
+      setCartError(t('store.enterPostalCode'));
       return;
     }
     setLoadingQuotes(true);
@@ -273,7 +275,7 @@ export function StorePage() {
     } catch {
       setShippingQuotes(null);
       setSelectedShipping(null);
-      setCartError('No se pudo cotizar el envío. Revisá la dirección e intentá de nuevo.');
+      setCartError(t('store.quoteFailed'));
     } finally {
       setLoadingQuotes(false);
     }
@@ -288,7 +290,7 @@ export function StorePage() {
 
   const requireLogin = () => {
     if (!user || status === 'unauthenticated') {
-      setNotice('Iniciá sesión para comprar');
+      setNotice(t('store.loginToBuy'));
       navigate('/login');
       return false;
     }
@@ -298,7 +300,7 @@ export function StorePage() {
   const startCheckout = () => {
     if (!requireLogin()) return;
     if (!selectedShipping) {
-      setCartError('Completá la dirección y elegí un método de envío');
+      setCartError(t('store.completeAddress'));
       return;
     }
     setCartError(null);
@@ -318,7 +320,7 @@ export function StorePage() {
     if (!requireLogin()) return;
     if (!selectedProvider) return;
     if (!selectedShipping) {
-      setCartError('Elegí un método de envío antes de pagar');
+      setCartError(t('store.chooseShipping'));
       return;
     }
     setPaying(true);
@@ -344,7 +346,7 @@ export function StorePage() {
       });
       setCheckout(result);
     } catch (e) {
-      setCartError(e instanceof Error ? e.message : 'Error al iniciar el pago');
+      setCartError(e instanceof Error ? e.message : t('store.paymentError'));
     } finally {
       setPaying(false);
     }
@@ -357,7 +359,7 @@ export function StorePage() {
     setSelectedShipping(null);
     resetCheckout();
     setCartOpen(false);
-    setNotice('Pago iniciado. Completá el pago en la pasarela para confirmar tu compra.');
+    setNotice(t('store.paymentStarted'));
   };
 
   const sizes = selected ? asStringArray(selected.sizes) : [];
@@ -379,14 +381,14 @@ export function StorePage() {
         }}
       >
         <div>
-          <h1 style={{ margin: 0, fontSize: 'var(--ws-font-size-lg)' }}>Tienda</h1>
+          <h1 style={{ margin: 0, fontSize: 'var(--ws-font-size-lg)' }}>{t('store.title')}</h1>
           <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>
-            Productos, ofertas y más
+            {t('store.subtitle')}
           </p>
         </div>
         <button
           onClick={() => setCartOpen(true)}
-          aria-label="Abrir carrito"
+          aria-label={t('store.openCart')}
           style={{
             position: 'relative',
             display: 'inline-flex',
@@ -441,9 +443,9 @@ export function StorePage() {
       )}
 
       {loading ? (
-        <p className="muted">Cargando productos…</p>
+        <p className="muted">{t('store.loadingProducts')}</p>
       ) : (products ?? []).length === 0 ? (
-        <p className="muted">No hay productos todavía.</p>
+        <p className="muted">{t('store.noProducts')}</p>
       ) : (
         <div
           style={{
@@ -511,7 +513,7 @@ export function StorePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ws-space-4)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--ws-space-3)' }}>
                 <h2 style={{ margin: 0, fontSize: 'var(--ws-font-size-lg)' }}>{selected.title}</h2>
-                <button onClick={() => setSelected(null)} style={closeBtnStyle} aria-label="Cerrar">
+                <button onClick={() => setSelected(null)} style={closeBtnStyle} aria-label={t('store.close')}>
                   ✕
                 </button>
               </div>
@@ -578,7 +580,7 @@ export function StorePage() {
 
               {sizes.length > 0 && (
                 <div>
-                  <strong style={{ display: 'block', marginBottom: 'var(--ws-space-2)' }}>Talle</strong>
+                  <strong style={{ display: 'block', marginBottom: 'var(--ws-space-2)' }}>{t('store.size')}</strong>
                   <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
                     {sizes.map((s) => (
                       <button
@@ -602,19 +604,19 @@ export function StorePage() {
 
               <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-3)', flexWrap: 'wrap' }}>
                 <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
-                  <button onClick={() => setDetailQty((q) => Math.max(1, q - 1))} style={qtyBtnStyle} aria-label="Menos">
+                  <button onClick={() => setDetailQty((q) => Math.max(1, q - 1))} style={qtyBtnStyle} aria-label={t('store.less')}>
                     −
                   </button>
                   <span style={{ minWidth: 32, textAlign: 'center' }}>{detailQty}</span>
-                  <button onClick={() => setDetailQty((q) => q + 1)} style={qtyBtnStyle} aria-label="Más">
+                  <button onClick={() => setDetailQty((q) => q + 1)} style={qtyBtnStyle} aria-label={t('store.more')}>
                     +
                   </button>
                 </div>
                 <Button onClick={() => addToCart(selected, detailSize, detailQty)} disabled={selected.stock === 0}>
-                  Agregar al carrito
+                  {t('store.addToCart')}
                 </Button>
               </div>
-              {selected.stock === 0 ? <p className="muted" style={{ margin: 0 }}>Sin stock.</p> : null}
+              {selected.stock === 0 ? <p className="muted" style={{ margin: 0 }}>{t('store.outOfStock')}</p> : null}
             </div>
           </div>
         </div>
@@ -648,14 +650,14 @@ export function StorePage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--ws-space-3)' }}>
-              <h2 style={{ margin: 0, fontSize: 'var(--ws-font-size-lg)' }}>Carrito</h2>
-              <button onClick={() => setCartOpen(false)} style={closeBtnStyle} aria-label="Cerrar carrito">
+              <h2 style={{ margin: 0, fontSize: 'var(--ws-font-size-lg)' }}>{t('store.cart')}</h2>
+              <button onClick={() => setCartOpen(false)} style={closeBtnStyle} aria-label={t('store.closeCart')}>
                 ✕
               </button>
             </div>
 
             {cart.length === 0 ? (
-              <p className="muted">Tu carrito está vacío.</p>
+              <p className="muted">{t('store.emptyCart')}</p>
             ) : (
               <>
                 <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 'var(--ws-space-3)' }}>
@@ -674,15 +676,15 @@ export function StorePage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <strong style={{ display: 'block' }}>{l.title}</strong>
                         <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)', display: 'block' }}>
-                          {l.size ? `Talle ${l.size} · ` : ''}
-                          {money(l.price)} c/u
+                          {l.size ? `${t('store.sizeWithValue', { size: l.size })} · ` : ''}
+                          {money(l.price)} {t('store.perUnit')}
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
-                          <button onClick={() => changeQty(l.key, -1)} style={qtyBtnStyle} aria-label="Menos">
+                          <button onClick={() => changeQty(l.key, -1)} style={qtyBtnStyle} aria-label={t('store.less')}>
                             −
                           </button>
                           <span style={{ minWidth: 24, textAlign: 'center' }}>{l.qty}</span>
-                          <button onClick={() => changeQty(l.key, 1)} style={qtyBtnStyle} aria-label="Más">
+                          <button onClick={() => changeQty(l.key, 1)} style={qtyBtnStyle} aria-label={t('store.more')}>
                             +
                           </button>
                         </div>
@@ -696,7 +698,7 @@ export function StorePage() {
                           gap: 'var(--ws-space-2)',
                         }}
                       >
-                        <button onClick={() => removeLine(l.key)} style={closeBtnStyle} aria-label="Quitar">
+                        <button onClick={() => removeLine(l.key)} style={closeBtnStyle} aria-label={t('store.remove')}>
                           ✕
                         </button>
                         <strong>{money(l.price * l.qty)}</strong>
@@ -706,10 +708,10 @@ export function StorePage() {
 
                   {/* Dirección de envío */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ws-space-2)' }}>
-                    <strong style={{ fontSize: 'var(--ws-font-size-sm)' }}>Dirección de envío</strong>
+                    <strong style={{ fontSize: 'var(--ws-font-size-sm)' }}>{t('store.shippingAddress')}</strong>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--ws-space-2)' }}>
                       <div style={{ ...addrFieldStyle, gridColumn: '1 / -1' }}>
-                        <label style={addrLabelStyle} htmlFor="ship-street">Calle</label>
+                        <label style={addrLabelStyle} htmlFor="ship-street">{t('store.street')}</label>
                         <input
                           id="ship-street"
                           style={addrInputStyle}
@@ -719,7 +721,7 @@ export function StorePage() {
                         />
                       </div>
                       <div style={addrFieldStyle}>
-                        <label style={addrLabelStyle} htmlFor="ship-number">Número</label>
+                        <label style={addrLabelStyle} htmlFor="ship-number">{t('store.number')}</label>
                         <input
                           id="ship-number"
                           style={addrInputStyle}
@@ -729,7 +731,7 @@ export function StorePage() {
                         />
                       </div>
                       <div style={addrFieldStyle}>
-                        <label style={addrLabelStyle} htmlFor="ship-city">Ciudad</label>
+                        <label style={addrLabelStyle} htmlFor="ship-city">{t('store.city')}</label>
                         <input
                           id="ship-city"
                           style={addrInputStyle}
@@ -739,7 +741,7 @@ export function StorePage() {
                         />
                       </div>
                       <div style={addrFieldStyle}>
-                        <label style={addrLabelStyle} htmlFor="ship-province">Provincia</label>
+                        <label style={addrLabelStyle} htmlFor="ship-province">{t('store.province')}</label>
                         <input
                           id="ship-province"
                           style={addrInputStyle}
@@ -749,7 +751,7 @@ export function StorePage() {
                         />
                       </div>
                       <div style={addrFieldStyle}>
-                        <label style={addrLabelStyle} htmlFor="ship-cp">Código postal</label>
+                        <label style={addrLabelStyle} htmlFor="ship-cp">{t('store.postalCode')}</label>
                         <input
                           id="ship-cp"
                           style={addrInputStyle}
@@ -760,7 +762,7 @@ export function StorePage() {
                         />
                       </div>
                       <div style={addrFieldStyle}>
-                        <label style={addrLabelStyle} htmlFor="ship-country">País</label>
+                        <label style={addrLabelStyle} htmlFor="ship-country">{t('store.country')}</label>
                         <input
                           id="ship-country"
                           style={addrInputStyle}
@@ -770,15 +772,15 @@ export function StorePage() {
                         />
                       </div>
                     </div>
-                    <Button variant="secondary" style={{ width: '100%' }} onClick={loadQuotes} disabled={loadingQuotes}>
-                      {loadingQuotes ? 'Cotizando…' : 'Cotizar envío'}
+                    <Button variant="secondary" fullWidth onClick={loadQuotes} disabled={loadingQuotes}>
+                      {loadingQuotes ? t('store.quoting') : t('store.quoteShipping')}
                     </Button>
                   </div>
 
                   {/* Método de envío */}
                   {shippingQuotes && shippingQuotes.length > 0 && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--ws-space-2)' }}>
-                      <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Método de envío:</span>
+                      <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>{t('store.shippingMethod')}</span>
                       {shippingQuotes.map((q) => (
                         <button
                           key={q.provider}
@@ -799,7 +801,7 @@ export function StorePage() {
                           <i className="bi bi-truck" />
                           <span style={{ flex: 1 }}>
                             {shippingLabel(q.provider)}
-                            {q.days != null ? ` · ${q.days} días` : ''}
+                            {q.days != null ? ` · ${t('store.days', { count: q.days })}` : ''}
                           </span>
                           <strong>{money(q.cost)}</strong>
                           {selectedShipping === q.provider && (
@@ -822,15 +824,15 @@ export function StorePage() {
                   }}
                 >
                   <div className="row" style={{ justifyContent: 'space-between' }}>
-                    <span className="muted">Subtotal</span>
+                    <span className="muted">{t('store.subtotal')}</span>
                     <span>{money(total)}</span>
                   </div>
                   <div className="row" style={{ justifyContent: 'space-between' }}>
-                    <span className="muted">Envío</span>
+                    <span className="muted">{t('store.shipping')}</span>
                     <span>{selectedShipping ? money(shippingCost) : '—'}</span>
                   </div>
                   <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <strong>Total</strong>
+                    <strong>{t('store.total')}</strong>
                     <strong style={{ fontSize: '1.15rem' }}>{money(grandTotal)}</strong>
                   </div>
 
@@ -868,33 +870,33 @@ export function StorePage() {
                             fontWeight: 600,
                           }}
                         >
-                          <i className="bi bi-box-arrow-up-right" /> Pagar ahora
+                          <i className="bi bi-box-arrow-up-right" /> {t('store.payNow')}
                         </a>
                       ) : checkout.qr ? (
                         <div className="stack" style={{ gap: 'var(--ws-space-2)', alignItems: 'center' }}>
                           <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
-                            Escaneá el código QR para completar el pago:
+                            {t('store.scanQr')}
                           </span>
                           <QrCode value={checkout.qr} />
                         </div>
                       ) : (
                         <div style={{ padding: 'var(--ws-space-3)', background: 'var(--ws-primary-soft)', borderRadius: 'var(--ws-radius-md)' }}>
                           <strong style={{ display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
-                            <i className="bi bi-hourglass-split" /> Pago pendiente
+                            <i className="bi bi-hourglass-split" /> {t('store.paymentPending')}
                           </strong>
                           <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0', fontSize: 'var(--ws-font-size-sm)' }}>
-                            Código de transacción: <code>{checkout.transactionId}</code>
+                            {t('store.transactionCode')} <code>{checkout.transactionId}</code>
                           </p>
                         </div>
                       )}
 
-                      <Button variant="secondary" style={{ width: '100%' }} onClick={finalizeCheckout}>
-                        Entendido
+                      <Button variant="secondary" fullWidth onClick={finalizeCheckout}>
+                        {t('store.gotIt')}
                       </Button>
                     </div>
                   ) : providers ? (
                     <div className="stack" style={{ gap: 'var(--ws-space-2)' }}>
-                      <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Elegí un método de pago:</span>
+                      <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>{t('store.choosePayment')}</span>
                       {providers.map((p) => (
                         <button
                           key={p.id}
@@ -918,17 +920,17 @@ export function StorePage() {
                         </button>
                       ))}
                       <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
-                        <Button variant="secondary" style={{ flex: 1 }} onClick={resetCheckout}>
-                          Volver
+                        <Button variant="secondary" className="flex-1" onClick={resetCheckout}>
+                          {t('store.back')}
                         </Button>
-                        <Button style={{ flex: 1 }} onClick={pay} disabled={paying || !selectedProvider}>
-                          {paying ? 'Iniciando pago…' : 'Pagar'}
+                        <Button className="flex-1" onClick={pay} disabled={paying || !selectedProvider}>
+                          {paying ? t('store.startingPayment') : t('store.pay')}
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <Button style={{ width: '100%' }} onClick={startCheckout} disabled={loadingProviders || cart.length === 0 || !selectedShipping}>
-                      {loadingProviders ? 'Buscando métodos de pago…' : 'Comprar'}
+                    <Button fullWidth onClick={startCheckout} disabled={loadingProviders || cart.length === 0 || !selectedShipping}>
+                      {loadingProviders ? t('store.loadingPaymentMethods') : t('store.buy')}
                     </Button>
                   )}
                 </div>

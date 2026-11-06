@@ -150,7 +150,7 @@ export function TranslationsPage() {
               setShowNewKey(false);
             }}
           >
-            + Agregar idioma
+            + {t('translations.addLanguage')}
           </button>
         )}
       </aside>
@@ -172,8 +172,7 @@ export function TranslationsPage() {
                 {nativeLabelOf(activeLocale)} <span className="muted">({activeLocale})</span>
               </h2>
               <p className="muted" style={{ margin: 0 }}>
-                Claves fijas del sitio. Editá el valor y guardá: el valor guardado sobreescribe la
-                traducción base en este idioma.
+                {t('translations.keysHint')}
               </p>
             </Card>
 
@@ -181,20 +180,20 @@ export function TranslationsPage() {
               <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 240 }}>
                   <TextField
-                    label="Buscar clave"
+                    label={t('translations.searchKey')}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="nav.home, common.save…"
                   />
                 </div>
                 <span className="muted" style={{ paddingBottom: 'var(--ws-space-4)' }}>
-                  {filteredKeys.length} / {allKeys.length} claves
+                  {t('translations.keysCount', { shown: filteredKeys.length, total: allKeys.length })}
                 </span>
               </div>
               {canWrite && (
                 <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
                   <Button variant={showNewKey ? 'secondary' : 'primary'} onClick={() => setShowNewKey((v) => !v)}>
-                    {showNewKey ? 'Cerrar formulario' : '+ Nueva clave'}
+                    {showNewKey ? t('translations.closeForm') : t('translations.newKey')}
                   </Button>
                 </div>
               )}
@@ -218,9 +217,9 @@ export function TranslationsPage() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th style={{ minWidth: 220 }}>Clave</th>
-                      <th style={{ minWidth: 320 }}>Valor ({activeLocale})</th>
-                      <th style={{ width: 180 }}>Acciones</th>
+                      <th style={{ minWidth: 220 }}>{t('translations.key')}</th>
+                      <th style={{ minWidth: 320 }}>{t('translations.value')} ({activeLocale})</th>
+                      <th style={{ width: 180 }}>{t('translations.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -237,14 +236,14 @@ export function TranslationsPage() {
                   </tbody>
                 </table>
                 {filteredKeys.length === 0 && (
-                  <p className="muted" style={{ padding: 'var(--ws-space-4)' }}>No hay claves que coincidan.</p>
+                  <p className="muted" style={{ padding: 'var(--ws-space-4)' }}>{t('translations.noMatch')}</p>
                 )}
               </div>
             </Card>
           </>
         ) : (
           <Card>
-            <p className="muted">Seleccioná un idioma para ver y editar sus traducciones.</p>
+            <p className="muted">{t('translations.selectLocale')}</p>
           </Card>
         )}
       </div>
@@ -266,6 +265,7 @@ const LocaleRow = memo(function LocaleRow({
   onSaved: () => void;
 }) {
   const effective = override?.value ?? baseValue;
+  const { t } = useTranslation();
   const [value, setValue] = useState(effective);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -287,7 +287,7 @@ const LocaleRow = memo(function LocaleRow({
       setError(null);
       onSaved();
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error al guardar'),
+    onError: (e) => setError(e instanceof Error ? e.message : t('translations.saveError')),
   });
 
   const reset = useMutation({
@@ -298,7 +298,7 @@ const LocaleRow = memo(function LocaleRow({
       setError(null);
       onSaved();
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error al restablecer'),
+    onError: (e) => setError(e instanceof Error ? e.message : t('translations.resetError')),
   });
 
   return (
@@ -306,8 +306,8 @@ const LocaleRow = memo(function LocaleRow({
       <td style={{ verticalAlign: 'top' }}>
         <code style={{ wordBreak: 'break-word' }}>{rowKey}</code>
         {override && (
-          <span className="badge" style={{ display: 'inline-block', marginTop: 'var(--ws-space-1)' }} title="Tiene valor personalizado">
-            personalizada
+          <span className="badge" style={{ display: 'inline-block', marginTop: 'var(--ws-space-1)' }} title={t('translations.customizedTitle')}>
+            {t('translations.customized')}
           </span>
         )}
       </td>
@@ -329,7 +329,7 @@ const LocaleRow = memo(function LocaleRow({
             style={{ marginTop: 'var(--ws-space-1)', fontSize: 'var(--ws-font-size-sm)', padding: '2px 8px' }}
             onClick={() => setConfirmReset(true)}
           >
-            ↺ Restablecer base
+            ↺ {t('translations.resetBase')}
           </button>
         )}
       </td>
@@ -337,22 +337,22 @@ const LocaleRow = memo(function LocaleRow({
         <div className="stack" style={{ gap: 'var(--ws-space-1)' }}>
           {canWrite && (
             <Button onClick={() => save.mutate()} disabled={save.isPending || !dirty}>
-              {save.isPending ? 'Guardando…' : 'Guardar'}
+              {save.isPending ? t('translations.saving') : t('translations.save')}
             </Button>
           )}
           {dirty && (
             <Button variant="ghost" disabled={save.isPending} onClick={() => setValue(effective)}>
-              Descartar
+              {t('translations.discard')}
             </Button>
           )}
-          {saved && !error && <span className="muted">✓ Guardado</span>}
+          {saved && !error && <span className="muted">{t('translations.saved')}</span>}
           {error && <span style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</span>}
         </div>
       </td>
       <ConfirmDialog
         open={confirmReset}
-        title="Restablecer traducción"
-        confirmLabel="Restablecer"
+        title={t('translations.resetTitle')}
+        confirmLabel={t('translations.reset')}
         danger
         onConfirm={() => {
           setConfirmReset(false);
@@ -360,7 +360,7 @@ const LocaleRow = memo(function LocaleRow({
         }}
         onCancel={() => setConfirmReset(false)}
       >
-        ¿Restablecer <strong>{rowKey}</strong> al valor base en {locale}?
+        {t('translations.resetConfirmBefore')}<strong>{rowKey}</strong>{t('translations.resetConfirmAfter', { locale })}
       </ConfirmDialog>
     </tr>
   );
@@ -377,6 +377,7 @@ function NewKeyForm({
   existingKeys: Set<string>;
   onCreated: () => void;
 }) {
+  const { t } = useTranslation();
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -399,16 +400,16 @@ function NewKeyForm({
       setError(null);
       onCreated();
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error al guardar'),
+    onError: (e) => setError(e instanceof Error ? e.message : t('translations.saveError')),
   });
 
   function submit() {
     if (!trimmedKey) {
-      setError('La clave es obligatoria');
+      setError(t('translations.keyRequired'));
       return;
     }
     if (value.trim() === '') {
-      setError('Ingresá un valor.');
+      setError(t('translations.valueRequired'));
       return;
     }
     setError(null);
@@ -417,21 +418,21 @@ function NewKeyForm({
 
   return (
     <div>
-      <h3 style={{ marginTop: 0 }}>Nueva clave en {localeLabel} ({locale})</h3>
+      <h3 style={{ marginTop: 0 }}>{t('translations.newKeyIn', { locale: localeLabel, code: locale })}</h3>
       <p className="muted" style={{ margin: 0 }}>
-        {alreadyExists ? 'La clave ya existe: al guardar se actualizará su valor.' : 'Creá una clave nueva con su valor.'}
+        {alreadyExists ? t('translations.keyExists') : t('translations.createKey')}
       </p>
       <div style={{ marginTop: 'var(--ws-space-3)' }}>
-        <TextField label="Clave" value={key} onChange={(e) => setKey(e.target.value)} placeholder="nav.home, common.save…" />
+        <TextField label={t('translations.key')} value={key} onChange={(e) => setKey(e.target.value)} placeholder="nav.home, common.save…" />
       </div>
       <div style={{ marginTop: 'var(--ws-space-2)' }}>
-        <TextField label="Valor" value={value} onChange={(e) => setValue(e.target.value)} placeholder="Texto traducido" />
+        <TextField label={t('translations.value')} value={value} onChange={(e) => setValue(e.target.value)} placeholder={t('translations.translatedText')} />
       </div>
       {error && <p style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</p>}
       <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
         {canWrite && (
           <Button onClick={submit} disabled={create.isPending}>
-            {create.isPending ? 'Guardando…' : alreadyExists ? 'Actualizar clave' : 'Agregar clave'}
+            {create.isPending ? t('translations.saving') : alreadyExists ? t('translations.updateKey') : t('translations.addKey')}
           </Button>
         )}
       </div>
@@ -446,6 +447,7 @@ function AddLocaleForm({
   existingCodes: Set<string>;
   onCreated: (code: string) => void;
 }) {
+  const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [key, setKey] = useState('');
   const [value, setValue] = useState('');
@@ -461,20 +463,20 @@ function AddLocaleForm({
         value,
       }),
     onSuccess: () => onCreated(code.trim()),
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error al crear el idioma'),
+    onError: (e) => setError(e instanceof Error ? e.message : t('translations.createLocaleError')),
   });
 
   function submit() {
     if (!code.trim()) {
-      setError('El código de idioma es obligatorio');
+      setError(t('translations.localeCodeRequired'));
       return;
     }
     if (existingCodes.has(code.trim())) {
-      setError('Ese idioma ya existe en el listado');
+      setError(t('translations.localeExists'));
       return;
     }
     if (!key.trim() || value.trim() === '') {
-      setError('La primera clave y su valor son obligatorios');
+      setError(t('translations.firstKeyRequired'));
       return;
     }
     setError(null);
@@ -483,24 +485,24 @@ function AddLocaleForm({
 
   return (
     <Card>
-      <h2 style={{ marginTop: 0 }}>Agregar idioma</h2>
+      <h2 style={{ marginTop: 0 }}>{t('translations.addLocaleTitle')}</h2>
       <p className="muted" style={{ margin: 0 }}>
-        Creá un idioma nuevo registrando su primera traducción. Usá un código ISO (ej. <code>fr</code>, <code>de</code>).
+        {t('translations.addLocaleHint')}
       </p>
       <div style={{ marginTop: 'var(--ws-space-4)' }}>
-        <TextField label="Código de idioma" value={code} onChange={(e) => setCode(e.target.value)} placeholder="fr, de, it…" />
+        <TextField label={t('translations.localeCode')} value={code} onChange={(e) => setCode(e.target.value)} placeholder="fr, de, it…" />
       </div>
       <div style={{ marginTop: 'var(--ws-space-2)' }}>
-        <TextField label="Primera clave" value={key} onChange={(e) => setKey(e.target.value)} placeholder="nav.home, common.save…" />
+        <TextField label={t('translations.firstKey')} value={key} onChange={(e) => setKey(e.target.value)} placeholder="nav.home, common.save…" />
       </div>
       <div style={{ marginTop: 'var(--ws-space-2)' }}>
-        <TextField label="Valor" value={value} onChange={(e) => setValue(e.target.value)} placeholder="Texto traducido" />
+        <TextField label={t('translations.value')} value={value} onChange={(e) => setValue(e.target.value)} placeholder={t('translations.translatedText')} />
       </div>
       {error && <p style={{ color: 'var(--ws-danger, #dc2626)' }}>{error}</p>}
       <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
         {canWrite && (
           <Button onClick={submit} disabled={create.isPending}>
-            {create.isPending ? 'Creando…' : 'Crear idioma'}
+            {create.isPending ? t('translations.creating') : t('translations.createLocale')}
           </Button>
         )}
       </div>

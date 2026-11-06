@@ -52,10 +52,10 @@ interface ExpenseRow {
 const money = (cents: number, currency: string) => `${(cents / 100).toFixed(2)} ${currency}`;
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: 'Pendiente',
-  approved: 'Aprobado',
-  rejected: 'Rechazado',
-  refunded: 'Reembolsado',
+  pending: 'payments.statusPending',
+  approved: 'payments.statusApproved',
+  rejected: 'payments.statusRejected',
+  refunded: 'payments.statusRefunded',
 };
 
 export function PaymentsPage() {
@@ -124,25 +124,25 @@ export function PaymentsPage() {
 
       {summary && (
         <div className="grid-3" style={{ gap: 'var(--ws-space-2)' }}>
-          <SummaryCard label="Total" value={summary.total} active={status === ''} onClick={() => setStatus('')} />
-          <SummaryCard label="Aprobados" value={summary.approved} active={status === 'approved'} onClick={() => toggleStatus('approved')} />
-          <Card><strong>Recaudado</strong><p>{money(summary.collectedAmount, 'ARS')}</p></Card>
-          <SummaryCard label="Pendientes" value={summary.pending} active={status === 'pending'} onClick={() => toggleStatus('pending')} />
-          <SummaryCard label="Rechazados" value={summary.rejected} active={status === 'rejected'} onClick={() => toggleStatus('rejected')} />
-          <SummaryCard label="Reembolsados" value={summary.refunded} active={status === 'refunded'} onClick={() => toggleStatus('refunded')} />
+          <SummaryCard label={t('payments.total')} value={summary.total} active={status === ''} onClick={() => setStatus('')} />
+          <SummaryCard label={t('payments.approved')} value={summary.approved} active={status === 'approved'} onClick={() => toggleStatus('approved')} />
+          <Card><strong>{t('payments.collected')}</strong><p>{money(summary.collectedAmount, 'ARS')}</p></Card>
+          <SummaryCard label={t('payments.pending')} value={summary.pending} active={status === 'pending'} onClick={() => toggleStatus('pending')} />
+          <SummaryCard label={t('payments.rejected')} value={summary.rejected} active={status === 'rejected'} onClick={() => toggleStatus('rejected')} />
+          <SummaryCard label={t('payments.refunded')} value={summary.refunded} active={status === 'refunded'} onClick={() => toggleStatus('refunded')} />
         </div>
       )}
 
       <Card>
         <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
           <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Todos los estados</option>
-            <option value="pending">Pendiente</option>
-            <option value="approved">Aprobado</option>
-            <option value="rejected">Rechazado</option>
-            <option value="refunded">Reembolsado</option>
+            <option value="">{t('payments.allStatuses')}</option>
+            <option value="pending">{t('payments.statusPending')}</option>
+            <option value="approved">{t('payments.statusApproved')}</option>
+            <option value="rejected">{t('payments.statusRejected')}</option>
+            <option value="refunded">{t('payments.statusRefunded')}</option>
           </select>
-          <input className="input" placeholder="Proveedor (ej. mercadopago)" value={provider} onChange={(e) => setProvider(e.target.value)} />
+          <input className="input" placeholder={t('payments.providerPlaceholder')} value={provider} onChange={(e) => setProvider(e.target.value)} />
           {canWrite && (
             <Button
               variant="ghost"
@@ -150,7 +150,7 @@ export function PaymentsPage() {
               disabled={cancelPending.isPending || !summary?.pending}
               style={{ color: 'var(--ws-danger)', marginLeft: 'auto' }}
             >
-              <i className="bi bi-trash" /> Eliminar pendientes
+              <i className="bi bi-trash" /> {t('payments.deletePending')}
             </Button>
           )}
         </div>
@@ -158,12 +158,12 @@ export function PaymentsPage() {
         <table className="table table-striped table-hover" style={{ marginTop: 'var(--ws-space-3)' }}>
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Proveedor</th>
-              <th>Transacción</th>
-              <th>Monto</th>
-              <th>Estado</th>
-              <th>Acciones</th>
+              <th>{t('payments.date')}</th>
+              <th>{t('payments.provider')}</th>
+              <th>{t('payments.transaction')}</th>
+              <th>{t('payments.amount')}</th>
+              <th>{t('payments.status')}</th>
+              <th>{t('payments.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -173,22 +173,22 @@ export function PaymentsPage() {
                 <td><code>{p.provider}</code></td>
                 <td><code style={{ fontSize: '0.8em' }}>{p.transactionId}</code></td>
                 <td>{money(p.amount, p.currency)}</td>
-                <td><span className="badge">{STATUS_LABEL[p.status] ?? p.status}</span></td>
+                <td><span className="badge">{STATUS_LABEL[p.status] ? t(STATUS_LABEL[p.status] ?? p.status) : p.status}</span></td>
                 <td>
                   <div className="row" style={{ gap: 'var(--ws-space-1)' }}>
                     {p.status === 'approved' && canWrite && (
-                      <Button variant="ghost" onClick={() => refund.mutate(p.id)}>Reembolsar</Button>
+                      <Button variant="ghost" onClick={() => refund.mutate(p.id)}>{t('payments.refund')}</Button>
                     )}
                     {p.status === 'pending' && canWrite && (
                       <>
-                        <Button variant="ghost" onClick={() => markPaid.mutate(p.id)}>Marcar pagado</Button>
+                        <Button variant="ghost" onClick={() => markPaid.mutate(p.id)}>{t('payments.markPaid')}</Button>
                         <Button
                           variant="ghost"
                           onClick={() => remove.mutate(p.id)}
                           disabled={remove.isPending}
                           style={{ color: 'var(--ws-danger)' }}
                         >
-                          <i className="bi bi-trash" /> Eliminar
+                          <i className="bi bi-trash" /> {t('payments.delete')}
                         </Button>
                       </>
                     )}
@@ -239,6 +239,7 @@ function SummaryCard({
 
 function CostsPanel() {
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const canWrite = useAuthStore((s) => s.hasPermission)('user.read');
   const [period, setPeriod] = useState<'month' | 'year'>('month');
   const [description, setDescription] = useState('');
@@ -281,19 +282,19 @@ function CostsPanel() {
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-2">
-        <h3 style={{ margin: 0 }}>Costos y ganancias</h3>
+        <h3 style={{ margin: 0 }}>{t('payments.costsAndGains')}</h3>
         <ScopeBadge />
       </div>
       <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div className="row">
-          <Button variant={period === 'month' ? 'secondary' : 'ghost'} onClick={() => setPeriod('month')}>Mensual</Button>
-          <Button variant={period === 'year' ? 'secondary' : 'ghost'} onClick={() => setPeriod('year')}>Anual</Button>
+          <Button variant={period === 'month' ? 'secondary' : 'ghost'} onClick={() => setPeriod('month')}>{t('payments.monthly')}</Button>
+          <Button variant={period === 'year' ? 'secondary' : 'ghost'} onClick={() => setPeriod('year')}>{t('payments.yearly')}</Button>
         </div>
         {data && (
           <div className="row" style={{ flexWrap: 'wrap' }}>
-            <span>Ganancias: <strong style={{ color: 'var(--ws-success)' }}>{money(data.totals.earnings)}</strong></span>
-            <span>Gastos: <strong style={{ color: 'var(--ws-danger)' }}>{money(data.totals.expenses)}</strong></span>
-            <span>Beneficio: <strong>{money(data.totals.profit)}</strong></span>
+            <span>{t('payments.earnings')}: <strong style={{ color: 'var(--ws-success)' }}>{money(data.totals.earnings)}</strong></span>
+            <span>{t('payments.expenses')}: <strong style={{ color: 'var(--ws-danger)' }}>{money(data.totals.expenses)}</strong></span>
+            <span>{t('payments.profit')}: <strong>{money(data.totals.profit)}</strong></span>
           </div>
         )}
       </div>
@@ -303,20 +304,20 @@ function CostsPanel() {
           <div key={s.label} className="row" style={{ gap: 'var(--ws-space-2)' }}>
             <span className="muted" style={{ width: 70, fontSize: '0.85em' }}>{s.label}</span>
             <div style={{ flex: 1, display: 'flex', gap: 2, height: 16 }}>
-              <div title={`ganancias ${money(s.earnings)}`} style={{ width: `${(s.earnings / max) * 100}%`, background: 'var(--ws-success)', minWidth: s.earnings ? 4 : 0, borderRadius: 2 }} />
-              <div title={`gastos ${money(s.expenses)}`} style={{ width: `${(s.expenses / max) * 100}%`, background: 'var(--ws-danger)', minWidth: s.expenses ? 4 : 0, borderRadius: 2 }} />
+              <div title={`${t('payments.earnings')} ${money(s.earnings)}`} style={{ width: `${(s.earnings / max) * 100}%`, background: 'var(--ws-success)', minWidth: s.earnings ? 4 : 0, borderRadius: 2 }} />
+              <div title={`${t('payments.expenses')} ${money(s.expenses)}`} style={{ width: `${(s.expenses / max) * 100}%`, background: 'var(--ws-danger)', minWidth: s.expenses ? 4 : 0, borderRadius: 2 }} />
             </div>
           </div>
         ))}
       </div>
 
       <div className="row" style={{ marginTop: 'var(--ws-space-4)', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
-        <input className="input" style={{ flex: 1 }} placeholder="Descripción del gasto" value={description} onChange={(e) => setDescription(e.target.value)} />
-        <input className="input" type="number" placeholder="Monto ($)" value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: 140 }} />
-        <input className="input" placeholder="Categoría" value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: 140 }} />
+        <input className="input" style={{ flex: 1 }} placeholder={t('payments.expenseDescription')} value={description} onChange={(e) => setDescription(e.target.value)} />
+        <input className="input" type="number" placeholder={t('payments.expenseAmount')} value={amount} onChange={(e) => setAmount(e.target.value)} style={{ width: 140 }} />
+        <input className="input" placeholder={t('payments.category')} value={category} onChange={(e) => setCategory(e.target.value)} style={{ width: 140 }} />
         {canWrite && (
           <Button onClick={() => add.mutate()} disabled={!description || !amount}>
-            Agregar gasto
+            {t('payments.addExpense')}
           </Button>
         )}
       </div>
@@ -335,7 +336,7 @@ function CostsPanel() {
             </div>
           </div>
         ))}
-        {(expenses ?? []).length === 0 && <p className="muted">Sin gastos registrados.</p>}
+        {(expenses ?? []).length === 0 && <p className="muted">{t('payments.noExpenses')}</p>}
       </div>
 
       <BranchBreakdown period={period} />
@@ -346,6 +347,7 @@ function CostsPanel() {
 function BranchBreakdown({ period }: { period: 'month' | 'year' }) {
   const branches = useTenantStore((s) => s.branches);
   const mode = useTenantStore((s) => s.mode);
+  const { t } = useTranslation();
   const enabled = mode === 'consolidated' && branches.length > 0;
 
   const { data, isLoading } = useQuery({
@@ -374,15 +376,15 @@ function BranchBreakdown({ period }: { period: 'month' | 'year' }) {
 
   return (
     <div style={{ marginTop: 'var(--ws-space-4)' }}>
-      <h4>Desglose por sucursal</h4>
+      <h4>{t('payments.branchBreakdown')}</h4>
       {isLoading && <Spinner />}
       <table className="table">
         <thead>
           <tr>
-            <th>Sucursal</th>
-            <th>Ganancias</th>
-            <th>Gastos</th>
-            <th>Beneficio</th>
+            <th>{t('payments.branch')}</th>
+            <th>{t('payments.earnings')}</th>
+            <th>{t('payments.expenses')}</th>
+            <th>{t('payments.profit')}</th>
           </tr>
         </thead>
         <tbody>
@@ -397,7 +399,7 @@ function BranchBreakdown({ period }: { period: 'month' | 'year' }) {
         </tbody>
       </table>
       {(data ?? []).length === 0 && !isLoading && (
-        <p className="muted">No hay sucursales para desglosar.</p>
+        <p className="muted">{t('payments.noBranches')}</p>
       )}
     </div>
   );

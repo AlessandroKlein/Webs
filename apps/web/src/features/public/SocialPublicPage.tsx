@@ -1,9 +1,11 @@
-import { useState, type CSSProperties, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient, useQueries } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api, uploadFile } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -58,6 +60,7 @@ const STORY_RING = 'linear-gradient(45deg, #f58529, #dd2a7b, #8134af, #515bd4)';
  * Los visitantes (sin sesión) solo ven el feed "Todos".
  */
 export function SocialPublicPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const myId = user?.id ?? null;
@@ -241,17 +244,6 @@ export function SocialPublicPage() {
     like.mutate({ id: p.id, value: !isLiked });
   };
 
-  const tabStyle = (active: boolean): CSSProperties => ({
-    flex: 1,
-    padding: 'var(--ws-space-2)',
-    border: 'none',
-    background: 'none',
-    borderBottom: active ? '2px solid var(--ws-primary)' : '2px solid transparent',
-    color: active ? 'var(--ws-text)' : 'var(--ws-text-muted)',
-    fontWeight: active ? 600 : 400,
-    cursor: 'pointer',
-  });
-
   return (
     <SiteLayout>
       {/* Header propio estilo Instagram */}
@@ -291,8 +283,8 @@ export function SocialPublicPage() {
                 className="btn ghost"
                 style={{ padding: 'var(--ws-space-2)' }}
                 onClick={() => setShowNewPost(true)}
-                title="Nueva publicación"
-                aria-label="Nueva publicación"
+                title={t('social.newPost')}
+                aria-label={t('social.newPost')}
               >
                 <i className="bi bi-plus-square" style={{ fontSize: '1.25rem' }} />
               </button>
@@ -300,8 +292,8 @@ export function SocialPublicPage() {
                 className="btn ghost"
                 style={{ padding: 'var(--ws-space-2)' }}
                 onClick={() => setShowDirect(true)}
-                title="Mensajes"
-                aria-label="Mensajes"
+                title={t('social.messages')}
+                aria-label={t('social.messages')}
               >
                 <i className="bi bi-send" style={{ fontSize: '1.25rem' }} />
               </button>
@@ -309,7 +301,7 @@ export function SocialPublicPage() {
             </div>
           ) : (
             <Link to="/login" className="btn">
-              Iniciar sesión
+              {t('auth.login')}
             </Link>
           )}
         </div>
@@ -352,7 +344,7 @@ export function SocialPublicPage() {
                     cursor: myStories ? 'pointer' : 'default',
                     display: 'block',
                   }}
-                  title="Tu historia"
+                  title={t('social.yourStory')}
                 >
                   <div
                     style={{
@@ -386,7 +378,7 @@ export function SocialPublicPage() {
                     cursor: 'pointer',
                     border: '2px solid var(--ws-surface)',
                   }}
-                  title="Subir historia"
+                  title={t('social.uploadStory')}
                 >
                   <input
                     type="file"
@@ -397,7 +389,7 @@ export function SocialPublicPage() {
                   <i className="bi bi-plus" style={{ fontSize: '0.85rem', lineHeight: 1 }} />
                 </label>
               </div>
-              <span style={{ fontSize: 'var(--ws-font-size-sm)', color: 'var(--ws-text-muted)' }}>Tu historia</span>
+              <span style={{ fontSize: 'var(--ws-font-size-sm)', color: 'var(--ws-text-muted)' }}>{t('social.yourStory')}</span>
             </div>
           )}
 
@@ -466,22 +458,20 @@ export function SocialPublicPage() {
 
           {(stories ?? []).length === 0 && (
             <p style={{ color: 'var(--ws-text-muted)', margin: 0, alignSelf: 'center', whiteSpace: 'nowrap' }}>
-              Sin historias todavía.
+              {t('social.noStories')}
             </p>
           )}
         </div>
 
-        {/* Tabs del feed */}
-        <div className="row" style={{ marginBottom: 'var(--ws-space-3)' }}>
-          {user && (
-            <button style={tabStyle(activeTab === 'following')} onClick={() => setTab('following')}>
-              Siguiendo
-            </button>
-          )}
-          <button style={tabStyle(activeTab === 'all')} onClick={() => setTab('all')}>
-            Todos
-          </button>
-        </div>
+        <SegmentedControl
+          ariaLabel={t('social.feedFilter')}
+          value={activeTab}
+          onChange={(v) => setTab(v as 'following' | 'all')}
+          options={[
+            ...(user ? [{ value: 'following', label: t('social.following') }] : []),
+            { value: 'all', label: t('social.all') },
+          ]}
+        />
 
         {(tagFilter || authorFilter) && (
           <div
@@ -497,27 +487,27 @@ export function SocialPublicPage() {
             }}
           >
             <span style={{ fontSize: 'var(--ws-font-size-sm)', color: 'var(--ws-primary)', minWidth: 0 }}>
-              {authorFilter ? `Publicaciones de @${authorFilter.label}` : `Filtrando por #${tagFilter}`}
+              {authorFilter ? t('social.postsFrom', { name: authorFilter.label }) : t('social.filterByTag', { tag: tagFilter })}
             </span>
             <button
               className="btn ghost"
               onClick={clearFilters}
               style={{ padding: 'var(--ws-space-1) var(--ws-space-2)', fontSize: 'var(--ws-font-size-sm)', flexShrink: 0 }}
             >
-              <i className="bi bi-x-lg" /> Limpiar
+              <i className="bi bi-x-lg" /> {t('social.clear')}
             </button>
           </div>
         )}
 
         {/* Feed */}
         {isLoading ? (
-          <Spinner label="Cargando…" />
+          <Spinner label={t('common.loading')} />
         ) : (posts ?? []).length === 0 ? (
           <Card>
             <p style={{ color: 'var(--ws-text-muted)', margin: 0 }}>
               {activeTab === 'following'
-                ? 'Sigue a otros usuarios para ver sus publicaciones aquí.'
-                : 'Sin publicaciones todavía.'}
+                ? t('social.followHint')
+                : t('social.noPosts')}
             </p>
           </Card>
         ) : (
@@ -569,12 +559,12 @@ export function SocialPublicPage() {
                         onClick={() => (followed ? unfollow.mutate(p.author) : follow.mutate(p.author))}
                         disabled={follow.isPending || unfollow.isPending}
                       >
-                        {followed ? 'Dejar de seguir' : 'Seguir'}
+                        {followed ? t('social.unfollow') : t('social.follow')}
                       </Button>
                     )}
                     {isMine && (
                       <Button variant="ghost" onClick={() => setConfirmDeletePost(p)}>
-                        Eliminar
+                        {t('common.delete')}
                       </Button>
                     )}
                   </div>
@@ -593,8 +583,8 @@ export function SocialPublicPage() {
                           }}
                           onClick={() => toggleLike(p)}
                           disabled={like.isPending}
-                          title={isLiked ? 'Quitar me gusta' : 'Me gusta'}
-                          aria-label={isLiked ? 'Quitar me gusta' : 'Me gusta'}
+                          title={isLiked ? t('social.unlike') : t('social.like')}
+                          aria-label={isLiked ? t('social.unlike') : t('social.like')}
                         >
                           <i className={`bi ${isLiked ? 'bi-heart-fill' : 'bi-heart'}`} />
                         </button>
@@ -603,7 +593,7 @@ export function SocialPublicPage() {
                           <i className="bi bi-heart-fill" />
                         </span>
                       )}
-                      <strong>{p.likes} Me gusta</strong>
+                      <strong>{p.likes} {t('social.like')}</strong>
                     </div>
 
                     <p style={{ margin: 0 }}>
@@ -670,7 +660,7 @@ export function SocialPublicPage() {
               cursor: 'pointer',
               zIndex: 2,
             }}
-            aria-label="Cerrar historia"
+            aria-label={t('social.closeStory')}
           >
             <i className="bi bi-x-lg" style={{ fontSize: '1.25rem' }} />
           </button>
@@ -694,7 +684,7 @@ export function SocialPublicPage() {
                 height: 40,
                 cursor: 'pointer',
               }}
-              aria-label="Historia anterior"
+              aria-label={t('social.prevStory')}
             >
               <i className="bi bi-chevron-left" style={{ fontSize: '1.25rem' }} />
             </button>
@@ -712,7 +702,7 @@ export function SocialPublicPage() {
           ) : (
             <img
               src={currentStory.mediaUrl}
-              alt="Historia"
+              alt={t('social.story')}
               onClick={(e) => e.stopPropagation()}
               style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
             />
@@ -737,7 +727,7 @@ export function SocialPublicPage() {
                 height: 40,
                 cursor: 'pointer',
               }}
-              aria-label="Siguiente historia"
+              aria-label={t('social.nextStory')}
             >
               <i className="bi bi-chevron-right" style={{ fontSize: '1.25rem' }} />
             </button>
@@ -769,7 +759,7 @@ export function SocialPublicPage() {
                 onClick={() => deleteStory.mutate(currentStory.id)}
                 disabled={deleteStory.isPending}
               >
-                <i className="bi bi-trash" /> Eliminar historia
+                <i className="bi bi-trash" /> {t('social.deleteStory')}
               </Button>
             )}
           </div>
@@ -781,8 +771,8 @@ export function SocialPublicPage() {
 
       <ConfirmDialog
         open={confirmDeletePost !== null}
-        title="Eliminar publicación"
-        confirmLabel="Eliminar"
+        title={t('social.deletePost')}
+        confirmLabel={t('common.delete')}
         danger
         onConfirm={() => {
           if (confirmDeletePost) removePost.mutate(confirmDeletePost.id);
@@ -790,7 +780,7 @@ export function SocialPublicPage() {
         }}
         onCancel={() => setConfirmDeletePost(null)}
       >
-        ¿Eliminar esta publicación?
+        {t('social.deletePostConfirm')}
       </ConfirmDialog>
     </SiteLayout>
   );

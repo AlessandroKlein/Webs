@@ -64,18 +64,18 @@ export function AuditPage() {
 
       <Card>
         <div className="grid-2" style={{ gap: 'var(--ws-space-2)' }}>
-          <TextField label="Acción" value={action} onChange={(e) => setAction(e.target.value)} placeholder="user.create, …" />
-          <TextField label="Recurso" value={resource} onChange={(e) => setResource(e.target.value)} placeholder="user, content, …" />
-          <TextField label="Actor (id)" value={actorId} onChange={(e) => setActorId(e.target.value)} />
+          <TextField label={t('audit.action')} value={action} onChange={(e) => setAction(e.target.value)} placeholder="user.create, …" />
+          <TextField label={t('audit.resource')} value={resource} onChange={(e) => setResource(e.target.value)} placeholder="user, content, …" />
+          <TextField label={t('audit.actorId')} value={actorId} onChange={(e) => setActorId(e.target.value)} />
           <div className="row" style={{ gap: 'var(--ws-space-2)' }}>
-            <TextField label="Desde" type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} />
-            <TextField label="Hasta" type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} />
+            <TextField label={t('audit.from')} type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <TextField label={t('audit.to')} type="datetime-local" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
         </div>
         <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)' }}>
-          <Button onClick={apply}>Filtrar</Button>
+          <Button onClick={apply}>{t('audit.filter')}</Button>
           <Button variant="secondary" onClick={exportCsv}>
-            Exportar CSV
+            {t('audit.exportCsv')}
           </Button>
         </div>
       </Card>
@@ -84,10 +84,10 @@ export function AuditPage() {
         <table className="table table-striped table-hover">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Acción</th>
-              <th>Recurso</th>
-              <th>Actor</th>
+              <th>{t('audit.date')}</th>
+              <th>{t('audit.action')}</th>
+              <th>{t('audit.resource')}</th>
+              <th>{t('audit.actor')}</th>
             </tr>
           </thead>
           <tbody>
@@ -109,7 +109,7 @@ export function AuditPage() {
         {(data?.items ?? []).length === 0 && (
           <EmptyState title={t('audit.empty')} />
         )}
-        {data && <p className="muted">Total: {data.total}</p>}
+        {data && <p className="muted">{t('audit.total')}: {data.total}</p>}
       </Card>
     </div>
   );

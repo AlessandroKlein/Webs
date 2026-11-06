@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from './Button';
 import { cn } from './cn';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Detector de códigos de barras/QR por cámara.
@@ -58,6 +59,7 @@ export interface CameraScannerProps {
  * sensor y no dejarlo encendido).
  */
 export function CameraScanner({ open, onCode, onClose }: CameraScannerProps) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const firedRef = useRef(false);
   const onCodeRef = useRef(onCode);
@@ -89,7 +91,7 @@ export function CameraScanner({ open, onCode, onClose }: CameraScannerProps) {
       if (!video) return;
 
       if (!isBarcodeDetectorSupported()) {
-        setError('Este dispositivo no soporta lectura de código por cámara. Usá el teclado o un lector USB.');
+        setError(t('scanner.unsupported'));
         setStarting(false);
         return;
       }
@@ -100,7 +102,7 @@ export function CameraScanner({ open, onCode, onClose }: CameraScannerProps) {
           audio: false,
         });
       } catch {
-        setError('No se pudo acceder a la cámara. Verificá los permisos de la app.');
+        setError(t('scanner.cameraDenied'));
         setStarting(false);
         return;
       }
@@ -154,12 +156,12 @@ export function CameraScanner({ open, onCode, onClose }: CameraScannerProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Escanear código con cámara"
+      aria-label={t('scanner.scanAria')}
     >
       <div className="flex w-full max-w-md flex-col gap-3 rounded-xl bg-surface p-4 shadow-xl">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-text">Escanear código</h3>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar escáner">
+          <h3 className="text-base font-semibold text-text">{t('scanner.scan')}</h3>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label={t('scanner.closeAria')}>
             <i className="bi bi-x-lg" aria-hidden="true" />
           </Button>
         </div>
@@ -184,7 +186,7 @@ export function CameraScanner({ open, onCode, onClose }: CameraScannerProps) {
           </p>
         )}
 
-        <p className={cn('text-sm text-muted')}>Apuntá la cámara al código. Al detectarlo se registra solo.</p>
+        <p className={cn('text-sm text-muted')}>{t('scanner.hint')}</p>
       </div>
     </div>
   );

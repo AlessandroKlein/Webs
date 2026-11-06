@@ -832,30 +832,33 @@ function AcademiaView() {
       </Card>
 
       <Card>
-        <h3>Rutinas (entrenador)</h3>
+        <h3>{t('admin.analytics.routines')}</h3>
         <p className="muted" style={{ marginTop: 0 }}>
-          Creá y asigná rutinas: indicá el <strong>ID del entrenador</strong> y el{' '}
-          <strong>ID del miembro/cliente</strong>, un nombre y los ejercicios en JSON.
+          {t('admin.analytics.routinesHintBefore')}
+          <strong>{t('admin.analytics.trainerId')}</strong>
+          {t('admin.analytics.routinesHintMiddle')}
+          <strong>{t('admin.analytics.memberId')}</strong>
+          {t('admin.analytics.routinesHintAfter')}
         </p>
         <form
           className="stack"
           onSubmit={(e) => { e.preventDefault(); createRoutine.mutate(); }}
         >
           <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-            <TextField label="ID entrenador (trainerId)" value={rtTrainerId} onChange={(e) => setRtTrainerId(e.target.value)} required />
-            <TextField label="ID miembro (memberId)" value={rtMemberId} onChange={(e) => setRtMemberId(e.target.value)} required />
-            <TextField label="Nombre" value={rtName} onChange={(e) => setRtName(e.target.value)} placeholder="Rutina de pecho" />
-            <TextField label="Descripción" value={rtDescription} onChange={(e) => setRtDescription(e.target.value)} placeholder="Opcional" />
+            <TextField label={t('admin.analytics.trainerId')} value={rtTrainerId} onChange={(e) => setRtTrainerId(e.target.value)} required />
+            <TextField label={t('admin.analytics.memberId')} value={rtMemberId} onChange={(e) => setRtMemberId(e.target.value)} required />
+            <TextField label={t('common.name')} value={rtName} onChange={(e) => setRtName(e.target.value)} placeholder="Rutina de pecho" />
+            <TextField label={t('admin.analytics.description')} value={rtDescription} onChange={(e) => setRtDescription(e.target.value)} placeholder={t('admin.analytics.optional')} />
           </div>
           <TextField
-            label="Ejercicios (JSON)"
+            label={t('admin.analytics.exercisesJson')}
             value={rtExercises}
             onChange={(e) => setRtExercises(e.target.value)}
             placeholder='[{"name":"Press banca","sets":3,"reps":10}]'
           />
           <div className="row">
             <Button type="submit" disabled={createRoutine.isPending || !rtTrainerId || !rtMemberId}>
-              {createRoutine.isPending ? 'Guardando…' : 'Crear / asignar rutina'}
+              {createRoutine.isPending ? t('common.saving') : t('admin.analytics.createRoutine')}
             </Button>
             {createRoutine.error && <span style={{ color: 'var(--ws-danger)' }}>{createRoutine.error.message}</span>}
           </div>

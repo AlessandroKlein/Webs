@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { JsonSchema } from '@webs/plugin-sdk';
 import { uploadFile } from '../../lib/api';
+import { useTranslation } from 'react-i18next';
 
 interface HelpInfo {
   text?: string;
@@ -20,6 +21,7 @@ function readHelp(xui: Record<string, unknown> | undefined): HelpInfo | null {
 
 /** Etiqueta de campo con icono "?" opcional que abre un diálogo de ayuda. */
 function FieldLabel({ label, help }: { label: string; help: HelpInfo | null }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   return (
     <label style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--ws-space-1)' }}>
@@ -29,7 +31,7 @@ function FieldLabel({ label, help }: { label: string; help: HelpInfo | null }) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            title="Ayuda"
+            title={t('schemaForm.help')}
             aria-label={`Ayuda de ${label}`}
             style={{
               background: 'none',
@@ -72,12 +74,12 @@ function FieldLabel({ label, help }: { label: string; help: HelpInfo | null }) {
                 {help.url && (
                   <p style={{ marginTop: 'var(--ws-space-3)' }}>
                     <a href={help.url} target="_blank" rel="noopener noreferrer">
-                      <i className="bi bi-box-arrow-up-right" /> Documentación del proveedor
+                      <i className="bi bi-box-arrow-up-right" /> {t('schemaForm.providerDocs')}
                     </a>
                   </p>
                 )}
                 <div className="row" style={{ justifyContent: 'flex-end', marginTop: 'var(--ws-space-4)' }}>
-                  <button className="btn" onClick={() => setOpen(false)}>Cerrar</button>
+                  <button className="btn" onClick={() => setOpen(false)}>{t('common.close')}</button>
                 </div>
               </div>
             </div>
@@ -141,6 +143,7 @@ function SchemaField({
   value: unknown;
   onChange: (v: unknown) => void;
 }) {
+  const { t } = useTranslation();
   const label = schema.title ?? name;
   const widget = schema['x-ui']?.widget;
   const help = readHelp(schema['x-ui']);
@@ -244,7 +247,7 @@ function SchemaField({
             placeholder="https://…"
           />
           <label className="btn secondary" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
-            Subir imagen
+            {t('schemaForm.uploadImage')}
             <input
               type="file"
               accept="image/*"

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Button } from './Button';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Diálogo de confirmación (modal) con estilos del design system, en lugar de
@@ -22,6 +23,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   if (!open) return null;
   return (
     <div
@@ -51,7 +53,7 @@ export function ConfirmDialog({
         <h3 style={{ marginTop: 0 }}>{title}</h3>
         <div style={{ color: 'var(--ws-text-muted)' }}>{children}</div>
         <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-4)' }}>
-          <Button variant="ghost" onClick={onCancel}>Cancelar</Button>
+          <Button variant="ghost" onClick={onCancel}>{t('common.cancel')}</Button>
           <Button style={danger ? { background: 'var(--ws-danger)', color: '#fff' } : undefined} onClick={onConfirm}>
             {confirmLabel}
           </Button>

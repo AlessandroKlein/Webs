@@ -104,35 +104,34 @@ export function ApiTokensPage() {
     <div className="stack">
       <PageHeader title={t('nav.api')} />
       <p className="muted">
-        Los tokens de API (JWT) permiten que aplicaciones, scripts o integraciones accedan a la API
-        REST con permisos limitados. Guardalos de forma segura: solo se muestran una vez.
+        {t('apiTokens.intro')}
       </p>
 
       {created && (
         <Card style={{ borderColor: 'var(--ws-warning)' }}>
-          <h3>Token creado — copialo ahora</h3>
-          <p className="muted">No volverá a mostrarse.</p>
+          <h3>{t('apiTokens.createdTitle')}</h3>
+          <p className="muted">{t('apiTokens.createdHint')}</p>
           <div className="row">
             <code style={{ flex: 1, wordBreak: 'break-all', background: 'var(--ws-surface-2)', padding: 'var(--ws-space-2)', borderRadius: 'var(--ws-radius-md)' }}>
               {created.token}
             </code>
             <Button variant="secondary" onClick={copy}>
-              {copied ? 'Copiado ✓' : 'Copiar'}
+              {copied ? t('apiTokens.copied') : t('apiTokens.copy')}
             </Button>
           </div>
           <Button variant="ghost" onClick={() => setCreated(null)} style={{ marginTop: 'var(--ws-space-3)' }}>
-            Cerrar
+            {t('apiTokens.close')}
           </Button>
         </Card>
       )}
 
       <div className="grid-2" style={{ alignItems: 'start' }}>
         <Card>
-          <h3>Crear token</h3>
-          <TextField label="Nombre" value={name} onChange={(e) => setName(e.target.value)} placeholder="App móvil, integración…" />
+          <h3>{t('apiTokens.create')}</h3>
+          <TextField label={t('apiTokens.name')} value={name} onChange={(e) => setName(e.target.value)} placeholder="App móvil, integración…" />
 
           <div className="field">
-            <label>Permisos (scopes)</label>
+            <label>{t('apiTokens.scopes')}</label>
             <div className="stack" style={{ maxHeight: 260, overflowY: 'auto' }}>
               {(permissions ?? [])
                 .filter((p) => myPermissions.includes(p.key))
@@ -149,74 +148,74 @@ export function ApiTokensPage() {
           </div>
 
           <div className="field">
-            <label>Caducidad</label>
+            <label>{t('apiTokens.expiry')}</label>
             <select className="input" value={expiresInDays} onChange={(e) => setExpiresInDays(e.target.value)}>
-              <option value="">Sin caducidad</option>
-              <option value="30">30 días</option>
-              <option value="90">90 días</option>
-              <option value="365">1 año</option>
+              <option value="">{t('apiTokens.noExpiry')}</option>
+              <option value="30">{t('apiTokens.days30')}</option>
+              <option value="90">{t('apiTokens.days90')}</option>
+              <option value="365">{t('apiTokens.year1')}</option>
             </select>
           </div>
 
-          <TextField label="Límite de peticiones/minuto (opcional)" type="number" value={rateLimit} onChange={(e) => setRateLimit(e.target.value)} placeholder="Sin límite" />
+          <TextField label={t('apiTokens.rateLimit')} type="number" value={rateLimit} onChange={(e) => setRateLimit(e.target.value)} placeholder={t('apiTokens.noLimit')} />
 
           {canWrite && (
             <Button onClick={() => create.mutate()} disabled={create.isPending || !name}>
-              Crear token
+              {t('apiTokens.create')}
             </Button>
           )}
         </Card>
 
         <Card>
-          <h3>Tokens</h3>
+          <h3>{t('apiTokens.tokens')}</h3>
           <div className="stack">
-            {(data ?? []).map((t) => (
-              <div key={t.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
+            {(data ?? []).map((tok) => (
+              <div key={tok.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
                 <div>
-                  <strong>{t.name}</strong>
+                  <strong>{tok.name}</strong>
                   <div>
-                    <span className="muted">{t.scopes.length} permisos</span>
-                    {t.rateLimit && <span className="muted"> · {t.rateLimit} req/min</span>}
-                    {t.expiresAt && <span className="muted"> · vence {new Date(t.expiresAt).toLocaleDateString()}</span>}
-                    {t.lastUsedAt && <span className="muted"> · usado {new Date(t.lastUsedAt).toLocaleString()}</span>}
-                    <span className="muted"> · {t.requestCount} peticiones</span>
+                    <span className="muted">{tok.scopes.length} {t('apiTokens.permissions')}</span>
+                    {tok.rateLimit && <span className="muted"> · {tok.rateLimit} req/min</span>}
+                    {tok.expiresAt && <span className="muted"> · {t('apiTokens.expires')} {new Date(tok.expiresAt).toLocaleDateString()}</span>}
+                    {tok.lastUsedAt && <span className="muted"> · {t('apiTokens.lastUsed')} {new Date(tok.lastUsedAt).toLocaleString()}</span>}
+                    <span className="muted"> · {tok.requestCount} {t('apiTokens.requests')}</span>
                   </div>
                 </div>
                 {canWrite && (
-                  <Button variant="ghost" onClick={() => revoke.mutate(t.id)}>
-                    Revocar
+                  <Button variant="ghost" onClick={() => revoke.mutate(tok.id)}>
+                    {t('apiTokens.revoke')}
                   </Button>
                 )}
               </div>
             ))}
-            {(data ?? []).length === 0 && <p className="muted">No hay tokens.</p>}
+            {(data ?? []).length === 0 && <p className="muted">{t('apiTokens.noTokens')}</p>}
           </div>
         </Card>
       </div>
 
       {isAdmin && (
         <Card>
-          <h3>Todos los tokens (admin)</h3>
+          <h3>{t('apiTokens.allTokens')}</h3>
           <div className="stack">
-            {(allTokens ?? []).map((t) => (
-              <div key={t.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
+            {(allTokens ?? []).map((tok) => (
+              <div key={tok.id} className="row" style={{ justifyContent: 'space-between', borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-2)' }}>
                 <div>
-                  <strong>{t.name}</strong> <span className="muted">· {t.user.email}</span>
+                  <strong>{tok.name}</strong> <span className="muted">· {tok.user.email}</span>
                   <div>
-                    <span className="muted">{t.scopes.length} permisos</span>
-                    {t.rateLimit && <span className="muted"> · {t.rateLimit} req/min</span>}
-                    {t.expiresAt && <span className="muted"> · vence {new Date(t.expiresAt).toLocaleDateString()}</span>}
-                    {t.lastUsedAt && <span className="muted"> · usado {new Date(t.lastUsedAt).toLocaleString()}</span>}
+                    <span className="muted">{tok.scopes.length} {t('apiTokens.permissions')}</span>
+                    {tok.rateLimit && <span className="muted"> · {tok.rateLimit} req/min</span>}
+                    {tok.expiresAt && <span className="muted"> · {t('apiTokens.expires')} {new Date(tok.expiresAt).toLocaleDateString()}</span>}
+                    {tok.lastUsedAt && <span className="muted"> · {t('apiTokens.lastUsed')} {new Date(tok.lastUsedAt).toLocaleString()}</span>}
                   </div>
                 </div>
                 {canWrite && (
-                  <Button variant="ghost" onClick={() => revokeAny.mutate(t.id)}>
-                    Revocar
+                  <Button variant="ghost" onClick={() => revokeAny.mutate(tok.id)}>
+                    {t('apiTokens.revoke')}
                   </Button>
                 )}
               </div>
             ))}
-            {(allTokens ?? []).length === 0 && <p className="muted">No hay tokens de otros usuarios.</p>}
+            {(allTokens ?? []).length === 0 && <p className="muted">{t('apiTokens.noOtherTokens')}</p>}
           </div>
         </Card>
       )}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { api, ApiClientError } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
@@ -85,7 +86,7 @@ const initialForm: SetupForm = {
   template: '',
 };
 
-const STEPS = ['Bienvenida', 'Base de datos', 'Sitio', 'Correo (SMTP)', 'Cuenta de administrador', 'Plantilla', 'Instalar'];
+const STEPS = ['setup.stepWelcome', 'setup.stepDatabase', 'setup.stepSite', 'setup.stepSmtp', 'setup.stepAdmin', 'setup.stepTemplate', 'setup.stepInstall'];
 
 const AVAILABLE_LANGUAGES = [
   { code: 'es', label: 'Español' },
@@ -113,6 +114,7 @@ const DB_PRESETS: Array<{ label: string; value: Partial<SetupForm['database']> }
 ];
 
 export function SetupWizard() {
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<SetupForm>(initialForm);
   const [error, setError] = useState<string | null>(null);
@@ -123,13 +125,13 @@ export function SetupWizard() {
 
   const testDb = useMutation({
     mutationFn: () => api.post('/api/v1/setup/test-db', { database: buildDatabasePayload(form) }),
-    onSuccess: () => setTestResult('Conexión exitosa ✓'),
-    onError: (e) => setTestResult(e instanceof ApiClientError ? e.message : 'Error de conexión'),
+    onSuccess: () => setTestResult(t('setup.dbOk')),
+    onError: (e) => setTestResult(e instanceof ApiClientError ? e.message : t('setup.dbError')),
   });
 
   const install = useMutation({
     mutationFn: () => api.post('/api/v1/setup/install', buildPayload(form)),
-    onError: (e) => setError(e instanceof ApiClientError ? e.message : 'Error durante la instalación'),
+    onError: (e) => setError(e instanceof ApiClientError ? e.message : t('setup.installError')),
   });
 
   const next = () => {
@@ -142,13 +144,13 @@ export function SetupWizard() {
   return (
     <div className="auth-screen" style={{ alignItems: 'start', paddingTop: '5vh' }}>
       <div style={{ width: 720, maxWidth: '100%' }}>
-        <h1 style={{ textAlign: 'center' }}>Instalación de Webs</h1>
+        <h1 style={{ textAlign: 'center' }}>{t('setup.title')}</h1>
 
         {/* Indicador de pasos */}
         <div className="row" style={{ justifyContent: 'center', marginBottom: 'var(--ws-space-5)', flexWrap: 'wrap' }}>
           {STEPS.map((label, i) => (
             <span key={label} className="badge" style={{ background: i === step ? 'var(--ws-primary-soft)' : undefined, color: i === step ? 'var(--ws-primary)' : undefined }}>
-              {i + 1}. {label}
+              {i + 1}. {t(label)}
             </span>
           ))}
         </div>
@@ -168,13 +170,13 @@ export function SetupWizard() {
 
           <div className="row" style={{ justifyContent: 'space-between', marginTop: 'var(--ws-space-5)' }}>
             <Button variant="ghost" onClick={back} disabled={step === 0}>
-              ← Volver
+              {t('setup.back')}
             </Button>
             {step < STEPS.length - 1 ? (
-              <Button onClick={next}>Continuar →</Button>
+              <Button onClick={next}>{t('setup.next')}</Button>
             ) : (
               <Button onClick={() => install.mutate()} disabled={install.isPending}>
-                {install.isPending ? 'Instalando…' : 'Instalar'}
+                {install.isPending ? t('setup.installing') : t('setup.install')}
               </Button>
             )}
           </div>
@@ -182,12 +184,11 @@ export function SetupWizard() {
 
         {install.isSuccess && (
           <Card style={{ marginTop: 'var(--ws-space-4)', textAlign: 'center' }}>
-            <h3>✔ Instalación completada</h3>
+            <h3>{t('setup.done')}</h3>
             <p className="muted">
-              El servidor se está reiniciando para aplicar la configuración. Recargá esta página en unos
-              segundos para iniciar sesión.
+              {t('setup.doneHint')}
             </p>
-            <Button onClick={() => window.location.reload()}>Recargar</Button>
+            <Button onClick={() => window.location.reload()}>{t('setup.reload')}</Button>
           </Card>
         )}
       </div>
@@ -196,15 +197,13 @@ export function SetupWizard() {
 }
 
 function WelcomeStep({ form, set }: { form: SetupForm; set: SetupWizardSet }) {
+  const { t } = useTranslation();
   return (
     <div className="stack">
-      <h2>Bienvenido 👋</h2>
-      <p>
-        Este asistente configura Webs por primera vez: base de datos, apariencia del sitio, correo
-        electrónico y la cuenta de administrador. Todo desde esta interfaz, sin tocar código.
-      </p>
+      <h2>{t('setup.welcome')}</h2>
+      <p>{t('setup.welcomeHint')}</p>
       <div className="field" style={{ maxWidth: 240 }}>
-        <label>Idioma por defecto</label>
+        <label>{t('setup.defaultLocale')}</label>
         <select className="input" value={form.site.defaultLocale} onChange={(e) => set('site', { defaultLocale: e.target.value as 'es' | 'en' | 'pt' })}>
           <option value="es">Español</option>
           <option value="en">English</option>
@@ -212,8 +211,8 @@ function WelcomeStep({ form, set }: { form: SetupForm; set: SetupWizardSet }) {
         </select>
       </div>
       <div className="field">
-        <label>Idiomas habilitados (uno o varios)</label>
-        <p className="muted">Solo se cargan los recursos de los idiomas que elijas.</p>
+        <label>{t('setup.enabledLanguages')}</label>
+        <p className="muted">{t('setup.enabledLanguagesHint')}</p>
         <div className="row" style={{ gap: 'var(--ws-space-4)' }}>
           {AVAILABLE_LANGUAGES.map((l) => (
             <label key={l.code} className="row" style={{ gap: 'var(--ws-space-2)' }}>
@@ -249,10 +248,11 @@ function DatabaseStep({
   testResult: string | null;
   testing: boolean;
 }) {
+  const { t } = useTranslation();
   const { provider } = form.database;
   return (
     <div className="stack">
-      <h2>Base de datos</h2>
+      <h2>{t('setup.database')}</h2>
       <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
         {DB_PRESETS.map((p) => (
           <Button key={p.label} variant="secondary" type="button" onClick={() => set('database', p.value)}>
@@ -260,30 +260,30 @@ function DatabaseStep({
           </Button>
         ))}
       </div>
-      <p className="muted">Elegí un preset o configurá manualmente. En Docker usá host=postgres (o mysql); sin Docker, localhost.</p>
+      <p className="muted">{t('setup.dbHint')}</p>
 
       <div className="field" style={{ maxWidth: 320 }}>
-        <label>Motor de base de datos</label>
+        <label>{t('setup.dbEngine')}</label>
         <select className="input" value={provider} onChange={(e) => set('database', { provider: e.target.value as Provider })}>
-          <option value="postgresql">PostgreSQL (recomendado para producción)</option>
-          <option value="sqlite">SQLite (archivo local, ideal para empezar)</option>
-          <option value="mysql">MySQL / MariaDB</option>
+          <option value="postgresql">{t('setup.providerPostgres')}</option>
+          <option value="sqlite">{t('setup.providerSqlite')}</option>
+          <option value="mysql">{t('setup.providerMysql')}</option>
         </select>
       </div>
 
       {provider === 'sqlite' ? (
-        <TextField label="Ruta del archivo" value={form.database.file} onChange={(e) => set('database', { file: e.target.value })} />
+        <TextField label={t('setup.dbFile')} value={form.database.file} onChange={(e) => set('database', { file: e.target.value })} />
       ) : (
         <div className="grid-2">
-          <TextField label="Servidor" value={form.database.host} onChange={(e) => set('database', { host: e.target.value })} />
-          <TextField label="Puerto" value={form.database.port} onChange={(e) => set('database', { port: e.target.value })} />
-          <TextField label="Base de datos" value={form.database.name} onChange={(e) => set('database', { name: e.target.value })} />
-          <TextField label="Usuario" value={form.database.user} onChange={(e) => set('database', { user: e.target.value })} />
-          <TextField label="Contraseña" type="password" value={form.database.password} onChange={(e) => set('database', { password: e.target.value })} />
+          <TextField label={t('setup.server')} value={form.database.host} onChange={(e) => set('database', { host: e.target.value })} />
+          <TextField label={t('setup.port')} value={form.database.port} onChange={(e) => set('database', { port: e.target.value })} />
+          <TextField label={t('setup.database')} value={form.database.name} onChange={(e) => set('database', { name: e.target.value })} />
+          <TextField label={t('setup.user')} value={form.database.user} onChange={(e) => set('database', { user: e.target.value })} />
+          <TextField label={t('setup.password')} type="password" value={form.database.password} onChange={(e) => set('database', { password: e.target.value })} />
           {provider === 'postgresql' && (
             <label className="row" style={{ gap: 'var(--ws-space-2)' }}>
               <input type="checkbox" checked={form.database.ssl} onChange={(e) => set('database', { ssl: e.target.checked })} />
-              Usar SSL
+              {t('setup.useSsl')}
             </label>
           )}
         </div>
@@ -291,7 +291,7 @@ function DatabaseStep({
 
       <div className="row">
         <Button variant="secondary" onClick={onTest} disabled={testing}>
-          {testing ? 'Probando…' : 'Probar conexión'}
+          {testing ? t('setup.testing') : t('setup.testConnection')}
         </Button>
         {testResult && <span className="muted">{testResult}</span>}
       </div>
@@ -300,42 +300,44 @@ function DatabaseStep({
 }
 
 function SiteStep({ form, set }: { form: SetupForm; set: SetupWizardSet }) {
+  const { t } = useTranslation();
   return (
     <div className="stack">
-      <h2>Sitio</h2>
+      <h2>{t('setup.site')}</h2>
       <div className="grid-2">
-        <TextField label="Nombre del sitio" value={form.site.name} onChange={(e) => set('site', { name: e.target.value })} />
-        <TextField label="Lema / descripción corta" value={form.site.tagline} onChange={(e) => set('site', { tagline: e.target.value })} />
-        <TextField label="Logo (claro) — URL" value={form.site.logoUrl} onChange={(e) => set('site', { logoUrl: e.target.value })} placeholder="https://…" />
-        <TextField label="Logo (oscuro) — URL" value={form.site.logoDarkUrl} onChange={(e) => set('site', { logoDarkUrl: e.target.value })} placeholder="https://…" />
-        <TextField label="Icono — URL" value={form.site.iconUrl} onChange={(e) => set('site', { iconUrl: e.target.value })} placeholder="https://…" />
-        <TextField label="Favicon — URL" value={form.site.faviconUrl} onChange={(e) => set('site', { faviconUrl: e.target.value })} placeholder="https://…" />
+        <TextField label={t('setup.siteName')} value={form.site.name} onChange={(e) => set('site', { name: e.target.value })} />
+        <TextField label={t('setup.tagline')} value={form.site.tagline} onChange={(e) => set('site', { tagline: e.target.value })} />
+        <TextField label={t('setup.logoLight')} value={form.site.logoUrl} onChange={(e) => set('site', { logoUrl: e.target.value })} placeholder="https://…" />
+        <TextField label={t('setup.logoDark')} value={form.site.logoDarkUrl} onChange={(e) => set('site', { logoDarkUrl: e.target.value })} placeholder="https://…" />
+        <TextField label={t('setup.iconUrl')} value={form.site.iconUrl} onChange={(e) => set('site', { iconUrl: e.target.value })} placeholder="https://…" />
+        <TextField label={t('setup.faviconUrl')} value={form.site.faviconUrl} onChange={(e) => set('site', { faviconUrl: e.target.value })} placeholder="https://…" />
       </div>
-      <p className="muted">Podés dejar las URLs vacías y configurarlas después desde Apariencia → Ajustes.</p>
+      <p className="muted">{t('setup.siteHint')}</p>
     </div>
   );
 }
 
 function SmtpStep({ form, set }: { form: SetupForm; set: SetupWizardSet }) {
+  const { t } = useTranslation();
   return (
     <div className="stack">
-      <h2>Correo electrónico (SMTP)</h2>
+      <h2>{t('setup.smtp')}</h2>
       <label className="row" style={{ gap: 'var(--ws-space-2)' }}>
         <input type="checkbox" checked={form.smtp.enabled} onChange={(e) => set('smtp', { enabled: e.target.checked })} />
-        <strong>Habilitar envío de correos</strong>
+        <strong>{t('setup.enableEmail')}</strong>
       </label>
-      <p className="muted">Se usa para verificar el correo y restablecer contraseñas. Podés omitirlo ahora y configurarlo luego.</p>
+      <p className="muted">{t('setup.smtpHint')}</p>
 
       {form.smtp.enabled && (
         <div className="grid-2">
-          <TextField label="Servidor SMTP" value={form.smtp.host} onChange={(e) => set('smtp', { host: e.target.value })} placeholder="smtp.tudominio.com" />
-          <TextField label="Puerto" value={form.smtp.port} onChange={(e) => set('smtp', { port: e.target.value })} />
-          <TextField label="Usuario" value={form.smtp.user} onChange={(e) => set('smtp', { user: e.target.value })} />
-          <TextField label="Contraseña" type="password" value={form.smtp.password} onChange={(e) => set('smtp', { password: e.target.value })} />
-          <TextField label="Remitente (from)" value={form.smtp.from} onChange={(e) => set('smtp', { from: e.target.value })} placeholder="no-reply@tudominio.com" />
+          <TextField label={t('setup.smtpServer')} value={form.smtp.host} onChange={(e) => set('smtp', { host: e.target.value })} placeholder="smtp.tudominio.com" />
+          <TextField label={t('setup.port')} value={form.smtp.port} onChange={(e) => set('smtp', { port: e.target.value })} />
+          <TextField label={t('setup.user')} value={form.smtp.user} onChange={(e) => set('smtp', { user: e.target.value })} />
+          <TextField label={t('setup.password')} type="password" value={form.smtp.password} onChange={(e) => set('smtp', { password: e.target.value })} />
+          <TextField label={t('setup.smtpFrom')} value={form.smtp.from} onChange={(e) => set('smtp', { from: e.target.value })} placeholder="no-reply@tudominio.com" />
           <label className="row" style={{ gap: 'var(--ws-space-2)' }}>
             <input type="checkbox" checked={form.smtp.secure} onChange={(e) => set('smtp', { secure: e.target.checked })} />
-            Usar SSL/TLS
+            {t('setup.useSslTls')}
           </label>
         </div>
       )}
@@ -344,23 +346,25 @@ function SmtpStep({ form, set }: { form: SetupForm; set: SetupWizardSet }) {
 }
 
 function AdminStep({ form, set }: { form: SetupForm; set: SetupWizardSet }) {
+  const { t } = useTranslation();
   const passwordMismatch = form.admin.confirm && form.admin.password !== form.admin.confirm;
   return (
     <div className="stack">
-      <h2>Cuenta de administrador</h2>
-      <p className="muted">Se crea con acceso total (Super Administrador) para empezar a configurar todo.</p>
+      <h2>{t('setup.admin')}</h2>
+      <p className="muted">{t('setup.adminHint')}</p>
       <div className="grid-2">
-        <TextField label="Correo electrónico" type="email" value={form.admin.email} onChange={(e) => set('admin', { email: e.target.value })} autoComplete="email" />
-        <TextField label="Nombre" value={form.admin.displayName} onChange={(e) => set('admin', { displayName: e.target.value })} />
-        <TextField label="Contraseña" type="password" value={form.admin.password} onChange={(e) => set('admin', { password: e.target.value })} autoComplete="new-password" />
-        <TextField label="Confirmar contraseña" type="password" value={form.admin.confirm} onChange={(e) => set('admin', { confirm: e.target.value })} autoComplete="new-password" />
+        <TextField label={t('setup.email')} type="email" value={form.admin.email} onChange={(e) => set('admin', { email: e.target.value })} autoComplete="email" />
+        <TextField label={t('setup.name')} value={form.admin.displayName} onChange={(e) => set('admin', { displayName: e.target.value })} />
+        <TextField label={t('setup.password')} type="password" value={form.admin.password} onChange={(e) => set('admin', { password: e.target.value })} autoComplete="new-password" />
+        <TextField label={t('setup.confirmPassword')} type="password" value={form.admin.confirm} onChange={(e) => set('admin', { confirm: e.target.value })} autoComplete="new-password" />
       </div>
-      {passwordMismatch && <p style={{ color: 'var(--ws-danger)' }}>Las contraseñas no coinciden</p>}
+      {passwordMismatch && <p style={{ color: 'var(--ws-danger)' }}>{t('setup.passwordMismatch')}</p>}
     </div>
   );
 }
 
 function TemplateStep({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const { t } = useTranslation();
   const { data } = useQuery({
     queryKey: ['setup-templates'],
     queryFn: () => api.get<Array<{ id: string; name: string; description?: string; blocks: string[] }>>('/api/v1/setup/templates'),
@@ -368,21 +372,21 @@ function TemplateStep({ value, onChange }: { value: string; onChange: (id: strin
 
   return (
     <div className="stack">
-      <h2>Plantilla inicial</h2>
-      <p className="muted">Elegí una plantilla para arrancar con plugins y páginas predefinidas. Podés editarla y cambiar los plugins después.</p>
+      <h2>{t('setup.template')}</h2>
+      <p className="muted">{t('setup.templateHint')}</p>
 
       <label className="row" style={{ gap: 'var(--ws-space-2)' }}>
         <input type="radio" name="template" checked={!value} onChange={() => onChange('')} />
-        <span>Sin plantilla (empezar vacío)</span>
+        <span>{t('setup.noTemplate')}</span>
       </label>
 
-      {(data ?? []).map((t) => (
-        <label key={t.id} className="row" style={{ gap: 'var(--ws-space-2)' }}>
-          <input type="radio" name="template" checked={value === t.id} onChange={() => onChange(t.id)} />
+      {(data ?? []).map((tmpl) => (
+        <label key={tmpl.id} className="row" style={{ gap: 'var(--ws-space-2)' }}>
+          <input type="radio" name="template" checked={value === tmpl.id} onChange={() => onChange(tmpl.id)} />
           <span>
-            <strong>{t.name}</strong>
-            {t.description && <span className="muted"> — {t.description}</span>}
-            <span className="muted"> · plugins: {t.blocks.join(', ') || 'ninguno'}</span>
+            <strong>{tmpl.name}</strong>
+            {tmpl.description && <span className="muted"> — {tmpl.description}</span>}
+            <span className="muted"> · {t('setup.plugins')}: {tmpl.blocks.join(', ') || t('setup.none')}</span>
           </span>
         </label>
       ))}
@@ -391,18 +395,19 @@ function TemplateStep({ value, onChange }: { value: string; onChange: (id: strin
 }
 
 function ReviewStep({ form }: { form: SetupForm }) {
+  const { t } = useTranslation();
   return (
     <div className="stack">
-      <h2>Resumen</h2>
-      <p className="muted">Revisá la configuración antes de instalar:</p>
+      <h2>{t('setup.summary')}</h2>
+      <p className="muted">{t('setup.summaryHint')}</p>
       <ul>
-        <li><strong>Base de datos:</strong> {form.database.provider} {form.database.provider === 'sqlite' ? form.database.file : `${form.database.host}:${form.database.port}/${form.database.name}`}</li>
-        <li><strong>Sitio:</strong> {form.site.name}</li>
-        <li><strong>Correo:</strong> {form.smtp.enabled ? `${form.smtp.host}:${form.smtp.port}` : 'No configurado (se puede configurar luego)'}</li>
-        <li><strong>Administrador:</strong> {form.admin.email}</li>
-        <li><strong>Plantilla:</strong> {form.template || 'Ninguna'}</li>
+        <li><strong>{t('setup.database')}:</strong> {form.database.provider} {form.database.provider === 'sqlite' ? form.database.file : `${form.database.host}:${form.database.port}/${form.database.name}`}</li>
+        <li><strong>{t('setup.site')}:</strong> {form.site.name}</li>
+        <li><strong>{t('setup.emailShort')}:</strong> {form.smtp.enabled ? `${form.smtp.host}:${form.smtp.port}` : t('setup.notConfigured')}</li>
+        <li><strong>{t('setup.adminLabel')}:</strong> {form.admin.email}</li>
+        <li><strong>{t('setup.templateShort')}:</strong> {form.template || t('setup.noneTemplate')}</li>
       </ul>
-      <p>Al instalar se creará el esquema de base de datos, los roles y permisos, y tu cuenta de administrador.</p>
+      <p>{t('setup.installHint')}</p>
     </div>
   );
 }

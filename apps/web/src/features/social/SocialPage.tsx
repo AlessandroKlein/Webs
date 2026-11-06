@@ -38,29 +38,28 @@ export function SocialPage() {
       <PageHeader title={t('nav.social')} />
 
       <Card>
-        <h2 style={{ marginTop: 0 }}>Configuración</h2>
+        <h2 style={{ marginTop: 0 }}>{t('social.settingsTitle')}</h2>
         <p style={{ color: 'var(--ws-text-muted)', margin: '0 0 var(--ws-space-3)' }}>
-          La red social pública está en <Link to="/social">/social</Link>. Ahí los usuarios publican,
-          dan me gusta, siguen a otros y ven el feed. Desde esta sección solo se configura.
+          {t('social.settingsBefore')} <Link to="/social">/social</Link>{t('social.settingsAfter')}
         </p>
         <Link to="/social" className="btn">
-          <i className="bi bi-box-arrow-up-right" /> Ir a la página pública
+          <i className="bi bi-box-arrow-up-right" /> {t('social.goToPublic')}
         </Link>
       </Card>
 
       <Card>
-        <h2 style={{ marginTop: 0 }}>Tus estadísticas</h2>
+        <h2 style={{ marginTop: 0 }}>{t('social.yourStats')}</h2>
         {isLoading ? (
-          <Spinner label="Cargando…" />
+          <Spinner label={t('social.loading')} />
         ) : (
           <div className="row" style={{ gap: 'var(--ws-space-5)', flexWrap: 'wrap' }}>
             <div className="stack" style={{ alignItems: 'center', gap: 'var(--ws-space-1)', minWidth: 120 }}>
               <strong style={{ fontSize: '2rem', lineHeight: 1 }}>{followers}</strong>
-              <span className="muted">Seguidores</span>
+              <span className="muted">{t('social.followers')}</span>
             </div>
             <div className="stack" style={{ alignItems: 'center', gap: 'var(--ws-space-1)', minWidth: 120 }}>
               <strong style={{ fontSize: '2rem', lineHeight: 1 }}>{following}</strong>
-              <span className="muted">Siguiendo</span>
+              <span className="muted">{t('social.following')}</span>
             </div>
           </div>
         )}

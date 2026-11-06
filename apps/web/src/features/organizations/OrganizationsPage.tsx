@@ -10,6 +10,7 @@ import { TextField } from '../../components/ui/TextField';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { QrCode } from '../../components/ui/QrCode';
 import { PageHeader } from '../../components/ui/PageHeader';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 
 const BASE = '/api/v1/blocks/organizaciones';
 
@@ -117,16 +118,22 @@ export function OrganizationsPage() {
   const planList = plans ?? [];
 
   return (
-    <div className="row" style={{ alignItems: 'flex-start', gap: 'var(--ws-space-6)' }}>
-      <aside className="stack" style={{ minWidth: 220, maxWidth: 220 }}>
-        <PageHeader title={t('admin.organizations.title')} />
-        <button className={`nav-link ${view === 'organizations' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('organizations')}>{t('admin.organizations.organizations')}</button>
-        <button className={`nav-link ${view === 'plans' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('plans')}>{t('admin.organizations.plans')}</button>
-        <button className={`nav-link ${view === 'memberships' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('memberships')}>{t('admin.organizations.memberships')}</button>
-        <button className={`nav-link ${view === 'attendance' ? 'active' : ''}`} style={{ textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }} onClick={() => setView('attendance')}>{t('admin.organizations.attendance')}</button>
-      </aside>
+    <div className="stack" style={{ gap: 'var(--ws-space-6)' }}>
+      <PageHeader title={t('admin.organizations.title')}>
+        <SegmentedControl
+          ariaLabel={t('admin.organizations.title')}
+          value={view}
+          onChange={(v) => setView(v as View)}
+          options={[
+            { value: 'organizations', label: t('admin.organizations.organizations') },
+            { value: 'plans', label: t('admin.organizations.plans') },
+            { value: 'memberships', label: t('admin.organizations.memberships') },
+            { value: 'attendance', label: t('admin.organizations.attendance') },
+          ]}
+        />
+      </PageHeader>
 
-      <div className="stack" style={{ flex: 1, minWidth: 0 }}>
+      <div className="stack">
         {view === 'organizations' && <OrganizationsView organizations={orgs} />}
         {view === 'plans' && <PlansView plans={planList} />}
         {view === 'memberships' && (

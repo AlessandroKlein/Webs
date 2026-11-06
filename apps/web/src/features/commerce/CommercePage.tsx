@@ -396,20 +396,20 @@ export function CommercePage() {
                     <TextField label={t('admin.commerce.price')} type="number" value={pPrice} onChange={(e) => setPPrice(e.target.value)} required />
                     <TextField label={t('admin.commerce.stock')} type="number" value={pStock} onChange={(e) => setPStock(e.target.value)} required />
                     <TextField label={t('admin.commerce.categoryOptional')} value={pCategory} onChange={(e) => setPCategory(e.target.value)} />
-                    <TextField label="Código de barras" value={pBarcode} onChange={(e) => setPBarcode(e.target.value)} placeholder="7790000000000" />
+                    <TextField label={t('admin.commerce.barcode')} value={pBarcode} onChange={(e) => setPBarcode(e.target.value)} placeholder="7790000000000" />
                   </div>
                   <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <TextField label="URL de imagen" value={pImageUrl} onChange={(e) => setPImageUrl(e.target.value)} placeholder="https://…" />
-                    <TextField label="Imágenes (URLs separadas por coma)" value={pImages} onChange={(e) => setPImages(e.target.value)} placeholder="https://…, https://…" />
-                    <TextField label="Talles (separados por coma)" value={pSizes} onChange={(e) => setPSizes(e.target.value)} placeholder="S, M, L" />
+                    <TextField label={t('admin.commerce.imageUrl')} value={pImageUrl} onChange={(e) => setPImageUrl(e.target.value)} placeholder="https://…" />
+                    <TextField label={t('admin.commerce.images')} value={pImages} onChange={(e) => setPImages(e.target.value)} placeholder="https://…, https://…" />
+                    <TextField label={t('admin.commerce.sizesInput')} value={pSizes} onChange={(e) => setPSizes(e.target.value)} placeholder="S, M, L" />
                   </div>
                   {sizesList.length > 0 && (
                     <div className="field">
-                      <label>Stock por talle</label>
+                      <label>{t('admin.commerce.stockBySize')}</label>
                       <div className="row" style={{ flexWrap: 'wrap' }}>
                         {sizesList.map((s) => (
                           <div key={s} className="field" style={{ minWidth: 120 }}>
-                            <label>Stock {s}</label>
+                            <label>{t('admin.commerce.stockForSize', { size: s })}</label>
                             <input
                               className="input"
                               type="number"
@@ -424,7 +424,7 @@ export function CommercePage() {
                     </div>
                   )}
                   <div className="field">
-                    <label>Descripción</label>
+                    <label>{t('admin.commerce.description')}</label>
                     <textarea className="input" value={pDescription} onChange={(e) => setPDescription(e.target.value)} />
                   </div>
                   <div className="row">
@@ -450,8 +450,8 @@ export function CommercePage() {
                     <th>{t('admin.commerce.price')}</th>
                     <th>{t('admin.commerce.stock')}</th>
                     <th>{t('admin.commerce.category')}</th>
-                    <th>Imagen</th>
-                    <th>Talles</th>
+                    <th>{t('admin.commerce.image')}</th>
+                    <th>{t('admin.commerce.sizes')}</th>
                     <th>{t('common.actions')}</th>
                   </tr>
                 </thead>
@@ -542,7 +542,7 @@ export function CommercePage() {
                               disabled={cancelOrder.isPending}
                               onClick={() => setConfirmCancelOrder(o)}
                             >
-                              Cancelar
+                              {t('common.cancel')}
                             </Button>
                           )}
                         </div>
@@ -799,8 +799,8 @@ export function CommercePage() {
 
         <ConfirmDialog
           open={confirmCancelOrder !== null}
-          title="Cancelar pedido"
-          confirmLabel="Cancelar pedido"
+          title={t('admin.commerce.cancelOrder')}
+          confirmLabel={t('admin.commerce.cancelOrder')}
           danger
           onConfirm={() => {
             if (confirmCancelOrder) cancelOrder.mutate(confirmCancelOrder.id);
@@ -808,7 +808,7 @@ export function CommercePage() {
           }}
           onCancel={() => setConfirmCancelOrder(null)}
         >
-          Se cancelará el pedido <code>{confirmCancelOrder?.id}</code> y se repondrá el stock de los productos.
+          {t('admin.commerce.cancelOrderConfirmBefore')} <code>{confirmCancelOrder?.id}</code> {t('admin.commerce.cancelOrderConfirmAfter')}
         </ConfirmDialog>
 
         <ConfirmDialog

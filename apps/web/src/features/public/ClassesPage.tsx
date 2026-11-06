@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../lib/auth-store';
+import { useTranslation } from 'react-i18next';
 import { SiteLayout } from '../../components/SiteLayout';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -48,6 +49,7 @@ function lessonTitle(lesson: unknown, index: number): string {
  * clases" (eventos del calendario).
  */
 export function ClassesPage() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
 
   const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
@@ -97,18 +99,18 @@ export function ClassesPage() {
           className="row"
           style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ws-space-3)', marginBottom: 'var(--ws-space-4)' }}
         >
-          <h1 style={{ margin: 0 }}>Clases</h1>
+          <h1 style={{ margin: 0 }}>{t('classes.title')}</h1>
           <Link to="/" className="btn ghost">
-            <i className="bi bi-arrow-left" /> Volver al inicio
+            <i className="bi bi-arrow-left" /> {t('classes.backHome')}
           </Link>
         </div>
 
         <section style={{ marginBottom: 'var(--ws-space-6)' }}>
-          <h2 style={{ fontSize: 'var(--ws-font-size-lg)' }}>Cursos</h2>
-          {coursesLoading && <p className="muted">Cargando…</p>}
-          {coursesError && <p className="muted">No se pudieron cargar los cursos.</p>}
+          <h2 style={{ fontSize: 'var(--ws-font-size-lg)' }}>{t('classes.courses')}</h2>
+          {coursesLoading && <p className="muted">{t('classes.loading')}</p>}
+          {coursesError && <p className="muted">{t('classes.coursesError')}</p>}
           {!coursesLoading && !coursesError && (courses ?? []).length === 0 && (
-            <p className="muted">Todavía no hay cursos.</p>
+            <p className="muted">{t('classes.noCourses')}</p>
           )}
           <div className="stack">
             {(courses ?? []).map((c) => {
@@ -140,7 +142,7 @@ export function ClassesPage() {
                       className="muted"
                       style={{ fontSize: 'var(--ws-font-size-sm)', display: 'inline-block', marginTop: 'var(--ws-space-2)' }}
                     >
-                      {courseLessons.length} lecciones
+                      {t('classes.lessonsCount', { count: courseLessons.length })}
                     </span>
                   </button>
 
@@ -153,7 +155,7 @@ export function ClassesPage() {
 
                       {courseLessons.length > 0 && (
                         <div>
-                          <strong>Lecciones</strong>
+                          <strong>{t('classes.lessons')}</strong>
                           <ul style={{ margin: 'var(--ws-space-2) 0 0', paddingLeft: '1.2rem' }}>
                             {courseLessons.map((l, i) => (
                               <li key={i}>{lessonTitle(l, i)}</li>
@@ -163,9 +165,9 @@ export function ClassesPage() {
                       )}
 
                       <form className="stack" onSubmit={submitEnroll} style={{ gap: 'var(--ws-space-2)' }}>
-                        <strong>Inscribirme</strong>
+                        <strong>{t('classes.enroll')}</strong>
                         <div className="field">
-                          <label htmlFor={`student-${c.id}`}>Tu email o nombre</label>
+                          <label htmlFor={`student-${c.id}`}>{t('classes.studentLabel')}</label>
                           <input
                             id={`student-${c.id}`}
                             className="input"
@@ -177,16 +179,16 @@ export function ClassesPage() {
                         </div>
                         <div className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
                           <Button type="submit" disabled={enroll.isPending || !student.trim()}>
-                            {enroll.isPending ? 'Enviando…' : 'Inscribirme'}
+                            {enroll.isPending ? t('classes.sending') : t('classes.enroll')}
                           </Button>
                           {enroll.isSuccess && !enroll.isPending && (
                             <span className="muted" style={{ color: 'var(--ws-success, #16a34a)' }}>
-                              ¡Inscripción enviada!
+                              {t('classes.enrollSent')}
                             </span>
                           )}
                           {enroll.isError && (
                             <span className="muted" style={{ color: 'var(--ws-danger)' }}>
-                              No se pudo enviar la inscripción.
+                              {t('classes.enrollError')}
                             </span>
                           )}
                         </div>
@@ -200,11 +202,11 @@ export function ClassesPage() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 'var(--ws-font-size-lg)' }}>Próximas clases</h2>
-          {eventsLoading && <p className="muted">Cargando…</p>}
-          {eventsError && <p className="muted">No se pudieron cargar las clases.</p>}
+          <h2 style={{ fontSize: 'var(--ws-font-size-lg)' }}>{t('classes.upcoming')}</h2>
+          {eventsLoading && <p className="muted">{t('classes.loading')}</p>}
+          {eventsError && <p className="muted">{t('classes.eventsError')}</p>}
           {!eventsLoading && !eventsError && (events ?? []).length === 0 && (
-            <p className="muted">Todavía no hay clases programadas.</p>
+            <p className="muted">{t('classes.noEvents')}</p>
           )}
           <div className="stack">
             {(events ?? []).map((e) => (

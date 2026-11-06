@@ -69,7 +69,7 @@ export function DashboardPage() {
 
       <Card>
         <h3>{t('dashboard.quickAccess')}</h3>
-        <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--ws-space-2)' }}>
+        <div className="row">
           {quickLinks.map((l) => (
             <Link key={l.to} to={l.to} className="btn secondary">
               <i className={`bi ${l.icon}`} />

@@ -203,7 +203,7 @@ function ChatPanel({ me, onClose }: { me: string; onClose: () => void }) {
             </>
           )}
         </strong>
-        <Button variant="ghost" onClick={onClose} aria-label={t('chat.closeMessages')} style={{ padding: 'var(--ws-space-1)' }}>
+        <Button variant="ghost" size="sm" onClick={onClose} aria-label={t('chat.closeMessages')}>
           <i className="bi bi-x-lg" />
         </Button>
       </header>

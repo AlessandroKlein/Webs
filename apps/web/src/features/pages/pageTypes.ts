@@ -14,6 +14,16 @@
 
 import i18next from '../../lib/i18n';
 
+export const LAYOUT_SCHEMA_VERSION = 2;
+
+/** Genera un id estable (uuid) para bloques/secciones, con fallback sin `crypto`. */
+export function uid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export type Size = 'full' | 'half' | 'third';
 
 export type PageElementType = 'heading' | 'text' | 'image' | 'divider' | 'spacer' | 'html';
@@ -24,14 +34,22 @@ export interface PageElement {
   content?: string;
   /** Nivel del heading (1–4). Por defecto 2. */
   level?: number;
+  id?: string;
 }
 
 /** Item de una sección: id de plugin (string) o elemento de contenido (objeto). */
 export type PageItem = string | PageElement;
 
+/** Selección en el editor de bloques: índice de sección + índice de bloque (null = la sección entera). */
+export interface BlockSelection {
+  section: number;
+  index: number | null;
+}
+
 export interface PageSection {
   size?: Size;
   blocks: PageItem[];
+  id?: string;
 }
 
 export interface Page {
@@ -67,17 +85,17 @@ export function elementTypeOptions(): Array<{ type: PageElementType; label: stri
 export function createElement(type: PageElementType): PageElement {
   switch (type) {
     case 'heading':
-      return { type, content: i18next.t('pages.elemNewTitle'), level: 2 };
+      return { id: uid(), type, content: i18next.t('pages.elemNewTitle'), level: 2 };
     case 'text':
-      return { type, content: i18next.t('pages.elemSampleText') };
+      return { id: uid(), type, content: i18next.t('pages.elemSampleText') };
     case 'image':
-      return { type, content: '' };
+      return { id: uid(), type, content: '' };
     case 'divider':
-      return { type };
+      return { id: uid(), type };
     case 'spacer':
-      return { type, content: '24' };
+      return { id: uid(), type, content: '24' };
     case 'html':
-      return { type, content: '' };
+      return { id: uid(), type, content: '' };
   }
 }
 

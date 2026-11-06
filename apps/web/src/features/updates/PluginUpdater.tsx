@@ -68,8 +68,8 @@ export function PluginUpdater() {
   return (
     <Card>
       <Card.Header>
-        <Card.Title>Plugins</Card.Title>
-        <Card.Description>Actualizaciones disponibles por plugin instalado.</Card.Description>
+        <Card.Title>{t('updates.pluginsTitle')}</Card.Title>
+        <Card.Description>{t('updates.pluginsDescription')}</Card.Description>
       </Card.Header>
       <Card.Content className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
@@ -78,7 +78,7 @@ export function PluginUpdater() {
             loading={isFetching}
             onClick={() => void qc.invalidateQueries({ queryKey: ['plugin-updates-check'] })}
           >
-            {isFetching ? 'Buscando…' : 'Buscar actualizaciones'}
+            {isFetching ? t('updates.searching') : t('updates.search')}
           </Button>
         </div>
 
@@ -92,7 +92,7 @@ export function PluginUpdater() {
           <Spinner />
         ) : (plugins ?? []).length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>
-            No hay plugins instalados.
+            {t('updates.noPlugins')}
           </p>
         ) : (
           <ul className="flex flex-col gap-3" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -116,13 +116,13 @@ export function PluginUpdater() {
                     {busy ? (
                       <Badge variant="info">{pluginPhaseLabel(record.phase)}</Badge>
                     ) : record?.phase === 'failed' ? (
-                      <Badge variant="danger">Falló</Badge>
+                      <Badge variant="danger">{t('updates.failed')}</Badge>
                     ) : record?.phase === 'done' ? (
-                      <Badge variant="success">Actualizado</Badge>
+                      <Badge variant="success">{t('updates.updated')}</Badge>
                     ) : p.hasUpdate ? (
-                      <Badge variant="warning">Actualización disponible</Badge>
+                      <Badge variant="warning">{t('updates.available')}</Badge>
                     ) : (
-                      <Badge variant="neutral">Al día</Badge>
+                      <Badge variant="neutral">{t('updates.upToDate')}</Badge>
                     )}
                   </div>
 
@@ -135,7 +135,7 @@ export function PluginUpdater() {
                   {p.hasUpdate && !record && canWrite && (
                     <div className="flex flex-wrap gap-2">
                       <Button size="sm" loading={apply.isPending} onClick={() => apply.mutate(p.pluginId)}>
-                        Actualizar
+                        {t('updates.update')}
                       </Button>
                     </div>
                   )}
@@ -165,7 +165,7 @@ export function PluginUpdater() {
                         loading={rollback.isPending}
                         onClick={() => rollback.mutate(p.pluginId)}
                       >
-                        Restaurar versión anterior
+                        {t('updates.rollback')}
                       </Button>
                     </div>
                   )}

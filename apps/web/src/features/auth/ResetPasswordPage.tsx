@@ -1,11 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { Card } from '../../components/ui/Card';
 import { TextField } from '../../components/ui/TextField';
 import { Button } from '../../components/ui/Button';
 
 export function ResetPasswordPage() {
+  const { t } = useTranslation();
   const [params] = useSearchParams();
   const token = params.get('token');
   const [password, setPassword] = useState('');
@@ -17,14 +19,14 @@ export function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
     if (password !== confirm) {
-      setError('Las contraseñas no coinciden');
+      setError(t('auth.passwordsMismatch'));
       return;
     }
     try {
       await api.post('/api/v1/auth/reset-password', { token, password });
       setDone(true);
     } catch {
-      setError('Enlace inválido o expirado');
+      setError(t('auth.invalidOrExpired'));
     }
   };
 
@@ -32,10 +34,10 @@ export function ResetPasswordPage() {
     return (
       <div className="auth-screen">
         <Card style={{ maxWidth: 440, textAlign: 'center' }}>
-          <h2>✔ Contraseña restablecida</h2>
-          <p>Ya podés iniciar sesión con tu nueva contraseña.</p>
+          <h2>{t('auth.passwordReset')}</h2>
+          <p>{t('auth.passwordResetHint')}</p>
           <Link to="/login" className="btn">
-            Iniciar sesión
+            {t('auth.login')}
           </Link>
         </Card>
       </div>
@@ -45,12 +47,12 @@ export function ResetPasswordPage() {
   return (
     <div className="auth-screen">
       <form className="card" style={{ width: '100%', maxWidth: 380 }} onSubmit={submit}>
-        <h2>Restablecer contraseña</h2>
-        <TextField label="Nueva contraseña" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
-        <TextField label="Confirmar contraseña" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />
+        <h2>{t('auth.resetPassword')}</h2>
+        <TextField label={t('auth.newPassword')} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required />
+        <TextField label={t('auth.confirmPassword')} type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required />
         {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
-        <Button type="submit" style={{ width: '100%' }}>
-          Guardar
+        <Button type="submit" fullWidth>
+          {t('common.save')}
         </Button>
       </form>
     </div>

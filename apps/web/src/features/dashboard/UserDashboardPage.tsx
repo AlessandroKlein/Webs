@@ -393,7 +393,7 @@ function SummaryView({ user, onNavigate }: { user: AuthUser | null; onNavigate: 
           {user?.avatarUrl ? (
             <img
               src={user.avatarUrl}
-              alt="Avatar"
+              alt={t('common.avatar')}
               style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--ws-border)' }}
             />
           ) : (
@@ -724,7 +724,7 @@ function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onCl
                 </div>
               )}
 
-              <Button variant="secondary" style={{ width: '100%' }} onClick={onClose}>
+              <Button variant="secondary" fullWidth onClick={onClose}>
                 {t('dashboard.understood')}
               </Button>
             </div>
@@ -756,10 +756,10 @@ function ContinuePaymentDialog({ payment, onClose }: { payment: PaymentRow; onCl
                 </button>
               ))}
               <div className="row" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-2)' }}>
-                <Button variant="ghost" style={{ flex: 1 }} onClick={onClose}>
+                <Button variant="ghost" className="flex-1" onClick={onClose}>
                   {t('common.cancel')}
                 </Button>
-                <Button style={{ flex: 1 }} onClick={pay} disabled={paying || !selectedProvider}>
+                <Button className="flex-1" onClick={pay} disabled={paying || !selectedProvider}>
                   {paying ? t('dashboard.startingPayment') : t('dashboard.pay')}
                 </Button>
               </div>

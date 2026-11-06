@@ -252,14 +252,15 @@ export function AdminLayout() {
     retry: false,
   });
   const { data: pluginsData } = useQuery({
-    queryKey: ['admin-plugins'],
-    queryFn: () => api.get<{ installed: Array<{ pluginId?: string }> }>('/api/v1/plugins'),
+    queryKey: ['plugins'],
+    queryFn: () => api.get<{ installed: Array<{ pluginId?: string; enabled?: boolean }> }>('/api/v1/plugins'),
     enabled: hasPermission('plugin.read'),
     retry: false,
   });
   const hasInstalledPlugins = pluginsData ? pluginsData.installed.length > 0 : true;
   const installedPluginIds = new Set(
     (pluginsData?.installed ?? [])
+      .filter((p) => p.enabled !== false)
       .map((p) => p.pluginId)
       .filter((id): id is string => typeof id === 'string'),
   );
@@ -267,19 +268,17 @@ export function AdminLayout() {
   const navItems: NavItem[] = [
     // panel
     { to: '/admin', label: t('nav.dashboard'), section: 'panel', perm: null, icon: 'speedometer2', end: true },
-    { to: '/admin/analytics', label: t('nav.analytics'), section: 'panel', perm: null, icon: 'graph-up', requiresPlugin: 'analytics' },
+    { to: '/admin/analytics', label: t('nav.analytics'), section: 'panel', perm: null, feature: 'analytics', icon: 'graph-up', requiresPlugin: 'analytics' },
     // contenido
-    { to: '/admin/content', label: t('nav.content'), section: 'contenido', perm: 'content.read', icon: 'collection' },
     { to: '/admin/pages', label: t('nav.pages'), section: 'contenido', perm: 'content.read', icon: 'file-earmark-text' },
-    { to: '/admin/editor', label: t('nav.editor'), section: 'contenido', perm: 'content.write', icon: 'pencil-square' },
     { to: '/admin/blog', label: t('nav.blog'), section: 'contenido', perm: null, icon: 'journal-text', requiresPlugin: 'blog' },
     { to: '/admin/forms', label: t('nav.forms'), section: 'contenido', perm: null, icon: 'input-cursor-text', requiresPlugin: 'formularios' },
     // ventas
-    { to: '/admin/payments', label: t('nav.payments'), section: 'ventas', perm: 'user.read', icon: 'credit-card' },
-    { to: '/admin/commerce', label: t('nav.commerce'), section: 'ventas', perm: null, icon: 'bag', requiresPlugin: 'ecommerce' },
-    { to: '/admin/invoices', label: t('nav.invoices'), section: 'ventas', perm: null, icon: 'receipt', requiresPlugin: 'facturacion' },
-    { to: '/admin/invoices/template', label: t('nav.invoiceTemplate'), section: 'ventas', perm: null, icon: 'layout-text-window-reverse', parent: '/admin/invoices', requiresPlugin: 'facturacion' },
-    { to: '/admin/inventory', label: t('nav.inventory'), section: 'ventas', perm: 'inventory.read', icon: 'box-seam' },
+    { to: '/admin/payments', label: t('nav.payments'), section: 'ventas', perm: 'user.read', feature: 'payments', icon: 'credit-card' },
+    { to: '/admin/commerce', label: t('nav.commerce'), section: 'ventas', perm: null, feature: 'payments', icon: 'bag', requiresPlugin: 'ecommerce' },
+    { to: '/admin/invoices', label: t('nav.invoices'), section: 'ventas', perm: null, feature: 'payments', icon: 'receipt', requiresPlugin: 'facturacion' },
+    { to: '/admin/invoices/template', label: t('nav.invoiceTemplate'), section: 'ventas', perm: null, feature: 'payments', icon: 'layout-text-window-reverse', parent: '/admin/invoices', requiresPlugin: 'facturacion' },
+    { to: '/admin/inventory', label: t('nav.inventory'), section: 'ventas', perm: 'inventory.read', feature: 'inventory', icon: 'box-seam' },
     // comunicacion
     { to: '/admin/email', label: t('nav.email'), section: 'comunicacion', perm: 'email.read', icon: 'envelope' },
     { to: '/admin/notifications', label: t('nav.notifications'), section: 'comunicacion', perm: null, icon: 'bell', requiresPlugin: 'notificaciones' },
@@ -291,20 +290,20 @@ export function AdminLayout() {
     { to: '/admin/appearance', label: t('nav.appearance'), section: 'apariencia', perm: 'theme.read', icon: 'palette' },
     { to: '/admin/translations', label: t('nav.translations'), section: 'apariencia', perm: 'translation.read', icon: 'translate' },
     { to: '/admin/menu', label: t('nav.menu'), section: 'apariencia', perm: 'setting.read', icon: 'list-nested' },
+    { to: '/admin/templates', label: t('nav.templates'), section: 'apariencia', perm: 'setting.write', feature: 'templates', icon: 'files' },
     // integraciones
     { to: '/admin/plugins', label: t('nav.plugins'), section: 'integraciones', perm: 'plugin.read', icon: 'puzzle' },
     { to: '/admin/generated', label: t('nav.generated'), section: 'integraciones', perm: 'generated.read', feature: 'generator', icon: 'lightning' },
-    { to: '/admin/invernadero', label: t('nav.invernadero'), section: 'integraciones', perm: 'iot.read', icon: 'flower1' },
-    { to: '/admin/sema', label: t('nav.sema'), section: 'integraciones', perm: 'iot.read', icon: 'broadcast' },
+    { to: '/admin/invernadero', label: t('nav.invernadero'), section: 'integraciones', perm: 'iot.read', icon: 'flower1', requiresPlugin: 'invernadero' },
+    { to: '/admin/sema', label: t('nav.sema'), section: 'integraciones', perm: 'iot.read', icon: 'broadcast', requiresPlugin: 'sema' },
     { to: '/admin/api-tokens', label: t('nav.api'), section: 'integraciones', perm: null, icon: 'key' },
     { to: '/admin/auth', label: t('nav.auth'), section: 'integraciones', perm: null, icon: 'shield-lock', requiresPlugin: 'register' },
     // configuracion
     { to: '/admin/settings', label: t('nav.settings'), section: 'configuracion', perm: 'setting.read', icon: 'gear' },
-    { to: '/admin/templates', label: t('nav.templates'), section: 'configuracion', perm: 'setting.write', icon: 'files' },
-    { to: '/admin/branches', label: t('nav.branches'), section: 'configuracion', perm: null, icon: 'diagram-3' },
-    { to: '/admin/organizations', label: t('nav.organizations'), section: 'configuracion', perm: null, icon: 'building', requiresPlugin: 'organizaciones' },
+    { to: '/admin/branches', label: t('nav.branches'), section: 'configuracion', perm: null, feature: 'multitenant', icon: 'diagram-3', requiresPlugin: 'organizaciones' },
+    { to: '/admin/organizations', label: t('nav.organizations'), section: 'configuracion', perm: null, feature: 'multitenant', icon: 'building', requiresPlugin: 'organizaciones' },
     { to: '/admin/updates', label: t('nav.updates'), section: 'configuracion', perm: 'setting.read', icon: 'arrow-repeat' },
-    { to: '/admin/scaling', label: t('nav.scaling'), section: 'configuracion', perm: 'scaling.read', icon: 'hdd-stack' },
+    { to: '/admin/scaling', label: t('nav.scaling'), section: 'configuracion', perm: 'scaling.read', feature: 'multitenant', icon: 'hdd-stack' },
     { to: '/admin/license', label: t('nav.license'), section: 'configuracion', perm: 'license.read', icon: 'patch-check' },
     { to: '/admin/license/keys', label: t('nav.licenseKeys'), section: 'configuracion', perm: 'license.read', icon: 'key-fill', parent: '/admin/license' },
     // usuarios

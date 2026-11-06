@@ -19,8 +19,8 @@ export function UpdatesPage() {
       <PageHeader title={t('nav.updates')} />
       <Card>
         <Card.Header>
-          <Card.Title>Plataforma</Card.Title>
-          <Card.Description>Versión instalada y última disponible de la app.</Card.Description>
+          <Card.Title>{t('updates.platform')}</Card.Title>
+          <Card.Description>{t('updates.platformDescription')}</Card.Description>
         </Card.Header>
         <Card.Content>
           <AppUpdater />

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api, uploadFile } from '../../lib/api';
 import { Button } from '../../components/ui/Button';
 
@@ -126,6 +127,7 @@ export function SocialComposer({
   users: SocialUser[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -280,7 +282,7 @@ export function SocialComposer({
         ]);
       }
     } catch {
-      setUploadError('No se pudo subir uno o más archivos.');
+      setUploadError(t('social.uploadFailed'));
     } finally {
       setUploading(false);
       e.target.value = '';
@@ -361,7 +363,7 @@ export function SocialComposer({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Nueva publicación"
+        aria-label={t('social.newPost')}
         style={{
           background: 'var(--ws-surface)',
           border: '1px solid var(--ws-border)',
@@ -376,8 +378,8 @@ export function SocialComposer({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="row" style={{ justifyContent: 'space-between', marginBottom: 'var(--ws-space-3)' }}>
-          <h3 style={{ margin: 0 }}>Nueva publicación</h3>
-          <Button variant="ghost" onClick={onClose} aria-label="Cerrar">
+          <h3 style={{ margin: 0 }}>{t('social.newPost')}</h3>
+          <Button variant="ghost" onClick={onClose} aria-label={t('common.close')}>
             <i className="bi bi-x-lg" />
           </Button>
         </div>
@@ -386,7 +388,7 @@ export function SocialComposer({
           {/* Selector de visibilidad */}
           <div
             role="radiogroup"
-            aria-label="Visibilidad"
+            aria-label={t('social.visibility')}
             className="row"
             style={{ gap: 'var(--ws-space-1)', flexWrap: 'wrap' }}
           >
@@ -426,10 +428,10 @@ export function SocialComposer({
               ref={textareaRef}
               className="input"
               rows={4}
-              placeholder="¿Qué estás pensando?"
+              placeholder={t('social.postPlaceholder')}
               value={text}
               onChange={onTextChange}
-              aria-label="Contenido de la publicación"
+              aria-label={t('social.postContent')}
             />
             <span
               style={{
@@ -556,7 +558,7 @@ export function SocialComposer({
                 {link}
               </span>
               <span style={{ color: 'var(--ws-text-muted)', fontSize: 'var(--ws-font-size-xs)', whiteSpace: 'nowrap' }}>
-                vista previa al publicar
+                {t('social.linkPreviewHint')}
               </span>
             </div>
           )}
@@ -588,7 +590,7 @@ export function SocialComposer({
                 />
               )}
               <div style={row}>
-                <Button variant="ghost" type="button" onClick={() => moveMedia(i, -1)} disabled={i === 0} aria-label="Subir">
+                <Button variant="ghost" type="button" onClick={() => moveMedia(i, -1)} disabled={i === 0} aria-label={t('social.moveUp')}>
                   <i className="bi bi-arrow-up" />
                 </Button>
                 <Button
@@ -596,20 +598,20 @@ export function SocialComposer({
                   type="button"
                   onClick={() => moveMedia(i, 1)}
                   disabled={i === mediaItems.length - 1}
-                  aria-label="Bajar"
+                  aria-label={t('social.moveDown')}
                 >
                   <i className="bi bi-arrow-down" />
                 </Button>
-                <Button variant="ghost" type="button" onClick={() => removeMedia(i)} aria-label="Eliminar">
+                <Button variant="ghost" type="button" onClick={() => removeMedia(i)} aria-label={t('common.delete')}>
                   <i className="bi bi-trash" />
                 </Button>
                 <input
                   className="input"
                   style={{ flex: 1, minWidth: 0 }}
-                  placeholder="Pie de foto (opcional)"
+                  placeholder={t('social.captionPlaceholder')}
                   value={m.caption}
                   onChange={(e) => setCaption(i, e.target.value)}
-                  aria-label={`Pie del medio ${i + 1}`}
+                  aria-label={t('social.mediaCaption', { n: i + 1 })}
                 />
               </div>
             </div>
@@ -628,27 +630,27 @@ export function SocialComposer({
             >
               <input
                 className="input"
-                placeholder="Pregunta de la encuesta"
+                placeholder={t('social.pollQuestion')}
                 value={pollQuestion}
                 onChange={(e) => setPollQuestion(e.target.value)}
-                aria-label="Pregunta de la encuesta"
+                aria-label={t('social.pollQuestion')}
               />
               {pollOptions.map((o, i) => (
                 <div key={o.id} style={row}>
                   <input
                     className="input"
                     style={{ flex: 1, minWidth: 0 }}
-                    placeholder={`Opción ${i + 1}`}
+                    placeholder={t('social.option', { n: i + 1 })}
                     value={o.label}
                     onChange={(e) => setOption(i, e.target.value)}
-                    aria-label={`Opción ${i + 1}`}
+                    aria-label={t('social.option', { n: i + 1 })}
                   />
                   <Button
                     variant="ghost"
                     type="button"
                     onClick={() => removeOption(i)}
                     disabled={pollOptions.length <= 2}
-                    aria-label={`Quitar opción ${i + 1}`}
+                    aria-label={t('social.removeOption', { n: i + 1 })}
                   >
                     <i className="bi bi-x-lg" />
                   </Button>
@@ -656,17 +658,17 @@ export function SocialComposer({
               ))}
               <div style={row}>
                 <Button variant="secondary" type="button" onClick={addOption} disabled={pollOptions.length >= 20}>
-                  <i className="bi bi-plus" /> Añadir opción
+                  <i className="bi bi-plus" /> {t('social.addOption')}
                 </Button>
                 <Button variant="ghost" type="button" onClick={() => setPollMode(false)}>
-                  Quitar encuesta
+                  {t('social.removePoll')}
                 </Button>
               </div>
             </div>
           ) : (
             <div style={row}>
               <Button variant="ghost" type="button" onClick={() => setPollMode(true)}>
-                <i className="bi bi-bar-chart" /> Encuesta
+                <i className="bi bi-bar-chart" /> {t('social.poll')}
               </Button>
             </div>
           )}
@@ -674,7 +676,7 @@ export function SocialComposer({
           {/* Barra de acciones */}
           <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
             <label className="btn secondary" style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              {uploading ? 'Subiendo…' : 'Foto / video'}
+              {uploading ? t('social.uploading') : t('social.photoVideo')}
               <input
                 type="file"
                 accept="image/*,video/*"
@@ -686,7 +688,7 @@ export function SocialComposer({
             </label>
 
             <div style={{ position: 'relative' }}>
-              <Button variant="ghost" type="button" onClick={() => setShowEmoji((v) => !v)} aria-label="Emoji">
+              <Button variant="ghost" type="button" onClick={() => setShowEmoji((v) => !v)} aria-label={t('social.emoji')}>
                 <i className="bi bi-emoji-smile" />
               </Button>
               {showEmoji && (
@@ -723,7 +725,7 @@ export function SocialComposer({
                         borderRadius: 'var(--ws-radius-md)',
                         lineHeight: 1,
                       }}
-                      aria-label={`Insertar emoji ${emo}`}
+                      aria-label={t('social.insertEmoji', { emoji: emo })}
                     >
                       {emo}
                     </button>
@@ -735,7 +737,7 @@ export function SocialComposer({
             <div style={{ flex: 1 }} />
 
             <Button type="submit" disabled={publish.isPending || !canPublish}>
-              {publish.isPending ? 'Publicando…' : 'Publicar'}
+              {publish.isPending ? t('social.publishing') : t('social.publish')}
             </Button>
           </div>
 

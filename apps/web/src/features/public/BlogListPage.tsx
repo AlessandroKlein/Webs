@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { SiteLayout } from '../../components/SiteLayout';
 import { Card } from '../../components/ui/Card';
@@ -65,6 +66,7 @@ function formatDate(iso: string): string {
  * completo (HTML) en la propia tarjeta.
  */
 export function BlogListPage() {
+  const { t } = useTranslation();
   const { data: posts, isLoading, isError } = useQuery({
     queryKey: ['public-blog-posts'],
     queryFn: () => api.get<BlogPost[]>('/api/v1/blocks/blog/posts?status=published'),
@@ -97,7 +99,7 @@ export function BlogListPage() {
           style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--ws-space-3)', marginBottom: 'var(--ws-space-4)' }}
         >
           <div>
-            <h1 style={{ margin: 0 }}>Blog</h1>
+            <h1 style={{ margin: 0 }}>{t('blog.title')}</h1>
             {!isLoading && !isError && (
               <p className="muted" style={{ margin: 'var(--ws-space-1) 0 0' }}>
                 {sorted.length} {sorted.length === 1 ? 'publicación' : 'publicaciones'}
@@ -105,14 +107,14 @@ export function BlogListPage() {
             )}
           </div>
           <Link to="/" className="btn ghost">
-            <i className="bi bi-arrow-left" /> Volver al inicio
+            <i className="bi bi-arrow-left" /> {t('blog.backHome')}
           </Link>
         </div>
 
-        {isLoading && <p className="muted">Cargando publicaciones…</p>}
-        {isError && <p className="muted">No se pudieron cargar las publicaciones.</p>}
+        {isLoading && <p className="muted">{t('blog.loading')}</p>}
+        {isError && <p className="muted">{t('blog.loadError')}</p>}
         {!isLoading && !isError && sorted.length === 0 && (
-          <p className="muted">Todavía no hay publicaciones.</p>
+          <p className="muted">{t('blog.empty')}</p>
         )}
 
         <div
@@ -191,7 +193,7 @@ export function BlogListPage() {
                   <div style={{ marginTop: 'auto', paddingTop: 'var(--ws-space-2)' }}>
                     <button className="btn ghost" onClick={() => setExpandedId(expanded ? null : p.id)}>
                       <i className={`bi bi-${expanded ? 'chevron-up' : 'chevron-down'}`} />{' '}
-                      {expanded ? 'Leer menos' : 'Leer más'}
+                      {expanded ? t('blog.readLess') : t('blog.readMore')}
                     </button>
                   </div>
 
@@ -213,13 +215,13 @@ export function BlogListPage() {
             style={{ justifyContent: 'center', gap: 'var(--ws-space-3)', marginTop: 'var(--ws-space-5)', flexWrap: 'wrap' }}
           >
             <button className="btn ghost" onClick={() => goTo(currentPage - 1)} disabled={currentPage === 0}>
-              <i className="bi bi-chevron-left" /> Anterior
+              <i className="bi bi-chevron-left" /> {t('blog.previous')}
             </button>
             <span className="muted">
-              Página {currentPage + 1} de {totalPages}
+              {t('blog.pageOf', { current: currentPage + 1, total: totalPages })}
             </span>
             <button className="btn ghost" onClick={() => goTo(currentPage + 1)} disabled={currentPage >= totalPages - 1}>
-              Siguiente <i className="bi bi-chevron-right" />
+              {t('blog.next')} <i className="bi bi-chevron-right" />
             </button>
           </div>
         )}

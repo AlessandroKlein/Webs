@@ -1,4 +1,5 @@
 import { cn } from './cn';
+import { useTranslation } from 'react-i18next';
 
 export interface CheckoutStep {
   id: string;
@@ -19,8 +20,9 @@ export function StepIndicator({
   current: number;
   className?: string;
 }) {
+  const { t } = useTranslation();
   return (
-    <ol className={cn('flex items-center gap-2', className)} aria-label="Progreso del pago">
+    <ol className={cn('flex items-center gap-2', className)} aria-label={t('checkout.progressAria')}>
       {steps.map((step, index) => {
         const state = index < current ? 'done' : index === current ? 'current' : 'todo';
         return (

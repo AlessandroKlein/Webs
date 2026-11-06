@@ -65,15 +65,14 @@ export function TemplatesPage() {
     <div className="stack">
       <PageHeader title={t('nav.templates')} />
       <p className="muted">
-        Una plantilla monta un sitio completo: instala y activa plugins, aplica ajustes y crea el
-        menú. Ideal para arrancar un gimnasio, un mercado, un blog…
+        {t('templates.intro')}
       </p>
 
       <Input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Buscar plantillas…"
-        aria-label="Buscar plantillas"
+        placeholder={t('templates.searchPlaceholder')}
+        aria-label={t('templates.searchAria')}
         style={{ maxWidth: 360 }}
       />
 
@@ -108,13 +107,13 @@ export function TemplatesPage() {
             <div style={{ marginTop: 'auto', paddingTop: 'var(--ws-space-3)' }}>
               {canWrite && (
                 <Button onClick={() => apply.mutate(tpl.id)} disabled={apply.isPending}>
-                  {applied === tpl.id ? 'Aplicada ✓' : 'Aplicar plantilla'}
+                  {applied === tpl.id ? t('templates.applied') : t('templates.apply')}
                 </Button>
               )}
             </div>
           </Card>
         ))}
-        {filtered.length === 0 && <p className="muted">No se encontraron plantillas.</p>}
+        {filtered.length === 0 && <p className="muted">{t('templates.noTemplates')}</p>}
       </div>
     </div>
   );

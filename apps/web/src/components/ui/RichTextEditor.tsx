@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -16,6 +17,7 @@ export function RichTextEditor({
   value: string;
   onChange: (html: string) => void;
 }) {
+  const { t } = useTranslation();
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -58,50 +60,50 @@ export function RichTextEditor({
   return (
     <div className="wysiwyg">
       <div className="wysiwyg-toolbar">
-        <button type="button" className={btnClass('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="Negrita">
+        <button type="button" className={btnClass('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title={t('editor.bold')}>
           <i className="bi bi-type-bold" />
         </button>
-        <button type="button" className={btnClass('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} title="Cursiva">
+        <button type="button" className={btnClass('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} title={t('editor.italic')}>
           <i className="bi bi-type-italic" />
         </button>
-        <button type="button" className={btnClass('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Subrayado">
+        <button type="button" className={btnClass('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title={t('editor.underline')}>
           <i className="bi bi-type-underline" />
         </button>
-        <button type="button" className={btnClass('strike')} onClick={() => editor.chain().focus().toggleStrike().run()} title="Tachado">
+        <button type="button" className={btnClass('strike')} onClick={() => editor.chain().focus().toggleStrike().run()} title={t('editor.strike')}>
           <i className="bi bi-type-strikethrough" />
         </button>
         <span className="wysiwyg-sep" />
-        <button type="button" className={btnClass('heading', { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title="Título">
+        <button type="button" className={btnClass('heading', { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} title={t('editor.heading')}>
           H2
         </button>
-        <button type="button" className={btnClass('heading', { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title="Subtítulo">
+        <button type="button" className={btnClass('heading', { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} title={t('editor.subtitle')}>
           H3
         </button>
         <span className="wysiwyg-sep" />
-        <button type="button" className={btnClass('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Lista">
+        <button type="button" className={btnClass('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} title={t('editor.bulletList')}>
           <i className="bi bi-list-ul" />
         </button>
-        <button type="button" className={btnClass('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Lista numerada">
+        <button type="button" className={btnClass('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} title={t('editor.orderedList')}>
           <i className="bi bi-list-ol" />
         </button>
-        <button type="button" className={btnClass('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()} title="Cita">
+        <button type="button" className={btnClass('blockquote')} onClick={() => editor.chain().focus().toggleBlockquote().run()} title={t('editor.blockquote')}>
           <i className="bi bi-quote" />
         </button>
         <span className="wysiwyg-sep" />
-        <button type="button" className={btnClass('link')} onClick={setLink} title="Enlace">
+        <button type="button" className={btnClass('link')} onClick={setLink} title={t('editor.link')}>
           <i className="bi bi-link-45deg" />
         </button>
-        <button type="button" className="wysiwyg-btn" onClick={addImage} title="Imagen">
+        <button type="button" className="wysiwyg-btn" onClick={addImage} title={t('editor.image')}>
           <i className="bi bi-image" />
         </button>
         <span className="wysiwyg-sep" />
-        <button type="button" className="wysiwyg-btn" onClick={() => editor.chain().focus().undo().run()} title="Deshacer">
+        <button type="button" className="wysiwyg-btn" onClick={() => editor.chain().focus().undo().run()} title={t('editor.undo')}>
           <i className="bi bi-arrow-counterclockwise" />
         </button>
-        <button type="button" className="wysiwyg-btn" onClick={() => editor.chain().focus().redo().run()} title="Rehacer">
+        <button type="button" className="wysiwyg-btn" onClick={() => editor.chain().focus().redo().run()} title={t('editor.redo')}>
           <i className="bi bi-arrow-clockwise" />
         </button>
-        <button type="button" className="wysiwyg-btn" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} title="Limpiar formato">
+        <button type="button" className="wysiwyg-btn" onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()} title={t('editor.clearFormat')}>
           <i className="bi bi-eraser" />
         </button>
       </div>

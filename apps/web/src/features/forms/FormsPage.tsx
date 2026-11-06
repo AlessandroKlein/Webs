@@ -246,16 +246,16 @@ export function FormsPage() {
                       }}
                     >
                       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                        <strong>Campo {i + 1}</strong>
+                        <strong>{t('admin.forms.field')} {i + 1}</strong>
                         <Button variant="ghost" type="button" onClick={() => removeField(i)}>
-                          Eliminar
+                          {t('common.delete')}
                         </Button>
                       </div>
                       <div className="row" style={{ alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                        <TextField label="Etiqueta" value={f.label} onChange={(e) => updateField(i, { label: e.target.value })} />
-                        <TextField label="Clave" value={f.key} onChange={(e) => updateField(i, { key: e.target.value })} />
+                        <TextField label={t('admin.forms.label')} value={f.label} onChange={(e) => updateField(i, { label: e.target.value })} />
+                        <TextField label={t('admin.forms.key')} value={f.key} onChange={(e) => updateField(i, { key: e.target.value })} />
                         <div className="field">
-                          <label>Tipo</label>
+                          <label>{t('admin.forms.type')}</label>
                           <select
                             className="input"
                             style={{ width: 'auto' }}
@@ -276,13 +276,13 @@ export function FormsPage() {
                               checked={f.required}
                               onChange={(e) => updateField(i, { required: e.target.checked })}
                             />
-                            Requerido
+                            {t('admin.forms.required')}
                           </label>
                         </div>
                       </div>
                       {f.type === 'select' && (
                         <div className="field">
-                          <label>Opciones (separadas por coma)</label>
+                          <label>{t('admin.forms.optionsHint')}</label>
                           <input
                             className="input"
                             value={f.optionsText}
@@ -295,14 +295,14 @@ export function FormsPage() {
                   ))}
                   {fields.length === 0 && (
                     <p className="muted" style={{ margin: 0 }}>
-                      Sin campos todavía. Agregá campos para construir el formulario.
+                      {t('admin.forms.noFields')}
                     </p>
                   )}
                 </div>
 
                 <div className="row">
                   <Button variant="secondary" type="button" onClick={addField}>
-                    Agregar campo
+                    {t('admin.forms.addField')}
                   </Button>
                 </div>
 

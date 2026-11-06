@@ -565,7 +565,7 @@ function RoutinesSection() {
       }),
     onSuccess: () => {
       resetForm();
-      setFormMsg({ ok: true, text: 'Rutina creada.' });
+      setFormMsg({ ok: true, text: t('staff.routineCreated') });
       void qc.invalidateQueries({ queryKey: ['staff-routines'] });
     },
   });
@@ -579,7 +579,7 @@ function RoutinesSection() {
       }),
     onSuccess: () => {
       resetForm();
-      setFormMsg({ ok: true, text: 'Rutina guardada.' });
+      setFormMsg({ ok: true, text: t('staff.routineSaved') });
       void qc.invalidateQueries({ queryKey: ['staff-routines'] });
       void qc.invalidateQueries({ queryKey: ['staff-routines-member'] });
     },
@@ -616,11 +616,11 @@ function RoutinesSection() {
         >
           <div>
             <label style={fieldLabelStyle}>{t('staff.routineName')}</label>
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej. Tren superior" style={{ width: '100%' }} />
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('staff.routineNamePlaceholder')} style={{ width: '100%' }} />
           </div>
           <div>
             <label style={fieldLabelStyle}>{t('staff.descriptionOptional')}</label>
-            <input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Notas para la rutina" style={{ width: '100%' }} />
+            <input className="input" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('staff.routineDescriptionPlaceholder')} style={{ width: '100%' }} />
           </div>
           <div>
             <label style={fieldLabelStyle}>{t('staff.exercisesOnePerLine')}</label>
@@ -640,7 +640,7 @@ function RoutinesSection() {
             <Button type="submit" disabled={saving}>
               {editingId ? (update.isPending ? t('staff.saving') : t('staff.saveChanges')) : (create.isPending ? t('staff.creating') : t('staff.createRoutine'))}
             </Button>
-            {editingId && <Button variant="ghost" type="button" onClick={resetForm}>Cancelar</Button>}
+            {editingId && <Button variant="ghost" type="button" onClick={resetForm}>{t('common.cancel')}</Button>}
             {formMsg && <span style={{ color: formMsg.ok ? 'var(--ws-success)' : 'var(--ws-danger)' }}>{formMsg.text}</span>}
           </div>
           {saveError && <p style={{ color: 'var(--ws-danger)', margin: 0 }}>{saveError.message}</p>}
@@ -687,7 +687,7 @@ function RoutinesSection() {
                 <Button disabled={assign.isPending || !assignMemberId.trim()} onClick={() => assign.mutate(r.id)}>
                   {assign.isPending ? t('staff.assigning') : t('staff.assign')}
                 </Button>
-                <Button variant="ghost" onClick={() => setAssigningId(null)}>Cancelar</Button>
+                <Button variant="ghost" onClick={() => setAssigningId(null)}>{t('common.cancel')}</Button>
               </div>
             )}
           </div>
@@ -812,7 +812,7 @@ function BookingsSection() {
             </div>
             <div style={{ flex: 1, minWidth: 200 }}>
               <label style={fieldLabelStyle}>{t('staff.nameClient')}</label>
-              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre de la reserva" />
+              <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('staff.bookingNamePlaceholder')} />
             </div>
             <div style={{ minWidth: 200 }}>
               <label style={fieldLabelStyle}>{t('staff.dateTime')}</label>

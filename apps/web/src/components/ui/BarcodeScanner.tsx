@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { cn } from './cn';
 import { Button } from './Button';
 import { Input } from './Input';
+import { useTranslation } from 'react-i18next';
 
 export type BarcodeStatus = 'idle' | 'listening' | 'processing' | 'error';
 
@@ -52,6 +53,7 @@ export function BarcodeScanner({
   disabled = false,
   className,
 }: BarcodeScannerProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState('');
   const [status, setStatus] = useState<BarcodeStatus>('idle');
   const [message, setMessage] = useState('');
@@ -76,7 +78,7 @@ export function BarcodeScanner({
     const code = normalizeBarcode(raw);
     if (!code) {
       setStatus('error');
-      setMessage('El código está vacío. Escaneá o escribí un código válido.');
+      setMessage(t('scanner.emptyError'));
       return;
     }
     setStatus('processing');
@@ -110,10 +112,10 @@ export function BarcodeScanner({
     status === 'error'
       ? message
       : status === 'processing'
-        ? 'Procesando código…'
+        ? t('scanner.processing')
         : status === 'listening'
-          ? 'Lector externo activo…'
-          : 'Lector externo listo.';
+          ? t('scanner.listening')
+          : t('scanner.ready');
 
   return (
     <form onSubmit={handleSubmit} className={cn('flex flex-col gap-2', className)}>
@@ -138,12 +140,12 @@ export function BarcodeScanner({
           />
         </div>
         {allowCamera && onRequestCamera && (
-          <Button type="button" variant="secondary" onClick={onRequestCamera} aria-label="Escanear con cámara">
+          <Button type="button" variant="secondary" onClick={onRequestCamera} aria-label={t('scanner.cameraAria')}>
             <i className="bi bi-camera" aria-hidden="true" />
           </Button>
         )}
         <Button type="submit" disabled={disabled || !value.trim()}>
-          Buscar
+          {t('common.search')}
         </Button>
       </div>
       <p

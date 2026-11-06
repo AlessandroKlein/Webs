@@ -208,13 +208,13 @@ export function AccountPage() {
       : tab === 'profile'
         ? t('admin.account.profile')
         : tab === 'medical'
-          ? 'Datos médicos'
+          ? t('admin.account.medical')
           : tab === 'notifications'
-          ? 'Notificaciones'
+          ? t('admin.account.notifications')
           : tab === 'security'
             ? t('admin.account.security')
           : tab === 'connections'
-            ? 'Conexiones'
+            ? t('admin.account.connections')
             : tab === 'password'
               ? t('admin.account.changePassword')
               : tab === 'invoices'
@@ -308,17 +308,17 @@ export function AccountPage() {
               <form className="stack" onSubmit={onProfile}>
                 <div className="row" style={{ alignItems: 'center', gap: 'var(--ws-space-4)' }}>
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="Avatar" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--ws-border)' }} />
+                    <img src={avatarUrl} alt={t('admin.account.avatar')} style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--ws-border)' }} />
                   ) : (
                     <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--ws-primary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.7rem', fontWeight: 700 }}>
                       {(data?.user?.displayName ?? data?.user?.email ?? '?').charAt(0).toUpperCase()}
                     </div>
                   )}
                   <div className="stack" style={{ gap: 'var(--ws-space-2)', flex: 1, minWidth: 220 }}>
-                    <label className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>Avatar</label>
+                    <label className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>{t('admin.account.avatar')}</label>
                     <div className="row" style={{ gap: 'var(--ws-space-2)', alignItems: 'center', flexWrap: 'wrap' }}>
                       <label className="btn ghost" style={{ cursor: 'pointer', margin: 0 }}>
-                        {avatarUploading ? 'Subiendo…' : 'Subir imagen'}
+                        {avatarUploading ? t('admin.account.uploading') : t('admin.account.uploadImage')}
                         <input
                           type="file"
                           accept="image/*"
@@ -342,12 +342,12 @@ export function AccountPage() {
                 </div>
 
                 <div className="grid-2" style={{ gap: 'var(--ws-space-3)' }}>
-                  <TextField label="Nombre" name="displayName" defaultValue={data?.user?.displayName ?? ''} placeholder="Nombre visible" />
-                  <TextField label="Nombre (pila)" name="firstName" defaultValue={data?.user?.firstName ?? ''} placeholder="Juan" />
-                  <TextField label="Apellido" name="lastName" defaultValue={data?.user?.lastName ?? ''} placeholder="Pérez" />
-                  <TextField label="Nombre de usuario" name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
+                  <TextField label={t('admin.account.displayName')} name="displayName" defaultValue={data?.user?.displayName ?? ''} placeholder="Nombre visible" />
+                  <TextField label={t('admin.account.firstName')} name="firstName" defaultValue={data?.user?.firstName ?? ''} placeholder="Juan" />
+                  <TextField label={t('admin.account.lastName')} name="lastName" defaultValue={data?.user?.lastName ?? ''} placeholder="Pérez" />
+                  <TextField label={t('admin.account.username')} name="username" defaultValue={data?.user?.username ?? ''} placeholder="usuario" />
                   <div className="field">
-                    <label>Fecha de nacimiento</label>
+                    <label>{t('admin.account.birthDate')}</label>
                     <input className="input" type="date" name="birthDate" defaultValue={data?.user?.birthDate ? data.user.birthDate.slice(0, 10) : ''} />
                   </div>
                   <div className="field">
@@ -374,7 +374,7 @@ export function AccountPage() {
 
                 {customFields.length > 0 && (
                   <div style={{ borderTop: '1px solid var(--ws-border)', paddingTop: 'var(--ws-space-3)' }}>
-                    <h4 style={{ marginTop: 0 }}>Datos adicionales</h4>
+                    <h4 style={{ marginTop: 0 }}>{t('admin.account.additionalData')}</h4>
                     <div className="grid-2" style={{ gap: 'var(--ws-space-3)' }}>
                       {customFields.map((f) => (
                         <div className="field" key={f.key}>
@@ -495,6 +495,7 @@ function readMedical(user: MeResponse['user']): MedicalData {
 
 function MedicalCard({ user }: { user: MeResponse['user'] }) {
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const [form, setForm] = useState<MedicalData>(() => readMedical(user));
   const [saved, setSaved] = useState(false);
 
@@ -519,10 +520,9 @@ function MedicalCard({ user }: { user: MeResponse['user'] }) {
 
   return (
     <Card>
-      <h3>Datos médicos</h3>
+      <h3>{t('admin.account.medical')}</h3>
       <p className="muted">
-        Información médica para emergencias en el gimnasio. Solo vos y el personal
-        autorizado pueden verla.
+        {t('admin.account.medicalHint')}
       </p>
       <form
         className="stack"
@@ -533,7 +533,7 @@ function MedicalCard({ user }: { user: MeResponse['user'] }) {
       >
         <div className="grid-2" style={{ gap: 'var(--ws-space-3)' }}>
           <div className="field">
-            <label>Grupo sanguíneo</label>
+            <label>{t('admin.account.bloodType')}</label>
             <select
               className="input"
               value={form.bloodType ?? ''}
@@ -547,26 +547,26 @@ function MedicalCard({ user }: { user: MeResponse['user'] }) {
               ))}
             </select>
           </div>
-          <TextField label="Contacto de emergencia (nombre)" value={form.emergencyName} onChange={onField('emergencyName')} />
-          <TextField label="Contacto de emergencia (teléfono)" value={form.emergencyPhone} onChange={onField('emergencyPhone')} />
-          <TextField label="Medicación" value={form.medication} onChange={onField('medication')} />
+          <TextField label={t('admin.account.emergencyName')} value={form.emergencyName} onChange={onField('emergencyName')} />
+          <TextField label={t('admin.account.emergencyPhone')} value={form.emergencyPhone} onChange={onField('emergencyPhone')} />
+          <TextField label={t('admin.account.medication')} value={form.medication} onChange={onField('medication')} />
         </div>
-        <TextField label="Alergias" value={form.allergies} onChange={onField('allergies')} />
-        <TextField label="Condiciones médicas" value={form.conditions} onChange={onField('conditions')} />
+        <TextField label={t('admin.account.allergies')} value={form.allergies} onChange={onField('allergies')} />
+        <TextField label={t('admin.account.conditions')} value={form.conditions} onChange={onField('conditions')} />
 
         {save.error && (
           <p style={{ color: 'var(--ws-danger)' }}>
-            {save.error instanceof Error ? save.error.message : 'Error al guardar'}
+            {save.error instanceof Error ? save.error.message : t('admin.account.saveError')}
           </p>
         )}
         {saved && (
           <p style={{ color: 'var(--ws-success, #16a34a)', margin: 0 }}>
-            <i className="bi bi-check-circle" /> Datos médicos guardados.
+            <i className="bi bi-check-circle" /> {t('admin.account.medicalSaved')}
           </p>
         )}
         <div className="row" style={{ justifyContent: 'flex-end' }}>
           <Button type="submit" disabled={save.isPending}>
-            {save.isPending ? 'Guardando…' : 'Guardar'}
+            {save.isPending ? t('admin.account.saving') : t('admin.account.save')}
           </Button>
         </div>
       </form>
@@ -664,7 +664,7 @@ function SummaryView({
             <i className="bi bi-key" /> {t('admin.account.changePassword')}
           </button>
           <Link to="/store" className="btn secondary">
-            <i className="bi bi-bag" /> Tienda
+            <i className="bi bi-bag" /> {t('admin.account.store')}
           </Link>
           {hasAdmin && (
             <Link to="/admin" className="btn secondary">
@@ -675,21 +675,21 @@ function SummaryView({
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Historial de compras</h3>
+        <h3 style={{ marginTop: 0 }}>{t('admin.account.purchaseHistory')}</h3>
         {ordersLoading ? (
-          <p className="muted">Cargando…</p>
+          <p className="muted">{t('admin.account.loading')}</p>
         ) : ordersError ? (
-          <p className="muted">No hay datos de compras disponibles.</p>
+          <p className="muted">{t('admin.account.noOrdersData')}</p>
         ) : (orders ?? []).length === 0 ? (
-          <p className="muted">Todavía no tenés pedidos.</p>
+          <p className="muted">{t('admin.account.noOrders')}</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Estado</th>
-                <th>Total</th>
-                <th>Ítems</th>
+                <th>{t('admin.account.date')}</th>
+                <th>{t('admin.account.status')}</th>
+                <th>{t('admin.account.total')}</th>
+                <th>{t('admin.account.items')}</th>
               </tr>
             </thead>
             <tbody>
@@ -717,21 +717,21 @@ function SummaryView({
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Mis reservas</h3>
+        <h3 style={{ marginTop: 0 }}>{t('admin.account.myBookings')}</h3>
         {bookingsLoading ? (
-          <p className="muted">Cargando…</p>
+          <p className="muted">{t('admin.account.loading')}</p>
         ) : bookingsError ? (
-          <p className="muted">No hay datos de reservas disponibles.</p>
+          <p className="muted">{t('admin.account.noBookingsData')}</p>
         ) : (bookings ?? []).length === 0 ? (
-          <p className="muted">No tenés reservas.</p>
+          <p className="muted">{t('admin.account.noBookings')}</p>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Nombre</th>
-                <th>Servicio</th>
-                <th>Estado</th>
+                <th>{t('admin.account.date')}</th>
+                <th>{t('admin.account.name')}</th>
+                <th>{t('admin.account.service')}</th>
+                <th>{t('admin.account.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -751,7 +751,7 @@ function SummaryView({
                           : { background: 'var(--ws-success)', color: '#fff' }
                       }
                     >
-                      {b.status === 'cancelled' ? 'Cancelada' : 'Confirmada'}
+                      {b.status === 'cancelled' ? t('admin.account.cancelled') : t('admin.account.confirmed')}
                     </span>
                   </td>
                 </tr>
@@ -762,13 +762,13 @@ function SummaryView({
       </Card>
 
       <Card>
-        <h3 style={{ marginTop: 0 }}>Mis cursos</h3>
+        <h3 style={{ marginTop: 0 }}>{t('admin.account.myCourses')}</h3>
         {coursesLoading ? (
-          <p className="muted">Cargando…</p>
+          <p className="muted">{t('admin.account.loading')}</p>
         ) : coursesError ? (
-          <p className="muted">No hay datos de cursos disponibles.</p>
+          <p className="muted">{t('admin.account.noCoursesData')}</p>
         ) : (courses ?? []).length === 0 ? (
-          <p className="muted">Todavía no hay cursos.</p>
+          <p className="muted">{t('admin.account.noCourses')}</p>
         ) : (
           <div className="stack">
             {(courses ?? []).map((c) => (
@@ -786,7 +786,7 @@ function SummaryView({
                   className="muted"
                   style={{ fontSize: 'var(--ws-font-size-sm)', display: 'inline-block', marginTop: 'var(--ws-space-2)' }}
                 >
-                  {(Array.isArray(c.lessons) ? c.lessons : []).length} lecciones
+                  {t('admin.account.lessonsCount', { count: (Array.isArray(c.lessons) ? c.lessons : []).length })}
                 </span>
               </div>
             ))}
@@ -844,10 +844,10 @@ const NOTIFICATION_CHANNELS: { key: NotificationChannel; label: string; icon: st
 ];
 
 const NOTIFICATION_CATEGORIES: { key: NotificationCategory; label: string }[] = [
-  { key: 'pagos', label: 'Pagos' },
-  { key: 'mensajes', label: 'Mensajes' },
-  { key: 'social', label: 'Social' },
-  { key: 'recordatorios', label: 'Recordatorios' },
+  { key: 'pagos', label: 'admin.account.notifPayments' },
+  { key: 'mensajes', label: 'admin.account.notifMessages' },
+  { key: 'social', label: 'admin.account.notifSocial' },
+  { key: 'recordatorios', label: 'admin.account.notifReminders' },
 ];
 
 function loadNotificationPrefs(profile: Record<string, unknown> | null | undefined): NotificationPrefs {
@@ -868,6 +868,7 @@ function loadNotificationPrefs(profile: Record<string, unknown> | null | undefin
 
 function NotificationPrefsCard({ user }: { user: MeResponse['user'] }) {
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const [prefs, setPrefs] = useState<NotificationPrefs>(() => loadNotificationPrefs(user?.profile));
   const [saved, setSaved] = useState(false);
 
@@ -897,14 +898,14 @@ function NotificationPrefsCard({ user }: { user: MeResponse['user'] }) {
 
   return (
     <Card>
-      <h3>Notificaciones</h3>
-      <p className="muted">Elegí por qué canales querés recibir cada tipo de notificación.</p>
+      <h3>{t('admin.account.notifications')}</h3>
+      <p className="muted">{t('admin.account.notificationsHint')}</p>
 
       <div style={{ overflowX: 'auto' }}>
         <table className="table" style={{ minWidth: 520 }}>
           <thead>
             <tr>
-              <th>Categoría</th>
+              <th>{t('admin.account.category')}</th>
               {NOTIFICATION_CHANNELS.map((ch) => (
                 <th key={ch.key} style={{ textAlign: 'center' }}>
                   <i className={`bi ${ch.icon}`} /> {ch.label}
@@ -915,14 +916,14 @@ function NotificationPrefsCard({ user }: { user: MeResponse['user'] }) {
           <tbody>
             {NOTIFICATION_CATEGORIES.map((cat) => (
               <tr key={cat.key}>
-                <td>{cat.label}</td>
+                <td>{t(cat.label)}</td>
                 {NOTIFICATION_CHANNELS.map((ch) => (
                   <td key={ch.key} style={{ textAlign: 'center' }}>
                     <input
                       type="checkbox"
                       checked={prefs[ch.key][cat.key]}
                       onChange={() => toggle(ch.key, cat.key)}
-                      aria-label={`${ch.label} — ${cat.label}`}
+                      aria-label={`${ch.label} — ${t(cat.label)}`}
                       style={{ width: 18, height: 18, cursor: 'pointer' }}
                     />
                   </td>
@@ -935,17 +936,17 @@ function NotificationPrefsCard({ user }: { user: MeResponse['user'] }) {
 
       {save.error && (
         <p style={{ color: 'var(--ws-danger)' }}>
-          {save.error instanceof Error ? save.error.message : 'Error al guardar'}
+          {save.error instanceof Error ? save.error.message : t('admin.account.saveError')}
         </p>
       )}
       {saved && (
         <p style={{ color: 'var(--ws-success, #16a34a)', margin: 0 }}>
-          <i className="bi bi-check-circle" /> Preferencias guardadas.
+          <i className="bi bi-check-circle" /> {t('admin.account.prefsSaved')}
         </p>
       )}
       <div className="row" style={{ justifyContent: 'flex-end' }}>
         <Button onClick={() => save.mutate()} disabled={save.isPending}>
-          {save.isPending ? 'Guardando…' : 'Guardar'}
+          {save.isPending ? t('admin.account.saving') : t('admin.account.save')}
         </Button>
       </div>
     </Card>
@@ -1251,7 +1252,7 @@ function PasskeysCard() {
         {(data ?? []).length === 0 && <p className="muted">{t('admin.account.noPasskeys')}</p>}
       </div>
 
-      <Button onClick={register} disabled={registering} style={{ marginTop: 'var(--ws-space-3)' }}>
+      <Button onClick={register} disabled={registering} className="mt-3">
         {registering ? t('admin.account.registering') : t('admin.account.registerPasskey')}
       </Button>
 
@@ -1292,6 +1293,7 @@ interface SocialVerifyResult {
  * `POST /api/v1/plugins/social-login/verify`.
  */
 function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
+  const { t } = useTranslation();
   const { data: providers } = useQuery({
     queryKey: ['social-providers'],
     queryFn: () => api.get<SocialProvider[]>('/api/v1/plugins/social-login/providers'),
@@ -1317,7 +1319,7 @@ function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
     const pid = providerId.trim();
     const name = provider.name;
     if (!pid) {
-      setError('El providerId es obligatorio');
+      setError(t('admin.account.providerIdRequired'));
       setStep(null);
       setProvider(null);
       return;
@@ -1336,14 +1338,14 @@ function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
       if (res.ok) {
         setResult(
           res.linked
-            ? `Cuenta de ${name} vinculada correctamente.`
-            : `Cuenta de ${name} registrada (aún sin vínculo de usuario).`,
+            ? t('admin.account.linkedCorrectly', { name })
+            : t('admin.account.registeredNoLink', { name }),
         );
       } else {
-        setError(res.error ?? 'No se pudo verificar la cuenta social');
+        setError(res.error ?? t('admin.account.socialVerifyError'));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al conectar la cuenta social');
+      setError(err instanceof Error ? err.message : t('admin.account.socialConnectError'));
     } finally {
       setLoading(false);
       setStep(null);
@@ -1353,18 +1355,16 @@ function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
 
   return (
     <Card>
-      <h3>Conexiones</h3>
+      <h3>{t('admin.account.connections')}</h3>
       <p className="muted">
-        Vinculá tu cuenta con proveedores de login social. El flujo OAuth real
-        (redirect → callback → exchange) está pendiente; por ahora se simula con
-        un providerId y un email.
+        {t('admin.account.connectionsHint')}
       </p>
 
       {error && <p style={{ color: 'var(--ws-danger)' }}>{error}</p>}
       {result && <p style={{ color: 'var(--ws-success, #16a34a)' }}>{result}</p>}
 
       {(providers ?? []).length === 0 ? (
-        <p className="muted">No hay proveedores de login social habilitados.</p>
+        <p className="muted">{t('admin.account.noSocialProviders')}</p>
       ) : (
         <div className="stack">
           {(providers ?? []).map((p) => (
@@ -1375,7 +1375,7 @@ function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
             >
               <span>{p.name}</span>
               <Button onClick={() => openConnect(p)} disabled={loading}>
-                Conectar
+                {t('admin.account.connect')}
               </Button>
             </div>
           ))}
@@ -1385,9 +1385,9 @@ function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
       {step === 'providerId' && provider && (
         <PromptDialog
           open
-          title={`Conectar con ${provider.name}`}
-          label="ID del proveedor (providerId)"
-          confirmLabel="Continuar"
+          title={t('admin.account.connectWith', { name: provider.name })}
+          label={t('admin.account.providerId')}
+          confirmLabel={t('admin.account.continue')}
           onConfirm={(value) => {
             setProviderId(value.trim());
             setStep('email');
@@ -1401,10 +1401,10 @@ function ConnectionsCard({ userEmail }: { userEmail: string | null }) {
       {step === 'email' && provider && (
         <PromptDialog
           open
-          title={`${provider.name} — email`}
-          label="Email (opcional)"
+          title={t('admin.account.providerEmail', { name: provider.name })}
+          label={t('admin.account.emailOptional')}
           defaultValue={userEmail ?? ''}
-          confirmLabel="Verificar"
+          confirmLabel={t('admin.account.verify')}
           onConfirm={(value) => void verify(value.trim())}
           onCancel={() => {
             setProvider(null);
