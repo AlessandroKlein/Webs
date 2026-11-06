@@ -21,8 +21,18 @@ const URL_ATTRS = new Set(['href', 'src', 'srcset', 'poster', 'action', 'formact
  */
 const DANGEROUS_SCHEME = /^(?:javascript|vbscript|data):/;
 
+/** Quita espacios y caracteres de control: `java\nscript:` es un esquema válido. */
+function stripInvisible(value: string): string {
+  let out = '';
+  for (const ch of value) {
+    const code = ch.charCodeAt(0);
+    if (code > 0x20 && !(code >= 0x7f && code <= 0x9f)) out += ch;
+  }
+  return out;
+}
+
 function isDangerousUrl(value: string): boolean {
-  const normalized = value.replace(/[\u0000-\u0020\u007f-\u009f]/g, '').toLowerCase();
+  const normalized = stripInvisible(value).toLowerCase();
   return DANGEROUS_SCHEME.test(normalized);
 }
 
