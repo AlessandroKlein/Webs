@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
+import { getDeviceFingerprint } from '../../lib/device-fingerprint';
 import { useAuthStore, type Address } from '../../lib/auth-store';
 import { Button } from '../../components/ui/Button';
 import { TextField } from '../../components/ui/TextField';
@@ -178,6 +179,18 @@ export function CheckoutPage() {
   const [profileError, setProfileError] = useState<string | null>(null);
   const needsProfile = !!user && (!user.phone || !user.address);
 
+  // Fingerprint de máquina para compras de licencia.
+  const [fingerprint, setFingerprint] = useState<string>(() => localStorage.getItem('webs.fingerprint') ?? '');
+  const [detectingFingerprint, setDetectingFingerprint] = useState(false);
+  const detectFingerprint = async () => {
+    setDetectingFingerprint(true);
+    try {
+      setFingerprint(await getDeviceFingerprint());
+    } finally {
+      setDetectingFingerprint(false);
+    }
+  };
+
   // Proveedores online (excluye el cobro físico 'pos').
   const { data: providers } = useQuery({
     queryKey: ['checkout-providers'],
@@ -208,6 +221,11 @@ export function CheckoutPage() {
   const subtotal = kind === 'store' ? (storeIntent?.subtotal ?? 0) : plan?.price ?? 0;
   const shippingCost = kind === 'store' ? (storeIntent?.shippingCost ?? 0) : 0;
   const total = subtotal + shippingCost;
+
+  // Licencia: si alguna línea es de categoría 'licencia', pedimos fingerprint antes de pagar.
+  const licenseLine = (storeIntent?.lines ?? []).find((l) => (l.category ?? '').toLowerCase().startsWith('licencia'));
+  const isLicense = kind === 'store' && !!licenseLine;
+  const licenseProductId = licenseLine?.id;
 
   const updateBilling = (field: keyof BillingData, value: string) =>
     setBilling((prev) => ({ ...prev, [field]: value }));
@@ -247,6 +265,10 @@ export function CheckoutPage() {
       setError(t('checkout.methodRequired'));
       return;
     }
+    if (isLicense && !fingerprint.trim()) {
+      setError(t('checkout.fingerprintRequired'));
+      return;
+    }
     setPhase('submitting');
     setError(null);
 
@@ -273,7 +295,9 @@ export function CheckoutPage() {
           quantity: l.quantity,
           unitPrice: l.price,
         }));
-        const metadata = { kind: 'store', orderId: order.id, customer };
+        const metadata = isLicense
+          ? { kind: 'license', fingerprint: fingerprint.trim(), productId: licenseProductId, orderId: order.id, customer }
+          : { kind: 'store', orderId: order.id, customer };
 
         if (method.type === 'physical') {
           const res = await api.post<CheckoutResult>(`${PAY_BASE}/pos`, {
@@ -545,6 +569,32 @@ export function CheckoutPage() {
             </div>
           </section>
 
+          {/* Licencia: fingerprint de máquina */}
+          {isLicense && (
+            <section style={cardStyle} aria-labelledby="license-heading">
+              <h2 id="license-heading" style={{ margin: '0 0 var(--ws-space-3)', display: 'flex', alignItems: 'center', gap: 'var(--ws-space-2)' }}>
+                <i className="bi bi-fingerprint" aria-hidden="true" /> {t('checkout.licenseFingerprint')}
+              </h2>
+              <p className="muted" style={{ margin: '0 0 var(--ws-space-3)', fontSize: 'var(--ws-font-size-sm)' }}>
+                {t('checkout.licenseFingerprintHint')}
+              </p>
+              <div style={{ display: 'flex', gap: 'var(--ws-space-2)', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 220 }}>
+                  <TextField
+                    label={t('checkout.fingerprint')}
+                    value={fingerprint}
+                    onChange={(e) => setFingerprint(e.target.value)}
+                    placeholder={t('checkout.fingerprintPlaceholder')}
+                    autoComplete="off"
+                  />
+                </div>
+                <Button variant="secondary" onClick={detectFingerprint} loading={detectingFingerprint}>
+                  {detectingFingerprint ? t('checkout.detectingFingerprint') : t('checkout.detectFingerprint')}
+                </Button>
+              </div>
+            </section>
+          )}
+
           {error && (
             <div style={errorStyle} role="alert">
               {error}
@@ -555,7 +605,7 @@ export function CheckoutPage() {
             <Button variant="secondary" onClick={() => navigate(kind === 'store' ? '/store' : '/dashboard')} disabled={phase === 'submitting'}>
               {t('common.back')}
             </Button>
-            <Button className="flex-1" onClick={confirm} disabled={phase === 'submitting' || !method} loading={phase === 'submitting'}>
+            <Button className="flex-1" onClick={confirm} disabled={phase === 'submitting' || !method || (isLicense && !fingerprint.trim())} loading={phase === 'submitting'}>
               {phase === 'submitting'
                 ? t('checkout.processing')
                 : t('checkout.payAmount', { amount: money(total) })}

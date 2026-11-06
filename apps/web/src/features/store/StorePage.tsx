@@ -28,6 +28,7 @@ interface CartLine {
   price: number;
   size: string | null;
   qty: number;
+  category: string | null;
 }
 
 interface ShippingAddress {
@@ -226,7 +227,7 @@ export function StorePage() {
     setCart((prev) => {
       const existing = prev.find((l) => l.key === key);
       if (existing) return prev.map((l) => (l.key === key ? { ...l, qty: l.qty + qty } : l));
-      return [...prev, { key, id: p.id, title: p.title, price: p.price, size, qty }];
+      return [...prev, { key, id: p.id, title: p.title, price: p.price, size, qty, category: p.category }];
     });
     setSelected(null);
     setNotice(t('store.addedToCart'));
@@ -288,7 +289,7 @@ export function StorePage() {
     setNotice(null);
     // Entrega el carrito + envío a la página de checkout unificado.
     useCheckoutStore.getState().setStore({
-      lines: cart.map((l) => ({ id: l.id, title: l.title, price: l.price, quantity: l.qty })),
+      lines: cart.map((l) => ({ id: l.id, title: l.title, price: l.price, quantity: l.qty, category: l.category })),
       subtotal: total,
       shippingAddress: address,
       shippingMethod: selectedShipping,

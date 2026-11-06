@@ -5,6 +5,7 @@ export interface CheckoutLine {
   title: string;
   price: number; // centavos
   quantity: number;
+  category?: string | null;
 }
 
 export interface ShippingAddress {

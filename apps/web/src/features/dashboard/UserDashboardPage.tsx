@@ -13,6 +13,7 @@ import { Spinner } from '../../components/ui/Spinner';
 import { QrCode } from '../../components/ui/QrCode';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { Alert } from '../../components/ui/Alert';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 
 const EC_BASE = '/api/v1/blocks/ecommerce';
 
@@ -88,6 +89,7 @@ interface OrderPayment {
   provider: string;
   transactionId: string | null;
   paidAt: string | null;
+  metadata?: { kind?: string } | null;
 }
 
 interface OrderInvoice {
@@ -161,7 +163,9 @@ type View =
   | 'payments'
   | 'memberships'
   | 'plans'
-  | 'orders';
+  | 'orders'
+  | 'licenses'
+  | 'history';
 
 const SECTIONS: Array<{ key: View; label: string; icon: string }> = [
   { key: 'summary', label: 'dashboard.summary', icon: 'bi-house' },
@@ -173,6 +177,8 @@ const SECTIONS: Array<{ key: View; label: string; icon: string }> = [
   { key: 'memberships', label: 'dashboard.subscriptions', icon: 'bi-award' },
   { key: 'plans', label: 'dashboard.plans', icon: 'bi-gem' },
   { key: 'orders', label: 'dashboard.myPurchases', icon: 'bi-bag' },
+  { key: 'licenses', label: 'dashboard.myLicenses', icon: 'bi-key' },
+  { key: 'history', label: 'dashboard.history', icon: 'bi-clock-history' },
 ];
 
 // ── Utilidades de formato ───────────────────────────────────────────────
@@ -401,7 +407,9 @@ export function UserDashboardPage() {
           {view === 'payments' && <PaymentsHistorySection />}
           {view === 'memberships' && <MembershipsSection user={user} />}
           {view === 'plans' && <PlansSection user={user} />}
-          {view === 'orders' && <OrdersSection />}
+          {view === 'orders' && <OrdersSection onNavigate={setView} />}
+          {view === 'licenses' && <LicensesSection />}
+          {view === 'history' && <HistorySection user={user} />}
         </div>
       </div>
     </div>
@@ -1271,7 +1279,7 @@ function RoutineSection({ user }: { user: AuthUser | null }) {
 
 // ── Mis compras ─────────────────────────────────────────────────────────
 
-function OrdersSection() {
+function OrdersSection({ onNavigate }: { onNavigate: (v: View) => void }) {
   const { t } = useTranslation();
   const { data: orders, isLoading, isError } = useQuery({
     queryKey: ['user-dashboard-orders'],
@@ -1279,8 +1287,17 @@ function OrdersSection() {
     retry: 0,
   });
 
+  const hasLicense = (orders ?? []).some((o) => o.payment?.metadata?.kind === 'license');
+
   return (
     <SectionCard title={t('dashboard.myPurchases')}>
+      {hasLicense && (
+        <Alert variant="info" title={t('dashboard.licenseIssued')}>
+          <Button variant="secondary" size="sm" onClick={() => onNavigate('licenses')}>
+            {t('dashboard.viewLicenses')}
+          </Button>
+        </Alert>
+      )}
       {isLoading ? (
         <Spinner label={t('dashboard.loadingOrders')} />
       ) : isError ? (
@@ -1326,6 +1343,236 @@ function OrdersSection() {
             ))}
           </tbody>
         </table>
+      )}
+    </SectionCard>
+  );
+}
+
+// ── Licencias ───────────────────────────────────────────────────────────
+
+interface LicenseKeyRow {
+  id: string;
+  productId: string;
+  licensee: string;
+  fingerprint: string | null;
+  activationKey: string;
+  status: string;
+  issuedAt: string;
+}
+
+const LICENSE_STATUS_KEY: Record<string, string> = {
+  active: 'licenseKeys.active',
+  revoked: 'licenseKeys.revoked',
+};
+
+const LICENSE_STATUS_COLOR: Record<string, string> = {
+  active: 'var(--ws-success)',
+  revoked: 'var(--ws-danger)',
+};
+
+function LicensesSection() {
+  const { t } = useTranslation();
+  const { data: keys, isLoading, isError } = useQuery({
+    queryKey: ['user-dashboard-licenses'],
+    queryFn: () => api.get<LicenseKeyRow[]>('/api/v1/license/keys'),
+    retry: 0,
+  });
+
+  return (
+    <SectionCard title={t('dashboard.myLicenses')}>
+      {isLoading ? (
+        <Spinner label={t('dashboard.loadingLicenses')} />
+      ) : isError ? (
+        <Alert variant="danger">{t('dashboard.licensesError')}</Alert>
+      ) : (keys ?? []).length === 0 ? (
+        <EmptyState icon="bi-key" title={t('dashboard.noLicenses')} description={t('dashboard.noLicensesData')} />
+      ) : (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>{t('dashboard.licenseKey')}</th>
+              <th>{t('dashboard.fingerprint')}</th>
+              <th>{t('common.date')}</th>
+              <th>{t('common.status')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(keys ?? []).map((k) => (
+              <tr key={k.id}>
+                <td>
+                  <code>{k.activationKey}</code>
+                </td>
+                <td>{k.fingerprint ? <code>{k.fingerprint.slice(0, 12)}…</code> : <span className="muted">—</span>}</td>
+                <td>{formatDate(k.issuedAt)}</td>
+                <td>
+                  <StatusBadge label={t(LICENSE_STATUS_KEY[k.status] ?? k.status)} color={LICENSE_STATUS_COLOR[k.status]} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </SectionCard>
+  );
+}
+
+// ── Historial unificado ─────────────────────────────────────────────────
+
+interface HistoryItem {
+  id: string;
+  type: 'order' | 'payment' | 'membership' | 'booking';
+  date: string;
+  title: string;
+  status: string;
+  amount?: string;
+}
+
+function historyStatusLabel(type: HistoryItem['type'], status: string): string {
+  if (type === 'order') return ORDER_STATUS_KEY[status] ?? status;
+  if (type === 'payment') return PAYMENT_STATUS_KEY[status] ?? status;
+  if (type === 'booking') return BOOKING_STATUS_KEY[status] ?? status;
+  return status;
+}
+
+function historyStatusColor(type: HistoryItem['type'], status: string): string {
+  if (type === 'order') return ORDER_STATUS_COLOR[status] ?? 'var(--ws-text-muted)';
+  if (type === 'payment') return PAYMENT_STATUS_COLOR[status] ?? 'var(--ws-text-muted)';
+  if (type === 'booking') return BOOKING_STATUS_COLOR[status] ?? 'var(--ws-text-muted)';
+  return 'var(--ws-text-muted)';
+}
+
+function HistorySection({ user }: { user: AuthUser | null }) {
+  const { t } = useTranslation();
+  const [filter, setFilter] = useState<'all' | HistoryItem['type']>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const { data: orders } = useQuery({
+    queryKey: ['user-dashboard-orders'],
+    queryFn: () => api.get<Order[]>('/api/v1/blocks/ecommerce/my-orders'),
+    retry: 0,
+  });
+  const { data: payments } = useQuery({
+    queryKey: ['user-dashboard-payments'],
+    queryFn: () => api.get<PaymentRow[]>('/api/v1/payments'),
+    retry: 0,
+  });
+  const { data: memberships } = useQuery({
+    queryKey: ['user-dashboard-memberships'],
+    queryFn: () => api.get<Membership[]>('/api/v1/blocks/organizaciones/memberships'),
+    retry: 0,
+  });
+  const { data: bookings } = useQuery({
+    queryKey: ['user-dashboard-bookings'],
+    queryFn: () => api.get<Booking[]>('/api/v1/blocks/reservas/bookings'),
+    retry: 0,
+  });
+
+  const items: HistoryItem[] = [
+    ...(orders ?? []).map<HistoryItem>((o) => ({
+      id: `order:${o.id}`,
+      type: 'order',
+      date: o.createdAt,
+      title: t('dashboard.historyOrder'),
+      status: o.status,
+      amount: money(o.total, o.currency ?? 'ARS'),
+    })),
+    ...(payments ?? []).map<HistoryItem>((p) => ({
+      id: `payment:${p.id}`,
+      type: 'payment',
+      date: p.createdAt,
+      title: p.transactionId || p.provider,
+      status: p.status,
+      amount: money(p.amount, p.currency),
+    })),
+    ...(memberships ?? [])
+      .filter((m) => (user ? m.userId === user.id || m.userName === user.email || m.userName === (user.displayName ?? '') : false))
+      .map<HistoryItem>((m) => ({
+        id: `membership:${m.id}`,
+        type: 'membership',
+        date: m.startDate,
+        title: m.organizationName,
+        status: m.status,
+      })),
+    ...(bookings ?? []).map<HistoryItem>((b) => ({
+      id: `booking:${b.id}`,
+      type: 'booking',
+      date: b.date,
+      title: b.name,
+      status: b.status,
+    })),
+  ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+
+  const typeFiltered = filter === 'all' ? items : items.filter((i) => i.type === filter);
+  const statuses = [...new Set(typeFiltered.map((i) => i.status))];
+  const visible = statusFilter === 'all' ? typeFiltered : typeFiltered.filter((i) => i.status === statusFilter);
+
+  const typeOptions = [
+    { value: 'all', label: t('dashboard.historyAll') },
+    { value: 'order', label: t('dashboard.historyOrder') },
+    { value: 'payment', label: t('dashboard.historyPayment') },
+    { value: 'membership', label: t('dashboard.historyMembership') },
+    { value: 'booking', label: t('dashboard.historyBooking') },
+  ];
+
+  const statusOptions = [
+    { value: 'all', label: t('dashboard.historyAll') },
+    ...statuses.map((s) => ({ value: s, label: s })),
+  ];
+
+  const typeIcon: Record<HistoryItem['type'], string> = {
+    order: 'bi-bag',
+    payment: 'bi-credit-card',
+    membership: 'bi-award',
+    booking: 'bi-calendar-check',
+  };
+
+  return (
+    <SectionCard title={t('dashboard.history')}>
+      <SegmentedControl
+        ariaLabel={t('dashboard.history')}
+        value={filter}
+        onChange={(v) => setFilter(v as 'all' | HistoryItem['type'])}
+        options={typeOptions}
+      />
+      {statuses.length > 0 && (
+        <SegmentedControl
+          ariaLabel={t('dashboard.history')}
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v)}
+          options={statusOptions}
+        />
+      )}
+      {items.length === 0 || visible.length === 0 ? (
+        <EmptyState icon="bi-clock-history" title={t('dashboard.historyEmpty')} />
+      ) : (
+        <div className="stack" style={{ gap: 0 }}>
+          {visible.map((i) => (
+            <div
+              key={i.id}
+              style={{
+                display: 'flex',
+                gap: 'var(--ws-space-3)',
+                alignItems: 'flex-start',
+                padding: 'var(--ws-space-3) 0',
+                borderBottom: '1px solid var(--ws-border)',
+              }}
+            >
+              <i className={`bi ${typeIcon[i.type]}`} style={{ color: 'var(--ws-primary)' }} aria-hidden="true" />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="row" style={{ justifyContent: 'space-between', gap: 'var(--ws-space-2)', flexWrap: 'wrap' }}>
+                  <strong>{i.title}</strong>
+                  <span className="muted" style={{ fontSize: 'var(--ws-font-size-sm)' }}>
+                    {formatDateTime(i.date)}
+                  </span>
+                </div>
+                <div className="row" style={{ gap: 'var(--ws-space-2)', marginTop: 'var(--ws-space-1)', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <StatusBadge label={t(historyStatusLabel(i.type, i.status))} color={historyStatusColor(i.type, i.status)} />
+                  {i.amount && <span style={{ fontVariantNumeric: 'tabular-nums' }}>{i.amount}</span>}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </SectionCard>
   );

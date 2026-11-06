@@ -14,7 +14,17 @@ const BLOCKED_TAGS = [
 ].join(',');
 
 const URL_ATTRS = new Set(['href', 'src', 'srcset', 'poster', 'action', 'formaction', 'xlink:href']);
-const DANGEROUS_URL = /^\s*(?:javascript|vbscript|data):/i;
+/**
+ * `java\nscript:` es un esquema válido para el navegador (stripéa los
+ * caracteres de control): hay que quitarlos, junto con los espacios, antes de
+ * mirar el esquema. La regex vieja no detectaba `java\tscript:` ni variantes.
+ */
+const DANGEROUS_SCHEME = /^(?:javascript|vbscript|data):/;
+
+function isDangerousUrl(value: string): boolean {
+  const normalized = value.replace(/[\u0000-\u0020\u007f-\u009f]/g, '').toLowerCase();
+  return DANGEROUS_SCHEME.test(normalized);
+}
 
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
@@ -26,7 +36,7 @@ export function sanitizeHtml(html: string): string {
       const name = attr.name.toLowerCase();
       if (name.startsWith('on') || name === 'srcdoc') {
         el.removeAttribute(attr.name);
-      } else if (URL_ATTRS.has(name) && DANGEROUS_URL.test(attr.value)) {
+      } else if (URL_ATTRS.has(name) && isDangerousUrl(attr.value)) {
         el.removeAttribute(attr.name);
       }
     }
