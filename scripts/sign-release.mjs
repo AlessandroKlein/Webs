@@ -6,17 +6,28 @@
  *   UPDATE_PRIVATE_KEY="$(cat update_private.pem)" \
  *     node scripts/sign-release.mjs webs-2.11.0.tar.gz
  *
+ * Acepta dos formatos de clave privada Ed25519:
+ *   - PKCS#8 (`-----BEGIN PRIVATE KEY-----`), el esperado por Node.
+ *   - OpenSSH (`-----BEGIN OPENSSH PRIVATE KEY-----`, el que genera
+ *     `ssh-keygen -t ed25519`). Node no lo parsea: se convierte a PKCS#8
+ *     con `ssh-keygen -p -m PKCS8` en un directorio temporal.
+ *
+ * Antes de firmar verifica que la pública derivada coincida con
+ * `UPDATE_PUBLIC_KEY` (env) o con `deploy/k8s/configmap.yaml`. Firmar con un
+ * par distinto produciría artefactos que las instalaciones no pueden verificar.
+ *
  * Produce:
  *   <tarball>.sha256 → sha256 hex del tarball (ASCII).
  *   <tarball>.sig    → firma Ed25519 (base64url) sobre el digest hex (UTF-8).
  *
  * El mensaje firmado es el DIGEST hex (no el artefacto), igual que verifica
  * apps/api/src/modules/update/verify.ts (`verifyEd25519(digest, sig, pub)`).
- * La clave privada es Ed25519 PKCS#8 PEM y NUNCA se commitea: se carga como
- * secreto de GitHub Actions `UPDATE_PRIVATE_KEY`.
  */
-import { createHash, createPrivateKey, sign as nodeSign } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash, createPrivateKey, createPublicKey, sign as nodeSign } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const tarball = process.argv[2];
 if (!tarball) {
@@ -24,15 +35,76 @@ if (!tarball) {
   process.exit(1);
 }
 
-const privateKeyPem = process.env.UPDATE_PRIVATE_KEY;
-if (!privateKeyPem) {
-  console.error('Falta UPDATE_PRIVATE_KEY (clave privada Ed25519 PKCS#8 PEM).');
+const rawKey = process.env.UPDATE_PRIVATE_KEY;
+if (!rawKey) {
+  console.error('Falta UPDATE_PRIVATE_KEY (clave privada Ed25519 PKCS#8 PEM u OpenSSH).');
+  process.exit(1);
+}
+
+/** Normaliza el secreto: `\n` literales y salto final. */
+function normalize(pem) {
+  let material = pem.trim();
+  if (!material.includes('\n') && material.includes('\\n')) material = material.replace(/\\n/g, '\n');
+  return material.endsWith('\n') ? material : `${material}\n`;
+}
+
+/** Carga una privada Ed25519 en PKCS#8, convirtiendo OpenSSH si hace falta. */
+function loadPrivateKey(pem) {
+  const material = normalize(pem);
+  try {
+    return createPrivateKey(material);
+  } catch (firstError) {
+    if (!material.includes('BEGIN OPENSSH PRIVATE KEY')) throw firstError;
+    const dir = mkdtempSync(join(tmpdir(), 'webs-sign-'));
+    const file = join(dir, 'key');
+    try {
+      writeFileSync(file, material, { mode: 0o600 });
+      execFileSync('ssh-keygen', ['-p', '-m', 'PKCS8', '-N', '', '-f', file], { stdio: 'pipe' });
+      return createPrivateKey(readFileSync(file, 'utf8'));
+    } catch (conversionError) {
+      const reason = conversionError instanceof Error ? conversionError.message : String(conversionError);
+      throw new Error(
+        `No se pudo convertir la clave OpenSSH a PKCS#8 (¿tiene passphrase?): ${reason}. ` +
+          'Convertila a mano con: ssh-keygen -p -m PKCS8 -N "" -f update_private.pem',
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+}
+
+function expectedPublicKey() {
+  if (process.env.UPDATE_PUBLIC_KEY) return process.env.UPDATE_PUBLIC_KEY.trim();
+  try {
+    const yaml = readFileSync('deploy/k8s/configmap.yaml', 'utf8');
+    return yaml.match(/UPDATE_PUBLIC_KEY:\s*["']?([A-Za-z0-9+/=]+)/)?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
+let privateKey;
+try {
+  privateKey = loadPrivateKey(rawKey);
+} catch (error) {
+  const reason = error instanceof Error ? error.message : String(error);
+  console.error(`UPDATE_PRIVATE_KEY inválida: ${reason}`);
+  console.error('Debe ser un PEM Ed25519: `-----BEGIN PRIVATE KEY-----` (PKCS#8) u OpenSSH.');
+  process.exit(1);
+}
+
+const derivedPublic = createPublicKey(privateKey).export({ format: 'der', type: 'spki' }).toString('base64');
+const expected = expectedPublicKey();
+if (expected && expected !== derivedPublic) {
+  console.error('La clave privada NO corresponde a la pública configurada.');
+  console.error(`  esperada: ${expected}`);
+  console.error(`  derivada: ${derivedPublic}`);
+  console.error('No se firma: las instalaciones desplegadas no podrían verificar el artefacto.');
   process.exit(1);
 }
 
 const artifact = readFileSync(tarball);
 const digest = createHash('sha256').update(artifact).digest('hex');
-const privateKey = createPrivateKey(privateKeyPem);
 const signature = nodeSign(null, Buffer.from(digest, 'utf8'), privateKey).toString('base64url');
 
 writeFileSync(`${tarball}.sha256`, `${digest}\n`);
