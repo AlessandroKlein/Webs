@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag a publicar (ej. v2.14.0). Vacío = el tag del push.'
+        required: false
 
 permissions:
   contents: write
@@ -14,7 +19,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
+
+      - name: Resolver versión
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+          echo "VERSION=${TAG#v}" >> "$GITHUB_ENV"
 
       - uses: pnpm/action-setup@v4
         with:
@@ -27,21 +39,20 @@ jobs:
 
       - name: Extraer notas del CHANGELOG
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           node -e '
             const fs = require("fs");
-            const v = process.argv[1];
+            const v = process.env.VERSION;
             const lines = fs.readFileSync("CHANGELOG.md", "utf8").split("\n");
             const start = lines.findIndex((l) => l.startsWith("## [" + v + "]"));
             if (start < 0) process.exit(0);
             let end = lines.findIndex((l, i) => i > start && /^## \[/.test(l));
             if (end < 0) end = lines.length;
             process.stdout.write(lines.slice(start, end).join("\n").trim() + "\n");
-          ' "$VERSION" > release-notes.md
+          ' > release-notes.md
           if [ -s release-notes.md ]; then
             echo "Notas extraídas del CHANGELOG ($(wc -l < release-notes.md) líneas)."
           else
-            echo "Sin entrada en el CHANGELOG para $GITHUB_REF_NAME; se usarán notas generadas."
+            echo "Sin entrada en el CHANGELOG para $TAG; se usarán notas generadas."
           fi
 
       - name: Instalar dependencias
@@ -54,37 +65,46 @@ jobs:
         run: |
           pnpm --filter @licensify/core --filter @webs/core --filter @webs/i18n --filter @webs/plugin-sdk --filter @webs/ui --filter @webs/plugin-example build
           pnpm --filter @webs/api build
-          VERSION="${GITHUB_REF_NAME#v}"
           # El tarball empaqueta apps/api/dist como `dist/` (lo que el bootloader
           # intercambia en modo bare). En Docker la actualización es el rolling
-          # update, pero el artefacto se firma/adjunta igual para `update/raw`.
+          # update, pero el artefacto se adjunta igual para `update/raw`.
           tar -czf "webs-$VERSION.tar.gz" -C apps/api dist
           echo "ARTIFACT=webs-$VERSION.tar.gz" >> "$GITHUB_ENV"
           ls -la "webs-$VERSION.tar.gz"
 
-      - name: Firmar artefacto (Ed25519 sobre sha256)
+      # La firma es opcional: si el secreto no está (o no es una privada válida)
+      # la release se publica igual con el artefacto y su sha256. El updater
+      # sigue rechazando artefactos sin .sig, así que la firma se exige para
+      # distribuir, no para publicar.
+      - name: Firmar artefacto (Ed25519 sobre sha256, opcional)
         env:
           UPDATE_PRIVATE_KEY: ${{ secrets.UPDATE_PRIVATE_KEY }}
         run: |
-          node scripts/sign-release.mjs "$ARTIFACT"
-          ls -la "$ARTIFACT" "$ARTIFACT.sha256" "$ARTIFACT.sig"
+          if [ -z "$UPDATE_PRIVATE_KEY" ]; then
+            echo "::warning::UPDATE_PRIVATE_KEY no configurada; se publica sin .sig."
+            exit 0
+          fi
+          if node scripts/sign-release.mjs "$ARTIFACT"; then
+            echo "Firma OK."
+          else
+            echo "::warning::No se pudo firmar con la clave configurada; se publica sin .sig."
+          fi
+          ls -la "$ARTIFACT" "$ARTIFACT.sha256" "$ARTIFACT.sig" 2>/dev/null || true
 
-      - name: Crear release (con notas + artefactos firmados)
+      - name: Crear release (notas + artefactos)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          ARTIFACT="webs-$VERSION.tar.gz"
-          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+          ASSETS=("$ARTIFACT" "$ARTIFACT.sha256")
+          if [ -f "$ARTIFACT.sig" ]; then ASSETS+=("$ARTIFACT.sig"); fi
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
             if [ -s release-notes.md ]; then
-              gh release create "$GITHUB_REF_NAME" --notes-file release-notes.md --latest \
-                "$ARTIFACT" "$ARTIFACT.sha256" "$ARTIFACT.sig"
+              gh release create "$TAG" --notes-file release-notes.md --latest "${ASSETS[@]}"
             else
-              gh release create "$GITHUB_REF_NAME" --generate-notes --latest \
-                "$ARTIFACT" "$ARTIFACT.sha256" "$ARTIFACT.sig"
+              gh release create "$TAG" --generate-notes --latest "${ASSETS[@]}"
             fi
           else
-            echo "Release $GITHUB_REF_NAME ya existe; se suben los artefactos."
-            gh release upload "$GITHUB_REF_NAME" "$ARTIFACT" "$ARTIFACT.sha256" "$ARTIFACT.sig" --clobber
+            echo "Release $TAG ya existe; se suben los artefactos."
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
           fi

@@ -359,7 +359,7 @@ export function UserDashboardPage() {
               }}
               onClick={() => setView(s.key)}
             >
-              <i className={`bi ${s.icon}`} /> {s.label}
+              <i className={`bi ${s.icon}`} /> {t(s.label)}
             </button>
           ))}
         </aside>
