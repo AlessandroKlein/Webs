@@ -22,9 +22,12 @@ import {
   type LicenseStatus,
   type PersistedLicense,
 } from '../../lib/license-state';
-import { isCoreFeature } from './features';
+import { LICENSE_FEATURES, isCoreFeature } from './features';
 
 export type { LicenseState, LicenseStatus } from '../../lib/license-state';
+
+/** Modo de licenciamiento efectivo (ver `resolveLicenseMode` en config/env). */
+export type LicenseMode = 'production' | 'dev';
 
 /** Cada cuánto se re-verifica la licencia en runtime (anti-reloj / anti-tamper). */
 const PERIODIC_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -41,20 +44,27 @@ const CLOCK_TOLERANCE_MS = 60_000;
  */
 export class LicenseService {
   private readonly publicKey?: string;
+  private readonly mode: LicenseMode;
   private readonly clockGuard: ClockGuard;
   private timer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(publicKey: string | undefined) {
+  constructor(publicKey: string | undefined, mode: LicenseMode = 'production') {
     this.publicKey = publicKey?.trim() || undefined;
+    this.mode = mode;
     this.clockGuard = new ClockGuard({
       toleranceMs: CLOCK_TOLERANCE_MS,
       store: new FileClockStore(licenseClockFile()),
     });
   }
 
-  /** `true` cuando LICENSE_PUBLIC_KEY está configurada. */
+  /** `true` en modo desarrollo: todas las features habilitadas sin licencia. */
+  get devMode(): boolean {
+    return this.mode === 'dev';
+  }
+
+  /** `true` cuando LICENSE_PUBLIC_KEY está configurada (o estamos en dev). */
   get configured(): boolean {
-    return Boolean(this.publicKey);
+    return this.devMode || Boolean(this.publicKey);
   }
 
   /** Fingerprint de hardware de este host (hasheado, nunca el dato crudo). */
@@ -64,6 +74,7 @@ export class LicenseService {
 
   /** Estado derivado del estado persistido (lectura barata, sin re-verificar). */
   status(): LicenseState {
+    if (this.devMode) return this.devState();
     return this.deriveStatus(readLicenseState());
   }
 
@@ -73,6 +84,7 @@ export class LicenseService {
    * `invalid` y `clock_rollback`.
    */
   verify(): LicenseState {
+    if (this.devMode) return this.devState();
     const persisted = readLicenseState();
     if (!this.publicKey) {
       return this.deriveStatus(persisted, 'unconfigured');
@@ -151,6 +163,7 @@ export class LicenseService {
 
   /** `true` si el flag está activo (núcleo siempre activo; premium requiere licencia). */
   hasFeature(feature: string): boolean {
+    if (this.devMode) return true;
     if (isCoreFeature(feature)) return true;
     const state = this.status();
     return state.configured && state.status === 'active' && state.features.includes(feature);
@@ -159,6 +172,22 @@ export class LicenseService {
   /** Features activos según la licencia vigente. */
   activeFeatures(): string[] {
     return this.status().features;
+  }
+
+  /**
+   * Estado sintético del modo dev: todo licenciado, sin tocar el estado
+   * persistido ni el reloj (para que el stack local de Docker pruebe todo).
+   */
+  private devState(): LicenseState {
+    return {
+      configured: true,
+      status: 'active',
+      nodeLocked: false,
+      productId: 'webs-dev',
+      licensee: 'Desarrollo (LICENSE_MODE=dev)',
+      features: LICENSE_FEATURES.map((feature) => feature.key),
+      lastVerifiedAt: new Date().toISOString(),
+    };
   }
 
   /** Inicia la verificación periódica (anti-reloj / anti-tamper). */

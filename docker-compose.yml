@@ -55,7 +55,12 @@ services:
       context: .
       dockerfile: docker/Dockerfile.api
     environment:
-      NODE_ENV: production
+      # Stack LOCAL de pruebas: desarrollo + licencia en modo dev (todas las
+      # features habilitadas sin licencia). En producción usar
+      # NODE_ENV=production + LICENSE_MODE=production + LICENSE_PUBLIC_KEY real;
+      # NODE_ENV=production con LICENSE_MODE=dev NO arranca (guard en env.ts).
+      NODE_ENV: development
+      LICENSE_MODE: dev
       HOST: 0.0.0.0
       PORT: 4000
       DATABASE_URL: postgresql://webs:webs@postgres:5432/webs?schema=public

@@ -260,6 +260,17 @@ export async function registerPluginRoutes(
   manifest: PluginManifest,
   config: Record<string, unknown>,
 ): Promise<void> {
+  // Gate por licencia: un plugin que declara una feature premium no se monta
+  // si esa feature no está licenciada (fail-closed, ni siquiera responde 404
+  // engañoso: la ruta no existe hasta licenciar).
+  if (manifest.feature && !app.license.hasFeature(manifest.feature)) {
+    app.log.warn(
+      { pluginId: manifest.id, feature: manifest.feature },
+      'plugin omitido: feature sin licencia',
+    );
+    return;
+  }
+
   const pkgDir = resolvePackageDir(app, manifest);
   if (!pkgDir) {
     app.log.warn({ pluginId: manifest.id }, 'paquete del plugin no encontrado');
@@ -294,6 +305,14 @@ export async function loadAndActivate(
   installation: { id: string; pluginId: string; manifest: Prisma.JsonValue; config: Prisma.JsonValue },
 ): Promise<void> {
   const manifest = parsePluginManifest(installation.manifest);
+
+  if (manifest.feature && !app.license.hasFeature(manifest.feature)) {
+    app.log.warn(
+      { pluginId: manifest.id, feature: manifest.feature },
+      'plugin no activado: feature sin licencia',
+    );
+    return;
+  }
 
   // F13 (P1): idempotencia — si el plugin ya está activo no lo reactivamos.
   if (pluginRegistry.getLoadedPlugins().some((l) => l.manifest.id === manifest.id)) {

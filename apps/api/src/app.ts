@@ -1,6 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { API_PREFIX, REFRESH_TOKEN_COOKIE } from '@webs/core';
-import { loadEnv, corsOrigins, type Env } from './config/env';
+import { loadEnv, corsOrigins, resolveLicenseMode, type Env } from './config/env';
 import { createLogger } from './lib/logger';
 import { readState } from './lib/state';
 import { writeState } from './lib/state';
@@ -128,7 +128,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(authPlugin, { jwtSecret: env.JWT_SECRET });
   await app.register(tenantPlugin);
   await app.register(websocketPlugin);
-  await app.register(licensePlugin, { publicKey: env.LICENSE_PUBLIC_KEY });
+  await app.register(licensePlugin, {
+    publicKey: env.LICENSE_PUBLIC_KEY,
+    mode: resolveLicenseMode(env),
+    production: env.NODE_ENV === 'production',
+  });
 
   // Modo mantenimiento: bloquea rutas públicas salvo whitelist / autenticadas.
   await app.addHook('onRequest', async (request, reply) => {
@@ -154,14 +158,30 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   });
 
   // 5. Módulos de dominio (bajo /api/v1).
+  // Gate por licencia (Licensify): los módulos premium NO se montan si la
+  // feature no está licenciada. El núcleo sigue operativo (auth, páginas,
+  // contenido, usuarios, media, ajustes). Ver `modules/licenses/features.ts`.
+  const disabledModules: string[] = [];
+  const gate = async (
+    name: string,
+    feature: string,
+    register: () => unknown,
+  ): Promise<void> => {
+    if (app.license.hasFeature(feature)) {
+      await register();
+      return;
+    }
+    disabledModules.push(`${name} (${feature})`);
+  };
+
   await app.register(metricsRoutes, { prefix: API_PREFIX });
-  await app.register(templatesRoutes, { prefix: API_PREFIX });
-  await app.register(paymentsRoutes, { prefix: API_PREFIX });
+  await gate('templates', 'templates', () => app.register(templatesRoutes, { prefix: API_PREFIX }));
+  await gate('payments', 'payments', () => app.register(paymentsRoutes, { prefix: API_PREFIX }));
   await app.register(mediaRoutes, { prefix: API_PREFIX });
   await app.register(notificationsRoutes, { prefix: API_PREFIX });
-  await app.register(expensesRoutes, { prefix: API_PREFIX });
+  await gate('expenses', 'payments', () => app.register(expensesRoutes, { prefix: API_PREFIX }));
   await app.register(systemRoutes, { prefix: API_PREFIX });
-  await app.register(scalingRoutes, { prefix: API_PREFIX });
+  await gate('scaling', 'multitenant', () => app.register(scalingRoutes, { prefix: API_PREFIX }));
   await app.register(updateRoutes, { prefix: API_PREFIX });
   await app.register(pluginUpdateRoutes, { prefix: API_PREFIX });
   await app.register(updateRawRoutes, { prefix: API_PREFIX });
@@ -182,10 +202,17 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyIn
   await app.register(i18nRoutes, { prefix: API_PREFIX });
   await app.register(apiTokensRoutes, { prefix: API_PREFIX });
   await app.register(licenseRoutes, { prefix: API_PREFIX });
-  await app.register(generatedRoutes, { prefix: API_PREFIX });
+  await gate('generated', 'generator', () => app.register(generatedRoutes, { prefix: API_PREFIX }));
   await app.register(supportRoutes, { prefix: API_PREFIX });
-  await app.register(inventoryModule, { prefix: API_PREFIX });
+  await gate('inventory', 'inventory', () => app.register(inventoryModule, { prefix: API_PREFIX }));
   await app.register(trackingRoutes, { prefix: API_PREFIX });
+
+  if (disabledModules.length > 0) {
+    app.log.warn(
+      { modules: disabledModules, licenseStatus: app.license.status().status },
+      'módulos premium deshabilitados por licencia (contratá una licencia para habilitarlos)',
+    );
+  }
 
   // 6. Plugins instalados (cargan sus plugins, rutas, settings, slots y permisos).
   await registerPlugins(app);

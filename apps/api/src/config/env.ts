@@ -54,6 +54,13 @@ const envSchema = z.object({
   // activación se rechaza. La clave privada NUNCA se embebe en la app.
   LICENSE_PUBLIC_KEY: z.string().optional(),
 
+  // Modo de licenciamiento:
+  // - `auto` (default): `dev` si NODE_ENV != production, `production` si no.
+  // - `dev`: habilita todas las features SIN licencia (stack local de Docker).
+  //   La app NO arranca con NODE_ENV=production + dev.
+  // - `production`: las features premium exigen una licencia activa.
+  LICENSE_MODE: z.enum(['auto', 'dev', 'production']).default('auto'),
+
   // Clave privada Ed25519 (PEM PKCS#8) del vendedor, SOLO para la instancia de
   // emisión/venta (panel admin de claves). No se embebe en la app: se inyecta
   // por entorno únicamente en el entorno del vendedor. Sin ella, `POST
@@ -106,7 +113,29 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     }
   }
 
+  // F2 (Licensify, P0): el modo `dev` habilita todas las features sin licencia.
+  // Sólo es válido fuera de producción; en producción la app NO arranca para
+  // que no quede una instalación "completa" por una variable de entorno mal
+  // copiada (el bypass real exige editar código o controlar el host).
+  const licenseMode: LicenseMode = resolveLicenseMode(env);
+  if (env.NODE_ENV === 'production' && licenseMode === 'dev') {
+    console.error(
+      'LICENSE_MODE=dev no está permitido con NODE_ENV=production: ' +
+        'usá LICENSE_MODE=production y una licencia activa, o NODE_ENV=development para pruebas locales.',
+    );
+    throw new Error('Configuración de licencia inválida: modo dev en producción');
+  }
+
   return env;
+}
+
+export type LicenseMode = 'production' | 'dev';
+
+/** Resuelve `LICENSE_MODE` (`auto` según NODE_ENV) al modo efectivo. */
+export function resolveLicenseMode(env: Pick<Env, 'LICENSE_MODE' | 'NODE_ENV'>): LicenseMode {
+  if (env.LICENSE_MODE === 'dev') return 'dev';
+  if (env.LICENSE_MODE === 'production') return 'production';
+  return env.NODE_ENV === 'production' ? 'production' : 'dev';
 }
 
 export function corsOrigins(env: Env): string[] {

@@ -89,6 +89,13 @@ export const LICENSE_FEATURES: LicenseFeature[] = [
     area: 'extensions',
     core: false,
   },
+  {
+    key: 'crm',
+    label: 'CRM',
+    description: 'Contactos, empresas, pipeline de ventas y actividades.',
+    area: 'commerce',
+    core: false,
+  },
 ];
 
 const BY_KEY = new Map(LICENSE_FEATURES.map((feature) => [feature.key, feature]));

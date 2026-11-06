@@ -12,7 +12,7 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src prisma",
-    "test": "tsx scripts/secret-redaction.test.ts",
+    "test": "tsx scripts/secret-redaction.test.ts && tsx scripts/license-gate.test.ts",
     "clean": "rimraf dist",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
