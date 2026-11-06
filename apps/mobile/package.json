@@ -12,6 +12,8 @@
     "sync": "cap sync",
     "add:android": "cap add android",
     "add:ios": "cap add ios",
+    "sync:android": "cap sync android",
+    "build:android": "cap sync android && cap build android",
     "open:android": "cap open android",
     "open:ios": "cap open ios",
     "copy": "cap copy"

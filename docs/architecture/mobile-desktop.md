@@ -1,17 +1,26 @@
 # Móvil y escritorio — auditoría y plan de integración
 
-> Estado: **M3** (app móvil nativa vía **Capacitor** integrada) · Relacionado:
+> Estado: **M4** (base ejecutable: Android vía **Capacitor** configurado, shell
+> **Electron** para escritorio, web **PWA instalable**) · Relacionado:
 > [plugin-system.md](plugin-system.md), [refactor-global.md](refactor-global.md),
 > [guides/mobile-app.md](../guides/mobile-app.md),
-> [guides/mobile-capacitor.md](../guides/mobile-capacitor.md).
+> [guides/mobile-capacitor.md](../guides/mobile-capacitor.md),
+> [guides/apps.md](../guides/apps.md).
 > ADR de referencia: [0005-plugin-rename.md](../adr/0005-plugin-rename.md).
 
-> **M3 — Capacitor integrado:** `apps/mobile` (`@webs/mobile`) es ahora un **host
-> Capacitor** (Android/iOS, `@capacitor/core ^6`) que envuelve `apps/web`, además de la PWA
-> de asistencia por QR. Ver la guía operativa
-> [guides/mobile-capacitor.md](../guides/mobile-capacitor.md) para compilar/empaquetar y
-> ejecutar las apps nativas. El companion de escritorio (`@webs/desktop`) se mantiene como
-> puente WebSocket para lectores serial/keyboard-wedge.
+> **Estado real (M4):** la base de las apps está creada, no terminada:
+> - **Android** — `apps/mobile` es un **host Capacitor** (`@capacitor/core ^6`) que
+>   envuelve `apps/web`; `capacitor.config.json` con `androidScheme: https` y
+>   `allowMixedContent: false`. La carpeta `android/` (generada) **no está** en el repo.
+> - **Escritorio** — `apps/desktop` ahora incluye un **shell Electron**
+>   (`electron/main.js` + `electron/preload.cjs`, `contextIsolation`/`sandbox`) que envuelve
+>   `apps/web` y arranca el puente de lectores (WS `4599`) reutilizando `src/bridge.js`.
+> - **PWA instalable** — `apps/web/public/{manifest.webmanifest,sw.js}` existen; la web admin
+>   se puede instalar como PWA.
+> - **Pendiente**: firma de código, auto-update, push nativo y **offline/sincronización**.
+>
+> Guía operativa: [guides/apps.md](../guides/apps.md). El detalle de la auditoría
+> histórica (M1/M3) se mantiene abajo como registro.
 
 ## Resumen ejecutivo
 

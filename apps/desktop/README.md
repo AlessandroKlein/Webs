@@ -1,40 +1,32 @@
-# @webs/desktop — Companion de escritorio
+# @webs/desktop — App de escritorio + companion de lectores
 
-Companion de escritorio en Node.js que lee códigos de barras/QR desde un lector
-físico conectado a la máquina (por **puerto serial** o en modo **keyboard
-wedge**) y expone cada lectura a la web a través de un **WebSocket** en
-`ws://localhost:4599`.
+Dos cosas en un paquete:
 
-## Qué hace
+1. **App Electron** (`electron/`): shell de escritorio (Windows/Linux) que envuelve
+   `apps/web` y arranca el puente de lectores dentro de la propia app.
+2. **Companion standalone** (`src/index.js`): proceso Node sin GUI que lee
+   códigos de barras/QR desde un lector físico (puerto **serial** o **keyboard
+   wedge**) y los expone por WebSocket en `ws://localhost:4599`.
 
-- Abre un servidor WebSocket (`ws`) en `ws://localhost:4599`.
-- Si `serialport` está disponible y definís `PORT_NAME`, lee del puerto serial y
-  emite cada lectura como evento `scan`.
-- Si no hay `serialport` o no configuraste puerto, queda en modo **keyboard
-  wedge**: lee líneas desde `stdin` (un lector USB que se comporta como teclado
-  tipea el código y envía Enter) y emite igual.
-- Todo degrada con un mensaje claro si falta alguna dependencia opcional.
+Ambos comparten la lógica de lectura en `src/bridge.js` (no duplicada).
 
-## Instalación
+## Requisitos
 
-Desde la raíz del monorepo:
+- Node.js 22 + pnpm (monorepo).
+- Para la app Electron: `electron` + `electron-builder` (devDeps; se instalan con
+  `pnpm install`).
+- Para lectura serial: `serialport` (opcional, instalación manual).
 
-```bash
-pnpm install
-```
+> ⚠️ **Pendiente de instalación**: este paquete declara `electron` y
+> `electron-builder` como devDependencies pero **no se ejecutó `pnpm install`**
+> (sin red/ancho de banda al escribir esto). Antes de correr Electron, hacé
+> `pnpm install` desde la raíz (actualiza `pnpm-lock.yaml`).
 
-Las dependencias `ws` y `serialport` están declaradas como **opcionales**
-(`optionalDependencies`), así que el proyecto arranca aunque no se puedan
-instalar. Para el modo serial, asegurate de que `serialport` esté instalada:
+## Companion standalone (sin GUI)
 
 ```bash
-pnpm --filter @webs/desktop add serialport
+pnpm --filter @webs/desktop start
 ```
-
-> En Windows, `serialport` suele traer binarios precompilados; si la instalación
-> falla, necesitás las herramientas de compilación de Node.
-
-## Configuración
 
 Variables de entorno (todas opcionales):
 
@@ -44,73 +36,73 @@ Variables de entorno (todas opcionales):
 | `BAUD_RATE` | `9600`   | Baudios del puerto serial.                     |
 | `WS_PORT`   | `4599`   | Puerto del servidor WebSocket.                 |
 
-### Windows (PowerShell)
-
-```powershell
-$env:PORT_NAME = "COM3"
-pnpm --filter @webs/desktop start
-```
-
-### Linux / macOS
-
-```bash
-PORT_NAME=/dev/ttyUSB0 pnpm --filter @webs/desktop start
-```
-
-Sin `PORT_NAME`, el companion lee de `stdin` (keyboard wedge):
+Sin `PORT_NAME` lee de `stdin` (keyboard wedge):
 
 ```bash
 echo "CODIGO-QR-DE-PRUEBA" | pnpm --filter @webs/desktop start
 ```
 
-## Protocolo WebSocket
-
-El servidor escucha en `ws://localhost:4599` y envía mensajes JSON:
+### Protocolo WebSocket
 
 ```jsonc
-// Al conectarse (informa qué fuente está activa y la versión del protocolo).
-// `version` sigue la versión canónica de la plataforma (SYSTEM_VERSION de la
-// API); no es un literal fijo — se lee en runtime.
 { "type": "ready", "data": { "protocol": "webs-desktop-bridge/1.0", "version": "<SYSTEM_VERSION>", "source": "serial", "port": "COM3", "server": "ws://localhost:4599" } }
-
-// Cada lectura de código (normalizado: sin saltos de línea ni prefijos AIM/GS1)
-{ "type": "scan", "data": { "code": "uuid-del-qr", "source": "serial", "port": "COM3", "at": "2026-01-01T00:00:00.000Z" } }
-
-// Keepalive: el cliente envía "ping" y el server responde
+{ "type": "scan",  "data": { "code": "uuid-del-qr", "source": "serial", "port": "COM3", "at": "2026-01-01T00:00:00.000Z" } }
 { "type": "pong" }
 ```
 
-## Consumir desde la web
+## App Electron
 
-```js
-const ws = new WebSocket('ws://localhost:4599');
+```bash
+# Dev (carga el dev server de Vite en http://localhost:5173):
+pnpm --filter @webs/desktop electron:dev
 
-ws.addEventListener('message', (event) => {
-  const msg = JSON.parse(event.data);
-  if (msg.type === 'scan') {
-    console.log('Código leído:', msg.data.code);
-    // Completá el input de asistencia (o del POS) y llamá a
-    // POST /api/v1/plugins/organizaciones/attendance/scan
-    // con { qrcode: msg.data.code }.
-  }
-});
+# Producción local (carga apps/web/dist/index.html):
+pnpm --filter @webs/web build
+pnpm --filter @webs/desktop electron:start
+
+# Empaquetar instaladores (.exe NSIS, .AppImage, .deb):
+pnpm --filter @webs/desktop dist
 ```
 
-## Notas
+Variables de entorno:
 
-- La PWA **@webs/mobile** (asistencia) consume este WebSocket a través de
-  `connectDesktopBridge()` (apps/mobile/src/barcode.js), con reconexión con
-  backoff. El endpoint canónico de asistencia es
-  `POST /api/v1/plugins/organizaciones/attendance/scan`.
-- El proceso se mantiene vivo aunque no haya entrada por stdin.
-- En Windows, un lector «keyboard wedge» escribe en la ventana con foco; este
-  companion lo captura cuando se ejecuta en una consola con el foco activo.
+| Variable       | Default | Descripción                                                    |
+| -------------- | ------- | -------------------------------------------------------------- |
+| `ELECTRON_DEV` | —       | `=1` equivalente a pasar `--dev` (carga localhost:5173).       |
+| `WEB_URL`      | (vacío) | URL remota del panel (p. ej. el sitio desplegado).             |
+| `KIOSK`        | —       | `=1` abre en modo kiosco.                                      |
+| `PORT_NAME`    | (vacío) | Puerto serial del lector (el puente lo lee dentro de la app).  |
+
+La ventana usa `contextIsolation: true`, `nodeIntegration: false`, `sandbox: true`,
+una sola instancia (`requestSingleInstanceLock`) y un preload (`electron/preload.cjs`)
+que expone `window.websDesktop = { version(), onScan(cb) }`. El main arranca el
+WebSocket `4599` con la misma `src/bridge.js` del companion y reenvía cada lectura
+por IPC (`webs:scan`).
+
+## Qué falta (pendiente)
+
+- **`pnpm install`**: resolver `electron`/`electron-builder` y regenerar
+  `pnpm-lock.yaml`.
+- **Firma de código**: Windows Authenticode (`.exe` sin firmar muestra aviso de
+  SmartScreen) y firma de paquetes Linux. No configurada.
+- **Auto-update**: requiere `electron-updater` + firma; **no instalado a propósito**.
+- **`serialport` dentro de Electron**: es un módulo nativo y necesita
+  `electron-rebuild` para el ABI de Electron (hoy solo se usa en el companion
+  standalone, no en la app empaquetada).
+- **Offline / API base**: cargar `apps/web/dist` por `file://` no llega a la API
+  (rutas `/api/v1` relativas). Para una app autocontenida hay que compilar `apps/web`
+  con `VITE_API_BASE_URL` apuntando al servidor, o usar `WEB_URL` al sitio desplegado.
 
 ## Estructura
 
 ```
 apps/desktop/
-├── package.json     # @webs/desktop, script start, deps opcionales ws/serialport
-├── src/index.js     # servidor WS + lectura serial/stdin
+├── package.json         # @webs/desktop: scripts start/electron:dev/electron:start/dist + build (electron-builder)
+├── src/
+│   ├── index.js         # companion standalone (entrada de consola)
+│   └── bridge.js        # lógica compartida: WS 4599 + serial/stdin + normalizeBarcode
+├── electron/
+│   ├── main.js          # shell Electron (ESM): BrowserWindow + puente + IPC
+│   └── preload.cjs      # preload seguro (CommonJS por sandbox)
 └── README.md
 ```

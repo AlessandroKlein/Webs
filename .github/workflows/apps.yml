@@ -1,0 +1,50 @@
+name: Apps (empaquetado opcional)
+
+# Empaqueta las apps de escritorio/móvil de forma MANUAL (no bloquea CI ni
+# releases). El job está marcado continue-on-error a propósito: el empaquetado
+# es opcional y no debe romper nada si el entorno no tiene lo necesario.
+#
+# Trigger manual:
+#   gh workflow run apps.yml
+#
+# Pendientes (no resueltos aquí):
+#   - `pnpm-lock.yaml` aún no incluye electron/electron-builder (no se ejecutó
+#     `pnpm install` al añadir las devDeps); se usa --no-frozen-lockfile.
+#   - Firma de código y auto-update NO configurados.
+#   - El .exe (Windows/NSIS) requiere runner `windows-latest` + `wine` o build
+#     en Windows; aquí solo se empaqueta Linux (AppImage/deb) y mac (dmg).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  package-desktop:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependencias
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Compilar apps/web (base de la app Electron)
+        run: pnpm --filter @webs/web build
+
+      - name: Empaquetar escritorio (electron-builder)
+        run: pnpm --filter @webs/desktop dist
+
+      - name: Subir artefactos
+        uses: actions/upload-artifact@v4
+        with:
+          name: webs-desktop
+          path: apps/desktop/release/*
+          if-no-files-found: ignore

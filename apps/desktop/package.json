@@ -3,11 +3,54 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Companion de escritorio: lee QR/barras desde puerto serial o keyboard-wedge y lo expone vía WebSocket.",
+  "description": "App de escritorio (Electron) que envuelve apps/web + companion de lectores (QR/barras por serial o keyboard-wedge) vía WebSocket.",
+  "main": "electron/main.js",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "electron:dev": "electron . --dev",
+    "electron:start": "electron .",
+    "dist": "electron-builder --publish never"
   },
   "optionalDependencies": {
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.webs.desktop",
+    "productName": "Webs",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "web-dist"
+      }
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "../web/public/icon-512.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "../web/public/icon-512.png",
+      "category": "Office"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "../web/public/icon-512.png"
+    }
   }
 }
