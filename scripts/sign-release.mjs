@@ -48,13 +48,40 @@ function normalize(pem) {
   return material.endsWith('\n') ? material : `${material}\n`;
 }
 
+/** Construye una privada Ed25519 PKCS#8 a partir de la semilla cruda. */
+function fromSeed(seed) {
+  const bytes = seed.length === 64 ? seed.subarray(0, 32) : seed;
+  if (bytes.length !== 32) throw new Error(`semilla Ed25519 de ${bytes.length} bytes (se esperan 32)`);
+  const der = Buffer.concat([Buffer.from('302e020100300506032b657004220420', 'hex'), bytes]);
+  return createPrivateKey({ key: der, format: 'der', type: 'pkcs8' });
+}
+
+/** Acepta la clave sin cabeceras PEM: DER PKCS#8 o semilla en base64/hex. */
+function loadWithoutArmor(material) {
+  const compact = material.replace(/^["']|["']$/g, '').replace(/\s+/g, '');
+  if (/^[0-9a-fA-F]{64}$/.test(compact)) return fromSeed(Buffer.from(compact, 'hex'));
+  if (!/^[A-Za-z0-9+/=]+$/.test(compact)) return undefined;
+  const bytes = Buffer.from(compact, 'base64');
+  if (bytes.length === 0) return undefined;
+  try {
+    return createPrivateKey({ key: bytes, format: 'der', type: 'pkcs8' });
+  } catch {
+    if (bytes.length === 32 || bytes.length === 64) return fromSeed(bytes);
+    return undefined;
+  }
+}
+
 /** Carga una privada Ed25519 en PKCS#8, convirtiendo OpenSSH si hace falta. */
 function loadPrivateKey(pem) {
   const material = normalize(pem);
   try {
     return createPrivateKey(material);
   } catch (firstError) {
-    if (!material.includes('BEGIN OPENSSH PRIVATE KEY')) throw firstError;
+    if (!material.includes('BEGIN OPENSSH PRIVATE KEY')) {
+      const raw = loadWithoutArmor(material);
+      if (raw) return raw;
+      throw firstError;
+    }
     const dir = mkdtempSync(join(tmpdir(), 'webs-sign-'));
     const file = join(dir, 'key');
     try {
@@ -89,7 +116,12 @@ try {
 } catch (error) {
   const reason = error instanceof Error ? error.message : String(error);
   console.error(`UPDATE_PRIVATE_KEY inválida: ${reason}`);
-  console.error('Debe ser un PEM Ed25519: `-----BEGIN PRIVATE KEY-----` (PKCS#8) u OpenSSH.');
+  console.error('Debe ser una privada Ed25519 en PKCS#8, OpenSSH, o base64/hex de la semilla.');
+  process.exit(1);
+}
+
+if (privateKey.asymmetricKeyType !== 'ed25519') {
+  console.error(`UPDATE_PRIVATE_KEY no es Ed25519 (es ${privateKey.asymmetricKeyType ?? 'desconocido'}).`);
   process.exit(1);
 }
 
