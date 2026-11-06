@@ -3,6 +3,19 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.15.0] - 2026-11-06
+
+### Añadido
+
+- **Tienda completa (ecommerce)**: `POST /orders` (admite invitado, `userId` nulo), `GET /my-orders` con join orden/pago/factura/envío (sin N+1), `GET /orders` (admin ve todas, el resto las propias), `PATCH /orders/:id` con restock al cancelar, cupones (`POST /orders/:id/apply-coupon`), `GET /products/persisted` (catálogo público), `GET /shipping/quotes`, shipments y dashboard. Migración `0021_tienda_blog_licencias` (`users.phone`/`users.address`, `orders.currency`, `blog_posts.*`, `comments.postId`, `license_sales.paymentId`, `license_keys.activations`).
+- **Blog con slug, extracto y comentarios**: `plugins/blog` — slug único por organización, `excerpt`/`featuredImage`/`authorId`/`publishedAt`, `GET /posts` (array plano o paginado con `limit&offset`), `GET /posts/:slug` (solo `published`), `GET /posts/by-id/:id` (admin), `GET/POST /posts/:slug/comments`, saneado con `sanitizeHtml` en el render.
+- **Venta de licencias por checkout**: `metadata.kind='license'` + `metadata.fingerprint` → emisión idempotente por `paymentId` en el evento `payment.approved`; `POST /activate-key` con `400`/`404`/`409` y `limits.activations`.
+- **Teléfono y dirección en el perfil**: `PATCH /auth/me` (`phone` máx 32, `address` JSONB) y paso "completar datos" en el checkout.
+
+### Cambiado
+
+- **Checkout**: paso "completar datos" (teléfono/dirección) antes del pago; "Mis compras" y "vistos recientes" (localStorage) en el dashboard del usuario.
+
 ## [2.14.0] - 2026-11-06
 
 ### Añadido

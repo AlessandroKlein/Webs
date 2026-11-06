@@ -1,4 +1,4 @@
-# Backlog de producto — Webs v2.14.0+
+# Backlog de producto — Webs v2.15.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.

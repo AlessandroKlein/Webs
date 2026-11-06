@@ -56,6 +56,50 @@ Con `NODE_ENV=production`, `LICENSE_MODE=production` y sin clave, la API arranca
 con el núcleo y las rutas premium responden `404`. El log lista los módulos
 omitidos.
 
+`docker-compose.yml` trae un **par de desarrollo** (`LICENSE_PUBLIC_KEY` /
+`LICENSE_PRIVATE_KEY`, Ed25519 en PEM) para probar la compra y activación de
+una licencia de punta a punta en el stack local. **No va a producción**: la
+privada de ese par es pública (está en el repo) y emite claves que cualquiera
+podría generar; en producción hay que reemplazarlo por el par propio y cargar la
+privada como secreto, nunca embebida en la app del cliente.
+
+## Venta por checkout
+
+Una licencia se puede vender como cualquier producto del checkout: al crear el
+pago, el front envía `metadata: { kind: 'license', fingerprint: '…' }`. Cuando
+llega el evento `payment.approved`, el módulo de licencias:
+
+1. Si `metadata.kind === 'license'` (o trae `licensePlanId`), intenta emitir.
+2. Es **idempotente por `paymentId`**: si ya existe un `licenseSale` con ese
+   pago, no vuelve a emitir (un webhook repetido no duplica claves).
+3. Requiere `LICENSE_PRIVATE_KEY` (la del vendedor) **y** `metadata.fingerprint`
+   (la máquina destino). Si falta alguno, registra un warning y no emite.
+4. Emite la clave con `createActivationKey` de `@licensify/core` (firma Ed25519
+   + cifrado atado al fingerprint, node-locked) y crea el `licenseSale` + la
+   `licenseKey` (`status: active`).
+
+## Activar una clave (`activate-key`)
+
+`POST /api/v1/license/activate-key` (sin sesión), cuerpo
+`{ "activationKey": "…", "fingerprint": "…" }`. La activación se valida por
+máquina:
+
+| Resultado | Código | Motivo |
+|-----------|--------|--------|
+| Sin `LICENSE_PUBLIC_KEY` | `400` | `Licencias no configuradas` |
+| `verifyActivationKey` falla | `400` | `Clave inválida para esta máquina` (firma no corresponde al fingerprint) |
+| Clave no registrada | `404` | `Clave no registrada` |
+| `status !== 'active'` | `409` | `Clave revocada o inactiva` |
+| `activations` ya incluye el fingerprint | `200` | `{ ok, alreadyActive: true, activationsUsed, max }` |
+| `activations.length >= limits.activations` | `409` | `Límite de activaciones alcanzado` + `{ activationsUsed, max }` |
+| OK | `200` | `{ ok, alreadyActive: false, activationsUsed, max }` (agrega el fingerprint) |
+
+`limits.activations` vale `1` por defecto (una máquina por clave); la clave
+queda `node-locked` al primer fingerprint. Otras rutas: `GET/POST /sales`,
+`POST /keys` (emitir o registrar una clave CLI), `POST /keys/validate`,
+`POST /keys/:id/revoke`, `POST /activate`, `POST /deactivate`, `GET /`,
+`GET /features`, `GET /fingerprint`.
+
 ## Límites conocidos (siguientes fases)
 
 - La verificación es **offline** con firma; el binario on-prem siempre es

@@ -114,6 +114,10 @@ Además de este índice, el repositorio de documentación incluye:
   generador de APIs de acceso rápido, generador de SDK/API client, tickets de soporte,
   chat en tiempo real y ventana flotante, inventario completo M9, compositor social enriquecido M10,
   vista RAW/Code de actualizaciones M12, [ecosistema de repos](guides/ecosistema.md),
-  [terminales y lectores de código POS](guides/terminales-pos.md)).
+  [terminales y lectores de código POS](guides/terminales-pos.md),
+  [tienda, carrito y pedidos](guides/tienda.md), [blog](guides/blog.md),
+  [integración REST (Invernadero y SEMA)](guides/integracion-rest.md),
+  [eventos y alarmas IoT](guides/iot-eventos-alarmas.md),
+  [configuración versionada IoT](guides/iot-config-versionada.md)).
 - `docs/api/` — referencia de la API (visión general, flujo de autenticación, WebSocket,
   inventario).
