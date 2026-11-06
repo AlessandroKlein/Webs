@@ -92,7 +92,7 @@ Implementado en `apps/api` (t115):
 
 1. **Seed** — `apps/api/prisma/seed.ts:95-125` define `CORE_MENU_ITEMS` (22 ítems core,
    espejo de `AdminLayout.tsx` `navItems`): `label` = **clave i18n** (`nav.dashboard`,
-   `nav.content`, …), `path`, `section`, `order` 1-22, `feature` (`core` | `generator` para
+   `nav.pages`, …), `path`, `section`, `order` 1-22, `feature` (`core` | `generator` para
    `/admin/generated`) y `permissions`. Se siembra con
    `prisma.menu.upsert({ where: { key: 'main' }, ... })` (líneas 307-308).
 2. **API** — `apps/api/src/modules/menu/routes.ts` (132 líneas):

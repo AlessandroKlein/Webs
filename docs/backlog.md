@@ -1,13 +1,13 @@
-# Backlog de producto — Webs v2.13.0+
+# Backlog de producto — Webs v2.14.0+
 
 > Documento de Producto / Scrum Master. Consolida el brief de reescritura de la
 > plataforma **Webs** como base web universal, escalable y multi-tenant.
 >
-> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.13.0'`
+> - **Estado actual:** `apps/api/src/modules/system.ts` → `SYSTEM_VERSION = '2.14.0'`
 >   (**M1 v1.58.0** · **M2 v2.0.0** · **M3 v2.1.0** · **M4 v2.2.0** · **M5 v2.3.0**
 >   · **M6 v2.4.0** · **M7 v2.5.0** · **M8 v2.6.0** · **M9 v2.7.0** · **M10 v2.8.0**
 >   · **M11 v2.9.0** · **M12 v2.10.0** liberados; **M13 v2.11.0** en release).
->   Roadmap planificado hasta **v2.16.0**
+>   Roadmap planificado hasta **v2.18.0**
 >   (M18 — plugin de publicidad/ads: monetización).
 > - **Formato de aceptación:** Dado / Cuando / Entonces (Given/When/Then), medible.
 > - **Prioridad:** P0 = bloquea el lanzamiento · P1 = esperado en el milestone ·
@@ -1636,7 +1636,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 > categoría "contenido") para crear un catálogo de series y películas con embeds
 > de video multi-plataforma (oEmbed), botón de ver/descargar con enlaces
 > oficiales, y metadatos opcionales de terceros (TMDB/Wikipedia/Wikidata).
-> **M15 = v2.13.0.** Solo contenido con derechos o enlaces oficiales; **nunca**
+> **M15 = v2.15.0.** Solo contenido con derechos o enlaces oficiales; **nunca**
 > rip de contenido protegido ni scraping.
 
 #### WB-145 · P0 (M15) — ADR-0030 + spec del plugin videoteca — `t208`
@@ -1725,7 +1725,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 > **Alcance:** plugin de seguimiento de lo que ve cada usuario (réplica de
 > trakt.tv): historial de reproducción con `watched_at`, scrobble automático,
 > watchlist, favoritos, valoraciones, import/export y feature-gating de
-> suscripción (free/paid). **M16 = v2.14.0.** Almacenamiento compacto: catálogo
+> suscripción (free/paid). **M16 = v2.16.0.** Almacenamiento compacto: catálogo
 > compartido (ScreenWork/Season/Episode de M15) referenciado por ID entero; los
 > registros por usuario solo guardan `mediaId` + `watched_at` + `progress`
 > smallint(0-100) + `rating` tinyint + flags (nunca títulos duplicados). El
@@ -1802,14 +1802,14 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 - **Entonces** el tracking queda traducido (ES/EN/PT) sin strings hardcodeadas.
 - **Métrica:** paridad i18n en dashboard/estados/import-export.
 
-#### WB-162 · P1 (M16) — Docs + QA + release v2.14.0 — `t227`, `t228`, `t229`
+#### WB-162 · P1 (M16) — Docs + QA + release v2.16.0 — `t227`, `t228`, `t229`
 - **Dado** M16 completo en Docker,
 - **Cuando** corre la QA y se bumpa la versión,
 - **Entonces** el veredicto es **LIBERABLE** (modelo compacto, scrobble
   nativo+extensión, sync, import/export, feature-gating, i18n), `docs/` documenta
   el plugin, `CHANGELOG.md` se actualiza con `[2.14.0]`, `SYSTEM_VERSION` pasa a
-  `2.14.0` y se taggea `v2.14.0` con workflows verdes.
-- **Métrica:** QA LIBERABLE; tag `v2.14.0` público; CI/release ✓.
+  `2.16.0` y se taggea `v2.16.0` con workflows verdes.
+- **Métrica:** QA LIBERABLE; tag `v2.16.0` público; CI/release ✓.
 
 ---
 
@@ -1826,7 +1826,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 > 3. **Pulido de plugins** — los ~42 plugins aún no están 100% pulidos; ampliar y
 >    pulir cada UI hasta el estándar profesional.
 >
-> **M17 = v2.15.0.** El ADR-0032 + spec (t231) fija la política de visibilidad y el
+> **M17 = v2.17.0.** El ADR-0032 + spec (t231) fija la política de visibilidad y el
 > mapa sección↔plugin; t232–t238 implementan, pulean, verifican y publican.
 >
 > **Mapa de visibilidad sección/dato → plugin gatillante** (extraído de
@@ -1921,12 +1921,12 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
   regresión de M1–M16, con veredicto **LIBERABLE**.
 - **Métrica:** QA LIBERABLE; 0 regresiones bloqueantes.
 
-#### WB-170 · P1 (M17) — Release v2.15.0 — `t238`
+#### WB-170 · P1 (M17) — Release v2.17.0 — `t238`
 - **Dado** M17 completo y QA en verde,
-- **Cuando** se taggea `v2.15.0`,
+- **Cuando** se taggea `v2.17.0`,
 - **Entonces** `CHANGELOG.md` se actualiza con `[2.15.0]`, `SYSTEM_VERSION` pasa a
   `2.15.0` y el release se publica con workflows verdes.
-- **Métrica:** tag `v2.15.0` público; CI/release ✓.
+- **Métrica:** tag `v2.17.0` público; CI/release ✓.
 
 ---
 
@@ -1935,7 +1935,7 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 > **Alcance:** plugin `ads` (`@webs/plugin-ads`, categoría "monetización") para
 > monetizar la plataforma con publicidad de terceros y publicidad propia
 > (self-serve), con consentimiento GDPR/ePrivacy, tracking agregado anti-fraude y
-> multi-tenant. **M18 = v2.16.0.** El ADR-0033 + spec (t241) fija la arquitectura
+> multi-tenant. **M18 = v2.18.0.** El ADR-0033 + spec (t241) fija la arquitectura
 > (inyección de scripts, servidor de ads propio, CMP y modelo de datos);
 > t242–t251 implementan, pulean, verifican y publican.
 
@@ -2032,12 +2032,12 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
   legal, con regresión de M1–M17 y veredicto **LIBERABLE**.
 - **Métrica:** QA LIBERABLE; 0 regresiones bloqueantes.
 
-#### WB-181 · P1 (M18) — Release v2.16.0 — `t251`
+#### WB-181 · P1 (M18) — Release v2.18.0 — `t251`
 - **Dado** M18 completo y QA en verde,
-- **Cuando** se taggea `v2.16.0`,
+- **Cuando** se taggea `v2.18.0`,
 - **Entonces** `CHANGELOG.md` se actualiza con `[2.16.0]`, `SYSTEM_VERSION` pasa a
   `2.16.0` y el release se publica con workflows verdes.
-- **Métrica:** tag `v2.16.0` público; CI/release ✓.
+- **Métrica:** tag `v2.18.0` público; CI/release ✓.
 
 ---
 
@@ -2059,12 +2059,18 @@ ADR-0019 `t96` y se aplica en `t97`/`t98`):
 | **R12 — Escalabilidad** | **v2.9.0** ✓ | M11: WB-54→WB-62 — escalabilidad Kubernetes selectable (HPA configurable vs VPA Auto/Recommender/Initial, guarda de exclusión, visibilidad de estado, export YAML) desde `/admin/scaling`. |
 | **R13 — Actualizaciones** | **v2.10.0** | M12: WB-182→WB-188 — vista RAW/Code de los datos de actualización en `/admin/updates` (endpoint datos crudos manifest + changelog + archivos + checksums + firma en JSON/YAML, toggle Code/RAW con syntax highlight autohospedado + copiar/descargar, redacción de secretos, permiso `update.manage`). |
 | **R14 — IoT** | **v2.11.0** | M13: WB-78→WB-89 — serie temporal local (base separada `webs_iot` + modelo genérico de mediciones, retención/downsampling, consultas con agregación) + plugins `invernadero` (IP/URL + Bearer, control de actuadores) y `sema` (IP/URL + X-API-Key), UI de conexión mínima con test + dashboards con gráficos, multi-tenant + seguridad (token cifrado, SSRF-safe), i18n + docs + QA + release. |
-| **R15 — Experiencia pública** | **v2.13.0** | M14: WB-135→WB-144 — página de inicio (/) editable (hero/CTA como secciones + mejora de estilo), editor de bloques (GrapesJS) más intuitivo (paleta/preview/acciones/edición inline), header público configurable (menú `main` + dropdown `user`), selector de idioma en la cuenta del usuario (`/account`), ADR-0029 + i18n + docs + QA + release. |
-| **R16 — Videoteca** | **v2.14.0** | M15: WB-145→WB-153 — plugin `videoteca` para series y películas (catálogo + temporadas/episodios), embed de video multi-plataforma vía oEmbed + video propio, botón ver/descargar con enlaces oficiales (nunca rip), metadatos TMDB (clave por tenant) + Wikipedia/Wikidata + IDs externos (links salientes, sin scraping), ADR-0030 + i18n + docs + QA + release. |
-| **R17 — Tracking** | **v2.15.0** | M16: WB-154→WB-162 — plugin de seguimiento tipo Trakt (historial con `watched_at`, scrobble nativo + extensión de navegador Manifest V3, watchlist/favoritos/valoraciones, import/export CSV/JSON con dedupe por IDs, feature-gating free/paid, catálogo compacto por ID sin duplicar metadatos), ADR-0031 + i18n + docs + QA + release. |
-| **R18 — Pulido profesional** | **v2.16.0** | M17: WB-163→WB-170 — pulido profesional de dashboard/admin/públicas + UI de los ~42 plugins, visibilidad condicional por plugin (sección/dato oculto si no está instalado), pulido de plugins, ADR-0032 + i18n + QA + release. |
-| **R19 — Publicidad/Ads** | **v2.17.0** | M18: WB-171→WB-181 — plugin de publicidad (AdSense/Ad Manager + script genérico, self-serve con campañas/creatividades/targeting/rotación, ubicaciones incl. preroll/midroll de videoteca M15, tracking agregado anti-fraude, consentimiento CMP/IAB TCF v2.2, multi-tenant, admin /admin/ads, i18n, legal, QA y release). |
-| **R20 — Backlog** | **v2.18.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
+| **R15 — Experiencia pública** | **v2.14.0 (parcial)** | M14: WB-135→WB-144 — editor de bloques propio tipo WordPress (sin GrapesJS) entregado en v2.14.0; quedan home editable (hero/CTA como secciones), header público configurable (menú `main` + dropdown `user`) y selector de idioma en `/account`. ADR-0029 + i18n + docs + QA. |
+| **R16 — Videoteca** | **v2.15.0** | M15: WB-145→WB-153 — plugin `videoteca` para series y películas (catálogo + temporadas/episodios), embed de video multi-plataforma vía oEmbed + video propio, botón ver/descargar con enlaces oficiales (nunca rip), metadatos TMDB (clave por tenant) + Wikipedia/Wikidata + IDs externos (links salientes, sin scraping), ADR-0030 + i18n + docs + QA + release. |
+| **R17 — Tracking** | **v2.16.0** | M16: WB-154→WB-162 — plugin de seguimiento tipo Trakt (historial con `watched_at`, scrobble nativo + extensión de navegador Manifest V3, watchlist/favoritos/valoraciones, import/export CSV/JSON con dedupe por IDs, feature-gating free/paid, catálogo compacto por ID sin duplicar metadatos), ADR-0031 + i18n + docs + QA + release. |
+| **R18 — Pulido profesional** | **v2.17.0** | M17: WB-163→WB-170 — pulido profesional de dashboard/admin/públicas + UI de los ~42 plugins, visibilidad condicional por plugin (sección/dato oculto si no está instalado), pulido de plugins, ADR-0032 + i18n + QA + release. |
+| **R19 — Publicidad/Ads** | **v2.18.0** | M18: WB-171→WB-181 — plugin de publicidad (AdSense/Ad Manager + script genérico, self-serve con campañas/creatividades/targeting/rotación, ubicaciones incl. preroll/midroll de videoteca M15, tracking agregado anti-fraude, consentimiento CMP/IAB TCF v2.2, multi-tenant, admin /admin/ads, i18n, legal, QA y release). |
+| **R20 — Backlog** | **v2.19.0+** | Backlog continuo: hardening del anti-reverse-engineering, auto-scaling fino por métricas custom (KEDA), más proveedores OAuth2, más idiomas (FR/DE/IT), empaquetado de stores (iOS/Android). |
+
+> **Realineación de versiones (2026-11-06).** Los releases reales fueron **v2.12.0**
+> (eventos/alarmas IoT + menú de administración), **v2.13.0** (configuración versionada
+> de dispositivos) y **v2.14.0** (editor de bloques, CRM, licencias, pedidos y PWA).
+> Por eso los hitos pendientes se corren una versión: Videoteca **v2.15.0**, Tracking
+> **v2.16.0**, Pulido **v2.17.0**, Ads **v2.18.0**, Backlog **v2.19.0+**.
 
 **Criterio de corte entre R1 y R2:** R1 sale solo con P0/P1 de M1 en verde
 (typecheck + release ✓) y sin bugs bloqueantes (B1, B2 corregidos). R3 es un
@@ -2250,7 +2256,7 @@ básico, manteniendo el contrato multi-tenant fail-closed y sin romper tienda/PO
 | t226-i18n-m16 | WB-161 |
 | t227-docs-m16 | WB-162 (docs) |
 | t228-qa-m16 | WB-162 (QA) |
-| t229-release-m16 | WB-162 (release v2.14.0) |
+| t229-release-m16 | WB-162 (release v2.16.0) |
 | t230-backlog-m17 | WB-163→WB-170 (este documento) |
 | t231-adr-m17 | WB-163 (ADR-0032 + spec + mapa sección↔plugin) |
 | t232-visibilidad-backend | WB-164 |

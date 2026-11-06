@@ -1,11 +1,11 @@
-# Builder visual de páginas (GrapesJS)
+# Builder visual de páginas (bloques)
 
 ## Resumen
 
-Webs resuelve el bug histórico «páginas no personalizables» con un **builder visual**
-basado en **GrapesJS** (licencia MIT, autoalojado, sin servicio externo). El editor vive en
-el panel de administración (`/admin/editor`) y persiste el contenido estructurado de una
-página en `Page.layout` (Json), que es la **única fuente de verdad** del contenido.
+Webs resuelve «páginas no personalizables» con un **editor de bloques** propio (estilo
+Gutenberg) en `/admin/pages`, que persiste el contenido estructurado de una página en
+`Page.layout` (Json), la **única fuente de verdad** del contenido. La guía de uso está en
+[`docs/guides/editor-paginas.md`](../guides/editor-paginas.md).
 
 Decisión registrada en [ADR-0011](../adr/0011-page-builder.md).
 
@@ -54,23 +54,21 @@ model Page {
 ]
 ```
 
-La serialización real del editor usa atributos `data-ws-*` en el lienzo para mapear
-elementos ↔ `PageSection[]`/`PageItem`.
+El editor manipula directamente `PageSection[]`/`PageElement[]` (sin DOM intermedio) y
+renderiza con el mismo `PageRenderer` que el sitio público.
 
 ## Editor visual
 
-- `apps/web/src/features/editor/GrapesEditor.tsx` — bridge React ↔ GrapesJS
-  (`forwardRef`), con `storageManager: false` (no persiste en el navegador; la fuente de
-  verdad es la API).
-- `apps/web/src/features/editor/EditorPage.tsx` — listado de páginas, selector de **home**
-  y botón **Guardar** (vista en vivo con `PageLayoutView`).
-- Ruta: `/admin/editor` (`App.tsx`), ítem de menú «Editor visual» (permiso
-  `content.write`).
+- `apps/web/src/features/pages/PagesPage.tsx` — listado y editor: top bar, lienzo,
+  inserter de bloques, inspector y previsualización responsive.
+- `apps/web/src/features/pages/{BlockCanvas,BlockInserter,BlockInspector}.tsx` y
+  `useBlockHistory.ts` — lienzo, catálogo, panel de propiedades y undo/redo.
+- Ruta: `/admin/pages` (permiso `content.write`); `/admin/editor` redirige allí.
 - Bloques disponibles en el lienzo (drag & drop):
   - **Secciones**: `full`, `half`, `third`.
   - **Elementos nativos**: heading, text, image, divider, spacer, html.
   - **Un bloque por plugin instalado** (cada plugin puede aportar su bloque al editor).
-- Dependencia: `grapesjs ^0.23.8`.
+- Sin dependencia de builder externo: GrapesJS se retiró del proyecto.
 
 ## Guardado
 

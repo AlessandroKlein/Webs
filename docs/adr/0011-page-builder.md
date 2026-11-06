@@ -1,5 +1,10 @@
 # ADR-0011: Builder visual de páginas (GrapesJS)
 
+> **Nota (2026-11-06):** decisión supersedida en la implementación. El builder GrapesJS
+> se retiró y `/admin/editor` redirige a `/admin/pages`, donde vive un editor de bloques
+> propio (estilo Gutenberg). Ver [`docs/guides/editor-paginas.md`](../guides/editor-paginas.md).
+
+
 - **Estado:** Aceptado
 - **Fecha:** 2026 (refactorización global de Webs, Milestone 2)
 - **Decisión:** Adoptar **GrapesJS** (MIT) como *builder visual* de páginas **autoalojado y sin

@@ -5,12 +5,13 @@ import bcrypt from 'bcryptjs';
 import type { FastifyInstance } from 'fastify';
 import { ForbiddenError } from '@webs/core';
 import { appDir } from '../lib/paths';
+import { compareVersions } from '../lib/semver';
 import { readState } from '../lib/state';
 
 const execFileAsync = promisify(execFile);
 
 /** Versión del sistema (se actualiza en cada release). */
-export const SYSTEM_VERSION = '2.13.0';
+export const SYSTEM_VERSION = '2.14.0';
 
 export default async function systemRoutes(fastify: FastifyInstance): Promise<void> {
   // Versión actual + última disponible (desde GitHub Releases).
@@ -30,7 +31,7 @@ export default async function systemRoutes(fastify: FastifyInstance): Promise<vo
       } catch {
         /* offline */
       }
-      return { version: SYSTEM_VERSION, latest, hasUpdate: latest !== SYSTEM_VERSION };
+      return { version: SYSTEM_VERSION, latest, hasUpdate: compareVersions(latest, SYSTEM_VERSION) > 0 };
     },
   );
 

@@ -1,5 +1,10 @@
 # ADR-0029: Experiencia pública editable (home, editor y header configurables)
 
+> **Nota (2026-11-06):** la mención al editor GrapesJS quedó desactualizada; el editor
+> vigente es el de bloques en `/admin/pages`.
+> Ver [`docs/guides/editor-paginas.md`](../guides/editor-paginas.md).
+
+
 - **Estado:** Aceptado
 - **Fecha:** 2026 (Milestone 14 — v2.12.0)
 - **Decisión:** Convertir la landing `/` en una composición 100 % editable del `Page.layout` (nuevo tipo de sección `hero` y nuevos elementos `button`/`featured`), hacer el editor GrapesJS más intuitivo (paleta con búsqueda, preview fiel, duplicar/borrar y edición inline) y hacer configurable el header público (menú `main` editable desde `/admin/menu` + dropdown de usuario con clave `user`). El selector de idioma se mantiene fuera del header (solo `/account` y `/admin`).

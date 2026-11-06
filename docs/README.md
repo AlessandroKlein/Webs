@@ -16,7 +16,7 @@ Este directorio describe la *arquitectura* del sistema. Para guías operativas (
 | [Autenticación y RBAC](architecture/auth-rbac.md) | JWT de acceso + refresh token opaco, flujo de sesión y permisos por rol. |
 | [Configuración y temas](architecture/settings-theming.md) | Secciones de ajustes, formularios auto-generados (SchemaForm) y sistema de temas. |
 | [Internacionalización](architecture/i18n.md) | i18next, locales base, sobrescritura desde UI y traducciones de plugins. |
-| [Builder visual de páginas](architecture/page-builder.md) | GrapesJS autoalojado: editor `/admin/editor`, `Page.layout`, `POST /api/v1/pages/save` y página de inicio configurable. |
+| [Builder visual de páginas](architecture/page-builder.md) | Editor de bloques en `/admin/pages`, `Page.layout`, `POST /api/v1/pages/save` y página de inicio configurable. |
 | [Escalabilidad](architecture/scalability.md) | API stateless, Redis, PostgreSQL, contenedores, rate limiting y observabilidad. |
 | [Licencias locales (Licensify)](architecture/licensing-integration.md) | Módulo `apps/api/src/modules/licenses`: activación offline, node-locking, feature-gating, modelo de venta y anti-reloj. |
 | [Claves de licencia para la venta](architecture/claves-de-venta.md) | **Spec**: generación/validación/revocación de claves de activación (`LicenseSale`/`LicenseKey`), flujo de venta local y offline (sin servidor ni pasarela de pago). |

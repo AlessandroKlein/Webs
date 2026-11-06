@@ -3,6 +3,32 @@
 Las versiones siguen [SemVer](https://semver.org/lang/es/). Formato basado en
 [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 
+## [2.14.0] - 2026-11-06
+
+### Añadido
+
+- **Editor de páginas tipo WordPress (sin GrapesJS)**: `features/pages/{useBlockHistory,BlockInserter,BlockInspector,BlockCanvas}` y `PagesPage` reescrito con canvas, insertador, inspector e historial de bloques; `pageTypes` con `LAYOUT_SCHEMA_VERSION=2`. Se eliminó `grapesjs` y el editor `GrapesEditor`.
+- **CRM (plugin nuevo)**: `plugins/crm` con modelos `crm_contacts`/`crm_companies`/`crm_deals`/`crm_activities` (migración `0018_crm`), pipeline de deals con etapas fijas (`prospecting`/`qualified`/`proposal`/`negotiation`/`won`/`lost`), `amount` Int en centavos, permisos y UI en `features/crm`.
+- **Pedidos vinculados a usuarios y pagos**: migración `0019_order_user_payment` — `Order.userId` (FK `users`) y `Payment.orderId` (FK `orders`), aditiva y sin backfill (el vínculo vive en `Payment.orderId`, sin duplicar `Order.paymentId`); `POST /orders` autenticado, `GET /orders?mine=1` y pago aprobado → orden `paid` por listener idempotente.
+- **PWA instalable**: `apps/web/public/{manifest.webmanifest, sw.js, iconos}`, registro del service worker en `main.tsx` y metadatos en `index.html`.
+
+### Cambiado
+
+- **Menú sin duplicados**: se quitaron `/admin/content` y `/admin/editor` (rutas → redirect a `/admin/pages`), se borraron `features/content` y `features/editor`, gate por plugin ACTIVO (`enabled !== false`) y `requiresPlugin` en invernadero/sema/branches; `templates` pasa a la sección apariencia.
+- **Licensify con gate real por feature**: `gate()` en `app.ts` (los módulos premium no se montan si la feature no está licenciada; el núcleo —auth, páginas, contenido, usuarios, media, ajustes— sigue operativo) y `loader.ts` fail-closed (plugin con `manifest.feature` no licenciada no se monta).
+- **i18n**: ~630 claves nuevas en es/en/pt (dos pasadas) y `scripts/qa-i18n-coverage.mjs` como gate de cobertura.
+- **UI**: `PageHeader` + `SegmentedControl` en sub-navs, `fullWidth`/`flex-1`/variantes en ~20 páginas, responsive ≤600px y dashboard sin estilos inline.
+
+### Corregido
+
+- **`hasUpdate` con comparación semver real** (`compareVersions` numérica en `update/service.ts`): la comparación de strings daba falsos positivos; ahora `latest > SYSTEM_VERSION` por `x.y.z`.
+- **`PaymentsPage` status undefined**: el estado del pago se muestra correctamente.
+
+### Seguridad
+
+- **`LICENSE_MODE` con guard de producción**: `env.ts` rechaza arrancar con `NODE_ENV=production` + `LICENSE_MODE=dev`; `docker-compose.yml` fija `NODE_ENV=development` + `LICENSE_MODE=dev` para pruebas locales; test `license-gate.test.ts`.
+- **`POST /orders` autenticado y `GET /orders?mine=1`**: cada pedido queda vinculado a su `userId` y un no-admin solo ve los suyos.
+
 ## [2.13.0] - 2026-11-05
 
 ### Añadido

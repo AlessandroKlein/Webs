@@ -32,7 +32,7 @@ licencia `configured && active` y el flag presente en `state.features`.
 
 | Menú admin (AdminLayout `navItems`) | Plugins | Dashboard |
 |--------------------------------------|---------|-----------|
-| `/admin` (dashboard), `/admin/content`, `/admin/pages`, `/admin/editor`, `/admin/users`, `/admin/roles`, `/admin/audit`, `/admin/settings`, `/admin/appearance`, `/admin/translations`, `/admin/menu`, `/admin/api-tokens`, `/admin/email`, `/admin/support`, `/admin/updates`, `/admin/license`, `/admin/license/keys` | `register`, `social-login`, `blog`, `documentos`, `formularios`, `mapa`, `chat`, `notificaciones`, `push`, `twilio`, `comments`, `social`, `support`, `search`, `seo`, `calendario`, `reservas`, `workflows`, `storage-s3`, `afiliados`, `marketing`, `example` | `users`, `content`, `installedPlugins` (blocks), `roles`, `pages`, `media`, `activeSessions`, `email` |
+| `/admin` (dashboard), `/admin/pages`, `/admin/users`, `/admin/roles`, `/admin/audit`, `/admin/settings`, `/admin/appearance`, `/admin/translations`, `/admin/menu`, `/admin/api-tokens`, `/admin/email`, `/admin/support`, `/admin/updates`, `/admin/license`, `/admin/license/keys` | `register`, `social-login`, `blog`, `documentos`, `formularios`, `mapa`, `chat`, `notificaciones`, `push`, `twilio`, `comments`, `social`, `support`, `search`, `seo`, `calendario`, `reservas`, `workflows`, `storage-s3`, `afiliados`, `marketing`, `example` | `users`, `content`, `installedPlugins` (blocks), `roles`, `pages`, `media`, `activeSessions`, `email` |
 
 ### `payments` — Pagos
 

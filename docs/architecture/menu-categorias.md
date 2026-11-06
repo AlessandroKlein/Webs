@@ -10,7 +10,7 @@
 
 Hoy el menú de `/admin` ya está **agrupado por secciones** con submenús e iconos.
 El frontend (`apps/web/src/layouts/AdminLayout.tsx`) declara una lista única
-`navItems` de **37 ítems core** (líneas 251-297) y le suma los ítems declarados
+`navItems` de **35 ítems core** y le suma los ítems declarados
 por plugins instalados (vía `GET /api/v1/menu`, con `id`, `section`, `icon`,
 `order`, `parent`, `permissions`). `buildTree` anida los ítems por `parent`
 (submenús) y `iconClass` normaliza los iconos a bootstrap-icons (`bi bi-*`);
@@ -37,22 +37,20 @@ clasificación explícito**, reutilizando el campo `section` que ya existe en
 
 ## Clasificación de los ítems actuales
 
-### Ítems core (`navItems`, 37 ítems)
+### Ítems core (`navItems`, 35 ítems)
 
 | Ítem (`to`) | Permiso | Sección | Icono | Padre (submenú) |
 |-------------|---------|---------|-------|-----------------|
 | `/admin` | — | `panel` | — | — |
 | `/admin/analytics` | — | `panel` | `graph-up` | — |
-| `/admin/content` | `content.read` | `contenido` | `collection` | — |
 | `/admin/pages` | `content.read` | `contenido` | `file-earmark-text` | — |
-| `/admin/editor` | `content.write` | `contenido` | `pencil-square` | — |
 | `/admin/blog` | — | `contenido` | `journal-text` | — |
 | `/admin/forms` | — | `contenido` | `input-cursor-text` | — |
 | `/admin/payments` | `user.read` | `ventas` | `credit-card` | — |
 | `/admin/commerce` | — | `ventas` | `bag` | — |
 | `/admin/invoices` | — | `ventas` | `receipt` | — |
 | `/admin/invoices/template` | — | `ventas` | `layout-text-window-reverse` | `/admin/invoices` |
-| `/admin/inventory` | — | `ventas` | `box-seam` | — |
+| `/admin/inventory` | `inventory.read` | `ventas` | `box-seam` | — |
 | `/admin/email` | `email.read` | `comunicacion` | `envelope` | — |
 | `/admin/notifications` | — | `comunicacion` | `bell` | — |
 | `/admin/support` | `support.read` | `comunicacion` | `headset` | — |
@@ -68,7 +66,7 @@ clasificación explícito**, reutilizando el campo `section` que ya existe en
 | `/admin/api-tokens` | — | `integraciones` | `key` | — |
 | `/admin/auth` | — | `integraciones` | `shield-lock` | — |
 | `/admin/settings` | `setting.read` | `configuracion` | `gear` | — |
-| `/admin/templates` | `setting.write` | `configuracion` | `files` | — |
+| `/admin/templates` | `setting.write` | `apariencia` | `files` | — |
 | `/admin/branches` | — | `configuracion` | `diagram-3` | — |
 | `/admin/organizations` | — | `configuracion` | `building` | — |
 | `/admin/updates` | `setting.read` | `configuracion` | `arrow-repeat` | — |
@@ -79,7 +77,9 @@ clasificación explícito**, reutilizando el campo `section` que ya existe en
 | `/admin/roles` | `role.read` | `usuarios` | `person-badge` | `/admin/users` |
 | `/admin/audit` | `audit.read` | `usuarios` | `shield-check` | — |
 
-Submenús: `invoices → template`, `license → keys`, `users → roles`. El ítem
+Submenús: `invoices → template`, `license → keys`, `users → roles`. El CMS legado
+(`/admin/content`) y el editor GrapesJS (`/admin/editor`) se retiraron: ambas rutas
+redirigen a `/admin/pages`, que es la única superficie de edición de páginas. El ítem
 `/admin/generated` está gateado por `feature: generator` (t97); los ítems con
 `feature` premium se ocultan sin la licencia correspondiente. `PLUGIN_MANAGEMENT_PATHS`
 (`/admin/plugins`) se oculta cuando no hay plugins instalados.
