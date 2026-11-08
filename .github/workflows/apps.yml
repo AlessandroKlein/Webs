@@ -43,7 +43,7 @@ jobs:
         run: pnpm --filter @webs/desktop dist
 
       - name: Subir artefactos
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: webs-desktop
           path: apps/desktop/release/*
